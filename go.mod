@@ -23,6 +23,7 @@ require (
 	golang.org/x/sys v0.0.0-20210903071746-97244b99971b
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/yaml.v2 v2.4.0
 	h12.io/socks v1.0.3
 	inet.af/netaddr v0.0.0-20210903134321-85fa6c94624e
 )
