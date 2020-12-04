@@ -1,5 +1,5 @@
-//go:build !linux && !freebsd && !confonly
-// +build !linux,!freebsd,!confonly
+//go:build !linux && !freebsd
+// +build !linux,!freebsd
 
 package tcp
 

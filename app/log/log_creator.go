@@ -1,6 +1,3 @@
-//go:build !confonly
-// +build !confonly
-
 package log
 
 import (
