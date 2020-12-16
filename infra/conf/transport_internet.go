@@ -318,6 +318,10 @@ type TLSConfig struct {
 	EnableSessionResumption          bool                  `json:"enableSessionResumption"`
 	DisableSystemRoot                bool                  `json:"disableSystemRoot"`
 	PinnedPeerCertificateChainSha256 *[]string             `json:"pinnedPeerCertificateChainSha256"`
+	MinVersion                       string                `json:"minVersion"`
+	MaxVersion                       string                `json:"maxVersion"`
+	CipherSuites                     string                `json:"cipherSuites"`
+	PreferServerCipherSuites         bool                  `json:"preferServerCipherSuites"`
 }
 
 // Build implements Buildable.
@@ -353,6 +357,10 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 		}
 	}
 
+	config.MinVersion = c.MinVersion
+	config.MaxVersion = c.MaxVersion
+	config.CipherSuites = c.CipherSuites
+	config.PreferServerCipherSuites = c.PreferServerCipherSuites
 	return config, nil
 }
 
