@@ -48,4 +48,16 @@ message Config {
      @Critical
   */
   repeated bytes pinned_peer_certificate_chain_sha256 = 7;
+
+  // The minimum TLS version.
+  string min_version = 8;
+
+  // The maximum TLS version.
+  string max_version = 9;
+
+  // Specify cipher suites, except for TLS 1.3.
+  string cipher_suites = 10;
+
+  // Whether the server selects its most preferred ciphersuite.
+  bool prefer_server_cipher_suites = 11;
 }

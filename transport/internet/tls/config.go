@@ -238,6 +238,42 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 		config.NextProtos = []string{"h2", "http/1.1"}
 	}
 
+	switch c.MinVersion {
+	case "1.0":
+		config.MinVersion = tls.VersionTLS10
+	case "1.1":
+		config.MinVersion = tls.VersionTLS11
+	case "1.2":
+		config.MinVersion = tls.VersionTLS12
+	case "1.3":
+		config.MinVersion = tls.VersionTLS13
+	}
+
+	switch c.MaxVersion {
+	case "1.0":
+		config.MaxVersion = tls.VersionTLS10
+	case "1.1":
+		config.MaxVersion = tls.VersionTLS11
+	case "1.2":
+		config.MaxVersion = tls.VersionTLS12
+	case "1.3":
+		config.MaxVersion = tls.VersionTLS13
+	}
+
+	if len(c.CipherSuites) > 0 {
+		id := make(map[string]uint16)
+		for _, s := range tls.CipherSuites() {
+			id[s.Name] = s.ID
+		}
+		for _, n := range strings.Split(c.CipherSuites, ":") {
+			if id[n] != 0 {
+				config.CipherSuites = append(config.CipherSuites, id[n])
+			}
+		}
+	}
+
+	config.PreferServerCipherSuites = c.PreferServerCipherSuites
+
 	return config
 }
 
