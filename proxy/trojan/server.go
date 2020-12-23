@@ -235,13 +235,19 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 func (s *Server) handleUDPPayload(ctx context.Context, clientReader *PacketReader, clientWriter *PacketWriter, dispatcher routing.Dispatcher) error {
 	udpServer := udp.NewDispatcher(dispatcher, func(ctx context.Context, packet *udp_proto.Packet) {
-		if err := clientWriter.WriteMultiBufferWithMetadata(buf.MultiBuffer{packet.Payload}, packet.Source); err != nil {
+		payload := packet.Payload
+		if payload.Endpoint == nil {
+			payload.Endpoint = &packet.Source
+		}
+		if err := clientWriter.WriteMultiBuffer(buf.MultiBuffer{payload}); err != nil {
 			newError("failed to write response").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 		}
 	})
 
 	inbound := session.InboundFromContext(ctx)
 	user := inbound.User
+
+	var dest *net.Destination
 
 	for {
 		select {
@@ -265,8 +271,12 @@ func (s *Server) handleUDPPayload(ctx context.Context, clientReader *PacketReade
 			})
 			newError("tunnelling request to ", p.Target).WriteToLog(session.ExportIDToError(ctx))
 
+			if dest == nil {
+				dest = &p.Target
+			}
+
 			for _, b := range p.Buffer {
-				udpServer.Dispatch(ctx, p.Target, b)
+				udpServer.Dispatch(ctx, *dest, b)
 			}
 		}
 	}
