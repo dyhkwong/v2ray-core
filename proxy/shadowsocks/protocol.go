@@ -250,11 +250,13 @@ func (v *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		buffer.Release()
 		return nil, err
 	}
-	_, payload, err := DecodeUDPPacket(v.User, buffer)
+	vaddr, payload, err := DecodeUDPPacket(v.User, buffer)
 	if err != nil {
 		buffer.Release()
 		return nil, err
 	}
+	dest := vaddr.Destination()
+	payload.Endpoint = &dest
 	return buf.MultiBuffer{payload}, nil
 }
 
@@ -280,15 +282,33 @@ type UDPWriter struct {
 	Request *protocol.RequestHeader
 }
 
-// Write implements io.Writer.
-func (w *UDPWriter) Write(payload []byte) (int, error) {
-	packet, err := EncodeUDPPacket(w.Request, payload)
-	if err != nil {
-		return 0, err
+func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	for _, buffer := range mb {
+		if buffer == nil {
+			continue
+		}
+		request := w.Request
+		if buffer.Endpoint != nil {
+			request = &protocol.RequestHeader{
+				User:    w.Request.User,
+				Address: buffer.Endpoint.Address,
+				Port:    buffer.Endpoint.Port,
+			}
+		}
+		packet, err := EncodeUDPPacket(request, buffer.Bytes())
+		buffer.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
+		_, err = w.Writer.Write(packet.Bytes())
+		packet.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
 	}
-	_, err = w.Writer.Write(packet.Bytes())
-	packet.Release()
-	return len(payload), err
+	return nil
 }
 
 func (w *UDPWriter) WriteTo(payload []byte, addr gonet.Addr) (n int, err error) {

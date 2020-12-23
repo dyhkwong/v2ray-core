@@ -100,11 +100,15 @@ type PacketWriter struct {
 
 // WriteMultiBuffer implements buf.Writer
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
-	b := make([]byte, maxLength)
-	for !mb.IsEmpty() {
-		var length int
-		mb, length = buf.SplitBytes(mb, b)
-		if _, err := w.writePacket(b[:length], w.Target); err != nil {
+	for _, buffer := range mb {
+		if buffer == nil {
+			continue
+		}
+		target := &w.Target
+		if buffer.Endpoint != nil {
+			target = buffer.Endpoint
+		}
+		if _, err := w.writePacket(buffer.Bytes(), *target); err != nil {
 			buf.ReleaseMulti(mb)
 			return err
 		}
@@ -115,11 +119,11 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 
 // WriteMultiBufferWithMetadata writes udp packet with destination specified
 func (w *PacketWriter) WriteMultiBufferWithMetadata(mb buf.MultiBuffer, dest net.Destination) error {
-	b := make([]byte, maxLength)
-	for !mb.IsEmpty() {
-		var length int
-		mb, length = buf.SplitBytes(mb, b)
-		if _, err := w.writePacket(b[:length], dest); err != nil {
+	for _, buffer := range mb {
+		if buffer == nil {
+			continue
+		}
+		if _, err := w.writePacket(buffer.Bytes(), dest); err != nil {
 			buf.ReleaseMulti(mb)
 			return err
 		}
@@ -267,6 +271,7 @@ func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
 		}
 
 		b := buf.New()
+		b.Endpoint = &dest
 		mb = append(mb, b)
 		n, err := b.ReadFullFrom(r, int32(length))
 		if err != nil {

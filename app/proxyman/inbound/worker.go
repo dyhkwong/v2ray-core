@@ -352,7 +352,7 @@ func (w *udpWorker) clean() error {
 	}
 
 	for addr, conn := range w.activeConn {
-		if nowSec-atomic.LoadInt64(&conn.lastActivityTime) > 8 { // TODO Timeout too small
+		if nowSec-atomic.LoadInt64(&conn.lastActivityTime) > 300 {
 			if !conn.inactive {
 				conn.setInactive()
 				delete(w.activeConn, addr)
@@ -377,7 +377,7 @@ func (w *udpWorker) Start() error {
 	}
 
 	w.checker = &task.Periodic{
-		Interval: time.Second * 16,
+		Interval: time.Minute,
 		Execute:  w.clean,
 	}
 
