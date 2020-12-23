@@ -17,6 +17,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
+	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/transport"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 )
@@ -108,13 +109,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("target not specified.")
 	}
 	destination := outbound.Target
+	udpOverride := net.UDPDestination(nil, 0)
 	if h.config.DestinationOverride != nil {
 		server := h.config.DestinationOverride.Server
 		if isValidAddress(server.Address) {
 			destination.Address = server.Address.AsAddress()
+			udpOverride.Address = destination.Address
 		}
 		if server.Port != 0 {
 			destination.Port = net.Port(server.Port)
+			udpOverride.Port = destination.Port
 		}
 	}
 	newError("opening connection to ", destination).WriteToLog(session.ExportIDToError(ctx))
@@ -160,7 +164,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		if destination.Network == net.Network_TCP {
 			writer = buf.NewWriter(conn)
 		} else {
-			writer = &buf.SequentialWriter{Writer: conn}
+			writer = NewPacketWriter(ctx, h, conn, udpOverride)
 		}
 
 		if err := buf.Copy(input, writer, buf.UpdateActivity(timer)); err != nil {
@@ -177,7 +181,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		if destination.Network == net.Network_TCP {
 			reader = buf.NewReader(conn)
 		} else {
-			reader = buf.NewPacketReader(conn)
+			reader = NewPacketReader(conn, udpOverride)
 		}
 		if err := buf.Copy(reader, output, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to process response").Base(err)
@@ -190,5 +194,121 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("connection ends").Base(err)
 	}
 
+	return nil
+}
+
+func NewPacketReader(conn net.Conn, udpOverride net.Destination) buf.Reader {
+	iConn := conn
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
+		iConn = statConn.Connection
+	}
+	var counter stats.Counter
+	if statConn != nil {
+		counter = statConn.ReadCounter
+	}
+	if c, ok := iConn.(*internet.PacketConnWrapper); ok && udpOverride.Address == nil && udpOverride.Port == 0 {
+		return &PacketReader{
+			conn:    c,
+			counter: counter,
+		}
+	}
+	return &buf.PacketReader{Reader: conn}
+}
+
+type PacketReader struct {
+	conn   *internet.PacketConnWrapper
+	counter stats.Counter
+}
+
+func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	b := buf.New()
+	b.Resize(0, buf.Size)
+	n, d, err := r.conn.ReadFrom(b.Bytes())
+	if err != nil {
+		b.Release()
+		return nil, err
+	}
+	b.Resize(0, int32(n))
+	b.UDP = &net.Destination{
+		Address: net.IPAddress(d.(*net.UDPAddr).IP),
+		Port:    net.Port(d.(*net.UDPAddr).Port),
+		Network: net.Network_UDP,
+	}
+	if r.counter != nil {
+		r.counter.Add(int64(n))
+	}
+	return buf.MultiBuffer{b}, nil
+}
+
+func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, udpOverride net.Destination) buf.Writer {
+	iConn := conn
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
+		iConn = statConn.Connection
+	}
+	var counter stats.Counter
+	if statConn != nil {
+		counter = statConn.WriteCounter
+	}
+	if c, ok := iConn.(*internet.PacketConnWrapper); ok {
+		return &PacketWriter{
+			ctx:         ctx,
+			handler:     h,
+			conn:        c,
+			counter:     counter,
+			udpOverride: udpOverride,
+		}
+	}
+	return &buf.SequentialWriter{Writer: conn}
+}
+
+type PacketWriter struct {
+	ctx     context.Context
+	handler *Handler
+	conn    *internet.PacketConnWrapper
+	counter stats.Counter
+
+	udpOverride net.Destination
+}
+
+func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	for _, b := range mb {
+		if b == nil {
+			continue
+		}
+		var n int
+		var err error
+		if b.UDP != nil {
+			if w.udpOverride.Address != nil {
+				b.UDP.Address = w.udpOverride.Address
+			}
+			if w.udpOverride.Port != 0 {
+				b.UDP.Port = w.udpOverride.Port
+			}
+			if w.handler.config.useIP() && b.UDP.Address.Family().IsDomain() {
+				ip := w.handler.resolveIP(w.ctx, b.UDP.Address.Domain(), nil)
+				if ip != nil {
+					b.UDP.Address = ip
+				}
+			}
+			destAddr, _ := net.ResolveUDPAddr("udp", b.UDP.NetAddr())
+			if destAddr == nil {
+				b.Release()
+				continue
+			}
+			n, err = w.conn.WriteTo(b.Bytes(), destAddr)
+		} else {
+			n, err = w.conn.Write(b.Bytes())
+		}
+		b.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
+		if w.counter != nil {
+			w.counter.Add(int64(n))
+		}
+	}
 	return nil
 }

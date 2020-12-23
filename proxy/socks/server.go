@@ -194,6 +194,15 @@ func (s *Server) handleUDPPayload(ctx context.Context, conn internet.Connection,
 		if request == nil {
 			return
 		}
+
+		if payload.UDP != nil {
+			request = &protocol.RequestHeader{
+				User:    request.User,
+				Address: payload.UDP.Address,
+				Port:    payload.UDP.Port,
+			}
+		}
+
 		udpMessage, err := EncodeUDPPacket(request, payload.Bytes())
 		payload.Release()
 
@@ -208,6 +217,8 @@ func (s *Server) handleUDPPayload(ctx context.Context, conn internet.Connection,
 	if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Source.IsValid() {
 		newError("client UDP connection from ", inbound.Source).WriteToLog(session.ExportIDToError(ctx))
 	}
+
+	var dest *net.Destination
 
 	reader := buf.NewPacketReader(conn)
 	for {
@@ -228,19 +239,28 @@ func (s *Server) handleUDPPayload(ctx context.Context, conn internet.Connection,
 				payload.Release()
 				continue
 			}
+
+			destination := request.Destination()
+
 			currentPacketCtx := ctx
-			newError("send packet to ", request.Destination(), " with ", payload.Len(), " bytes").AtDebug().WriteToLog(session.ExportIDToError(ctx))
+			newError("send packet to ", destination, " with ", payload.Len(), " bytes").AtDebug().WriteToLog(session.ExportIDToError(ctx))
 			if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Source.IsValid() {
 				currentPacketCtx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
 					From:   inbound.Source,
-					To:     request.Destination(),
+					To:     destination,
 					Status: log.AccessAccepted,
 					Reason: "",
 				})
 			}
 
+			payload.UDP = &destination
+
+			if dest == nil {
+				dest = &destination
+			}
+
 			currentPacketCtx = protocol.ContextWithRequestHeader(currentPacketCtx, request)
-			udpServer.Dispatch(currentPacketCtx, request.Destination(), payload)
+			udpServer.Dispatch(currentPacketCtx, *dest, payload)
 		}
 	}
 }
