@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 const (
@@ -21,6 +22,7 @@ type Buffer struct {
 	start     int32
 	end       int32
 	unmanaged bool
+	Endpoint  *net.Destination
 }
 
 // New creates a Buffer with 0 length and 2K capacity.
