@@ -357,47 +357,58 @@ func EncodeUDPPacket(request *protocol.RequestHeader, data []byte) (*buf.Buffer,
 }
 
 type UDPReader struct {
-	reader io.Reader
-}
-
-func NewUDPReader(reader io.Reader) *UDPReader {
-	return &UDPReader{reader: reader}
+	Reader io.Reader
 }
 
 func (r *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	b := buf.New()
-	if _, err := b.ReadFrom(r.reader); err != nil {
+	if _, err := b.ReadFrom(r.Reader); err != nil {
+		b.Release()
 		return nil, err
 	}
-	if _, err := DecodeUDPPacket(b); err != nil {
+	u, err := DecodeUDPPacket(b)
+	if err != nil {
+		b.Release()
 		return nil, err
 	}
+	dest := u.Destination()
+	b.UDP = &dest
 	return buf.MultiBuffer{b}, nil
 }
 
 type UDPWriter struct {
-	request *protocol.RequestHeader
-	writer  io.Writer
+	Request *protocol.RequestHeader
+	Writer  io.Writer
 }
 
-func NewUDPWriter(request *protocol.RequestHeader, writer io.Writer) *UDPWriter {
-	return &UDPWriter{
-		request: request,
-		writer:  writer,
+func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	for {
+		mb2, b := buf.SplitFirst(mb)
+		mb = mb2
+		if b == nil {
+			break
+		}
+		request := w.Request
+		if b.UDP != nil {
+			request = &protocol.RequestHeader{
+				Address: b.UDP.Address,
+				Port:    b.UDP.Port,
+			}
+		}
+		packet, err := EncodeUDPPacket(request, b.Bytes())
+		b.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
+		_, err = w.Writer.Write(packet.Bytes())
+		packet.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
 	}
-}
-
-// Write implements io.Writer.
-func (w *UDPWriter) Write(b []byte) (int, error) {
-	eb, err := EncodeUDPPacket(w.request, b)
-	if err != nil {
-		return 0, err
-	}
-	defer eb.Release()
-	if _, err := w.writer.Write(eb.Bytes()); err != nil {
-		return 0, err
-	}
-	return len(b), nil
+	return nil
 }
 
 func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer io.Writer) (*protocol.RequestHeader, error) {
