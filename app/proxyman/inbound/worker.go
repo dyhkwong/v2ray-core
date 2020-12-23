@@ -281,6 +281,7 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 	}
 	if originalDest.IsValid() {
 		id.dest = originalDest
+		b.UDP = &originalDest
 	}
 	conn, existing := w.getConnection(id)
 
@@ -345,7 +346,7 @@ func (w *udpWorker) clean() error {
 	}
 
 	for addr, conn := range w.activeConn {
-		if nowSec-atomic.LoadInt64(&conn.lastActivityTime) > 8 { // TODO Timeout too small
+		if nowSec-atomic.LoadInt64(&conn.lastActivityTime) > 300 {
 			delete(w.activeConn, addr)
 			conn.Close()
 		}
@@ -367,7 +368,7 @@ func (w *udpWorker) Start() error {
 	}
 
 	w.checker = &task.Periodic{
-		Interval: time.Second * 16,
+		Interval: time.Minute,
 		Execute:  w.clean,
 	}
 

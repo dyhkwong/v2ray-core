@@ -100,26 +100,17 @@ type PacketWriter struct {
 
 // WriteMultiBuffer implements buf.Writer
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
-	b := make([]byte, maxLength)
-	for !mb.IsEmpty() {
-		var length int
-		mb, length = buf.SplitBytes(mb, b)
-		if _, err := w.writePacket(b[:length], w.Target); err != nil {
-			buf.ReleaseMulti(mb)
-			return err
+	for {
+		mb2, b := buf.SplitFirst(mb)
+		mb = mb2
+		if b == nil {
+			break
 		}
-	}
-
-	return nil
-}
-
-// WriteMultiBufferWithMetadata writes udp packet with destination specified
-func (w *PacketWriter) WriteMultiBufferWithMetadata(mb buf.MultiBuffer, dest net.Destination) error {
-	b := make([]byte, maxLength)
-	for !mb.IsEmpty() {
-		var length int
-		mb, length = buf.SplitBytes(mb, b)
-		if _, err := w.writePacket(b[:length], dest); err != nil {
+		target := &w.Target
+		if b.UDP != nil {
+			target = b.UDP
+		}
+		if _, err := w.writePacket(b.Bytes(), *target); err != nil {
 			buf.ReleaseMulti(mb)
 			return err
 		}
@@ -216,12 +207,6 @@ func (c *ConnReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	return buf.MultiBuffer{b}, err
 }
 
-// PacketPayload combines udp payload and destination
-type PacketPayload struct {
-	Target net.Destination
-	Buffer buf.MultiBuffer
-}
-
 // PacketReader is UDP Connection Reader Wrapper for trojan protocol
 type PacketReader struct {
 	io.Reader
@@ -229,15 +214,6 @@ type PacketReader struct {
 
 // ReadMultiBuffer implements buf.Reader
 func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
-	p, err := r.ReadMultiBufferWithMetadata()
-	if p != nil {
-		return p.Buffer, err
-	}
-	return nil, err
-}
-
-// ReadMultiBufferWithMetadata reads udp packet with destination
-func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
 	addr, port, err := addrParser.ReadAddressPort(nil, r)
 	if err != nil {
 		return nil, newError("failed to read address and port").Base(err)
@@ -267,6 +243,7 @@ func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
 		}
 
 		b := buf.New()
+		b.UDP = &dest
 		mb = append(mb, b)
 		n, err := b.ReadFullFrom(r, int32(length))
 		if err != nil {
@@ -277,5 +254,5 @@ func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
 		remain -= int(n)
 	}
 
-	return &PacketPayload{Target: dest, Buffer: mb}, nil
+	return mb, nil
 }

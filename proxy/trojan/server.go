@@ -235,7 +235,12 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 func (s *Server) handleUDPPayload(ctx context.Context, clientReader *PacketReader, clientWriter *PacketWriter, dispatcher routing.Dispatcher) error {
 	udpServer := udp.NewDispatcher(dispatcher, func(ctx context.Context, packet *udp_proto.Packet) {
-		if err := clientWriter.WriteMultiBufferWithMetadata(buf.MultiBuffer{packet.Payload}, packet.Source); err != nil {
+		udpPayload := packet.Payload
+		if udpPayload.UDP == nil {
+			udpPayload.UDP = &packet.Source
+		}
+
+		if err := clientWriter.WriteMultiBuffer(buf.MultiBuffer{udpPayload}); err != nil {
 			newError("failed to write response").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 		}
 	})
@@ -243,12 +248,14 @@ func (s *Server) handleUDPPayload(ctx context.Context, clientReader *PacketReade
 	inbound := session.InboundFromContext(ctx)
 	user := inbound.User
 
+	var dest *net.Destination
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			p, err := clientReader.ReadMultiBufferWithMetadata()
+			mb, err := clientReader.ReadMultiBuffer()
 			if err != nil {
 				if errors.Cause(err) != io.EOF {
 					return newError("unexpected EOF").Base(err)
@@ -256,17 +263,31 @@ func (s *Server) handleUDPPayload(ctx context.Context, clientReader *PacketReade
 				return nil
 			}
 
-			ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
-				From:   inbound.Source,
-				To:     p.Target,
-				Status: log.AccessAccepted,
-				Reason: "",
-				Email:  user.Email,
-			})
-			newError("tunnelling request to ", p.Target).WriteToLog(session.ExportIDToError(ctx))
+			mb2, b := buf.SplitFirst(mb)
+			if b == nil {
+				continue
+			}
+			destination := *b.UDP
 
-			for _, b := range p.Buffer {
-				udpServer.Dispatch(ctx, p.Target, b)
+			currentPacketCtx := ctx
+			if inbound.Source.IsValid() {
+				currentPacketCtx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
+					From:   inbound.Source,
+					To:     destination,
+					Status: log.AccessAccepted,
+					Reason: "",
+					Email:  user.Email,
+				})
+			}
+			newError("tunnelling request to ", destination).WriteToLog(session.ExportIDToError(ctx))
+
+			if dest == nil {
+				dest = &destination
+			}
+
+			udpServer.Dispatch(currentPacketCtx, *dest, b) // first packet
+			for _, payload := range mb2 {
+				udpServer.Dispatch(currentPacketCtx, *dest, payload)
 			}
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/v2fly/v2ray-core/v4/common/bytespool"
+	"github.com/v2fly/v2ray-core/v4/common/net"
 )
 
 const (
@@ -20,6 +21,7 @@ type Buffer struct {
 	v     []byte
 	start int32
 	end   int32
+	UDP   *net.Destination
 }
 
 // New creates a Buffer with 0 length and 2K capacity.
@@ -47,6 +49,7 @@ func (b *Buffer) Release() {
 	b.v = nil
 	b.Clear()
 	pool.Put(p) // nolint: staticcheck
+	b.UDP = nil
 }
 
 // Clear clears the content of the buffer, results an empty buffer with
