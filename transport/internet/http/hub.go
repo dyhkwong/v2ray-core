@@ -12,6 +12,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	http_proto "github.com/v2fly/v2ray-core/v5/common/protocol/http"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -97,12 +98,12 @@ func (l *Listener) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	done := done.New()
-	conn := net.NewConnection(
-		net.ConnectionOutput(request.Body),
-		net.ConnectionInput(flushWriter{w: writer, d: done}),
-		net.ConnectionOnClose(common.ChainedClosable{done, request.Body}),
-		net.ConnectionLocalAddr(l.Addr()),
-		net.ConnectionRemoteAddr(remoteAddr),
+	conn := cnc.NewConnection(
+		cnc.ConnectionOutput(request.Body),
+		cnc.ConnectionInput(flushWriter{w: writer, d: done}),
+		cnc.ConnectionOnClose(common.ChainedClosable{done, request.Body}),
+		cnc.ConnectionLocalAddr(l.Addr()),
+		cnc.ConnectionRemoteAddr(remoteAddr),
 	)
 	l.handler(conn)
 	<-done.Wait()
