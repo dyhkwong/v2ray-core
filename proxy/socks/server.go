@@ -233,12 +233,14 @@ func (s *Server) handleUDPPayload(ctx context.Context, conn internet.Connection,
 		payload := packet.Payload
 		newError("writing back UDP response with ", payload.Len(), " bytes").AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
-		request := protocol.RequestHeaderFromContext(ctx)
 		var packetSource net.Destination
-		if request == nil {
+		if packet.Source.IsValid() {
 			packetSource = packet.Source
 		} else {
-			packetSource = net.UDPDestination(request.Address, request.Port)
+			request := protocol.RequestHeaderFromContext(ctx)
+			if request != nil {
+				packetSource = net.UDPDestination(request.Address, request.Port)
+			}
 		}
 		udpMessage, err := EncodeUDPPacketFromAddress(packetSource, payload.Bytes())
 		payload.Release()
