@@ -7,6 +7,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -52,14 +53,14 @@ func (l *Loopback) Process(ctx context.Context, link *transport.Link, _ internet
 			return err
 		}
 
-		var readerOpt net.ConnectionOption
+		var readerOpt cnc.ConnectionOption
 		if dialDest.Network == net.Network_TCP {
-			readerOpt = net.ConnectionOutputMulti(rawConn.Reader)
+			readerOpt = cnc.ConnectionOutputMulti(rawConn.Reader)
 		} else {
-			readerOpt = net.ConnectionOutputMultiUDP(rawConn.Reader)
+			readerOpt = cnc.ConnectionOutputMultiUDP(rawConn.Reader)
 		}
 
-		conn = net.NewConnection(net.ConnectionInputMulti(rawConn.Writer), readerOpt)
+		conn = cnc.NewConnection(cnc.ConnectionInputMulti(rawConn.Writer), readerOpt)
 		return nil
 	})
 	if err != nil {
