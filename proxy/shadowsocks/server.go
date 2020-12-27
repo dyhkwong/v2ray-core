@@ -81,12 +81,17 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 	}
 
 	udpServer := udpDispatcherConstructor(dispatcher, func(ctx context.Context, packet *udp_proto.Packet) {
-		request := protocol.RequestHeaderFromContext(ctx)
-		if request == nil {
+		var request *protocol.RequestHeader
+		if packet.Source.IsValid() {
 			request = &protocol.RequestHeader{
 				Port:    packet.Source.Port,
 				Address: packet.Source.Address,
 				User:    s.user,
+			}
+		} else {
+			request = protocol.RequestHeaderFromContext(ctx)
+			if request == nil {
+				request = &protocol.RequestHeader{}
 			}
 		}
 

@@ -384,9 +384,12 @@ func (r *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	if _, err := b.ReadFrom(r.reader); err != nil {
 		return nil, err
 	}
-	if _, err := DecodeUDPPacket(b); err != nil {
+	req, err := DecodeUDPPacket(b)
+	if err != nil {
 		return nil, err
 	}
+	dest := req.Destination()
+	b.Endpoint = &dest
 	return buf.MultiBuffer{b}, nil
 }
 
@@ -419,17 +422,34 @@ func NewUDPWriter(request *protocol.RequestHeader, writer io.Writer) *UDPWriter 
 	}
 }
 
-// Write implements io.Writer.
-func (w *UDPWriter) Write(b []byte) (int, error) {
-	eb, err := EncodeUDPPacket(w.request, b)
-	if err != nil {
-		return 0, err
+func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	for _, b := range mb {
+		if b == nil {
+			continue
+		}
+		request := w.request
+		if b.Endpoint != nil {
+			request = &protocol.RequestHeader{
+				Version: socks5Version,
+				Command: protocol.RequestCommandUDP,
+				Address: b.Endpoint.Address,
+				Port:    b.Endpoint.Port,
+			}
+		}
+		packet, err := EncodeUDPPacket(request, b.Bytes())
+		b.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
+		_, err = w.writer.Write(packet.Bytes())
+		packet.Release()
+		if err != nil {
+			buf.ReleaseMulti(mb)
+			return err
+		}
 	}
-	defer eb.Release()
-	if _, err := w.writer.Write(eb.Bytes()); err != nil {
-		return 0, err
-	}
-	return len(b), nil
+	return nil
 }
 
 func (w *UDPWriter) WriteTo(payload []byte, addr gonet.Addr) (n int, err error) {

@@ -88,6 +88,7 @@ func (v *Dispatcher) Dispatch(ctx context.Context, destination net.Destination, 
 	conn := v.getInboundRay(ctx, destination)
 	outputStream := conn.link.Writer
 	if outputStream != nil {
+		payload.Endpoint = &destination
 		if err := outputStream.WriteMultiBuffer(buf.MultiBuffer{payload}); err != nil {
 			newError("failed to write first UDP payload").Base(err).WriteToLog(session.ExportIDToError(ctx))
 			conn.cancel()
@@ -116,6 +117,9 @@ func handleInput(ctx context.Context, conn *connEntry, dest net.Destination, cal
 		}
 		timer.Update()
 		for _, b := range mb {
+			if b.Endpoint != nil {
+				dest = *b.Endpoint
+			}
 			callback(ctx, &udp.Packet{
 				Payload: b,
 				Source:  dest,
