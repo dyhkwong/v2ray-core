@@ -9,14 +9,15 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-	"github.com/v2fly/v2ray-core/v5/common/dice"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
+	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -79,7 +80,7 @@ func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Ad
 	if len(ips) == 0 {
 		return nil
 	}
-	return net.IPAddress(ips[dice.Roll(len(ips))])
+	return net.IPAddress(ips[0])
 }
 
 func isValidAddress(addr *net.IPOrDomain) bool {
@@ -98,13 +99,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("target not specified.")
 	}
 	destination := outbound.Target
+	redirect := net.UDPDestination(nil, 0)
 	if h.config.DestinationOverride != nil {
 		server := h.config.DestinationOverride.Server
 		if isValidAddress(server.Address) {
 			destination.Address = server.Address.AsAddress()
+			redirect.Address = destination.Address
 		}
 		if server.Port != 0 {
 			destination.Port = net.Port(server.Port)
+			redirect.Port = destination.Port
 		}
 	}
 	if h.config.ProtocolReplacement != ProtocolReplacement_IDENTITY {
@@ -143,14 +147,22 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, plcy.Timeouts.ConnectionIdle)
 
+	isPacketAddr := false
+	if _, err := packetaddr.ToPacketAddrConn(link, destination); err == nil {
+		isPacketAddr = true
+	}
+
 	requestDone := func() error {
 		defer timer.SetTimeout(plcy.Timeouts.DownlinkOnly)
 
 		var writer buf.Writer
-		if destination.Network == net.Network_TCP {
+		switch {
+		case destination.Network == net.Network_TCP:
 			writer = buf.NewWriter(conn)
-		} else {
+		case redirect.Address != nil, redirect.Port != 0, isPacketAddr:
 			writer = &buf.SequentialWriter{Writer: conn}
+		default:
+			writer = NewPacketWriter(ctx, h, conn, destination)
 		}
 
 		if err := buf.Copy(input, writer, buf.UpdateActivity(timer)); err != nil {
@@ -164,10 +176,13 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		defer timer.SetTimeout(plcy.Timeouts.UplinkOnly)
 
 		var reader buf.Reader
-		if destination.Network == net.Network_TCP && h.config.ProtocolReplacement == ProtocolReplacement_IDENTITY {
+		switch {
+		case destination.Network == net.Network_TCP && h.config.ProtocolReplacement == ProtocolReplacement_IDENTITY:
 			reader = buf.NewReader(conn)
-		} else {
-			reader = buf.NewPacketReader(conn)
+		case redirect.Address != nil, redirect.Port != 0, isPacketAddr:
+			reader = &buf.PacketReader{Reader: conn}
+		default:
+			reader = NewPacketReader(conn)
 		}
 		if err := buf.Copy(reader, output, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to process response").Base(err)
@@ -180,5 +195,112 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("connection ends").Base(err)
 	}
 
+	return nil
+}
+
+func NewPacketReader(conn net.Conn) buf.Reader {
+	iConn := conn
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
+		iConn = statConn.Connection
+	}
+	var counter stats.Counter
+	if statConn != nil {
+		counter = statConn.ReadCounter
+	}
+	if c, ok := iConn.(net.PacketConn); ok {
+		return &PacketReader{
+			packetConn: c,
+			counter:    counter,
+		}
+	}
+	return &buf.PacketReader{Reader: conn}
+}
+
+type PacketReader struct {
+	packetConn net.PacketConn
+	counter    stats.Counter
+}
+
+func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	b := buf.New()
+	b.Resize(0, buf.Size)
+	n, d, err := r.packetConn.ReadFrom(b.Bytes())
+	if err != nil {
+		b.Release()
+		return nil, err
+	}
+	b.Resize(0, int32(n))
+	b.Endpoint = &net.Destination{
+		Address: net.IPAddress(d.(*net.UDPAddr).IP),
+		Port:    net.Port(d.(*net.UDPAddr).Port),
+		Network: net.Network_UDP,
+	}
+	if r.counter != nil {
+		r.counter.Add(int64(n))
+	}
+	return buf.MultiBuffer{b}, nil
+}
+
+func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination) buf.Writer {
+	iConn := conn
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
+		iConn = statConn.Connection
+	}
+	var counter stats.Counter
+	if statConn != nil {
+		counter = statConn.WriteCounter
+	}
+	if c, ok := iConn.(net.PacketConn); ok {
+		return &PacketWriter{
+			ctx:        ctx,
+			handler:    h,
+			packetConn: c,
+			counter:    counter,
+			dest:       dest,
+		}
+	}
+	return &buf.SequentialWriter{Writer: conn}
+}
+
+type PacketWriter struct {
+	ctx        context.Context
+	handler    *Handler
+	packetConn net.PacketConn
+	counter    stats.Counter
+	dest       net.Destination
+}
+
+func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
+	for _, b := range mb {
+		if b == nil {
+			continue
+		}
+		var dest net.Destination
+		if b.Endpoint != nil {
+			dest = *b.Endpoint
+		} else {
+			dest = w.dest
+		}
+		if w.handler.config.useIP() && dest.Address.Family().IsDomain() {
+			ip := w.handler.resolveIP(w.ctx, dest.Address.Domain(), nil)
+			if ip != nil {
+				dest.Address = ip
+			}
+		}
+		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
+		if destAddr == nil {
+			continue
+		}
+		n, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
+		if err != nil {
+			return err
+		}
+		if w.counter != nil {
+			w.counter.Add(int64(n))
+		}
+	}
 	return nil
 }
