@@ -1,13 +1,13 @@
-package net
+package cnc
 
 import (
 	"io"
-	"net"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 )
 
@@ -89,8 +89,8 @@ type connection struct {
 	writer  buf.Writer
 	done    *done.Instance
 	onClose io.Closer
-	local   Addr
-	remote  Addr
+	local   net.Addr
+	remote  net.Addr
 }
 
 func (c *connection) Read(b []byte) (int, error) {
