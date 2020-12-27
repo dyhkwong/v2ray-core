@@ -16,6 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v4/transport/pipe"
@@ -161,10 +162,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	bwriter := buf.NewBufferedWriter(pwriter)
 	common.Must(bwriter.SetBuffered(false))
-	return net.NewConnection(
-		net.ConnectionOutput(response.Body),
-		net.ConnectionInput(bwriter),
-		net.ConnectionOnClose(common.ChainedClosable{breader, bwriter, response.Body}),
+	return cnc.NewConnection(
+		cnc.ConnectionOutput(response.Body),
+		cnc.ConnectionInput(bwriter),
+		cnc.ConnectionOnClose(common.ChainedClosable{breader, bwriter, response.Body}),
 	), nil
 }
 
