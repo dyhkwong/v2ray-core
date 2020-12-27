@@ -50,7 +50,24 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 				Port: 0,
 			}
 		}
-		packetConn, err := ListenSystemPacket(ctx, srcAddr, sockopt)
+		var lc net.ListenConfig
+		if sockopt != nil || len(d.controllers) > 0 {
+			lc.Control = func(network, address string, c syscall.RawConn) error {
+				return c.Control(func(fd uintptr) {
+					if sockopt != nil {
+						if err := applyOutboundSocketOptions(network, address, fd, sockopt); err != nil {
+							newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
+						}
+					}
+					for _, ctl := range d.controllers {
+						if err := ctl(network, address, fd); err != nil {
+							newError("failed to apply external controller").Base(err).WriteToLog(session.ExportIDToError(ctx))
+						}
+					}
+				})
+			}
+		}
+		packetConn, err := lc.ListenPacket(ctx, srcAddr.Network(), srcAddr.String())
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +75,7 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 		if err != nil {
 			return nil, err
 		}
-		return &packetConnWrapper{
+		return &PacketConnWrapper{
 			conn: packetConn,
 			dest: destAddr,
 		}, nil
@@ -108,41 +125,49 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 	return dialer.DialContext(ctx, dest.Network.SystemString(), dest.NetAddr())
 }
 
-type packetConnWrapper struct {
+type PacketConnWrapper struct {
 	conn net.PacketConn
 	dest net.Addr
 }
 
-func (c *packetConnWrapper) Close() error {
+func (c *PacketConnWrapper) Close() error {
 	return c.conn.Close()
 }
 
-func (c *packetConnWrapper) LocalAddr() net.Addr {
+func (c *PacketConnWrapper) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *packetConnWrapper) RemoteAddr() net.Addr {
+func (c *PacketConnWrapper) RemoteAddr() net.Addr {
 	return c.dest
 }
 
-func (c *packetConnWrapper) Write(p []byte) (int, error) {
+func (c *PacketConnWrapper) Write(p []byte) (int, error) {
 	return c.conn.WriteTo(p, c.dest)
 }
 
-func (c *packetConnWrapper) Read(p []byte) (int, error) {
+func (c *PacketConnWrapper) Read(p []byte) (int, error) {
 	n, _, err := c.conn.ReadFrom(p)
 	return n, err
 }
 
-func (c *packetConnWrapper) SetDeadline(t time.Time) error {
+func (c *PacketConnWrapper) WriteTo(p []byte, d net.Addr) (int, error) {
+	return c.conn.WriteTo(p, d)
+}
+
+func (c *PacketConnWrapper) ReadFrom(p []byte) (int, net.Addr, error) {
+	return c.conn.ReadFrom(p)
+}
+
+func (c *PacketConnWrapper) SetDeadline(t time.Time) error {
 	return c.conn.SetDeadline(t)
 }
 
-func (c *packetConnWrapper) SetReadDeadline(t time.Time) error {
+func (c *PacketConnWrapper) SetReadDeadline(t time.Time) error {
 	return c.conn.SetReadDeadline(t)
 }
 
-func (c *packetConnWrapper) SetWriteDeadline(t time.Time) error {
+func (c *PacketConnWrapper) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
