@@ -15,6 +15,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
@@ -71,10 +72,10 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 			if cr, ok := link.Reader.(common.Closable); ok {
 				cc = append(cc, cr)
 			}
-			return net.NewConnection(
-				net.ConnectionInputMulti(link.Writer),
-				net.ConnectionOutputMulti(link.Reader),
-				net.ConnectionOnClose(cc),
+			return cnc.NewConnection(
+				cnc.ConnectionInputMulti(link.Writer),
+				cnc.ConnectionOutputMulti(link.Reader),
+				cnc.ConnectionOnClose(cc),
 			), nil
 		},
 	}
