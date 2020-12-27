@@ -101,7 +101,11 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if b.IsEmpty() {
 			continue
 		}
-		if _, err := w.writePacket(b.Bytes(), w.Target); err != nil {
+		target := &w.Target
+		if b.Endpoint != nil {
+			target = b.Endpoint
+		}
+		if _, err := w.writePacket(b.Bytes(), *target); err != nil {
 			return err
 		}
 	}
@@ -184,6 +188,7 @@ func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
 		return nil, err
 	}
 	b := buf.FromBytes(data)
+	b.Endpoint = dest
 	return &PacketPayload{Target: *dest, Buffer: buf.MultiBuffer{b}}, nil
 }
 
