@@ -180,26 +180,13 @@ func (d *Door) Process(ctx context.Context, network net.Network, conn internet.C
 			if d.sockopt != nil {
 				sockopt.Mark = d.sockopt.Mark
 			}
-			tConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(conn.RemoteAddr()), sockopt)
+			to := net.DestinationFromAddr(conn.RemoteAddr())
+			tConn, err := internet.DialSystem(ctx, to, sockopt)
 			if err != nil {
 				return err
 			}
-			defer tConn.Close()
-
-			writer = &buf.SequentialWriter{Writer: tConn}
-			tReader := buf.NewPacketReader(tConn)
-			requestCount++
-			tproxyRequest = func() error {
-				defer func() {
-					if atomic.AddInt32(&requestCount, -1) == 0 {
-						timer.SetTimeout(plcy.Timeouts.DownlinkOnly)
-					}
-				}()
-				if err := buf.Copy(tReader, link.Writer, buf.UpdateActivity(timer)); err != nil {
-					return newError("failed to transport request (TPROXY conn)").Base(err)
-				}
-				return nil
-			}
+			writer = NewPacketWriter(ctx, tConn, &dest, &to, sockopt)
+			defer writer.(*PacketWriter).Close()
 		}
 	}
 
@@ -220,5 +207,63 @@ func (d *Door) Process(ctx context.Context, network net.Network, conn internet.C
 		return newError("connection ends").Base(err)
 	}
 
+	return nil
+}
+
+func NewPacketWriter(ctx context.Context, conn net.Conn, dest *net.Destination, to *net.Destination, sockopt *internet.SocketConfig) buf.Writer {
+	writer := &PacketWriter{
+		ctx:     ctx,
+		conn:    conn,
+		conns:   make(map[net.Destination]net.Conn),
+		to:      to,
+		sockopt: sockopt,
+	}
+	writer.conns[*dest] = conn
+	return writer
+}
+
+type PacketWriter struct {
+	ctx     context.Context
+	conn    net.Conn
+	conns   map[net.Destination]net.Conn
+	to      *net.Destination
+	sockopt *internet.SocketConfig
+}
+
+func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
+	for _, buffer := range mb {
+		if buffer == nil {
+			continue
+		}
+		var err error
+		if buffer.Endpoint != nil && buffer.Endpoint.Address.Family().IsIP() {
+			conn := w.conns[*buffer.Endpoint]
+			if conn == nil {
+				w.sockopt.BindAddress = buffer.Endpoint.Address.IP()
+				w.sockopt.BindPort = uint32(buffer.Endpoint.Port)
+				conn, _ = internet.DialSystem(w.ctx, *w.to, w.sockopt)
+				if conn == nil {
+					continue
+				}
+				w.conns[*buffer.Endpoint] = conn
+			}
+			_, err = conn.Write(buffer.Bytes())
+		} else {
+			_, err = w.conn.Write(buffer.Bytes())
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *PacketWriter) Close() error {
+	for _, conn := range w.conns {
+		if conn != nil {
+			conn.Close()
+		}
+	}
 	return nil
 }
