@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 const (
@@ -30,6 +31,7 @@ type Buffer struct {
 	start     int32
 	end       int32
 	ownership ownership
+	Endpoint  *net.Destination
 }
 
 // New creates a Buffer with 0 length and 2K capacity.
@@ -79,6 +81,7 @@ func (b *Buffer) Release() {
 	case bytespools:
 		bytespool.Free(p) // nolint: staticcheck
 	}
+	b.Endpoint = nil
 }
 
 // Clear clears the content of the buffer, results an empty buffer with
