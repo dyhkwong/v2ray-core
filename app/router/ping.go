@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
 )
@@ -45,9 +46,9 @@ func newHTTPClient(handler string, dispatcher routing.Dispatcher, timeout time.D
 			if err != nil {
 				return nil, err
 			}
-			return net.NewConnection(
-				net.ConnectionInputMulti(link.Writer),
-				net.ConnectionOutputMulti(link.Reader),
+			return cnc.NewConnection(
+				cnc.ConnectionInputMulti(link.Writer),
+				cnc.ConnectionOutputMulti(link.Reader),
 			), nil
 		},
 	}
