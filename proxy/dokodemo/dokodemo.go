@@ -158,22 +158,23 @@ func (d *Door) Process(ctx context.Context, network net.Network, conn internet.C
 		if !destinationOverridden {
 			writer = &buf.SequentialWriter{Writer: conn}
 		} else {
-			sockopt := &internet.SocketConfig{
-				Tproxy: internet.SocketConfig_TProxy,
-			}
+			var addr *net.UDPAddr
+			var mark int
 			if dest.Address.Family().IsIP() {
-				sockopt.BindAddress = dest.Address.IP()
-				sockopt.BindPort = uint32(dest.Port)
+				addr = &net.UDPAddr{
+					IP:   dest.Address.IP(),
+					Port: int(dest.Port),
+				}
 			}
 			if d.sockopt != nil {
-				sockopt.Mark = d.sockopt.Mark
+				mark = int(d.sockopt.Mark)
 			}
-			to := net.DestinationFromAddr(conn.RemoteAddr())
-			tConn, err := internet.DialSystem(ctx, to, sockopt)
+			pConn, err := FakeUDP(addr, mark)
 			if err != nil {
 				return err
 			}
-			writer = NewPacketWriter(tConn, &dest, ctx, &to, sockopt)
+			back := net.DestinationFromAddr(conn.RemoteAddr())
+			writer = NewPacketWriter(pConn, &dest, mark, &back)
 			defer writer.(*PacketWriter).Close()
 		}
 	}
@@ -198,24 +199,25 @@ func (d *Door) Process(ctx context.Context, network net.Network, conn internet.C
 	return nil
 }
 
-func NewPacketWriter(conn net.Conn, d *net.Destination, ctx context.Context, to *net.Destination, sockopt *internet.SocketConfig) buf.Writer {
+func NewPacketWriter(conn net.PacketConn, d *net.Destination, mark int, back *net.Destination) buf.Writer {
 	writer := &PacketWriter{
-		conn:    conn,
-		conns:   make(map[net.Destination]net.Conn),
-		ctx:     ctx,
-		to:      to,
-		sockopt: sockopt,
+		conn:  conn,
+		conns: make(map[net.Destination]net.PacketConn),
+		mark:  mark,
+		back: &net.UDPAddr{
+			IP:   back.Address.IP(),
+			Port: int(back.Port),
+		},
 	}
 	writer.conns[*d] = conn
 	return writer
 }
 
 type PacketWriter struct {
-	conn    net.Conn
-	conns   map[net.Destination]net.Conn
-	ctx     context.Context
-	to      *net.Destination
-	sockopt *internet.SocketConfig
+	conn  net.PacketConn
+	conns map[net.Destination]net.PacketConn
+	mark  int
+	back  *net.UDPAddr
 }
 
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
@@ -229,23 +231,34 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if b.UDP != nil && b.UDP.Address.Family().IsIP() {
 			conn := w.conns[*b.UDP]
 			if conn == nil {
-				w.sockopt.BindAddress = b.UDP.Address.IP()
-				w.sockopt.BindPort = uint32(b.UDP.Port)
-				conn, _ = internet.DialSystem(w.ctx, *w.to, w.sockopt)
-				if conn == nil {
+				conn, err = FakeUDP(
+					&net.UDPAddr{
+						IP:   b.UDP.Address.IP(),
+						Port: int(b.UDP.Port),
+					},
+					w.mark,
+				)
+				if err != nil {
 					b.Release()
-					continue
+					buf.ReleaseMulti(mb)
+					return err
 				}
 				w.conns[*b.UDP] = conn
 			}
-			_, err = conn.Write(b.Bytes())
+			_, err = conn.WriteTo(b.Bytes(), w.back)
+			if err != nil {
+				conn.Close()
+				w.conns[*b.UDP] = nil
+				newError(err).WriteToLog()
+			}
+			b.Release()
 		} else {
-			_, err = w.conn.Write(b.Bytes())
-		}
-		b.Release()
-		if err != nil {
-			buf.ReleaseMulti(mb)
-			return err
+			_, err = w.conn.WriteTo(b.Bytes(), w.back)
+			b.Release()
+			if err != nil {
+				buf.ReleaseMulti(mb)
+				return err
+			}
 		}
 	}
 	return nil
