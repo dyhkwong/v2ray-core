@@ -7,6 +7,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/errors"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/protocol"
 	"github.com/v2fly/v2ray-core/v4/common/retry"
@@ -106,6 +107,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		// Flush; bufferWriter.WriteMultiBufer now is bufferWriter.writer.WriteMultiBuffer
 		if err = bufferWriter.SetBuffered(false); err != nil {
 			return newError("failed to flush payload").Base(err).AtWarning()
+		}
+
+		// Send header if not sent yet
+		if _, err = connWriter.Write([]byte{}); err != nil {
+			return err.(*errors.Error).AtWarning()
 		}
 
 		if err = buf.Copy(link.Reader, bodyWriter, buf.UpdateActivity(timer)); err != nil {
