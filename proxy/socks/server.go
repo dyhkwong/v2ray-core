@@ -93,7 +93,7 @@ func (s *Server) processTCP(ctx context.Context, conn internet.Connection, dispa
 		config:        s.config,
 		address:       inbound.Gateway.Address,
 		port:          inbound.Gateway.Port,
-		clientAddress: inbound.Source.Address,
+		clientAddress: net.IPAddress(conn.LocalAddr().(*net.TCPAddr).IP),
 	}
 
 	reader := &buf.BufferedReader{Reader: buf.NewReader(conn)}
