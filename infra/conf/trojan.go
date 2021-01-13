@@ -76,6 +76,7 @@ func (c *TrojanClientConfig) Build() (proto.Message, error) {
 
 // TrojanInboundFallback is fallback configuration
 type TrojanInboundFallback struct {
+	Name string          `json:"name"`
 	Alpn string          `json:"alpn"`
 	Path string          `json:"path"`
 	Type string          `json:"type"`
@@ -126,6 +127,7 @@ func (c *TrojanServerConfig) Build() (proto.Message, error) {
 			_ = json.Unmarshal(fb.Dest, &s)
 		}
 		config.Fallbacks = append(config.Fallbacks, &trojan.Fallback{
+			Name: fb.Name,
 			Alpn: fb.Alpn,
 			Path: fb.Path,
 			Type: fb.Type,
