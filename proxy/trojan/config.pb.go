@@ -68,6 +68,7 @@ type Fallback struct {
 	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	Dest          string                 `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
 	Xver          uint64                 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
+	Name          string                 `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,6 +136,13 @@ func (x *Fallback) GetXver() uint64 {
 		return x.Xver
 	}
 	return 0
+}
+
+func (x *Fallback) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 type ClientConfig struct {
@@ -247,13 +255,14 @@ const file_proxy_trojan_config_proto_rawDesc = "" +
 	"\n" +
 	"\x19proxy/trojan/config.proto\x12\x17v2ray.core.proxy.trojan\x1a\x1acommon/protocol/user.proto\x1a!common/protocol/server_spec.proto\x1a\"common/net/packetaddr/config.proto\"%\n" +
 	"\aAccount\x12\x1a\n" +
-	"\bpassword\x18\x01 \x01(\tR\bpassword\"n\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x82\x01\n" +
 	"\bFallback\x12\x12\n" +
 	"\x04alpn\x18\x01 \x01(\tR\x04alpn\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x12\n" +
 	"\x04dest\x18\x04 \x01(\tR\x04dest\x12\x12\n" +
-	"\x04xver\x18\x05 \x01(\x04R\x04xver\"R\n" +
+	"\x04xver\x18\x05 \x01(\x04R\x04xver\x12\x12\n" +
+	"\x04name\x18\x06 \x01(\tR\x04name\"R\n" +
 	"\fClientConfig\x12B\n" +
 	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xdb\x01\n" +
 	"\fServerConfig\x126\n" +
