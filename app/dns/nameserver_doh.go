@@ -39,6 +39,7 @@ type DoHNameServer struct {
 	httpClient *http.Client
 	dohURL     string
 	name       string
+	dispatcher routing.Dispatcher
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
@@ -46,37 +47,45 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	s := baseDOHNameServer(url, "DOH")
 
-	// Dispatched connection will be closed (interrupted) after each request
-	// This makes DOH inefficient without a keep-alived connection
-	// See: core/app/proxyman/outbound/handler.go:113
-	// Using mux (https request wrapped in a stream layer) improves the situation.
-	// Recommend to use NewDoHLocalNameServer (DOHL:) if v2ray instance is running on
-	//  a normal network eg. the server side of v2ray
+	s.dispatcher = dispatcher
 	tr := &http.Transport{
 		MaxIdleConns:        30,
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 30 * time.Second,
 		ForceAttemptHTTP2:   true,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dispatcherCtx := context.Background()
+
 			dest, err := net.ParseDestination(network + ":" + addr)
 			if err != nil {
 				return nil, err
 			}
 
-			link, err := dispatcher.Dispatch(ctx, dest)
+			dispatcherCtx = session.ContextWithContent(dispatcherCtx, session.ContentFromContext(ctx))
+			dispatcherCtx = session.ContextWithInbound(dispatcherCtx, session.InboundFromContext(ctx))
+
+			link, err := s.dispatcher.Dispatch(dispatcherCtx, dest)
 			if err != nil {
 				return nil, err
+			}
+
+			cc := common.ChainedClosable{}
+			if cw, ok := link.Writer.(common.Closable); ok {
+				cc = append(cc, cw)
+			}
+			if cr, ok := link.Reader.(common.Closable); ok {
+				cc = append(cc, cr)
 			}
 			return net.NewConnection(
 				net.ConnectionInputMulti(link.Writer),
 				net.ConnectionOutputMulti(link.Reader),
+				net.ConnectionOnClose(cc),
 			), nil
 		},
 	}
-
 	dispatchedClient := &http.Client{
 		Transport: tr,
-		Timeout:   60 * time.Second,
+		Timeout:   180 * time.Second,
 	}
 
 	s.httpClient = dispatchedClient
@@ -231,12 +240,8 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			}
 
 			dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
-				Protocol:       "https",
-				SkipDNSResolve: true,
+				Protocol: "https",
 			})
-
-			// forced to use mux for DOH
-			dnsCtx = session.ContextWithMuxPrefered(dnsCtx, true)
 
 			var cancel context.CancelFunc
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
