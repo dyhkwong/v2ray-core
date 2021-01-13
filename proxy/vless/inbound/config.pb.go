@@ -24,6 +24,7 @@ type Fallback struct {
 	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	Dest          string                 `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
 	Xver          uint64                 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
+	Name          string                 `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -91,6 +92,13 @@ func (x *Fallback) GetXver() uint64 {
 		return x.Xver
 	}
 	return 0
+}
+
+func (x *Fallback) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 type Config struct {
@@ -203,13 +211,14 @@ var File_proxy_vless_inbound_config_proto protoreflect.FileDescriptor
 
 const file_proxy_vless_inbound_config_proto_rawDesc = "" +
 	"\n" +
-	" proxy/vless/inbound/config.proto\x12\x1ev2ray.core.proxy.vless.inbound\x1a\x1acommon/protocol/user.proto\x1a common/protoext/extensions.proto\"n\n" +
+	" proxy/vless/inbound/config.proto\x12\x1ev2ray.core.proxy.vless.inbound\x1a\x1acommon/protocol/user.proto\x1a common/protoext/extensions.proto\"\x82\x01\n" +
 	"\bFallback\x12\x12\n" +
 	"\x04alpn\x18\x01 \x01(\tR\x04alpn\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x12\n" +
 	"\x04dest\x18\x04 \x01(\tR\x04dest\x12\x12\n" +
-	"\x04xver\x18\x05 \x01(\x04R\x04xver\"\xac\x01\n" +
+	"\x04xver\x18\x05 \x01(\x04R\x04xver\x12\x12\n" +
+	"\x04name\x18\x06 \x01(\tR\x04name\"\xac\x01\n" +
 	"\x06Config\x12:\n" +
 	"\aclients\x18\x01 \x03(\v2 .v2ray.core.common.protocol.UserR\aclients\x12\x1e\n" +
 	"\n" +
