@@ -20,6 +20,7 @@ message Fallback {
   string type = 3;
   string dest = 4;
   uint64 xver = 5;
+  string name = 6;
 }
 
 message ClientConfig {
