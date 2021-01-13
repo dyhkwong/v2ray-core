@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -67,7 +68,7 @@ type Handler struct {
 	policyManager         policy.Manager
 	validator             *vless.Validator
 	dns                   dns.Client
-	fallbacks             map[string]map[string]*Fallback // or nil
+	fallbacks             map[string]map[string]map[string]*Fallback // or nil
 	// regexps               map[string]*regexp.Regexp       // or nil
 }
 
@@ -92,13 +93,16 @@ func New(ctx context.Context, config *Config, dc dns.Client) (*Handler, error) {
 	}
 
 	if config.Fallbacks != nil {
-		handler.fallbacks = make(map[string]map[string]*Fallback)
+		handler.fallbacks = make(map[string]map[string]map[string]*Fallback)
 		// handler.regexps = make(map[string]*regexp.Regexp)
 		for _, fb := range config.Fallbacks {
-			if handler.fallbacks[fb.Alpn] == nil {
-				handler.fallbacks[fb.Alpn] = make(map[string]*Fallback)
+			if handler.fallbacks[fb.Name] == nil {
+				handler.fallbacks[fb.Name] = make(map[string]map[string]*Fallback)
 			}
-			handler.fallbacks[fb.Alpn][fb.Path] = fb
+			if handler.fallbacks[fb.Name][fb.Alpn] == nil {
+				handler.fallbacks[fb.Name][fb.Alpn] = make(map[string]*Fallback)
+			}
+			handler.fallbacks[fb.Name][fb.Alpn][fb.Path] = fb
 			/*
 				if fb.Path != "" {
 					if r, err := regexp.Compile(fb.Path); err != nil {
@@ -110,11 +114,37 @@ func New(ctx context.Context, config *Config, dc dns.Client) (*Handler, error) {
 			*/
 		}
 		if handler.fallbacks[""] != nil {
-			for alpn, pfb := range handler.fallbacks {
-				if alpn != "" { // && alpn != "h2" {
-					for path, fb := range handler.fallbacks[""] {
-						if pfb[path] == nil {
-							pfb[path] = fb
+			for name, apfb := range handler.fallbacks {
+				if name != "" {
+					for alpn := range handler.fallbacks[""] {
+						if apfb[alpn] == nil {
+							apfb[alpn] = make(map[string]*Fallback)
+						}
+					}
+				}
+			}
+		}
+		for _, apfb := range handler.fallbacks {
+			if apfb[""] != nil {
+				for alpn, pfb := range apfb {
+					if alpn != "" { // && alpn != "h2" {
+						for path, fb := range apfb[""] {
+							if pfb[path] == nil {
+								pfb[path] = fb
+							}
+						}
+					}
+				}
+			}
+		}
+		if handler.fallbacks[""] != nil {
+			for name, apfb := range handler.fallbacks {
+				if name != "" {
+					for alpn, pfb := range handler.fallbacks[""] {
+						for path, fb := range pfb {
+							if apfb[alpn][path] == nil {
+								apfb[alpn][path] = fb
+							}
 						}
 					}
 				}
@@ -175,8 +205,8 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	var requestAddons *encoding.Addons
 	var err error
 
-	apfb := h.fallbacks
-	isfb := apfb != nil
+	napfb := h.fallbacks
+	isfb := napfb != nil
 
 	if isfb && firstLen < 18 {
 		err = newError("fallback directly")
@@ -191,15 +221,40 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			}
 			newError("fallback starts").Base(err).AtInfo().WriteToLog(sid)
 
+			name := ""
 			alpn := ""
-			if len(apfb) > 1 || apfb[""] == nil {
-				if tlsConn, ok := iConn.(*tls.Conn); ok {
-					alpn = tlsConn.ConnectionState().NegotiatedProtocol
-					newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+			if tlsConn, ok := iConn.(*tls.Conn); ok {
+				cs := tlsConn.ConnectionState()
+				name = cs.ServerName
+				alpn = cs.NegotiatedProtocol
+				newError("realName = " + name).AtInfo().WriteToLog(sid)
+				newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+			}
+			name = strings.ToLower(name)
+			alpn = strings.ToLower(alpn)
+
+			if len(napfb) > 1 || napfb[""] == nil {
+				if name != "" && napfb[name] == nil {
+					match := ""
+					for n := range napfb {
+						if n != "" && strings.Contains(name, n) && len(n) > len(match) {
+							match = n
+						}
+					}
+					name = match
 				}
-				if apfb[alpn] == nil {
-					alpn = ""
-				}
+			}
+
+			if napfb[name] == nil {
+				name = ""
+			}
+			apfb := napfb[name]
+			if apfb == nil {
+				return newError(`failed to find the default "name" config`).AtWarning()
+			}
+
+			if apfb[alpn] == nil {
+				alpn = ""
 			}
 			pfb := apfb[alpn]
 			if pfb == nil {
