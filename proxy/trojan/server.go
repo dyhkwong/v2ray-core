@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -36,7 +37,7 @@ func init() {
 type Server struct {
 	policyManager  policy.Manager
 	validator      *Validator
-	fallbacks      map[string]map[string]*Fallback // or nil
+	fallbacks      map[string]map[string]map[string]*Fallback // or nil
 	packetEncoding packetaddr.PacketAddrType
 }
 
@@ -62,19 +63,48 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 	}
 
 	if config.Fallbacks != nil {
-		server.fallbacks = make(map[string]map[string]*Fallback)
+		server.fallbacks = make(map[string]map[string]map[string]*Fallback)
 		for _, fb := range config.Fallbacks {
-			if server.fallbacks[fb.Alpn] == nil {
-				server.fallbacks[fb.Alpn] = make(map[string]*Fallback)
+			if server.fallbacks[fb.Name] == nil {
+				server.fallbacks[fb.Name] = make(map[string]map[string]*Fallback)
 			}
-			server.fallbacks[fb.Alpn][fb.Path] = fb
+			if server.fallbacks[fb.Name][fb.Alpn] == nil {
+				server.fallbacks[fb.Name][fb.Alpn] = make(map[string]*Fallback)
+			}
+			server.fallbacks[fb.Name][fb.Alpn][fb.Path] = fb
 		}
 		if server.fallbacks[""] != nil {
-			for alpn, pfb := range server.fallbacks {
-				if alpn != "" { // && alpn != "h2" {
-					for path, fb := range server.fallbacks[""] {
-						if pfb[path] == nil {
-							pfb[path] = fb
+			for name, apfb := range server.fallbacks {
+				if name != "" {
+					for alpn := range server.fallbacks[""] {
+						if apfb[alpn] == nil {
+							apfb[alpn] = make(map[string]*Fallback)
+						}
+					}
+				}
+			}
+		}
+		for _, apfb := range server.fallbacks {
+			if apfb[""] != nil {
+				for alpn, pfb := range apfb {
+					if alpn != "" { // && alpn != "h2" {
+						for path, fb := range apfb[""] {
+							if pfb[path] == nil {
+								pfb[path] = fb
+							}
+						}
+					}
+				}
+			}
+		}
+		if server.fallbacks[""] != nil {
+			for name, apfb := range server.fallbacks {
+				if name != "" {
+					for alpn, pfb := range server.fallbacks[""] {
+						for path, fb := range pfb {
+							if apfb[alpn][path] == nil {
+								apfb[alpn][path] = fb
+							}
 						}
 					}
 				}
@@ -130,8 +160,8 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 	var user *protocol.MemoryUser
 
-	apfb := s.fallbacks
-	isfb := apfb != nil
+	napfb := s.fallbacks
+	isfb := napfb != nil
 
 	shouldFallback := false
 	if firstLen < 58 || first.Byte(56) != '\r' {
@@ -162,7 +192,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 	}
 
 	if isfb && shouldFallback {
-		return s.fallback(ctx, sid, err, sessionPolicy, conn, iConn, apfb, first, firstLen, bufferedReader)
+		return s.fallback(ctx, sid, err, sessionPolicy, conn, iConn, napfb, first, firstLen, bufferedReader)
 	} else if shouldFallback {
 		return newError("invalid protocol or invalid user")
 	}
@@ -295,21 +325,46 @@ func (s *Server) handleConnection(ctx context.Context, sessionPolicy policy.Sess
 	return nil
 }
 
-func (s *Server) fallback(ctx context.Context, sid errors.ExportOption, err error, sessionPolicy policy.Session, connection internet.Connection, iConn internet.Connection, apfb map[string]map[string]*Fallback, first *buf.Buffer, firstLen int64, reader buf.Reader) error {
+func (s *Server) fallback(ctx context.Context, sid errors.ExportOption, err error, sessionPolicy policy.Session, connection internet.Connection, iConn internet.Connection, napfb map[string]map[string]map[string]*Fallback, first *buf.Buffer, firstLen int64, reader buf.Reader) error {
 	if err := connection.SetReadDeadline(time.Time{}); err != nil {
 		newError("unable to set back read deadline").Base(err).AtWarning().WriteToLog(sid)
 	}
 	newError("fallback starts").Base(err).AtInfo().WriteToLog(sid)
 
+	name := ""
 	alpn := ""
-	if len(apfb) > 1 || apfb[""] == nil {
-		if tlsConn, ok := iConn.(*tls.Conn); ok {
-			alpn = tlsConn.ConnectionState().NegotiatedProtocol
-			newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+	if tlsConn, ok := iConn.(*tls.Conn); ok {
+		cs := tlsConn.ConnectionState()
+		name = cs.ServerName
+		alpn = cs.NegotiatedProtocol
+		newError("realName = " + name).AtInfo().WriteToLog(sid)
+		newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+	}
+	name = strings.ToLower(name)
+	alpn = strings.ToLower(alpn)
+
+	if len(napfb) > 1 || napfb[""] == nil {
+		if name != "" && napfb[name] == nil {
+			match := ""
+			for n := range napfb {
+				if n != "" && strings.Contains(name, n) && len(n) > len(match) {
+					match = n
+				}
+			}
+			name = match
 		}
-		if apfb[alpn] == nil {
-			alpn = ""
-		}
+	}
+
+	if napfb[name] == nil {
+		name = ""
+	}
+	apfb := napfb[name]
+	if apfb == nil {
+		return newError(`failed to find the default "name" config`).AtWarning()
+	}
+
+	if apfb[alpn] == nil {
+		alpn = ""
 	}
 	pfb := apfb[alpn]
 	if pfb == nil {
