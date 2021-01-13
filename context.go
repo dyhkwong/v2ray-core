@@ -43,6 +43,10 @@ func toContext(ctx context.Context, v *Instance) context.Context {
 	return ctx
 }
 
+func WithContext(ctx context.Context, v *Instance) context.Context {
+	return toContext(ctx, v)
+}
+
 /*
 ToBackgroundDetachedContext create a detached context from another context
 Internal API
