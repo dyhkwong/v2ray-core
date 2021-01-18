@@ -23,12 +23,12 @@ func TestShadowsocksServerConfigParsing(t *testing.T) {
 			}`,
 			Parser: loadJSON(creator),
 			Output: &shadowsocks.ServerConfig{
-				User: &protocol.User{
+				Users: []*protocol.User{{
 					Account: serial.ToTypedMessage(&shadowsocks.Account{
 						CipherType: shadowsocks.CipherType_AES_256_GCM,
 						Password:   "v2ray-password",
 					}),
-				},
+				}},
 				Network: []net.Network{net.Network_TCP},
 			},
 		},

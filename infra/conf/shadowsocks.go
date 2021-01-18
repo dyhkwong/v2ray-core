@@ -26,14 +26,22 @@ func cipherFromString(c string) shadowsocks.CipherType {
 	}
 }
 
+type ShadowsocksUserConfig struct {
+	Cipher   string `json:"method"`
+	Password string `json:"password"`
+	Level    byte   `json:"level"`
+	Email    string `json:"email"`
+}
+
 type ShadowsocksServerConfig struct {
-	Cipher      string                 `json:"method"`
-	Password    string                 `json:"password"`
-	UDP         bool                   `json:"udp"`
-	Level       byte                   `json:"level"`
-	Email       string                 `json:"email"`
-	NetworkList *cfgcommon.NetworkList `json:"network"`
-	IVCheck     bool                   `json:"ivCheck"`
+	Cipher      string                   `json:"method"`
+	Password    string                   `json:"password"`
+	UDP         bool                     `json:"udp"`
+	Level       byte                     `json:"level"`
+	Email       string                   `json:"email"`
+	Users       []*ShadowsocksUserConfig `json:"clients"`
+	NetworkList *cfgcommon.NetworkList   `json:"network"`
+	IVCheck     bool                     `json:"ivCheck"`
 }
 
 func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
@@ -41,22 +49,42 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 	config.UdpEnabled = v.UDP
 	config.Network = v.NetworkList.Build()
 
-	if v.Password == "" {
-		return nil, newError("Shadowsocks password is not specified.")
-	}
-	account := &shadowsocks.Account{
-		Password: v.Password,
-		IvCheck:  v.IVCheck,
-	}
-	account.CipherType = cipherFromString(v.Cipher)
-	if account.CipherType == shadowsocks.CipherType_UNKNOWN {
-		return nil, newError("unknown cipher method: ", v.Cipher)
-	}
-
-	config.User = &protocol.User{
-		Email:   v.Email,
-		Level:   uint32(v.Level),
-		Account: serial.ToTypedMessage(account),
+	if v.Users != nil {
+		for _, user := range v.Users {
+			account := &shadowsocks.Account{
+				Password:   user.Password,
+				CipherType: cipherFromString(user.Cipher),
+				IvCheck:    v.IVCheck,
+			}
+			if account.Password == "" {
+				return nil, newError("Shadowsocks password is not specified.")
+			}
+			if !(account.CipherType == shadowsocks.CipherType_AES_128_GCM || account.CipherType == shadowsocks.CipherType_AES_256_GCM || account.CipherType == shadowsocks.CipherType_CHACHA20_POLY1305) {
+				return nil, newError("unsupported cipher method: ", user.Cipher)
+			}
+			config.Users = append(config.Users, &protocol.User{
+				Email:   user.Email,
+				Level:   uint32(user.Level),
+				Account: serial.ToTypedMessage(account),
+			})
+		}
+	} else {
+		account := &shadowsocks.Account{
+			Password:   v.Password,
+			CipherType: cipherFromString(v.Cipher),
+			IvCheck:    v.IVCheck,
+		}
+		if account.Password == "" {
+			return nil, newError("Shadowsocks password is not specified.")
+		}
+		if account.CipherType == shadowsocks.CipherType_UNKNOWN {
+			return nil, newError("unknown cipher method: ", v.Cipher)
+		}
+		config.Users = append(config.Users, &protocol.User{
+			Email:   v.Email,
+			Level:   uint32(v.Level),
+			Account: serial.ToTypedMessage(account),
+		})
 	}
 
 	return config, nil
