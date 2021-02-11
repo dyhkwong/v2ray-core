@@ -19,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/common/task"
+	"github.com/v2fly/v2ray-core/v4/common/vudp"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
 	"github.com/v2fly/v2ray-core/v4/proxy/vmess"
 	"github.com/v2fly/v2ray-core/v4/proxy/vmess/encoding"
@@ -140,6 +141,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
 
+	if request.Command == protocol.RequestCommandUDP {
+		request.Command = protocol.RequestCommandMux
+		request.Address = net.DomainAddress("v1.mux.cool")
+		request.Port = net.Port(666)
+	}
+
 	requestDone := func() error {
 		defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 
@@ -149,6 +156,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 
 		bodyWriter := session.EncodeRequestBody(request, writer)
+		bodyWriter2 := bodyWriter
+		if request.Command == protocol.RequestCommandMux && request.Port == 666 {
+			bodyWriter = vudp.NewPacketWriter(bodyWriter, target)
+		}
 		if err := buf.CopyOnceTimeout(input, bodyWriter, time.Millisecond*100); err != nil && err != buf.ErrNotTimeoutReader && err != buf.ErrReadTimeout {
 			return newError("failed to write first payload").Base(err)
 		}
@@ -162,7 +173,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 
 		if request.Option.Has(protocol.RequestOptionChunkStream) && !account.NoTerminationSignal {
-			if err := bodyWriter.WriteMultiBuffer(buf.MultiBuffer{}); err != nil {
+			if err := bodyWriter2.WriteMultiBuffer(buf.MultiBuffer{}); err != nil {
 				return err
 			}
 		}
@@ -181,6 +192,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		h.handleCommand(rec.Destination(), header.Command)
 
 		bodyReader := session.DecodeResponseBody(request, reader)
+		if request.Command == protocol.RequestCommandMux && request.Port == 666 {
+			bodyReader = vudp.NewPacketReader(&buf.BufferedReader{Reader: bodyReader})
+		}
 
 		return buf.Copy(bodyReader, output, buf.UpdateActivity(timer))
 	}
