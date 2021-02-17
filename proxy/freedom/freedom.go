@@ -102,13 +102,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("target not specified.")
 	}
 	destination := outbound.Target
+	UDPOverride := net.UDPDestination(nil, 0)
 	if h.config.DestinationOverride != nil {
 		server := h.config.DestinationOverride.Server
 		if isValidAddress(server.Address) {
 			destination.Address = server.Address.AsAddress()
+			UDPOverride.Address = destination.Address
 		}
 		if server.Port != 0 {
 			destination.Port = net.Port(server.Port)
+			UDPOverride.Port = destination.Port
 		}
 	}
 	newError("opening connection to ", destination).WriteToLog(session.ExportIDToError(ctx))
@@ -154,7 +157,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		if destination.Network == net.Network_TCP {
 			writer = buf.NewWriter(conn)
 		} else {
-			writer = NewPacketWriter(ctx, conn, h)
+			writer = NewPacketWriter(ctx, conn, h, UDPOverride)
 		}
 
 		if err := buf.Copy(input, writer, buf.UpdateActivity(timer)); err != nil {
@@ -231,7 +234,7 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	return buf.MultiBuffer{b}, nil
 }
 
-func NewPacketWriter(ctx context.Context, conn net.Conn, h *Handler) buf.Writer {
+func NewPacketWriter(ctx context.Context, conn net.Conn, h *Handler, UDPOverride net.Destination) buf.Writer { //nolint
 	iConn := conn
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
@@ -247,6 +250,7 @@ func NewPacketWriter(ctx context.Context, conn net.Conn, h *Handler) buf.Writer 
 			Counter:           counter,
 			Handler:           h,
 			Context:           ctx,
+			UDPOverride:       UDPOverride,
 		}
 	}
 	return &buf.SequentialWriter{Writer: conn}
@@ -257,6 +261,7 @@ type PacketWriter struct {
 	stats.Counter
 	*Handler
 	context.Context
+	UDPOverride net.Destination
 }
 
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
@@ -269,6 +274,12 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		var n int
 		var err error
 		if b.UDP != nil {
+			if w.UDPOverride.Address != nil {
+				b.UDP.Address = w.UDPOverride.Address
+			}
+			if w.UDPOverride.Port != 0 {
+				b.UDP.Port = w.UDPOverride.Port
+			}
 			if w.Handler.config.useIP() && b.UDP.Address.Family().IsDomain() {
 				ip := w.Handler.resolveIP(w.Context, b.UDP.Address.Domain(), nil)
 				if ip != nil {
