@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -19,22 +20,22 @@ import (
 var CmdRun = &base.Command{
 	CustomFlags: true,
 	UsageLine:   "{{.Exec}} run [-c config.json] [-d dir]",
-	Short:       "Run V2Ray with config",
+	Short:       "run V2Ray with config",
 	Long: `
 Run V2Ray with config.
 
 Arguments:
 
-	-c, -config
+	-c, -config <file>
 		Config file for V2Ray. Multiple assign is accepted.
 
-	-d, -confdir
+	-d, -confdir <dir>
 		A dir with config files. Multiple assign is accepted.
 
 	-r
 		Load confdir recursively.
 
-	-format
+	-format <format>
 		Format of input files. (default "json")
 
 Examples:
@@ -55,7 +56,7 @@ var (
 )
 
 func setConfigFlags(cmd *base.Command) {
-	configFormat = cmd.Flag.String("format", "", "")
+	configFormat = cmd.Flag.String("format", core.FormatAuto, "")
 	configDirRecursively = cmd.Flag.Bool("r", false, "")
 
 	cmd.Flag.Var(&configFiles, "config", "")
@@ -68,6 +69,7 @@ func executeRun(cmd *base.Command, args []string) {
 	setConfigFlags(cmd)
 	cmd.Flag.Parse(args)
 	printVersion()
+	configFiles = getConfigFilePath()
 	server, err := startV2Ray()
 	if err != nil {
 		base.Fatalf("Failed to start: %s", err)
@@ -138,20 +140,8 @@ func readConfDirRecursively(dirPath string, extension []string) cmdarg.Arg {
 	return files
 }
 
-func getLoaderExtension() ([]string, error) {
-	firstFile := ""
-	if len(configFiles) > 0 {
-		firstFile = configFiles[0]
-	}
-	loader, err := core.GetConfigLoader(*configFormat, firstFile)
-	if err != nil {
-		return nil, err
-	}
-	return loader.Extension, nil
-}
-
 func getConfigFilePath() cmdarg.Arg {
-	extension, err := getLoaderExtension()
+	extension, err := core.GetLoaderExtensions(*configFormat)
 	if err != nil {
 		base.Fatalf(err.Error())
 	}
@@ -189,16 +179,18 @@ func getConfigFilePath() cmdarg.Arg {
 		return cmdarg.Arg{configFile}
 	}
 
-	log.Println("Using config from STDIN")
-	return cmdarg.Arg{"stdin:"}
+	return nil
 }
 
 func startV2Ray() (core.Server, error) {
-	configFiles := getConfigFilePath()
-
-	config, err := core.LoadConfig(*configFormat, configFiles[0], configFiles)
+	config, err := core.LoadConfig(*configFormat, configFiles)
 	if err != nil {
-		return nil, newError("failed to read config files: [", configFiles.String(), "]").Base(err)
+		if len(configFiles) == 0 {
+			err = newError("failed to load config").Base(err)
+		} else {
+			err = newError(fmt.Sprintf("failed to load config: %s", configFiles)).Base(err)
+		}
+		return nil, err
 	}
 
 	server, err := core.New(config)
