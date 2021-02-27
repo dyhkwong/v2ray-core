@@ -45,6 +45,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/proxy/freedom"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/http"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/loopback"
+	_ "github.com/v2fly/v2ray-core/v5/proxy/mixed"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks_2022"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/socks"
@@ -121,6 +122,7 @@ import (
 
 	// Simplified config
 	_ "github.com/v2fly/v2ray-core/v5/proxy/http/simplified"
+	_ "github.com/v2fly/v2ray-core/v5/proxy/mixed/simplified"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/simplified"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/socks/simplified"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/trojan/simplified"
