@@ -32,6 +32,7 @@ var (
 		"trojan":           func() interface{} { return new(TrojanServerConfig) },
 		"vliteu":           func() interface{} { return new(VLiteUDPInboundConfig) },
 		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ServerConfig) },
+		"mixed":            func() interface{} { return new(MixedServerConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
