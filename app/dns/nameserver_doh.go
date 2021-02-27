@@ -47,6 +47,48 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 	s := baseDOHNameServer(url, "DOH")
 
 	s.dispatcher = dispatcher
+	tr := &http.Transport{
+		MaxIdleConns:        30,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 30 * time.Second,
+		ForceAttemptHTTP2:   true,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dispatcherCtx := context.Background()
+			if inbound := session.InboundFromContext(ctx); inbound != nil {
+				dispatcherCtx = session.ContextWithInbound(dispatcherCtx, inbound)
+			}
+			if content := session.ContentFromContext(ctx); content != nil {
+				dispatcherCtx = session.ContextWithContent(dispatcherCtx, content)
+			}
+
+			dest, err := net.ParseDestination(network + ":" + addr)
+			if err != nil {
+				return nil, err
+			}
+
+			link, err := s.dispatcher.Dispatch(dispatcherCtx, dest)
+			if err != nil {
+				return nil, err
+			}
+
+			cc := common.ChainedClosable{}
+			if cw, ok := link.Writer.(common.Closable); ok {
+				cc = append(cc, cw)
+			}
+			if cr, ok := link.Reader.(common.Closable); ok {
+				cc = append(cc, cr)
+			}
+			return cnc.NewConnection(
+				cnc.ConnectionInputMulti(link.Writer),
+				cnc.ConnectionOutputMulti(link.Reader),
+				cnc.ConnectionOnClose(cc),
+			), nil
+		},
+	}
+	s.httpClient = &http.Client{
+		Timeout:   time.Second * 180,
+		Transport: tr,
+	}
 
 	return s, nil
 }
@@ -249,41 +291,6 @@ func (s *DoHNameServer) dohHTTPSContext(ctx context.Context, b []byte) ([]byte, 
 	req.Header.Add("Content-Type", "application/dns-message")
 
 	hc := s.httpClient
-
-	// Dispatched connection will be closed (interrupted) after each request
-	// This makes DOH inefficient without a keep-alived connection
-	// See: core/app/proxyman/outbound/handler.go:113
-	// Using mux (https request wrapped in a stream layer) improves the situation.
-	// Recommend to use NewDoHLocalNameServer (DOHL:) if v2ray instance is running on
-	//  a normal network eg. the server side of v2ray
-
-	if s.dispatcher != nil {
-		tr := &http.Transport{
-			MaxIdleConns:        30,
-			IdleConnTimeout:     90 * time.Second,
-			TLSHandshakeTimeout: 30 * time.Second,
-			ForceAttemptHTTP2:   true,
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				dest, err := net.ParseDestination(network + ":" + addr)
-				if err != nil {
-					return nil, err
-				}
-
-				link, err := s.dispatcher.Dispatch(ctx, dest)
-				if err != nil {
-					return nil, err
-				}
-				return cnc.NewConnection(
-					cnc.ConnectionInputMulti(link.Writer),
-					cnc.ConnectionOutputMulti(link.Reader),
-				), nil
-			},
-		}
-		hc = &http.Client{
-			Timeout:   time.Second * 180,
-			Transport: tr,
-		}
-	}
 
 	resp, err := hc.Do(req.WithContext(ctx))
 	if err != nil {
