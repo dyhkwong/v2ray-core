@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.mixed;
+option csharp_namespace = "V2Ray.Core.Proxy.Mixed";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/mixed";
+option java_package = "com.v2ray.core.proxy.mixed";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/net/packetaddr/config.proto";
+
+// Account represents a Socks/HTTP account.
+message Account {
+  string username = 1;
+  string password = 2;
+}
+
+// AuthType is the authentication type of Socks proxy.
+enum AuthType {
+  // NO_AUTH is for anonymous authentication.
+  NO_AUTH = 0;
+  // PASSWORD is for username/password authentication.
+  PASSWORD = 1;
+}
+
+// ServerConfig is the protobuf config for Mixed server.
+message ServerConfig {
+  AuthType auth_type = 1 [deprecated = true];
+  map<string, string> accounts = 2;
+  uint32 timeout = 3 [deprecated = true];
+  uint32 user_level = 4;
+  // Socks
+  bool udp_enabled = 5;
+  v2ray.core.common.net.IPOrDomain address = 6;
+  v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 7;
+  // HTTP
+  bool allow_transparent = 8;
+}
