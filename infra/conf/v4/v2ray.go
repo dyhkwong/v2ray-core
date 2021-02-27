@@ -40,6 +40,7 @@ var (
 		"shadowsocks-2022":       func() interface{} { return new(Shadowsocks2022ServerConfig) },
 		"shadowsocks-2022-multi": func() interface{} { return new(Shadowsocks2022MultiUserServerConfig) },
 		"shadowsocks-2022-relay": func() interface{} { return new(Shadowsocks2022RelayServerConfig) },
+		"mixed":                  func() interface{} { return new(MixedServerConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
