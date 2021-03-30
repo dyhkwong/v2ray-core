@@ -38,8 +38,13 @@ func init() {
 	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
 }
 
+type dialerConf struct {
+	net.Destination
+	*internet.MemoryStreamConfig
+}
+
 type transportConnectionState struct {
-	scopedDialerMap    map[net.Destination]*grpc.ClientConn
+	scopedDialerMap    map[dialerConf]*grpc.ClientConn
 	scopedDialerAccess sync.Mutex
 }
 
@@ -106,16 +111,16 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 	defer stateTyped.scopedDialerAccess.Unlock()
 
 	if stateTyped.scopedDialerMap == nil {
-		stateTyped.scopedDialerMap = make(map[net.Destination]*grpc.ClientConn)
+		stateTyped.scopedDialerMap = make(map[dialerConf]*grpc.ClientConn)
 	}
 
 	canceller := func() {
 		stateTyped.scopedDialerAccess.Lock()
 		defer stateTyped.scopedDialerAccess.Unlock()
-		delete(stateTyped.scopedDialerMap, dest)
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
 	}
 
-	if client, found := stateTyped.scopedDialerMap[dest]; found && client.GetState() != connectivity.Shutdown {
+	if client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
 		return client, canceller, nil
 	}
 
@@ -151,11 +156,11 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 	canceller = func() {
 		stateTyped.scopedDialerAccess.Lock()
 		defer stateTyped.scopedDialerAccess.Unlock()
-		delete(stateTyped.scopedDialerMap, dest)
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
 		if err != nil {
 			conn.Close()
 		}
 	}
-	stateTyped.scopedDialerMap[dest] = conn
+	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = conn
 	return conn, canceller, err
 }
