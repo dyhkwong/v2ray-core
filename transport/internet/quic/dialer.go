@@ -42,9 +42,14 @@ func (c *connectionContext) openStream(destAddr net.Addr) (*interConn, error) {
 	return conn, nil
 }
 
+type dialerConf struct {
+	net.Destination
+	*internet.MemoryStreamConfig
+}
+
 type clientConnections struct {
 	access  sync.Mutex
-	conns   map[net.Destination][]*connectionContext
+	conns   map[dialerConf][]*connectionContext
 	cleanup *task.Periodic
 }
 
@@ -104,12 +109,12 @@ func (s *clientConnections) cleanConnections() error {
 		return nil
 	}
 
-	newConnMap := make(map[net.Destination][]*connectionContext)
+	newConnMap := make(map[dialerConf][]*connectionContext)
 
-	for dest, conns := range s.conns {
+	for dialerConf, conns := range s.conns {
 		conns = removeInactiveConnections(conns)
 		if len(conns) > 0 {
-			newConnMap[dest] = conns
+			newConnMap[dialerConf] = conns
 		}
 	}
 
@@ -117,18 +122,18 @@ func (s *clientConnections) cleanConnections() error {
 	return nil
 }
 
-func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tlsConfig *tls.Config, sockopt *internet.SocketConfig) (internet.Connection, error) {
+func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	s.access.Lock()
 	defer s.access.Unlock()
 
 	if s.conns == nil {
-		s.conns = make(map[net.Destination][]*connectionContext)
+		s.conns = make(map[dialerConf][]*connectionContext)
 	}
 
 	dest := net.DestinationFromAddr(destAddr)
 
 	var conns []*connectionContext
-	if s, found := s.conns[dest]; found {
+	if s, found := s.conns[dialerConf{dest, streamSettings}]; found {
 		conns = s
 	}
 
@@ -146,7 +151,7 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 	rawConn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
 		IP:   []byte{0, 0, 0, 0},
 		Port: 0,
-	}, sockopt)
+	}, streamSettings.SocketSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +162,7 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	sysConn, err := wrapSysConn(rawConn.(*net.UDPConn), config)
+	sysConn, err := wrapSysConn(rawConn.(*net.UDPConn), streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -166,6 +171,14 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 	tr := quic.Transport{
 		Conn:               sysConn,
 		ConnectionIDLength: 12,
+	}
+
+	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{
+			ServerName:    internalDomain,
+			AllowInsecure: true,
+		}
 	}
 
 	conn, err := tr.Dial(context.Background(), destAddr, tlsConfig.GetTLSConfig(tls.WithDestination(dest)), quicConfig)
@@ -178,14 +191,15 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 		conn:    conn,
 		rawConn: sysConn,
 	}
-	s.conns[dest] = append(conns, context)
+
+	s.conns[dialerConf{dest, streamSettings}] = append(conns, context)
 	return context.openStream(destAddr)
 }
 
 var client clientConnections
 
 func init() {
-	client.conns = make(map[net.Destination][]*connectionContext)
+	client.conns = make(map[dialerConf][]*connectionContext)
 	client.cleanup = &task.Periodic{
 		Interval: time.Minute,
 		Execute:  client.cleanConnections,
@@ -194,14 +208,6 @@ func init() {
 }
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
-	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
-	if tlsConfig == nil {
-		tlsConfig = &tls.Config{
-			ServerName:    internalDomain,
-			AllowInsecure: true,
-		}
-	}
-
 	var destAddr *net.UDPAddr
 	if dest.Address.Family().IsIP() {
 		destAddr = &net.UDPAddr{
@@ -216,9 +222,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		destAddr = addr
 	}
 
-	config := streamSettings.ProtocolSettings.(*Config)
-
-	return client.openConnection(destAddr, config, tlsConfig, streamSettings.SocketSettings)
+	return client.openConnection(destAddr, streamSettings)
 }
 
 func init() {
