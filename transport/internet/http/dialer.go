@@ -19,8 +19,13 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/pipe"
 )
 
+type dialerConf struct {
+	net.Destination
+	*internet.MemoryStreamConfig
+}
+
 var (
-	globalDialerMap    map[net.Destination]*http.Client
+	globalDialerMap    map[dialerConf]*http.Client
 	globalDialerAccess sync.Mutex
 )
 
@@ -33,14 +38,14 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 	canceller := func() {
 		globalDialerAccess.Lock()
 		defer globalDialerAccess.Unlock()
-		delete(globalDialerMap, dest)
+		delete(globalDialerMap, dialerConf{dest, streamSettings})
 	}
 
 	if globalDialerMap == nil {
-		globalDialerMap = make(map[net.Destination]*http.Client)
+		globalDialerMap = make(map[dialerConf]*http.Client)
 	}
 
-	if client, found := globalDialerMap[dest]; found {
+	if client, found := globalDialerMap[dialerConf{dest, streamSettings}]; found {
 		return client, canceller
 	}
 
@@ -91,7 +96,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 		Transport: transport,
 	}
 
-	globalDialerMap[dest] = client
+	globalDialerMap[dialerConf{dest, streamSettings}] = client
 	return client, canceller
 }
 
