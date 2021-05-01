@@ -77,7 +77,7 @@ func NewDomainMatcher(matcherType string, domains []*Domain) (*DomainMatcher, er
 	case "linear":
 		indexMatcher = strmatcher.NewLinearIndexMatcher()
 	default:
-		indexMatcher = strmatcher.NewLinearIndexMatcher()
+		indexMatcher = strmatcher.NewMphIndexMatcher()
 	}
 	for _, domain := range domains {
 		matcher, err := domainToMatcher(domain)
