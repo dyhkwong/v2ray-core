@@ -75,7 +75,7 @@ func NewDomainMatcher(matcherType string, domains []*routercommon.Domain) (*Doma
 	case "linear":
 		indexMatcher = strmatcher.NewLinearIndexMatcher()
 	default:
-		indexMatcher = strmatcher.NewLinearIndexMatcher()
+		indexMatcher = strmatcher.NewMphIndexMatcher()
 	}
 	for _, domain := range domains {
 		matcher, err := domainToMatcher(domain)
