@@ -1,9 +1,10 @@
-package api
+package jsonv4
 
 import (
 	"fmt"
 
 	handlerService "github.com/v2fly/v2ray-core/v4/app/proxyman/command"
+	"github.com/v2fly/v2ray-core/v4/main/commands/all/api"
 	"github.com/v2fly/v2ray-core/v4/main/commands/base"
 	"github.com/v2fly/v2ray-core/v4/main/commands/helpers"
 )
@@ -43,10 +44,10 @@ Example:
 }
 
 func executeAddOutbounds(cmd *base.Command, args []string) {
-	setSharedFlags(cmd)
-	setSharedConfigFlags(cmd)
+	api.SetSharedFlags(cmd)
+	api.SetSharedConfigFlags(cmd)
 	cmd.Flag.Parse(args)
-	c, err := helpers.LoadConfig(cmd.Flag.Args(), apiConfigFormat, apiConfigRecursively)
+	c, err := helpers.LoadConfig(cmd.Flag.Args(), api.APIConfigFormat, api.APIConfigRecursively)
 	if err != nil {
 		base.Fatalf("failed to load: %s", err)
 	}
@@ -54,7 +55,7 @@ func executeAddOutbounds(cmd *base.Command, args []string) {
 		base.Fatalf("no valid outbound found")
 	}
 
-	conn, ctx, close := dialAPIServer()
+	conn, ctx, close := api.DialAPIServer()
 	defer close()
 
 	client := handlerService.NewHandlerServiceClient(conn)
