@@ -319,7 +319,7 @@ func init() {
 		ctx = cfgcommon.NewConfigureLoadingContext(context.Background()) // nolint: staticcheck
 
 		geoloadername := platform.NewEnvFlag("v2ray.conf.geoloader").GetValue(func() string {
-			return "standard"
+			return "memconservative"
 		})
 
 		if loader, err := geodata.GetGeoDataLoader(geoloadername); err == nil {
