@@ -120,6 +120,10 @@ jobs:
         if: matrix.goos == 'linux'
         run: cp -rv ./release/config/systemd ./build_assets/
 
+      - name: Prepare package for Windows
+        if: matrix.goos == 'windows'
+        run: mv -v ./build_assets/v2ray ./build_assets/v2ray.exe
+
       - name: Create ZIP archive
         run: |
           pushd build_assets || exit 1
