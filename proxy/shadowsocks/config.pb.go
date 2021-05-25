@@ -21,11 +21,13 @@ const (
 type CipherType int32
 
 const (
-	CipherType_UNKNOWN           CipherType = 0
-	CipherType_AES_128_GCM       CipherType = 1
-	CipherType_AES_256_GCM       CipherType = 2
-	CipherType_CHACHA20_POLY1305 CipherType = 3
-	CipherType_NONE              CipherType = 4
+	CipherType_UNKNOWN            CipherType = 0
+	CipherType_AES_128_GCM        CipherType = 1
+	CipherType_AES_256_GCM        CipherType = 2
+	CipherType_CHACHA20_POLY1305  CipherType = 3
+	CipherType_NONE               CipherType = 4
+	CipherType_XCHACHA20_POLY1305 CipherType = 5
+	CipherType_AES_192_GCM        CipherType = 6
 )
 
 // Enum value maps for CipherType.
@@ -36,13 +38,17 @@ var (
 		2: "AES_256_GCM",
 		3: "CHACHA20_POLY1305",
 		4: "NONE",
+		5: "XCHACHA20_POLY1305",
+		6: "AES_192_GCM",
 	}
 	CipherType_value = map[string]int32{
-		"UNKNOWN":           0,
-		"AES_128_GCM":       1,
-		"AES_256_GCM":       2,
-		"CHACHA20_POLY1305": 3,
-		"NONE":              4,
+		"UNKNOWN":            0,
+		"AES_128_GCM":        1,
+		"AES_256_GCM":        2,
+		"CHACHA20_POLY1305":  3,
+		"NONE":               4,
+		"XCHACHA20_POLY1305": 5,
+		"AES_192_GCM":        6,
 	}
 )
 
@@ -276,14 +282,16 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\anetwork\x18\x03 \x03(\x0e2\x1e.v2ray.core.common.net.NetworkR\anetwork\x12R\n" +
 	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"R\n" +
 	"\fClientConfig\x12B\n" +
-	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server*\\\n" +
+	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server*\x85\x01\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +
 	"\vAES_128_GCM\x10\x01\x12\x0f\n" +
 	"\vAES_256_GCM\x10\x02\x12\x15\n" +
 	"\x11CHACHA20_POLY1305\x10\x03\x12\b\n" +
-	"\x04NONE\x10\x04Bu\n" +
+	"\x04NONE\x10\x04\x12\x16\n" +
+	"\x12XCHACHA20_POLY1305\x10\x05\x12\x0f\n" +
+	"\vAES_192_GCM\x10\x06Bu\n" +
 	" com.v2ray.core.proxy.shadowsocksP\x01Z0github.com/v2fly/v2ray-core/v5/proxy/shadowsocks\xaa\x02\x1cV2Ray.Core.Proxy.Shadowsocksb\x06proto3"
 
 var (
