@@ -60,12 +60,24 @@ func createChaCha20Poly1305(key []byte) cipher.AEAD {
 	return ChaChaPoly1305
 }
 
+func createXChaCha20Poly1305(key []byte) cipher.AEAD {
+	XChaChaPoly1305, err := chacha20poly1305.NewX(key)
+	common.Must(err)
+	return XChaChaPoly1305
+}
+
 func (a *Account) getCipher() (Cipher, error) {
 	switch a.CipherType {
 	case CipherType_AES_128_GCM:
 		return &AEADCipher{
 			KeyBytes:        16,
 			IVBytes:         16,
+			AEADAuthCreator: createAesGcm,
+		}, nil
+	case CipherType_AES_192_GCM:
+		return &AEADCipher{
+			KeyBytes:        24,
+			IVBytes:         24,
 			AEADAuthCreator: createAesGcm,
 		}, nil
 	case CipherType_AES_256_GCM:
@@ -79,6 +91,12 @@ func (a *Account) getCipher() (Cipher, error) {
 			KeyBytes:        32,
 			IVBytes:         32,
 			AEADAuthCreator: createChaCha20Poly1305,
+		}, nil
+	case CipherType_XCHACHA20_POLY1305:
+		return &AEADCipher{
+			KeyBytes:        32,
+			IVBytes:         32,
+			AEADAuthCreator: createXChaCha20Poly1305,
 		}, nil
 	case CipherType_NONE:
 		return NoneCipher{}, nil
@@ -136,11 +154,12 @@ func (c *AEADCipher) IVSize() int32 {
 }
 
 func (c *AEADCipher) createAuthenticator(key []byte, iv []byte) *crypto.AEADAuthenticator {
-	nonce := crypto.GenerateInitialAEADNonce()
 	subkey := make([]byte, c.KeyBytes)
 	hkdfSHA1(key, iv, subkey)
+	aead := c.AEADAuthCreator(subkey)
+	nonce := crypto.GenerateAEADNonceWithSize(aead.NonceSize())
 	return &crypto.AEADAuthenticator{
-		AEAD:           c.AEADAuthCreator(subkey),
+		AEAD:           aead,
 		NonceGenerator: nonce,
 	}
 }
@@ -223,7 +242,7 @@ func passwordToCipherKey(password []byte, keySize int32) []byte {
 
 		key = append(key, md5Sum[:]...)
 	}
-	return key
+	return key[:keySize]
 }
 
 func hkdfSHA1(secret, salt, outKey []byte) {
