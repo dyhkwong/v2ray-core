@@ -25,6 +25,7 @@ enum CipherType {
   AES_256_GCM = 2;
   CHACHA20_POLY1305 = 3;
   NONE = 4;
+  XCHACHA20_POLY1305 = 5;
 }
 
 message ServerConfig {
