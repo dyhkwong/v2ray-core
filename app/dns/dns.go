@@ -1,5 +1,3 @@
-// +build !confonly
-
 // Package dns is an implementation of core.DNS feature.
 package dns
 
