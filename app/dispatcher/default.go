@@ -229,7 +229,11 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				ob.Target = destination
 			}
 		}
-		go d.routedDispatch(ctx, outbound, destination)
+		if handler != nil {
+			go d.targetedDispatch(ctx, outbound, handler.Tag)
+		} else {
+			go d.routedDispatch(ctx, outbound, destination)
+		}
 	default:
 		go func() {
 			cReader := &cachedReader{
