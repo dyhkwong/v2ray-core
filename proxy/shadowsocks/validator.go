@@ -87,11 +87,11 @@ func (v *Validator) Get(bs []byte, command protocol.RequestCommand) (u *protocol
 
 			switch command {
 			case protocol.RequestCommandTCP:
-				data := make([]byte, 16)
-				ret, err = aead.Open(data[:0], data[4:16], bs[ivLen:ivLen+18], nil)
+				data := make([]byte, 32)
+				ret, err = aead.Open(data[:0], data[32-aead.NonceSize():32], bs[ivLen:ivLen+18], nil)
 			case protocol.RequestCommandUDP:
 				data := make([]byte, 8192)
-				ret, err = aead.Open(data[:0], data[8180:8192], bs[ivLen:], nil)
+				ret, err = aead.Open(data[:0], data[8192-aead.NonceSize():8192], bs[ivLen:], nil)
 			}
 
 			if err == nil {
