@@ -279,6 +279,7 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 		src: source,
 	}
 	if originalDest.IsValid() {
+		id.dest = originalDest
 		b.UDP = &originalDest
 	}
 	conn, existing := w.getConnection(id)

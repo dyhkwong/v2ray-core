@@ -15,7 +15,6 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/common/task"
-	"github.com/v2fly/v2ray-core/v4/common/vudp"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
 	"github.com/v2fly/v2ray-core/v4/proxy/vless"
 	"github.com/v2fly/v2ray-core/v4/proxy/vless/encoding"
@@ -112,12 +111,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	clientReader := link.Reader // .(*pipe.Reader)
 	clientWriter := link.Writer // .(*pipe.Writer)
 
-	if request.Command == protocol.RequestCommandUDP {
-		request.Command = protocol.RequestCommandMux
-		request.Address = net.DomainAddress("v1.mux.cool")
-		request.Port = net.Port(666)
-	}
-
 	postRequest := func() error {
 		defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 
@@ -128,9 +121,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 		// default: serverWriter := bufferWriter
 		serverWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons)
-		if request.Command == protocol.RequestCommandMux && request.Port == 666 {
-			serverWriter = vudp.NewPacketWriter(serverWriter, target)
-		}
 		if err := buf.CopyOnceTimeout(clientReader, serverWriter, time.Millisecond*100); err != nil && err != buf.ErrNotTimeoutReader && err != buf.ErrReadTimeout {
 			return err // ...
 		}
@@ -158,9 +148,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 		// default: serverReader := buf.NewReader(conn)
 		serverReader := encoding.DecodeBodyAddons(conn, request, responseAddons)
-		if request.Command == protocol.RequestCommandMux && request.Port == 666 {
-			serverReader = vudp.NewPacketReader(conn)
-		}
 
 		// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBufer
 		if err := buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer)); err != nil {
