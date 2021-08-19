@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/websocket v1.4.2
 	github.com/jhump/protoreflect v1.9.0
-	github.com/lucas-clemente/quic-go v0.22.1
+	github.com/lucas-clemente/quic-go v0.23.0
 	github.com/miekg/dns v1.1.43
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pires/go-proxyproto v0.6.0
@@ -22,11 +22,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210611083646-a4fc73990273
-	google.golang.org/grpc v1.38.0
-	google.golang.org/protobuf v1.26.0
-	gopkg.in/yaml.v2 v2.4.0
-	h12.io/socks v1.0.2
 	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
 	google.golang.org/grpc v1.39.1
 	google.golang.org/protobuf v1.27.1
