@@ -20,6 +20,7 @@ type ObservatoryConfig struct {
 	ProbeURL              string            `json:"probeURL"`
 	ProbeInterval         duration.Duration `json:"probeInterval"`
 	PersistentProbeResult bool              `json:"persistentProbeResult"`
+	EnableConcurrency     bool              `json:"enableConcurrency"`
 }
 
 func (o *ObservatoryConfig) Build() (proto.Message, error) {
@@ -28,6 +29,7 @@ func (o *ObservatoryConfig) Build() (proto.Message, error) {
 		ProbeUrl:              o.ProbeURL,
 		ProbeInterval:         int64(o.ProbeInterval),
 		PersistentProbeResult: o.PersistentProbeResult,
+		EnableConcurrency:     o.EnableConcurrency,
 	}, nil
 }
 
