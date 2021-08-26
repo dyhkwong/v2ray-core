@@ -369,6 +369,7 @@ type Config struct {
 	ProbeUrl              string   `protobuf:"bytes,3,opt,name=probe_url,json=probeUrl,proto3" json:"probe_url,omitempty"`
 	ProbeInterval         int64    `protobuf:"varint,4,opt,name=probe_interval,json=probeInterval,proto3" json:"probe_interval,omitempty"`
 	PersistentProbeResult bool     `protobuf:"varint,5,opt,name=persistent_probe_result,json=persistentProbeResult,proto3" json:"persistent_probe_result,omitempty"`
+	EnableConcurrency     bool     `protobuf:"varint,6,opt,name=enable_concurrency,json=enableConcurrency,proto3" json:"enable_concurrency,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -431,6 +432,13 @@ func (x *Config) GetPersistentProbeResult() bool {
 	return false
 }
 
+func (x *Config) GetEnableConcurrency() bool {
+	if x != nil {
+		return x.EnableConcurrency
+	}
+	return false
+}
+
 var File_app_observatory_config_proto protoreflect.FileDescriptor
 
 const file_app_observatory_config_proto_rawDesc = "" +
@@ -459,12 +467,13 @@ const file_app_observatory_config_proto_rawDesc = "" +
 	"\x05delay\x18\x02 \x01(\x03R\x05delay\x12*\n" +
 	"\x11last_error_reason\x18\x03 \x01(\tR\x0flastErrorReason\"2\n" +
 	"\tIntensity\x12%\n" +
-	"\x0eprobe_interval\x18\x01 \x01(\rR\rprobeInterval\"\xd5\x01\n" +
+	"\x0eprobe_interval\x18\x01 \x01(\rR\rprobeInterval\"\x84\x02\n" +
 	"\x06Config\x12)\n" +
 	"\x10subject_selector\x18\x02 \x03(\tR\x0fsubjectSelector\x12\x1b\n" +
 	"\tprobe_url\x18\x03 \x01(\tR\bprobeUrl\x12%\n" +
 	"\x0eprobe_interval\x18\x04 \x01(\x03R\rprobeInterval\x126\n" +
-	"\x17persistent_probe_result\x18\x05 \x01(\bR\x15persistentProbeResult:$\x82\xb5\x18 \n" +
+	"\x17persistent_probe_result\x18\x05 \x01(\bR\x15persistentProbeResult\x12-\n" +
+	"\x12enable_concurrency\x18\x06 \x01(\bR\x11enableConcurrency:$\x82\xb5\x18 \n" +
 	"\aservice\x12\x15backgroundObservatoryBo\n" +
 	"\x1ecom.v2ray.core.app.observatoryP\x01Z.github.com/v2fly/v2ray-core/v5/app/observatory\xaa\x02\x1aV2Ray.Core.App.Observatoryb\x06proto3"
 

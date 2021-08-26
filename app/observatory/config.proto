@@ -86,4 +86,6 @@ message Config {
   int64 probe_interval = 4;
 
   bool persistent_probe_result = 5;
+
+  bool enable_concurrency = 6;
 }
