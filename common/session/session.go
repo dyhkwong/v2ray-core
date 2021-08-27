@@ -43,6 +43,10 @@ type Inbound struct {
 	Tag string
 	// User is the user that authencates for the inbound. May be nil if the protocol allows anounymous traffic.
 	User *protocol.MemoryUser
+	// SagerNet private: Uid is the android app's unix user id for the inbound connection
+	Uid uint32
+	// SagerNet private: AppStatus is the android app's status for the inbound connection
+	AppStatus []string
 }
 
 // Outbound is the metadata of an outbound connection.
