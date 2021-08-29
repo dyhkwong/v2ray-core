@@ -52,7 +52,7 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 			return nil, err
 		}
 	}
-	dest := net.UDPDestination(net.DomainAddress(url.Hostname()), port)
+	dest := net.UDPDestination(net.ParseAddress(url.Hostname()), port)
 
 	s := &QUICNameServer{
 		ips:         make(map[string]*record),
@@ -238,11 +238,11 @@ func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOp
 	var ips []net.Address
 	var ip6 []net.Address
 
-	switch {
-	case option.IPv4Enable:
+	if option.IPv4Enable {
 		ips, err4 = record.A.getIPs()
-		fallthrough
-	case option.IPv6Enable:
+	}
+
+	if option.IPv6Enable {
 		ip6, err6 = record.AAAA.getIPs()
 		ips = append(ips, ip6...)
 	}
@@ -257,6 +257,10 @@ func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOp
 
 	if err6 != nil {
 		return nil, err6
+	}
+
+	if (option.IPv4Enable && record.A != nil) || (option.IPv6Enable && record.AAAA != nil) {
+		return nil, dns_feature.ErrEmptyResponse
 	}
 
 	return nil, errRecordNotFound
