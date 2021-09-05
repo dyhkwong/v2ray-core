@@ -125,6 +125,7 @@ type InboundDetourConfig struct {
 	StreamSetting  *StreamConfig                  `json:"streamSettings"`
 	DomainOverride *cfgcommon.StringList          `json:"domainOverride"`
 	SniffingConfig *sniffer.SniffingConfig        `json:"sniffing"`
+	DumpUID        bool                           `json:"dumpUID"`
 }
 
 // Build implements Buildable.
@@ -218,6 +219,7 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 		Tag:              c.Tag,
 		ReceiverSettings: serial.ToTypedMessage(receiverSettings),
 		ProxySettings:    serial.ToTypedMessage(ts),
+		DumpUid:          c.DumpUID,
 	}, nil
 }
 

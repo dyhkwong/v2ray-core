@@ -92,7 +92,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 		handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
 			Listen:    net.NewIPOrDomain(net.LocalHostIP),
 			PortRange: net.SinglePortRange(net.Port(s.receiverPort)),
-		}, s, true)
+		}, s, true, false)
 		if err != nil {
 			return nil, newError("failed to create sip003 plugin inbound").Base(err)
 		}
