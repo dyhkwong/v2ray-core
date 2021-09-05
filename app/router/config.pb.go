@@ -121,6 +121,9 @@ type RoutingRule struct {
 	Protocol       []string      `protobuf:"bytes,9,rep,name=protocol,proto3" json:"protocol,omitempty"`
 	Attributes     string        `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	DomainMatcher  string        `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
+	UidList        *net.UidList  `protobuf:"bytes,18,opt,name=uid_list,json=uidList,proto3" json:"uid_list,omitempty"`
+	WifiSsidList   []string      `protobuf:"bytes,19,rep,name=wifi_ssid_list,json=wifiSsidList,proto3" json:"wifi_ssid_list,omitempty"`
+	NetworkType    string        `protobuf:"bytes,20,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -287,6 +290,27 @@ func (x *RoutingRule) GetAttributes() string {
 func (x *RoutingRule) GetDomainMatcher() string {
 	if x != nil {
 		return x.DomainMatcher
+	}
+	return ""
+}
+
+func (x *RoutingRule) GetUidList() *net.UidList {
+	if x != nil {
+		return x.UidList
+	}
+	return nil
+}
+
+func (x *RoutingRule) GetWifiSsidList() []string {
+	if x != nil {
+		return x.WifiSsidList
+	}
+	return nil
+}
+
+func (x *RoutingRule) GetNetworkType() string {
+	if x != nil {
+		return x.NetworkType
 	}
 	return ""
 }
@@ -763,12 +787,15 @@ type SimplifiedRoutingRule struct {
 	// source_cidr above will have no effect.
 	SourceGeoip []*routercommon.GeoIP `protobuf:"bytes,11,rep,name=source_geoip,json=sourceGeoip,proto3" json:"source_geoip,omitempty"`
 	// List of ports for source port matching.
-	SourcePortList string   `protobuf:"bytes,16,opt,name=source_port_list,json=sourcePortList,proto3" json:"source_port_list,omitempty"`
-	UserEmail      []string `protobuf:"bytes,7,rep,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
-	InboundTag     []string `protobuf:"bytes,8,rep,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
-	Protocol       []string `protobuf:"bytes,9,rep,name=protocol,proto3" json:"protocol,omitempty"`
-	Attributes     string   `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
-	DomainMatcher  string   `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
+	SourcePortList string       `protobuf:"bytes,16,opt,name=source_port_list,json=sourcePortList,proto3" json:"source_port_list,omitempty"`
+	UserEmail      []string     `protobuf:"bytes,7,rep,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
+	InboundTag     []string     `protobuf:"bytes,8,rep,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Protocol       []string     `protobuf:"bytes,9,rep,name=protocol,proto3" json:"protocol,omitempty"`
+	Attributes     string       `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
+	DomainMatcher  string       `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
+	UidList        *net.UidList `protobuf:"bytes,18,opt,name=uid_list,json=uidList,proto3" json:"uid_list,omitempty"`
+	WifiSsidList   []string     `protobuf:"bytes,19,rep,name=wifi_ssid_list,json=wifiSsidList,proto3" json:"wifi_ssid_list,omitempty"`
+	NetworkType    string       `protobuf:"bytes,20,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -907,6 +934,27 @@ func (x *SimplifiedRoutingRule) GetDomainMatcher() string {
 	return ""
 }
 
+func (x *SimplifiedRoutingRule) GetUidList() *net.UidList {
+	if x != nil {
+		return x.UidList
+	}
+	return nil
+}
+
+func (x *SimplifiedRoutingRule) GetWifiSsidList() []string {
+	if x != nil {
+		return x.WifiSsidList
+	}
+	return nil
+}
+
+func (x *SimplifiedRoutingRule) GetNetworkType() string {
+	if x != nil {
+		return x.NetworkType
+	}
+	return ""
+}
+
 func (x *SimplifiedRoutingRule) GetGeoDomain() []*routercommon.GeoSite {
 	if x != nil {
 		return x.GeoDomain
@@ -996,7 +1044,7 @@ var File_app_router_config_proto protoreflect.FileDescriptor
 
 const file_app_router_config_proto_rawDesc = "" +
 	"\n" +
-	"\x17app/router/config.proto\x12\x15v2ray.core.app.router\x1a\x19google/protobuf/any.proto\x1a\x15common/net/port.proto\x1a\x18common/net/network.proto\x1a common/protoext/extensions.proto\x1a$app/router/routercommon/common.proto\"\x80\b\n" +
+	"\x17app/router/config.proto\x12\x15v2ray.core.app.router\x1a\x19google/protobuf/any.proto\x1a\x15common/net/port.proto\x1a\x18common/net/network.proto\x1a\x14common/net/uid.proto\x1a common/protoext/extensions.proto\x1a$app/router/routercommon/common.proto\"\x84\t\n" +
 	"\vRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1021,7 +1069,10 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\x0f \x01(\tR\n" +
 	"attributes\x12%\n" +
-	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12L\n" +
+	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x129\n" +
+	"\buid_list\x18\x12 \x01(\v2\x1e.v2ray.core.common.net.UidListR\auidList\x12$\n" +
+	"\x0ewifi_ssid_list\x18\x13 \x03(\tR\fwifiSsidList\x12!\n" +
+	"\fnetwork_type\x18\x14 \x01(\tR\vnetworkType\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
@@ -1058,7 +1109,7 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x06Config\x12N\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2%.v2ray.core.app.router.DomainStrategyR\x0edomainStrategy\x126\n" +
 	"\x04rule\x18\x02 \x03(\v2\".v2ray.core.app.router.RoutingRuleR\x04rule\x12K\n" +
-	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\xab\x05\n" +
+	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\xaf\x06\n" +
 	"\x15SimplifiedRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1077,7 +1128,10 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\x0f \x01(\tR\n" +
 	"attributes\x12%\n" +
-	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12L\n" +
+	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x129\n" +
+	"\buid_list\x18\x12 \x01(\v2\x1e.v2ray.core.common.net.UidListR\auidList\x12$\n" +
+	"\x0ewifi_ssid_list\x18\x13 \x03(\tR\fwifiSsidList\x12!\n" +
+	"\fnetwork_type\x18\x14 \x01(\tR\vnetworkType\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
@@ -1128,8 +1182,9 @@ var file_app_router_config_proto_goTypes = []any{
 	(*net.PortList)(nil),            // 15: v2ray.core.common.net.PortList
 	(*net.NetworkList)(nil),         // 16: v2ray.core.common.net.NetworkList
 	(net.Network)(0),                // 17: v2ray.core.common.net.Network
-	(*routercommon.GeoSite)(nil),    // 18: v2ray.core.app.router.routercommon.GeoSite
-	(*anypb.Any)(nil),               // 19: google.protobuf.Any
+	(*net.UidList)(nil),             // 18: v2ray.core.common.net.UidList
+	(*routercommon.GeoSite)(nil),    // 19: v2ray.core.app.router.routercommon.GeoSite
+	(*anypb.Any)(nil),               // 20: google.protobuf.Any
 }
 var file_app_router_config_proto_depIdxs = []int32{
 	11, // 0: v2ray.core.app.router.RoutingRule.domain:type_name -> v2ray.core.app.router.routercommon.Domain
@@ -1142,25 +1197,27 @@ var file_app_router_config_proto_depIdxs = []int32{
 	12, // 7: v2ray.core.app.router.RoutingRule.source_cidr:type_name -> v2ray.core.app.router.routercommon.CIDR
 	13, // 8: v2ray.core.app.router.RoutingRule.source_geoip:type_name -> v2ray.core.app.router.routercommon.GeoIP
 	15, // 9: v2ray.core.app.router.RoutingRule.source_port_list:type_name -> v2ray.core.common.net.PortList
-	18, // 10: v2ray.core.app.router.RoutingRule.geo_domain:type_name -> v2ray.core.app.router.routercommon.GeoSite
-	19, // 11: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> google.protobuf.Any
-	3,  // 12: v2ray.core.app.router.StrategyLeastLoadConfig.costs:type_name -> v2ray.core.app.router.StrategyWeight
-	0,  // 13: v2ray.core.app.router.Config.domain_strategy:type_name -> v2ray.core.app.router.DomainStrategy
-	1,  // 14: v2ray.core.app.router.Config.rule:type_name -> v2ray.core.app.router.RoutingRule
-	2,  // 15: v2ray.core.app.router.Config.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
-	11, // 16: v2ray.core.app.router.SimplifiedRoutingRule.domain:type_name -> v2ray.core.app.router.routercommon.Domain
-	13, // 17: v2ray.core.app.router.SimplifiedRoutingRule.geoip:type_name -> v2ray.core.app.router.routercommon.GeoIP
-	16, // 18: v2ray.core.app.router.SimplifiedRoutingRule.networks:type_name -> v2ray.core.common.net.NetworkList
-	13, // 19: v2ray.core.app.router.SimplifiedRoutingRule.source_geoip:type_name -> v2ray.core.app.router.routercommon.GeoIP
-	18, // 20: v2ray.core.app.router.SimplifiedRoutingRule.geo_domain:type_name -> v2ray.core.app.router.routercommon.GeoSite
-	0,  // 21: v2ray.core.app.router.SimplifiedConfig.domain_strategy:type_name -> v2ray.core.app.router.DomainStrategy
-	9,  // 22: v2ray.core.app.router.SimplifiedConfig.rule:type_name -> v2ray.core.app.router.SimplifiedRoutingRule
-	2,  // 23: v2ray.core.app.router.SimplifiedConfig.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	18, // 10: v2ray.core.app.router.RoutingRule.uid_list:type_name -> v2ray.core.common.net.UidList
+	19, // 11: v2ray.core.app.router.RoutingRule.geo_domain:type_name -> v2ray.core.app.router.routercommon.GeoSite
+	20, // 12: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> google.protobuf.Any
+	3,  // 13: v2ray.core.app.router.StrategyLeastLoadConfig.costs:type_name -> v2ray.core.app.router.StrategyWeight
+	0,  // 14: v2ray.core.app.router.Config.domain_strategy:type_name -> v2ray.core.app.router.DomainStrategy
+	1,  // 15: v2ray.core.app.router.Config.rule:type_name -> v2ray.core.app.router.RoutingRule
+	2,  // 16: v2ray.core.app.router.Config.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
+	11, // 17: v2ray.core.app.router.SimplifiedRoutingRule.domain:type_name -> v2ray.core.app.router.routercommon.Domain
+	13, // 18: v2ray.core.app.router.SimplifiedRoutingRule.geoip:type_name -> v2ray.core.app.router.routercommon.GeoIP
+	16, // 19: v2ray.core.app.router.SimplifiedRoutingRule.networks:type_name -> v2ray.core.common.net.NetworkList
+	13, // 20: v2ray.core.app.router.SimplifiedRoutingRule.source_geoip:type_name -> v2ray.core.app.router.routercommon.GeoIP
+	18, // 21: v2ray.core.app.router.SimplifiedRoutingRule.uid_list:type_name -> v2ray.core.common.net.UidList
+	19, // 22: v2ray.core.app.router.SimplifiedRoutingRule.geo_domain:type_name -> v2ray.core.app.router.routercommon.GeoSite
+	0,  // 23: v2ray.core.app.router.SimplifiedConfig.domain_strategy:type_name -> v2ray.core.app.router.DomainStrategy
+	9,  // 24: v2ray.core.app.router.SimplifiedConfig.rule:type_name -> v2ray.core.app.router.SimplifiedRoutingRule
+	2,  // 25: v2ray.core.app.router.SimplifiedConfig.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_app_router_config_proto_init() }
