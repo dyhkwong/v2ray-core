@@ -126,6 +126,8 @@ type InboundHandlerConfig struct {
 	ReceiverSettings *anypb.Any `protobuf:"bytes,2,opt,name=receiver_settings,json=receiverSettings,proto3" json:"receiver_settings,omitempty"`
 	// Settings for inbound proxy. Must be one of the inbound proxies.
 	ProxySettings *anypb.Any `protobuf:"bytes,3,opt,name=proxy_settings,json=proxySettings,proto3" json:"proxy_settings,omitempty"`
+	// SagerNet private
+	DumpUid       bool `protobuf:"varint,99,opt,name=dump_uid,json=dumpUid,proto3" json:"dump_uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -179,6 +181,13 @@ func (x *InboundHandlerConfig) GetProxySettings() *anypb.Any {
 		return x.ProxySettings
 	}
 	return nil
+}
+
+func (x *InboundHandlerConfig) GetDumpUid() bool {
+	if x != nil {
+		return x.DumpUid
+	}
+	return false
 }
 
 // OutboundHandlerConfig is the configuration for outbound handler.
@@ -274,11 +283,12 @@ const file_config_proto_rawDesc = "" +
 	"\boutbound\x18\x02 \x03(\v2!.v2ray.core.OutboundHandlerConfigR\boutbound\x12&\n" +
 	"\x03app\x18\x04 \x03(\v2\x14.google.protobuf.AnyR\x03app\x12E\n" +
 	"\ttransport\x18\x05 \x01(\v2#.v2ray.core.transport.global.ConfigB\x02\x18\x01R\ttransport\x122\n" +
-	"\textension\x18\x06 \x03(\v2\x14.google.protobuf.AnyR\textensionJ\x04\b\x03\x10\x04\"\xa8\x01\n" +
+	"\textension\x18\x06 \x03(\v2\x14.google.protobuf.AnyR\textensionJ\x04\b\x03\x10\x04\"\xc3\x01\n" +
 	"\x14InboundHandlerConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12A\n" +
 	"\x11receiver_settings\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x10receiverSettings\x12;\n" +
-	"\x0eproxy_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\rproxySettings\"\xd7\x01\n" +
+	"\x0eproxy_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\rproxySettings\x12\x19\n" +
+	"\bdump_uid\x18c \x01(\bR\adumpUid\"\xd7\x01\n" +
 	"\x15OutboundHandlerConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12=\n" +
 	"\x0fsender_settings\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x0esenderSettings\x12;\n" +
