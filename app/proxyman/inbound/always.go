@@ -49,7 +49,7 @@ type AlwaysOnInboundHandler struct {
 	tag     string
 }
 
-func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}) (*AlwaysOnInboundHandler, error) {
+func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}, dumpUid bool) (*AlwaysOnInboundHandler, error) {
 	rawProxy, err := common.CreateObject(ctx, proxyConfig)
 	if err != nil {
 		return nil, err
@@ -58,10 +58,10 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 	if !ok {
 		return nil, newError("not an inbound proxy.")
 	}
-	return NewAlwaysOnInboundHandlerWithProxy(ctx, tag, receiverConfig, p, false)
+	return NewAlwaysOnInboundHandlerWithProxy(ctx, tag, receiverConfig, p, false, dumpUid)
 }
 
-func NewAlwaysOnInboundHandlerWithProxy(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, p proxy.Inbound, inject bool) (*AlwaysOnInboundHandler, error) {
+func NewAlwaysOnInboundHandlerWithProxy(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, p proxy.Inbound, inject bool, dumpUid bool) (*AlwaysOnInboundHandler, error) {
 	h := &AlwaysOnInboundHandler{
 		proxy: p,
 		mux:   mux.NewServer(ctx),
@@ -125,6 +125,7 @@ func NewAlwaysOnInboundHandlerWithProxy(ctx context.Context, tag string, receive
 					sniffingConfig:  receiverConfig.GetEffectiveSniffingSettings(),
 					uplinkCounter:   uplinkCounter,
 					downlinkCounter: downlinkCounter,
+					dumpUid:         dumpUid,
 					ctx:             ctx,
 				}
 				h.workers = append(h.workers, worker)
@@ -141,6 +142,7 @@ func NewAlwaysOnInboundHandlerWithProxy(ctx context.Context, tag string, receive
 					sniffingConfig:  receiverConfig.GetEffectiveSniffingSettings(),
 					uplinkCounter:   uplinkCounter,
 					downlinkCounter: downlinkCounter,
+					dumpUid:         dumpUid,
 					stream:          mss,
 				}
 				h.workers = append(h.workers, worker)
