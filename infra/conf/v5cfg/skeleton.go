@@ -28,6 +28,7 @@ type InboundConfig struct {
 	Tag            string                  `json:"tag"`
 	SniffingConfig *sniffer.SniffingConfig `json:"sniffing"`
 	StreamSetting  *StreamConfig           `json:"streamSettings"`
+	DumpUID        bool                    `json:"dumpUID"`
 }
 
 type OutboundConfig struct {
