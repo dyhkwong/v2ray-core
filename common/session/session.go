@@ -48,6 +48,11 @@ type Inbound struct {
 	Timer *signal.ActivityTimer
 	// Conn is actually internet.Connection. May be nil.
 	Conn net.Conn
+
+	// SagerNet private
+	UID         uint32
+	SSID        string
+	NetworkType string
 }
 
 // Outbound is the metadata of an outbound connection.
