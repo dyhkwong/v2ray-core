@@ -159,13 +159,15 @@ func NewHandler(ctx context.Context, config *core.InboundHandlerConfig) (inbound
 		})
 	}
 
+	dumpUid := config.DumpUid
+
 	allocStrategy := receiverSettings.AllocationStrategy
 	if allocStrategy == nil || allocStrategy.Type == proxyman.AllocationStrategy_Always {
-		return NewAlwaysOnInboundHandler(ctx, tag, receiverSettings, proxySettings)
+		return NewAlwaysOnInboundHandler(ctx, tag, receiverSettings, proxySettings, dumpUid)
 	}
 
 	if allocStrategy.Type == proxyman.AllocationStrategy_Random {
-		return NewDynamicInboundHandler(ctx, tag, receiverSettings, proxySettings)
+		return NewDynamicInboundHandler(ctx, tag, receiverSettings, proxySettings, dumpUid)
 	}
 	return nil, newError("unknown allocation strategy: ", receiverSettings.AllocationStrategy.Type).AtError()
 }
