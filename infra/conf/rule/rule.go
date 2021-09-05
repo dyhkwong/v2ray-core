@@ -204,17 +204,20 @@ func toCidrList(ctx context.Context, ips cfgcommon.StringList) ([]*routercommon.
 func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRule, error) {
 	type RawFieldRule struct {
 		RouterRule
-		Domain     *cfgcommon.StringList  `json:"domain"`
-		Domains    *cfgcommon.StringList  `json:"domains"`
-		IP         *cfgcommon.StringList  `json:"ip"`
-		Port       *cfgcommon.PortList    `json:"port"`
-		Network    *cfgcommon.NetworkList `json:"network"`
-		SourceIP   *cfgcommon.StringList  `json:"source"`
-		SourcePort *cfgcommon.PortList    `json:"sourcePort"`
-		User       *cfgcommon.StringList  `json:"user"`
-		InboundTag *cfgcommon.StringList  `json:"inboundTag"`
-		Protocols  *cfgcommon.StringList  `json:"protocol"`
-		Attributes string                 `json:"attrs"`
+		Domain       *cfgcommon.StringList  `json:"domain"`
+		Domains      *cfgcommon.StringList  `json:"domains"`
+		IP           *cfgcommon.StringList  `json:"ip"`
+		Port         *cfgcommon.PortList    `json:"port"`
+		Network      *cfgcommon.NetworkList `json:"network"`
+		SourceIP     *cfgcommon.StringList  `json:"source"`
+		SourcePort   *cfgcommon.PortList    `json:"sourcePort"`
+		User         *cfgcommon.StringList  `json:"user"`
+		InboundTag   *cfgcommon.StringList  `json:"inboundTag"`
+		Protocols    *cfgcommon.StringList  `json:"protocol"`
+		Attributes   string                 `json:"attrs"`
+		UidList      *cfgcommon.UidList     `json:"uidList"` // nolint: stylecheck
+		WifiSSIDList *cfgcommon.StringList  `json:"ssidList"`
+		NetworkType  string                 `json:"networkType"`
 	}
 	rawFieldRule := new(RawFieldRule)
 	err := json.Unmarshal(msg, rawFieldRule)
@@ -308,6 +311,18 @@ func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRu
 
 	if len(rawFieldRule.Attributes) > 0 {
 		rule.Attributes = rawFieldRule.Attributes
+	}
+
+	if rawFieldRule.UidList != nil && len(*rawFieldRule.UidList) > 0 {
+		rule.UidList = rawFieldRule.UidList.Build()
+	}
+
+	if rawFieldRule.WifiSSIDList != nil && rawFieldRule.WifiSSIDList.Len() > 0 {
+		rule.WifiSsidList = *rawFieldRule.WifiSSIDList
+	}
+
+	if len(rawFieldRule.NetworkType) > 0 {
+		rule.NetworkType = rawFieldRule.NetworkType
 	}
 
 	return rule, nil
