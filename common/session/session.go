@@ -43,6 +43,11 @@ type Inbound struct {
 	Tag string
 	// User is the user that authencates for the inbound. May be nil if the protocol allows anounymous traffic.
 	User *protocol.MemoryUser
+
+	// SagerNet private
+	UID         uint32
+	SSID        string
+	NetworkType string
 }
 
 // Outbound is the metadata of an outbound connection.
