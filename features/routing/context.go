@@ -40,4 +40,9 @@ type Context interface {
 
 	// GetSkipDNSResolve returns a flag switch for weather skip dns resolve during route pick.
 	GetSkipDNSResolve() bool
+
+	// SagerNet private
+	GetUid() uint32
+	GetSsid() string
+	GetNetworkType() string
 }
