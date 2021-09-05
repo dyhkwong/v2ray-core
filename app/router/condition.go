@@ -270,3 +270,57 @@ func (m *ProtocolMatcher) Apply(ctx routing.Context) bool {
 	}
 	return false
 }
+
+type UidMatcher struct { // nolint: stylecheck
+	uidList map[uint32]bool
+}
+
+func NewUidMatcher(list *net.UidList) *UidMatcher { // nolint: stylecheck
+	m := UidMatcher{uidList: map[uint32]bool{}}
+	for _, uid := range list.Uid {
+		m.uidList[uid] = true
+	}
+	return &m
+}
+
+// Apply implements Condition.
+func (u UidMatcher) Apply(ctx routing.Context) bool {
+	return u.uidList[ctx.GetUid()]
+}
+
+type WifiSSIDMatcher struct {
+	ssid map[string]bool
+}
+
+func NewWifiSSIDMatcher(ssid []string) *WifiSSIDMatcher {
+	m := &WifiSSIDMatcher{
+		ssid: map[string]bool{},
+	}
+
+	for _, status := range ssid {
+		m.ssid[status] = true
+	}
+
+	return m
+}
+
+// Apply implements Condition.
+func (m *WifiSSIDMatcher) Apply(ctx routing.Context) bool {
+	return m.ssid[ctx.GetWifiSsid()]
+}
+
+type NetworkTypeMatcher struct {
+	networkType string
+}
+
+func NewNetworkTypeMatcher(networkType string) *NetworkTypeMatcher {
+	m := &NetworkTypeMatcher{
+		networkType: networkType,
+	}
+	return m
+}
+
+// Apply implements Condition.
+func (m *NetworkTypeMatcher) Apply(ctx routing.Context) bool {
+	return m.networkType == ctx.GetNetworkType()
+}

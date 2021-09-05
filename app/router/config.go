@@ -111,6 +111,18 @@ func (rr *RoutingRule) BuildCondition() (Condition, error) {
 		conds.Add(NewProtocolMatcher(rr.Protocol))
 	}
 
+	if rr.UidList != nil && len(rr.UidList.Uid) > 0 {
+		conds.Add(NewUidMatcher(rr.UidList))
+	}
+
+	if len(rr.WifiSsidList) > 0 {
+		conds.Add(NewWifiSSIDMatcher(rr.WifiSsidList))
+	}
+
+	if len(rr.NetworkType) > 0 {
+		conds.Add(NewNetworkTypeMatcher(rr.NetworkType))
+	}
+
 	if conds.Len() == 0 {
 		return nil, newError("this rule has no effective fields").AtWarning()
 	}
