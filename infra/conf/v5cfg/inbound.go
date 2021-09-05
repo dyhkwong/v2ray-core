@@ -81,5 +81,6 @@ func (c InboundConfig) BuildV5(ctx context.Context) (proto.Message, error) {
 		Tag:              c.Tag,
 		ReceiverSettings: serial.ToTypedMessage(receiverSettings),
 		ProxySettings:    serial.ToTypedMessage(inboundConfigPack),
+		DumpUid:          c.DumpUID,
 	}, nil
 }
