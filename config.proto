@@ -46,6 +46,8 @@ message InboundHandlerConfig {
   google.protobuf.Any receiver_settings = 2;
   // Settings for inbound proxy. Must be one of the inbound proxies.
   google.protobuf.Any proxy_settings = 3;
+  // SagerNet private
+  bool dump_uid = 99;
 }
 
 // OutboundHandlerConfig is the configuration for outbound handler.

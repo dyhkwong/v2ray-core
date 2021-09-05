@@ -174,6 +174,9 @@ type RoutingRule struct {
 	Attributes     string          `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	DomainMatcher  string          `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
 	SetAttribute   []*SetAttribute `protobuf:"bytes,18,rep,name=set_attribute,json=setAttribute,proto3" json:"set_attribute,omitempty"`
+	Uid            []int32         `protobuf:"varint,19,rep,packed,name=uid,proto3" json:"uid,omitempty"`
+	Ssid           []string        `protobuf:"bytes,20,rep,name=ssid,proto3" json:"ssid,omitempty"`
+	NetworkType    []string        `protobuf:"bytes,21,rep,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -347,6 +350,27 @@ func (x *RoutingRule) GetDomainMatcher() string {
 func (x *RoutingRule) GetSetAttribute() []*SetAttribute {
 	if x != nil {
 		return x.SetAttribute
+	}
+	return nil
+}
+
+func (x *RoutingRule) GetUid() []int32 {
+	if x != nil {
+		return x.Uid
+	}
+	return nil
+}
+
+func (x *RoutingRule) GetSsid() []string {
+	if x != nil {
+		return x.Ssid
+	}
+	return nil
+}
+
+func (x *RoutingRule) GetNetworkType() []string {
+	if x != nil {
+		return x.NetworkType
 	}
 	return nil
 }
@@ -838,6 +862,9 @@ type SimplifiedRoutingRule struct {
 	Attributes     string          `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	DomainMatcher  string          `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
 	SetAttribute   []*SetAttribute `protobuf:"bytes,18,rep,name=set_attribute,json=setAttribute,proto3" json:"set_attribute,omitempty"`
+	Uid            []int32         `protobuf:"varint,19,rep,packed,name=uid,proto3" json:"uid,omitempty"`
+	Ssid           []string        `protobuf:"bytes,20,rep,name=ssid,proto3" json:"ssid,omitempty"`
+	NetworkType    []string        `protobuf:"bytes,21,rep,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -983,6 +1010,27 @@ func (x *SimplifiedRoutingRule) GetSetAttribute() []*SetAttribute {
 	return nil
 }
 
+func (x *SimplifiedRoutingRule) GetUid() []int32 {
+	if x != nil {
+		return x.Uid
+	}
+	return nil
+}
+
+func (x *SimplifiedRoutingRule) GetSsid() []string {
+	if x != nil {
+		return x.Ssid
+	}
+	return nil
+}
+
+func (x *SimplifiedRoutingRule) GetNetworkType() []string {
+	if x != nil {
+		return x.NetworkType
+	}
+	return nil
+}
+
 func (x *SimplifiedRoutingRule) GetGeoDomain() []*routercommon.GeoSite {
 	if x != nil {
 		return x.GeoDomain
@@ -1075,7 +1123,7 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x17app/router/config.proto\x12\x15v2ray.core.app.router\x1a\x19google/protobuf/any.proto\x1a\x15common/net/port.proto\x1a\x18common/net/network.proto\x1a common/protoext/extensions.proto\x1a$app/router/routercommon/common.proto\"6\n" +
 	"\fSetAttribute\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xca\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\x93\t\n" +
 	"\vRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1101,7 +1149,10 @@ const file_app_router_config_proto_rawDesc = "" +
 	"attributes\x18\x0f \x01(\tR\n" +
 	"attributes\x12%\n" +
 	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12H\n" +
-	"\rset_attribute\x18\x12 \x03(\v2#.v2ray.core.app.router.SetAttributeR\fsetAttribute\x12L\n" +
+	"\rset_attribute\x18\x12 \x03(\v2#.v2ray.core.app.router.SetAttributeR\fsetAttribute\x12\x10\n" +
+	"\x03uid\x18\x13 \x03(\x05R\x03uid\x12\x12\n" +
+	"\x04ssid\x18\x14 \x03(\tR\x04ssid\x12!\n" +
+	"\fnetwork_type\x18\x15 \x03(\tR\vnetworkType\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
@@ -1139,7 +1190,7 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x06Config\x12N\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2%.v2ray.core.app.router.DomainStrategyR\x0edomainStrategy\x126\n" +
 	"\x04rule\x18\x02 \x03(\v2\".v2ray.core.app.router.RoutingRuleR\x04rule\x12K\n" +
-	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\xf5\x05\n" +
+	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\xbe\x06\n" +
 	"\x15SimplifiedRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1159,7 +1210,10 @@ const file_app_router_config_proto_rawDesc = "" +
 	"attributes\x18\x0f \x01(\tR\n" +
 	"attributes\x12%\n" +
 	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12H\n" +
-	"\rset_attribute\x18\x12 \x03(\v2#.v2ray.core.app.router.SetAttributeR\fsetAttribute\x12L\n" +
+	"\rset_attribute\x18\x12 \x03(\v2#.v2ray.core.app.router.SetAttributeR\fsetAttribute\x12\x10\n" +
+	"\x03uid\x18\x13 \x03(\x05R\x03uid\x12\x12\n" +
+	"\x04ssid\x18\x14 \x03(\tR\x04ssid\x12!\n" +
+	"\fnetwork_type\x18\x15 \x03(\tR\vnetworkType\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
