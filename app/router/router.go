@@ -248,6 +248,11 @@ func init() {
 			rule.UserEmail = v.UserEmail
 			rule.InboundTag = v.InboundTag
 			rule.DomainMatcher = v.DomainMatcher
+
+			rule.UidList = v.UidList
+			rule.WifiSsidList = v.WifiSsidList
+			rule.NetworkType = v.NetworkType
+
 			switch s := v.TargetTag.(type) {
 			case *SimplifiedRoutingRule_Tag:
 				rule.TargetTag = &RoutingRule_Tag{s.Tag}
