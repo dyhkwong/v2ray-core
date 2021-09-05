@@ -66,6 +66,10 @@ message RoutingRule {
 
   string domain_matcher = 17;
 
+  repeated uint32 uid = 18;
+  repeated string ssid = 19;
+  repeated string network_type = 20;
+
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
 }
@@ -182,6 +186,10 @@ message SimplifiedRoutingRule {
   string attributes = 15;
 
   string domain_matcher = 17;
+
+  repeated uint32 uid = 18;
+  repeated string ssid = 19;
+  repeated string network_type = 20;
 
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;

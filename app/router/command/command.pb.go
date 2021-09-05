@@ -34,6 +34,9 @@ type RoutingContext struct {
 	Attributes        map[string]string      `protobuf:"bytes,10,rep,name=Attributes,proto3" json:"Attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	OutboundGroupTags []string               `protobuf:"bytes,11,rep,name=OutboundGroupTags,proto3" json:"OutboundGroupTags,omitempty"`
 	OutboundTag       string                 `protobuf:"bytes,12,opt,name=OutboundTag,proto3" json:"OutboundTag,omitempty"`
+	Uid               uint32                 `protobuf:"varint,13,opt,name=uid,proto3" json:"uid,omitempty"`
+	Ssid              string                 `protobuf:"bytes,14,opt,name=ssid,proto3" json:"ssid,omitempty"`
+	NetworkType       string                 `protobuf:"bytes,15,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -148,6 +151,27 @@ func (x *RoutingContext) GetOutboundGroupTags() []string {
 func (x *RoutingContext) GetOutboundTag() string {
 	if x != nil {
 		return x.OutboundTag
+	}
+	return ""
+}
+
+func (x *RoutingContext) GetUid() uint32 {
+	if x != nil {
+		return x.Uid
+	}
+	return 0
+}
+
+func (x *RoutingContext) GetSsid() string {
+	if x != nil {
+		return x.Ssid
+	}
+	return ""
+}
+
+func (x *RoutingContext) GetNetworkType() string {
+	if x != nil {
+		return x.NetworkType
 	}
 	return ""
 }
@@ -637,7 +661,7 @@ var File_app_router_command_command_proto protoreflect.FileDescriptor
 
 const file_app_router_command_command_proto_rawDesc = "" +
 	"\n" +
-	" app/router/command/command.proto\x12\x1dv2ray.core.app.router.command\x1a common/protoext/extensions.proto\x1a\x18common/net/network.proto\"\xa8\x04\n" +
+	" app/router/command/command.proto\x12\x1dv2ray.core.app.router.command\x1a common/protoext/extensions.proto\x1a\x18common/net/network.proto\"\xf1\x04\n" +
 	"\x0eRoutingContext\x12\x1e\n" +
 	"\n" +
 	"InboundTag\x18\x01 \x01(\tR\n" +
@@ -659,7 +683,10 @@ const file_app_router_command_command_proto_rawDesc = "" +
 	" \x03(\v2=.v2ray.core.app.router.command.RoutingContext.AttributesEntryR\n" +
 	"Attributes\x12,\n" +
 	"\x11OutboundGroupTags\x18\v \x03(\tR\x11OutboundGroupTags\x12 \n" +
-	"\vOutboundTag\x18\f \x01(\tR\vOutboundTag\x1a=\n" +
+	"\vOutboundTag\x18\f \x01(\tR\vOutboundTag\x12\x10\n" +
+	"\x03uid\x18\r \x01(\rR\x03uid\x12\x12\n" +
+	"\x04ssid\x18\x0e \x01(\tR\x04ssid\x12!\n" +
+	"\fnetwork_type\x18\x0f \x01(\tR\vnetworkType\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"F\n" +
