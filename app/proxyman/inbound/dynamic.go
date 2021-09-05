@@ -22,6 +22,7 @@ type DynamicInboundHandler struct {
 	proxyConfig    interface{}
 	receiverConfig *proxyman.ReceiverConfig
 	streamSettings *internet.MemoryStreamConfig
+	dumpUid        bool
 	portMutex      sync.Mutex
 	portsInUse     map[net.Port]bool
 	workerMutex    sync.RWMutex
@@ -33,12 +34,13 @@ type DynamicInboundHandler struct {
 	ctx context.Context
 }
 
-func NewDynamicInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}) (*DynamicInboundHandler, error) {
+func NewDynamicInboundHandler(ctx context.Context, tag string, receiverConfig *proxyman.ReceiverConfig, proxyConfig interface{}, dumpUid bool) (*DynamicInboundHandler, error) {
 	v := core.MustFromContext(ctx)
 	h := &DynamicInboundHandler{
 		tag:            tag,
 		proxyConfig:    proxyConfig,
 		receiverConfig: receiverConfig,
+		dumpUid:        dumpUid,
 		portsInUse:     make(map[net.Port]bool),
 		mux:            mux.NewServer(ctx),
 		v:              v,
@@ -138,6 +140,7 @@ func (h *DynamicInboundHandler) refresh() error {
 				sniffingConfig:  h.receiverConfig.GetEffectiveSniffingSettings(),
 				uplinkCounter:   uplinkCounter,
 				downlinkCounter: downlinkCounter,
+				dumpUid:         h.dumpUid,
 				ctx:             h.ctx,
 			}
 			if err := worker.Start(); err != nil {
@@ -158,6 +161,7 @@ func (h *DynamicInboundHandler) refresh() error {
 				sniffingConfig:  h.receiverConfig.GetEffectiveSniffingSettings(),
 				uplinkCounter:   uplinkCounter,
 				downlinkCounter: downlinkCounter,
+				dumpUid:         h.dumpUid,
 				stream:          h.streamSettings,
 			}
 			if err := worker.Start(); err != nil {
