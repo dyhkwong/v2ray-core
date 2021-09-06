@@ -68,8 +68,8 @@ const file_transport_internet_grpc_encoding_stream_proto_rawDesc = "" +
 	"\x04data\x18\x01 \x01(\fR\x04data2}\n" +
 	"\n" +
 	"GunService\x12o\n" +
-	"\x03Tun\x121.v2ray.core.transport.internet.grpc.encoding.Hunk\x1a1.v2ray.core.transport.internet.grpc.encoding.Hunk(\x010\x01B\xa0\x01\n" +
-	"/com.v2ray.core.transport.internet.grpc.encodingZ?github.com/v2fly/v2ray-core/v5/transport/internet/grpc/encoding\xaa\x02+V2Ray.Core.Transport.Internet.Grpc.Encodingb\x06proto3"
+	"\x03Tun\x121.v2ray.core.transport.internet.grpc.encoding.Hunk\x1a1.v2ray.core.transport.internet.grpc.encoding.Hunk(\x010\x01B\xa2\x01\n" +
+	"/com.v2ray.core.transport.internet.grpc.encodingP\x01Z?github.com/v2fly/v2ray-core/v5/transport/internet/grpc/encoding\xaa\x02+V2Ray.Core.Transport.Internet.Grpc.Encodingb\x06proto3"
 
 var (
 	file_transport_internet_grpc_encoding_stream_proto_rawDescOnce sync.Once
