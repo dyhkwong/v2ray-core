@@ -110,8 +110,8 @@ const file_transport_internet_grpc_config_proto_rawDesc = "" +
 	"\fidle_timeout\x18\x03 \x01(\x05R\vidleTimeout\x120\n" +
 	"\x14health_check_timeout\x18\x04 \x01(\x05R\x12healthCheckTimeout\x122\n" +
 	"\x15permit_without_stream\x18\x05 \x01(\bR\x13permitWithoutStream\x120\n" +
-	"\x14initial_windows_size\x18\x06 \x01(\x05R\x12initialWindowsSizeB\x85\x01\n" +
-	"&com.v2ray.core.transport.internet.grpcZ6github.com/v2fly/v2ray-core/v4/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
+	"\x14initial_windows_size\x18\x06 \x01(\x05R\x12initialWindowsSizeB\x87\x01\n" +
+	"&com.v2ray.core.transport.internet.grpcP\x01Z6github.com/v2fly/v2ray-core/v4/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
 
 var (
 	file_transport_internet_grpc_config_proto_rawDescOnce sync.Once
