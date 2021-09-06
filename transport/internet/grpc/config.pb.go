@@ -74,8 +74,8 @@ const file_transport_internet_grpc_config_proto_rawDesc = "" +
 	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\"?\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceNameB\x85\x01\n" +
-	"&com.v2ray.core.transport.internet.grpcZ6github.com/v2fly/v2ray-core/v4/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
+	"\fservice_name\x18\x02 \x01(\tR\vserviceNameB\x87\x01\n" +
+	"&com.v2ray.core.transport.internet.grpcP\x01Z6github.com/v2fly/v2ray-core/v4/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
 
 var (
 	file_transport_internet_grpc_config_proto_rawDescOnce sync.Once
