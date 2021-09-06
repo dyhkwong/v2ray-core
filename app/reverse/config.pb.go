@@ -289,8 +289,8 @@ const file_app_reverse_config_proto_rawDesc = "" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x9e\x01\n" +
 	"\x06Config\x12I\n" +
 	"\rbridge_config\x18\x01 \x03(\v2$.v2ray.core.app.reverse.BridgeConfigR\fbridgeConfig\x12I\n" +
-	"\rportal_config\x18\x02 \x03(\v2$.v2ray.core.app.reverse.PortalConfigR\fportalConfigBg\n" +
-	"\x1ccom.v2ray.core.proxy.reverseP\x01Z*github.com/v2fly/v2ray-core/v4/app/reverse\xaa\x02\x18V2Ray.Core.Proxy.Reverseb\x06proto3"
+	"\rportal_config\x18\x02 \x03(\v2$.v2ray.core.app.reverse.PortalConfigR\fportalConfigBc\n" +
+	"\x1acom.v2ray.core.app.reverseP\x01Z*github.com/v2fly/v2ray-core/v4/app/reverse\xaa\x02\x16V2Ray.Core.App.Reverseb\x06proto3"
 
 var (
 	file_app_reverse_config_proto_rawDescOnce sync.Once
