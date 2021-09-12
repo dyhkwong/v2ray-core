@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
-	"github.com/v2fly/v2ray-core/v4/common/platform/securedload"
+	"github.com/v2fly/v2ray-core/v4/common/platform"
+	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 	"github.com/v2fly/v2ray-core/v4/features/extension"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 )
@@ -46,7 +48,7 @@ func (f *Forwarder) DialWebsocket(url string, header http.Header) (io.ReadWriteC
 	protocolHeaderValue := ""
 	unsupportedHeader := false
 	for k, v := range header {
-		if k == "Sec-Websocket-Protocol" {
+		if k == "Sec-WebSocket-Protocol" {
 			protocolHeader = true
 			protocolHeaderValue = v[0]
 		} else {
@@ -54,7 +56,7 @@ func (f *Forwarder) DialWebsocket(url string, header http.Header) (io.ReadWriteC
 		}
 	}
 	if unsupportedHeader {
-		return nil, newError("unsupported header used, only Sec-Websocket-Protocol is supported for forwarder")
+		return nil, newError("unsupported header used, only Sec-WebSocket-Protocol is supported for forwarder")
 	}
 	if !protocolHeader {
 		return f.forwarder.Dial(url)
@@ -108,7 +110,8 @@ func BridgeResource(rw http.ResponseWriter, r *http.Request, path string) {
 	if content == "" {
 		content = "index.html"
 	}
-	data, err := securedload.GetAssetSecured("browserforwarder/" + content)
+	filename := filepath.Join("browserforwarder", content)
+	data, err := filesystem.ReadFile(platform.GetAssetLocation(filename))
 	if err != nil {
 		err = newError("cannot load necessary resources").Base(err)
 		http.Error(rw, err.Error(), http.StatusForbidden)
