@@ -204,18 +204,34 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 }
 
 type OutboundDetourConfig struct {
-	Protocol      string                `json:"protocol"`
-	SendThrough   *cfgcommon.Address    `json:"sendThrough"`
-	Tag           string                `json:"tag"`
-	Settings      *json.RawMessage      `json:"settings"`
-	StreamSetting *StreamConfig         `json:"streamSettings"`
-	ProxySettings *proxycfg.ProxyConfig `json:"proxySettings"`
-	MuxSettings   *muxcfg.MuxConfig     `json:"mux"`
+	Protocol       string                `json:"protocol"`
+	SendThrough    *cfgcommon.Address    `json:"sendThrough"`
+	Tag            string                `json:"tag"`
+	Settings       *json.RawMessage      `json:"settings"`
+	StreamSetting  *StreamConfig         `json:"streamSettings"`
+	ProxySettings  *proxycfg.ProxyConfig `json:"proxySettings"`
+	MuxSettings    *muxcfg.MuxConfig     `json:"mux"`
+	DomainStrategy string                `json:"domainStrategy"`
 }
 
 // Build implements Buildable.
 func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 	senderSettings := &proxyman.SenderConfig{}
+
+	switch c.DomainStrategy {
+	case "UseIP":
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_USE_IP
+	case "UseIPv4":
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_USE_IP4
+	case "UseIPv6":
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_USE_IP6
+	case "PreferIPv4":
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_PREFER_IP4
+	case "PreferIPv6":
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_PREFER_IP6
+	default:
+		senderSettings.DomainStrategy = proxyman.DomainStrategy_AS_IS
+	}
 
 	if c.SendThrough != nil {
 		address := c.SendThrough

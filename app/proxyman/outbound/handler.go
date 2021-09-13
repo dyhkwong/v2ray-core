@@ -12,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
@@ -54,6 +55,7 @@ type Handler struct {
 	streamSettings  *internet.MemoryStreamConfig
 	proxy           proxy.Outbound
 	outboundManager outbound.Manager
+	dnsClient       dns.Client
 	mux             *mux.ClientManager
 	uplinkCounter   stats.Counter
 	downlinkCounter stats.Counter
@@ -66,6 +68,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	h := &Handler{
 		tag:             config.Tag,
 		outboundManager: v.GetFeature(outbound.ManagerType()).(outbound.Manager),
+		dnsClient:       v.GetFeature(dns.ClientType()).(dns.Client),
 		uplinkCounter:   uplinkCounter,
 		downlinkCounter: downlinkCounter,
 	}
@@ -143,6 +146,34 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			common.Interrupt(link.Writer)
 		}
 	} else {
+		outbound := session.OutboundFromContext(ctx)
+		destination := outbound.Target
+		if destination.Address.Family().IsDomain() && h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.DomainStrategy_AS_IS {
+			if d, ok := h.dnsClient.(dns.ClientWithIPOption); ok {
+				d.SetFakeDNSOption(false)
+			}
+			lookupFunc := h.dnsClient.LookupIP
+			switch h.senderSettings.DomainStrategy {
+			case proxyman.DomainStrategy_USE_IP4:
+				if lookupIPv4, ok := h.dnsClient.(dns.IPv4Lookup); ok {
+					lookupFunc = lookupIPv4.LookupIPv4
+				}
+			case proxyman.DomainStrategy_USE_IP6:
+				if lookupIPv6, ok := h.dnsClient.(dns.IPv6Lookup); ok {
+					lookupFunc = lookupIPv6.LookupIPv6
+				}
+			}
+			if ips, err := lookupFunc(destination.Address.Domain()); err == nil && len(ips) > 0 {
+				switch h.senderSettings.DomainStrategy {
+				case proxyman.DomainStrategy_PREFER_IP4:
+					ips = sortAddresses(ips, false)
+				case proxyman.DomainStrategy_PREFER_IP6:
+					ips = sortAddresses(ips, true)
+				}
+				destination.Address = net.IPAddress(ips[0])
+				outbound.Target = destination
+			}
+		}
 		if err := h.proxy.Process(ctx, link, h); err != nil {
 			// Ensure outbound ray is properly closed.
 			err := newError("failed to process outbound traffic").Base(err)
@@ -154,6 +185,21 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		}
 		common.Interrupt(link.Reader)
 	}
+}
+
+func sortAddresses(ips []net.IP, preferIPv6 bool) []net.IP {
+	var ipv4, ipv6 []net.IP
+	for _, ip := range ips {
+		if ip.To4() == nil {
+			ipv6 = append(ipv6, ip)
+		} else {
+			ipv4 = append(ipv4, ip.To4())
+		}
+	}
+	if preferIPv6 && len(ipv6) > 0 || !preferIPv6 && len(ipv4) == 0 {
+		return ipv6
+	}
+	return ipv4
 }
 
 // Address implements internet.Dialer.
