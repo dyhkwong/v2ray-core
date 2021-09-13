@@ -8,16 +8,28 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
-var lookupFunc = func(network, host string) ([]net.IP, error) {
-	resolver := &net.Resolver{PreferGo: false}
-	ips, err := resolver.LookupIP(context.Background(), network, host)
-	if err != nil {
-		return nil, err
+var (
+	defaultLookupFunc = func(network, host string) ([]net.IP, error) {
+		resolver := &net.Resolver{PreferGo: false}
+		ips, err := resolver.LookupIP(context.Background(), network, host)
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, dns.ErrEmptyResponse
+		}
+		return ips, nil
 	}
-	if len(ips) == 0 {
-		return nil, dns.ErrEmptyResponse
+	lookupFunc = defaultLookupFunc
+)
+
+// SagerNet private
+func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
+	if fn == nil {
+		lookupFunc = defaultLookupFunc
+	} else {
+		lookupFunc = fn
 	}
-	return ips, nil
 }
 
 // Client is an implementation of dns.Client, which queries localhost for DNS.
