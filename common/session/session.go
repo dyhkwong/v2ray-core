@@ -48,7 +48,8 @@ type Inbound struct {
 // Outbound is the metadata of an outbound connection.
 type Outbound struct {
 	// Target address of the outbound connection.
-	Target net.Destination
+	Target      net.Destination
+	RouteTarget net.Destination
 	// Gateway address
 	Gateway net.Address
 	// Domain resolver to use when dialing
@@ -60,6 +61,7 @@ type SniffingRequest struct {
 	OverrideDestinationForProtocol []string
 	Enabled                        bool
 	MetadataOnly                   bool
+	RouteOnly                      bool
 }
 
 // Content is the metadata of the connection content.
