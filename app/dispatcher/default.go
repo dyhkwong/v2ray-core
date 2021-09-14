@@ -267,7 +267,15 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				domain := result.Domain()
 				newError("sniffed domain: ", domain).WriteToLog(session.ExportIDToError(ctx))
 				destination.Address = net.ParseAddress(domain)
-				ob.Target = destination
+				protocol := result.Protocol()
+				if resComp, ok := result.(SnifferResultComposite); ok {
+					protocol = resComp.ProtocolForDomainResult()
+				}
+				if sniffingRequest.RouteOnly && protocol != "fakedns" {
+					ob.RouteTarget = destination
+				} else {
+					ob.Target = destination
+				}
 			}
 			d.routedDispatch(ctx, outbound, destination)
 		}()
