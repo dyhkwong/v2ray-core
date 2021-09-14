@@ -102,6 +102,7 @@ func (h *TCPHandler) Handle(conn tun_net.TCPConn) error {
 		content.SniffingRequest.Enabled = h.config.SniffingSettings.Enabled
 		content.SniffingRequest.OverrideDestinationForProtocol = h.config.SniffingSettings.DestinationOverride
 		content.SniffingRequest.MetadataOnly = h.config.SniffingSettings.MetadataOnly
+		content.SniffingRequest.RouteOnly = h.config.SniffingSettings.RouteOnly
 	}
 	ctx = session.ContextWithContent(ctx, content)
 	ctx, cancel := context.WithCancel(ctx)
