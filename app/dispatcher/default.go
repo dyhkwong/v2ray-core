@@ -226,7 +226,11 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				domain := result.Domain()
 				newError("sniffed domain: ", domain).WriteToLog(session.ExportIDToError(ctx))
 				destination.Address = net.ParseAddress(domain)
-				ob.Target = destination
+				if sniffingRequest.RouteOnly && result.Protocol() != "fakedns" {
+					ob.RouteTarget = destination
+				} else {
+					ob.Target = destination
+				}
 			}
 		}
 		if handler != nil {
@@ -248,7 +252,11 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				domain := result.Domain()
 				newError("sniffed domain: ", domain).WriteToLog(session.ExportIDToError(ctx))
 				destination.Address = net.ParseAddress(domain)
-				ob.Target = destination
+				if sniffingRequest.RouteOnly && result.Protocol() != "fakedns" {
+					ob.RouteTarget = destination
+				} else {
+					ob.Target = destination
+				}
 			}
 			if handler != nil {
 				d.targetedDispatch(ctx, outbound, handler.Tag)

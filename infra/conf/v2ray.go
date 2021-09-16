@@ -56,6 +56,7 @@ type SniffingConfig struct {
 	Enabled      bool                  `json:"enabled"`
 	DestOverride *cfgcommon.StringList `json:"destOverride"`
 	MetadataOnly bool                  `json:"metadataOnly"`
+	RouteOnly    bool                  `json:"routeOnly"`
 }
 
 // Build implements Buildable.
@@ -82,6 +83,7 @@ func (c *SniffingConfig) Build() (*proxyman.SniffingConfig, error) {
 		Enabled:             c.Enabled,
 		DestinationOverride: p,
 		MetadataOnly:        c.MetadataOnly,
+		RouteOnly:           c.RouteOnly,
 	}, nil
 }
 
