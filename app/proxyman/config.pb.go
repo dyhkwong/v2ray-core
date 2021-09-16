@@ -278,6 +278,7 @@ type SniffingConfig struct {
 	// Whether should only try to sniff metadata without waiting for client input.
 	// Can be used to support SMTP like protocol where server send the first message.
 	MetadataOnly  bool `protobuf:"varint,3,opt,name=metadata_only,json=metadataOnly,proto3" json:"metadata_only,omitempty"`
+	RouteOnly     bool `protobuf:"varint,4,opt,name=route_only,json=routeOnly,proto3" json:"route_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -329,6 +330,13 @@ func (x *SniffingConfig) GetDestinationOverride() []string {
 func (x *SniffingConfig) GetMetadataOnly() bool {
 	if x != nil {
 		return x.MetadataOnly
+	}
+	return false
+}
+
+func (x *SniffingConfig) GetRouteOnly() bool {
+	if x != nil {
+		return x.RouteOnly
 	}
 	return false
 }
@@ -766,11 +774,13 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x06Always\x10\x00\x12\n" +
 	"\n" +
 	"\x06Random\x10\x01\x12\f\n" +
-	"\bExternal\x10\x02\"\x82\x01\n" +
+	"\bExternal\x10\x02\"\xa1\x01\n" +
 	"\x0eSniffingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x121\n" +
 	"\x14destination_override\x18\x02 \x03(\tR\x13destinationOverride\x12#\n" +
-	"\rmetadata_only\x18\x03 \x01(\bR\fmetadataOnly\"\xb4\x04\n" +
+	"\rmetadata_only\x18\x03 \x01(\bR\fmetadataOnly\x12\x1d\n" +
+	"\n" +
+	"route_only\x18\x04 \x01(\bR\trouteOnly\"\xb4\x04\n" +
 	"\x0eReceiverConfig\x12?\n" +
 	"\n" +
 	"port_range\x18\x01 \x01(\v2 .v2ray.core.common.net.PortRangeR\tportRange\x129\n" +
