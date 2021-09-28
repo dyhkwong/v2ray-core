@@ -198,6 +198,22 @@ func (s *DNS) LookupIPv6(domain string) ([]net.IP, error) {
 	return s.lookupIPInternal(domain, o)
 }
 
+// LookupHosts implements dns.HostsLookup.
+func (s *DNS) LookupHosts(domain string) *net.Address {
+	domain = strings.TrimSuffix(strings.ToLower(domain), ".")
+	if domain == "" {
+		return nil
+	}
+	// Normalize the FQDN form query
+	addrs := s.hosts.Lookup(domain, *s.ipOption)
+	if len(addrs) > 0 {
+		newError("domain replaced: ", domain, " -> ", addrs[0].String()).AtInfo().WriteToLog()
+		return &addrs[0]
+	}
+
+	return nil
+}
+
 func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {
 	if domain == "" {
 		return nil, newError("empty domain name")
