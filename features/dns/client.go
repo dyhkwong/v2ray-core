@@ -38,6 +38,10 @@ type IPv6Lookup interface {
 	LookupIPv6(domain string) ([]net.IP, error)
 }
 
+type HostsLookup interface {
+	LookupHosts(domain string) *net.Address
+}
+
 // ClientWithIPOption is an optional feature for querying DNS information.
 //
 // v2ray:api:beta
