@@ -109,14 +109,14 @@ func establishDomainRules(s *DNS, config *Config, nsClientMap map[int]int) error
 	matcherInfos := make([]*DomainMatcherInfo, domainRuleCount+1)
 	var domainMatcher strmatcher.IndexMatcher
 	switch config.DomainMatcher {
-	case "mph", "hybrid":
-		newError("using mph domain matcher").AtDebug().WriteToLog()
-		domainMatcher = strmatcher.NewMphIndexMatcher()
 	case "linear":
-		fallthrough
-	default:
 		newError("using default domain matcher").AtDebug().WriteToLog()
 		domainMatcher = strmatcher.NewLinearIndexMatcher()
+	case "mph", "hybrid":
+		fallthrough
+	default:
+		newError("using mph domain matcher").AtDebug().WriteToLog()
+		domainMatcher = strmatcher.NewMphIndexMatcher()
 	}
 	for nsIdx, ns := range config.NameServer {
 		clientIdx := nsClientMap[nsIdx]
@@ -315,7 +315,7 @@ func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {
 	domainRules := []string{}
 
 	// Priority domain matching
-	for _, match := range s.domainMatcher.Match(domain) {
+	for _, match := range s.domainMatcher.Match(strings.ToLower(domain)) {
 		info := s.matcherInfos[match]
 		client := s.clients[info.clientIdx]
 		domainRule := client.domains[info.domainRuleIdx]
