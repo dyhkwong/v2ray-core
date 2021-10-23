@@ -16,7 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/platform/filesystem"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon/testassist"
-	_ "github.com/v2fly/v2ray-core/v5/infra/conf/geodata/standard"
+	_ "github.com/v2fly/v2ray-core/v5/infra/conf/geodata/memconservative"
 	dns2 "github.com/v2fly/v2ray-core/v5/infra/conf/synthetic/dns"
 )
 
