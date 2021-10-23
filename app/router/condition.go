@@ -100,7 +100,7 @@ func (m *DomainMatcher) Apply(ctx routing.Context) bool {
 	if len(domain) == 0 {
 		return false
 	}
-	return m.Match(domain)
+	return m.Match(strings.ToLower(domain))
 }
 
 type MultiGeoIPMatcher struct {
