@@ -93,7 +93,7 @@ func TestToDomain(t *testing.T) {
 		if err != nil {
 			t.Error("unexpected error: ", err)
 		}
-		if domain != "v2fly.org" {
+		if domain != "v2FLY.oRg" {
 			t.Error("unexpected output: ", domain, " for test case ", input)
 		}
 	}
@@ -113,7 +113,7 @@ func TestToDomain(t *testing.T) {
 		if err != nil {
 			t.Error("unexpected error: ", err)
 		}
-		if domain != "v2fly.xn--55qw42g" {
+		if domain != "v2FLY.xn--55qw42g" {
 			t.Error("unexpected output: ", domain, " for test case ", input)
 		}
 	}
