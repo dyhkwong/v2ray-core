@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	gonet "net"
+	"strings"
 	"sync"
 
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -110,7 +111,7 @@ func (fkdns *Holder) initialize(ipPoolCidr string, lruSize int) error {
 func (fkdns *Holder) GetFakeIPForDomain(domain string) []net.Address {
 	fkdns.mu.Lock()
 	defer fkdns.mu.Unlock()
-	if v, ok := fkdns.domainToIP.Get(domain); ok {
+	if v, ok := fkdns.domainToIP.Get(strings.ToLower(domain)); ok {
 		return []net.Address{v.(net.Address)}
 	}
 	var ip net.Address
@@ -127,7 +128,7 @@ func (fkdns *Holder) GetFakeIPForDomain(domain string) []net.Address {
 			break
 		}
 	}
-	fkdns.domainToIP.Put(domain, ip)
+	fkdns.domainToIP.Put(strings.ToLower(domain), ip)
 	return []net.Address{ip}
 }
 
