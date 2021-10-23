@@ -18,7 +18,7 @@ type configureLoadingEnvironment struct {
 func (c *configureLoadingEnvironment) GetGeoLoader() geodata.Loader {
 	if c.geoLoader == nil {
 		var err error
-		c.geoLoader, err = geodata.GetGeoDataLoader("standard")
+		c.geoLoader, err = geodata.GetGeoDataLoader("memconservative")
 		common.Must(err)
 	}
 	return c.geoLoader
