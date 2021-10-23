@@ -100,8 +100,8 @@ func (*staticHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			rr, _ := dns.NewRR("localhost-b. IN A 127.0.0.4")
 			ans.Answer = append(ans.Answer, rr)
 
-		case q.Name == "Mijia\\ Cloud." && q.Qtype == dns.TypeA:
-			rr, _ := dns.NewRR("Mijia\\ Cloud. IN A 127.0.0.1")
+		case q.Name == "mijia\\ cloud." && q.Qtype == dns.TypeA:
+			rr, _ := dns.NewRR("mijia\\ cloud. IN A 127.0.0.1")
 			ans.Answer = append(ans.Answer, rr)
 		}
 	}
@@ -757,7 +757,7 @@ func TestLocalDomain(t *testing.T) {
 	}
 
 	{ // Will match dotless:
-		ips, err := client.LookupIP("Mijia Cloud")
+		ips, err := client.LookupIP("mijia cloud")
 		if err != nil {
 			t.Fatal("unexpected error: ", err)
 		}
