@@ -150,13 +150,13 @@ func (t Type) NewDomainPattern(pattern string) (Matcher, error) {
 
 // ToDomain converts input pattern to a domain string, and return error if such a conversion cannot be made.
 //  1. Conforms to Letter-Digit-Hyphen (LDH) subset (https://tools.ietf.org/html/rfc952):
-//     * Letters A to Z (no distinction between uppercase and lowercase, we convert to lowers)
+//     * Letters A to Z (no distinction between uppercase and lowercase)
 //     * Digits 0 to 9
 //     * Hyphens(-) and Periods(.)
 //  2. If any non-ASCII characters, domain are converted from Internationalized domain name to Punycode.
 func ToDomain(pattern string) (string, error) {
 	for {
-		isASCII, hasUpper := true, false
+		isASCII := true
 		for i := 0; i < len(pattern); i++ {
 			c := pattern[i]
 			if c >= utf8.RuneSelf {
@@ -165,7 +165,6 @@ func ToDomain(pattern string) (string, error) {
 			}
 			switch {
 			case 'A' <= c && c <= 'Z':
-				hasUpper = true
 			case 'a' <= c && c <= 'z':
 			case '0' <= c && c <= '9':
 			case c == '-':
@@ -181,9 +180,6 @@ func ToDomain(pattern string) (string, error) {
 				return "", err
 			}
 			continue
-		}
-		if hasUpper {
-			pattern = strings.ToLower(pattern)
 		}
 		break
 	}
