@@ -3,6 +3,8 @@
 package dns
 
 import (
+	"strings"
+
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/strmatcher"
@@ -71,7 +73,7 @@ func NewStaticHosts(hosts []*Config_HostMapping, legacy map[string]*net.IPOrDoma
 
 func (h *StaticHosts) lookupInternal(domain string) []net.Address {
 	var ips []net.Address
-	for _, id := range h.matchers.Match(domain) {
+	for _, id := range h.matchers.Match(strings.ToLower(domain)) {
 		ips = append(ips, h.ips[id]...)
 	}
 	return ips
