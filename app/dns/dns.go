@@ -204,7 +204,7 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 	}
 
 	// Normalize the FQDN form query
-	domain = strings.TrimSuffix(domain, ".")
+	domain = strings.TrimSuffix(strings.ToLower(domain), ".")
 
 	// Static host lookup
 	switch addrs := s.hosts.Lookup(domain, option); {
