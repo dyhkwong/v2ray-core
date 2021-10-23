@@ -276,7 +276,7 @@ func (c *DNSConfig) Build() (*dns.Config, error) {
 		c.cfgctx = cfgcommon.NewConfigureLoadingContext(context.Background())
 
 		geoloadername := platform.NewEnvFlag("v2ray.conf.geoloader").GetValue(func() string {
-			return "standard"
+			return "memconservative"
 		})
 
 		if loader, err := geodata.GetGeoDataLoader(geoloadername); err == nil {
