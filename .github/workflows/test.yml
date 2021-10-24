@@ -11,13 +11,6 @@ on:
       - "go.mod"
       - "go.sum"
       - ".github/workflows/test.yml"
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "**/*.go"
-      - "go.mod"
-      - "go.sum"
-      - ".github/workflows/test.yml"
 
 jobs:
   test:
@@ -48,8 +41,4 @@ jobs:
           export PATH=$(go env GOPATH)/bin:${PATH}
           go install -v github.com/ory/go-acc@latest
           go-acc --covermode=atomic -o=coverage.txt ./...
-        shell: bash
-
-      - name: Upload codecov
-        run: bash <(curl -s https://codecov.io/bash)
         shell: bash
