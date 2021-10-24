@@ -24,7 +24,7 @@
 
 ## License
 
-[The MIT License (MIT)](https://raw.githubusercontent.com/v2fly/v2ray-core/master/LICENSE)
+[The GNU General Public License Version 3 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ## Credits
 
