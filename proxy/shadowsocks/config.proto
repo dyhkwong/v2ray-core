@@ -20,10 +20,11 @@ message Account {
 enum CipherType {
   UNKNOWN = 0;
   AES_128_GCM = 1;
-  AES_256_GCM = 2;
-  CHACHA20_POLY1305 = 3;
-  XCHACHA20_POLY1305 = 4;
-  NONE = 5;
+  AES_192_GCM = 2;
+  AES_256_GCM = 3;
+  CHACHA20_POLY1305 = 4;
+  XCHACHA20_POLY1305 = 5;
+  NONE = 6;
 }
 
 message ServerConfig {
