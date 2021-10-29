@@ -75,6 +75,12 @@ func (a *Account) getCipher() (Cipher, error) {
 			IVBytes:         16,
 			AEADAuthCreator: createAesGcm,
 		}, nil
+	case CipherType_AES_192_GCM:
+		return &AEADCipher{
+			KeyBytes:        24,
+			IVBytes:         24,
+			AEADAuthCreator: createAesGcm,
+		}, nil
 	case CipherType_AES_256_GCM:
 		return &AEADCipher{
 			KeyBytes:        32,
@@ -227,6 +233,8 @@ func CipherFromString(c string) CipherType {
 	switch strings.ToLower(c) {
 	case "aes-128-gcm", "aead_aes_128_gcm":
 		return CipherType_AES_128_GCM
+	case "aes-192-gcm", "aead_aes_192_gcm":
+		return CipherType_AES_192_GCM
 	case "aes-256-gcm", "aead_aes_256_gcm":
 		return CipherType_AES_256_GCM
 	case "chacha20-poly1305", "aead_chacha20_poly1305", "chacha20-ietf-poly1305":
@@ -254,7 +262,7 @@ func passwordToCipherKey(password []byte, keySize int32) []byte {
 
 		key = append(key, md5Sum[:]...)
 	}
-	return key
+	return key[:keySize]
 }
 
 func hkdfSHA1(secret, salt, outKey []byte) {
