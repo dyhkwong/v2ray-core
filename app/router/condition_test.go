@@ -374,9 +374,9 @@ func TestChinaSites(t *testing.T) {
 	domains, err := loadGeoSite("CN")
 	common.Must(err)
 
-	matcher, err := router.NewDomainMatcher(domains)
+	matcher, err := router.NewDomainMatcher("linear", domains)
 	common.Must(err)
-	acMatcher, err := router.NewMphMatcherGroup(domains)
+	mphMatcher, err := router.NewDomainMatcher("mph", domains)
 	common.Must(err)
 
 	type TestCase struct {
@@ -407,8 +407,8 @@ func TestChinaSites(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		r1 := matcher.ApplyDomain(testCase.Domain)
-		r2 := acMatcher.ApplyDomain(testCase.Domain)
+		r1 := matcher.Match(testCase.Domain)
+		r2 := mphMatcher.Match(testCase.Domain)
 		if r1 != testCase.Output {
 			t.Error("DomainMatcher expected output ", testCase.Output, " for domain ", testCase.Domain, " but got ", r1)
 		} else if r2 != testCase.Output {
@@ -421,7 +421,7 @@ func BenchmarkMphDomainMatcher(b *testing.B) {
 	domains, err := loadGeoSite("CN")
 	common.Must(err)
 
-	matcher, err := router.NewMphMatcherGroup(domains)
+	matcher, err := router.NewDomainMatcher("mph", domains)
 	common.Must(err)
 
 	type TestCase struct {
@@ -454,7 +454,7 @@ func BenchmarkMphDomainMatcher(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, testCase := range testCases {
-			_ = matcher.ApplyDomain(testCase.Domain)
+			_ = matcher.Match(testCase.Domain)
 		}
 	}
 }
@@ -463,7 +463,7 @@ func BenchmarkDomainMatcher(b *testing.B) {
 	domains, err := loadGeoSite("CN")
 	common.Must(err)
 
-	matcher, err := router.NewDomainMatcher(domains)
+	matcher, err := router.NewDomainMatcher("linear", domains)
 	common.Must(err)
 
 	type TestCase struct {
@@ -496,7 +496,7 @@ func BenchmarkDomainMatcher(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, testCase := range testCases {
-			_ = matcher.ApplyDomain(testCase.Domain)
+			_ = matcher.Match(testCase.Domain)
 		}
 	}
 }
