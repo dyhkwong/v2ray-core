@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/jhump/protoreflect v1.10.1
 	github.com/lucas-clemente/quic-go v0.24.0
+	github.com/marten-seemann/qtls-go1-17 v0.1.0
 	github.com/miekg/dns v1.1.43
 	github.com/pires/go-proxyproto v0.6.1
 	github.com/seiflotfy/cuckoofilter v0.0.0-20201222105146-bc6005554a0c
@@ -36,7 +37,6 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
-	github.com/marten-seemann/qtls-go1-17 v0.1.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
