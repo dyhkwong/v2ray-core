@@ -3,6 +3,7 @@ package pipe
 import (
 	"context"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -22,6 +23,12 @@ func WithoutSizeLimit() Option {
 func WithSizeLimit(limit int32) Option {
 	return func(opt *pipeOption) {
 		opt.limit = limit
+	}
+}
+
+func OnTransmission(hook func(mb buf.MultiBuffer) buf.MultiBuffer) Option {
+	return func(option *pipeOption) {
+		option.onTransmission = hook
 	}
 }
 
