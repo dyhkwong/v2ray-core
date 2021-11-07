@@ -15,6 +15,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
@@ -91,6 +92,7 @@ type DefaultDispatcher struct {
 	router routing.Router
 	policy policy.Manager
 	stats  stats.Manager
+	fdns   dns.FakeDNSEngine
 }
 
 func init() {
@@ -127,10 +129,48 @@ func (*DefaultDispatcher) Start() error {
 // Close implements common.Closable.
 func (*DefaultDispatcher) Close() error { return nil }
 
-func (d *DefaultDispatcher) getLink(ctx context.Context) (*transport.Link, *transport.Link) {
+func (d *DefaultDispatcher) getLink(ctx context.Context, network net.Network, sniffing session.SniffingRequest) (*transport.Link, *transport.Link) {
 	opt := pipe.OptionsFromContext(ctx)
-	uplinkReader, uplinkWriter := pipe.New(opt...)
 	downlinkReader, downlinkWriter := pipe.New(opt...)
+
+	if d.fdns == nil {
+		if v := core.FromContext(ctx); v != nil {
+			if f := v.GetFeature((*dns.FakeDNSEngine)(nil)); f != nil {
+				d.fdns = f.(dns.FakeDNSEngine)
+			}
+		}
+	}
+
+	shouldOverrideFakeDNS := false
+	for _, p := range sniffing.OverrideDestinationForProtocol {
+		if strings.HasPrefix(p, "fakedns") {
+			shouldOverrideFakeDNS = true
+			break
+		}
+	}
+
+	if network == net.Network_UDP && sniffing.Enabled && shouldOverrideFakeDNS {
+		opt = append(opt, pipe.OnTransmission(func(mb buf.MultiBuffer) buf.MultiBuffer {
+			for _, b := range mb {
+				if b.Endpoint == nil {
+					continue
+				}
+				fkr0, ok := d.fdns.(dns.FakeDNSEngineRev0)
+				if !ok {
+					continue
+				}
+				if addr := b.Endpoint.Address; addr.Family().IsIP() && fkr0.IsIPInIPPool(addr) {
+					if domain := fkr0.GetDomainFromFakeDNS(addr); len(domain) > 0 {
+						b.Endpoint.Address = net.DomainAddress(domain)
+						newError("override domain: " + domain + " for fake ip: " + addr.String()).WriteToLog(session.ExportIDToError(ctx))
+					}
+				}
+			}
+			return mb
+		}))
+	}
+
+	uplinkReader, uplinkWriter := pipe.New(opt...)
 
 	inboundLink := &transport.Link{
 		Reader: downlinkReader,
@@ -204,13 +244,13 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 	}
 	ctx = session.ContextWithOutbound(ctx, ob)
 
-	inbound, outbound := d.getLink(ctx)
 	content := session.ContentFromContext(ctx)
 	if content == nil {
 		content = new(session.Content)
 		ctx = session.ContextWithContent(ctx, content)
 	}
 	sniffingRequest := content.SniffingRequest
+	inbound, outbound := d.getLink(ctx, destination.Network, sniffingRequest)
 	if !sniffingRequest.Enabled {
 		go d.routedDispatch(ctx, outbound, destination)
 	} else {
