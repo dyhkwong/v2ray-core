@@ -28,18 +28,50 @@ const (
 	CipherType_NONE               CipherType = 4
 	CipherType_XCHACHA20_POLY1305 CipherType = 5
 	CipherType_AES_192_GCM        CipherType = 6
+	CipherType_AES_128_CTR        CipherType = 7
+	CipherType_AES_192_CTR        CipherType = 8
+	CipherType_AES_256_CTR        CipherType = 9
+	CipherType_AES_128_CFB        CipherType = 10
+	CipherType_AES_192_CFB        CipherType = 11
+	CipherType_AES_256_CFB        CipherType = 12
+	CipherType_RC4_MD5            CipherType = 13
+	CipherType_BF_CFB             CipherType = 14
+	CipherType_CAMELLIA_128_CFB   CipherType = 15
+	CipherType_CAMELLIA_192_CFB   CipherType = 16
+	CipherType_CAMELLIA_256_CFB   CipherType = 17
+	CipherType_SALSA20            CipherType = 18
+	CipherType_CHACHA20           CipherType = 19
+	CipherType_CHACHA20_IETF      CipherType = 20
+	CipherType_XCHACHA20          CipherType = 21
+	CipherType_TABLE              CipherType = 22
 )
 
 // Enum value maps for CipherType.
 var (
 	CipherType_name = map[int32]string{
-		0: "UNKNOWN",
-		1: "AES_128_GCM",
-		2: "AES_256_GCM",
-		3: "CHACHA20_POLY1305",
-		4: "NONE",
-		5: "XCHACHA20_POLY1305",
-		6: "AES_192_GCM",
+		0:  "UNKNOWN",
+		1:  "AES_128_GCM",
+		2:  "AES_256_GCM",
+		3:  "CHACHA20_POLY1305",
+		4:  "NONE",
+		5:  "XCHACHA20_POLY1305",
+		6:  "AES_192_GCM",
+		7:  "AES_128_CTR",
+		8:  "AES_192_CTR",
+		9:  "AES_256_CTR",
+		10: "AES_128_CFB",
+		11: "AES_192_CFB",
+		12: "AES_256_CFB",
+		13: "RC4_MD5",
+		14: "BF_CFB",
+		15: "CAMELLIA_128_CFB",
+		16: "CAMELLIA_192_CFB",
+		17: "CAMELLIA_256_CFB",
+		18: "SALSA20",
+		19: "CHACHA20",
+		20: "CHACHA20_IETF",
+		21: "XCHACHA20",
+		22: "TABLE",
 	}
 	CipherType_value = map[string]int32{
 		"UNKNOWN":            0,
@@ -49,6 +81,22 @@ var (
 		"NONE":               4,
 		"XCHACHA20_POLY1305": 5,
 		"AES_192_GCM":        6,
+		"AES_128_CTR":        7,
+		"AES_192_CTR":        8,
+		"AES_256_CTR":        9,
+		"AES_128_CFB":        10,
+		"AES_192_CFB":        11,
+		"AES_256_CFB":        12,
+		"RC4_MD5":            13,
+		"BF_CFB":             14,
+		"CAMELLIA_128_CFB":   15,
+		"CAMELLIA_192_CFB":   16,
+		"CAMELLIA_256_CFB":   17,
+		"SALSA20":            18,
+		"CHACHA20":           19,
+		"CHACHA20_IETF":      20,
+		"XCHACHA20":          21,
+		"TABLE":              22,
 	}
 )
 
@@ -358,7 +406,7 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\x04 \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir*\x85\x01\n" +
+	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir*\x8e\x03\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +
@@ -367,7 +415,25 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\x11CHACHA20_POLY1305\x10\x03\x12\b\n" +
 	"\x04NONE\x10\x04\x12\x16\n" +
 	"\x12XCHACHA20_POLY1305\x10\x05\x12\x0f\n" +
-	"\vAES_192_GCM\x10\x06Bu\n" +
+	"\vAES_192_GCM\x10\x06\x12\x0f\n" +
+	"\vAES_128_CTR\x10\a\x12\x0f\n" +
+	"\vAES_192_CTR\x10\b\x12\x0f\n" +
+	"\vAES_256_CTR\x10\t\x12\x0f\n" +
+	"\vAES_128_CFB\x10\n" +
+	"\x12\x0f\n" +
+	"\vAES_192_CFB\x10\v\x12\x0f\n" +
+	"\vAES_256_CFB\x10\f\x12\v\n" +
+	"\aRC4_MD5\x10\r\x12\n" +
+	"\n" +
+	"\x06BF_CFB\x10\x0e\x12\x14\n" +
+	"\x10CAMELLIA_128_CFB\x10\x0f\x12\x14\n" +
+	"\x10CAMELLIA_192_CFB\x10\x10\x12\x14\n" +
+	"\x10CAMELLIA_256_CFB\x10\x11\x12\v\n" +
+	"\aSALSA20\x10\x12\x12\f\n" +
+	"\bCHACHA20\x10\x13\x12\x11\n" +
+	"\rCHACHA20_IETF\x10\x14\x12\r\n" +
+	"\tXCHACHA20\x10\x15\x12\t\n" +
+	"\x05TABLE\x10\x16Bu\n" +
 	" com.v2ray.core.proxy.shadowsocksP\x01Z0github.com/v2fly/v2ray-core/v5/proxy/shadowsocks\xaa\x02\x1cV2Ray.Core.Proxy.Shadowsocksb\x06proto3"
 
 var (
