@@ -15,12 +15,12 @@ import (
 )
 
 type sysConn struct {
-	conn   net.PacketConn
+	conn   *net.UDPConn
 	header internet.PacketHeader
 	auth   cipher.AEAD
 }
 
-func wrapSysConn(rawConn net.PacketConn, config *Config) (*sysConn, error) {
+func wrapSysConn(rawConn *net.UDPConn, config *Config) (*sysConn, error) {
 	header, err := getHeader(config)
 	if err != nil {
 		return nil, err
@@ -126,6 +126,14 @@ func (c *sysConn) Close() error {
 
 func (c *sysConn) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
+}
+
+func (c *sysConn) SetReadBuffer(bytes int) error {
+	return c.conn.SetReadBuffer(bytes)
+}
+
+func (c *sysConn) SetWriteBuffer(bytes int) error {
+	return c.conn.SetWriteBuffer(bytes)
 }
 
 func (c *sysConn) SetDeadline(t time.Time) error {
