@@ -548,11 +548,10 @@ func (x *StrategyLeastPingConfig) GetObserverTag() string {
 }
 
 type StrategyFallbackConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObserverTag   string                 `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	ObserverTag string `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyFallbackConfig) Reset() {
