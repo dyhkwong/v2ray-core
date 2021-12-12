@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - v*
+      - dev*
     paths:
       - "**/*.go"
       - ".github/workflows/linter.yml"
@@ -16,7 +17,6 @@ on:
 
 jobs:
   lint:
-    if: github.repository == 'v2fly/v2ray-core'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.x
