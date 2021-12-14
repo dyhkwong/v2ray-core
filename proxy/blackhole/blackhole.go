@@ -35,7 +35,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		// Sleep a little here to make sure the response is sent to client.
 		time.Sleep(time.Second)
 	}
-	common.Interrupt(link.Writer)
 	return nil
 }
 
