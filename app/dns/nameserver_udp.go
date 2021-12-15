@@ -2,6 +2,7 @@ package dns
 
 import (
 	"context"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -10,6 +11,7 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
@@ -35,26 +37,53 @@ type ClassicNameServer struct {
 	reqID     uint32
 }
 
+// NewUDPNameServer creates udp server object for remote resolving.
+func NewUDPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
+	return baseUDPNameServer(url, "UDP", dispatcher)
+}
+
+// NewUDPLocalNameServer creates udp server object for local resolving.
+func NewUDPLocalNameServer(url *url.URL) (*ClassicNameServer, error) {
+	return baseUDPNameServer(url, "UDPL", dispatcher.SystemInstance)
+}
+
+func baseUDPNameServer(url *url.URL, prefix string, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
+	var err error
+	port := net.Port(53)
+	if url.Port() != "" {
+		port, err = net.PortFromString(url.Port())
+		if err != nil {
+			return nil, err
+		}
+	}
+	dest := net.UDPDestination(net.ParseAddress(url.Hostname()), port)
+	s := newClassicNameServer(dest, prefix+"//"+dest.NetAddr(), dispatcher)
+	return s, nil
+}
+
 // NewClassicNameServer creates udp server object for remote resolving.
 func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher) *ClassicNameServer {
 	// default to 53 if unspecific
 	if address.Port == 0 {
 		address.Port = net.Port(53)
 	}
+	newError("DNS: created UDP client initialized for ", address.NetAddr()).AtInfo().WriteToLog()
+	return newClassicNameServer(address, strings.ToUpper(address.String()), dispatcher)
+}
 
+func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
 		address:  address,
 		ips:      make(map[string]record),
 		requests: make(map[uint16]dnsRequest),
 		pub:      pubsub.NewService(),
-		name:     strings.ToUpper(address.String()),
+		name:     name,
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
 	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
-	newError("DNS: created UDP client initialized for ", address.NetAddr()).AtInfo().WriteToLog()
 	return s
 }
 
@@ -201,7 +230,8 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 			udpCtx = session.ContextWithInbound(udpCtx, inbound)
 		}
 		udpCtx = session.ContextWithContent(udpCtx, &session.Content{
-			Protocol: "dns",
+			Protocol:       "dns",
+			SkipDNSResolve: true,
 		})
 		s.udpServer.Dispatch(udpCtx, s.address, b)
 	}
