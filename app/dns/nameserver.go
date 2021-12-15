@@ -70,6 +70,10 @@ func NewServer(ctx context.Context, dest net.Destination, onCreated func(Server)
 			return onCreatedWithError(NewTCPLocalNameServer(u))
 		case strings.EqualFold(u.Scheme, "quic+local"): // DNS-over-QUIC Local mode
 			return onCreatedWithError(NewQUICNameServer(u))
+		case strings.EqualFold(u.Scheme, "udp"): // UDP classic DNS Remote mode
+			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewUDPNameServer(u, dispatcher)) })
+		case strings.EqualFold(u.Scheme, "udp+local"): // UDP classic DNS Local mode
+			return onCreatedWithError(NewUDPLocalNameServer(u))
 		}
 	}
 	if dest.Network == net.Network_Unknown {
