@@ -15,13 +15,23 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
+type sysUDPConn struct {
+	*sysConn
+}
+
+func wrapSysUDPConn(sysConn *sysConn) *sysUDPConn {
+	return &sysUDPConn{
+		sysConn: sysConn,
+	}
+}
+
 type sysConn struct {
-	conn   *net.UDPConn
+	conn   net.PacketConn
 	header internet.PacketHeader
 	auth   cipher.AEAD
 }
 
-func wrapSysConn(rawConn *net.UDPConn, config *Config) (*sysConn, error) {
+func wrapSysConn(rawConn net.PacketConn, config *Config) (*sysConn, error) {
 	header, err := getHeader(config)
 	if err != nil {
 		return nil, err
@@ -37,7 +47,10 @@ func wrapSysConn(rawConn *net.UDPConn, config *Config) (*sysConn, error) {
 	}, nil
 }
 
-var errInvalidPacket = errors.New("invalid packet")
+var (
+	errInvalidPacket = errors.New("invalid packet")
+	errNotUDPConn    = errors.New("not a *net.UDPConn")
+)
 
 func (c *sysConn) readFromInternal(p []byte) (int, net.Addr, error) {
 	buffer := getBuffer()
@@ -129,12 +142,18 @@ func (c *sysConn) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *sysConn) SetReadBuffer(bytes int) error {
-	return c.conn.SetReadBuffer(bytes)
+func (c *sysUDPConn) SetReadBuffer(bytes int) error {
+	if udpConn, ok := c.sysConn.conn.(*net.UDPConn); ok {
+		return udpConn.SetReadBuffer(bytes)
+	}
+	return errNotUDPConn
 }
 
-func (c *sysConn) SetWriteBuffer(bytes int) error {
-	return c.conn.SetWriteBuffer(bytes)
+func (c *sysUDPConn) SetWriteBuffer(bytes int) error {
+	if udpConn, ok := c.sysConn.conn.(*net.UDPConn); ok {
+		return udpConn.SetWriteBuffer(bytes)
+	}
+	return errNotUDPConn
 }
 
 func (c *sysConn) SetDeadline(t time.Time) error {
@@ -149,8 +168,11 @@ func (c *sysConn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
-func (c *sysConn) SyscallConn() (syscall.RawConn, error) {
-	return c.conn.SyscallConn()
+func (c *sysUDPConn) SyscallConn() (syscall.RawConn, error) {
+	if udpConn, ok := c.sysConn.conn.(*net.UDPConn); ok {
+		return udpConn.SyscallConn()
+	}
+	return nil, errNotUDPConn
 }
 
 type interConn struct {
