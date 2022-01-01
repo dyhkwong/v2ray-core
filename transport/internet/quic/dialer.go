@@ -15,8 +15,8 @@ import (
 )
 
 type connectionContext struct {
-	rawConn *sysConn
-	conn    quic.Connection
+	rawConn net.PacketConn
+	conn    quic.EarlyConnection
 }
 
 var errConnectionClosed = newError("connection closed")
@@ -51,7 +51,7 @@ type clientConnections struct {
 	cleanup *task.Periodic
 }
 
-func isActive(s quic.Connection) bool {
+func isActive(s quic.EarlyConnection) bool {
 	select {
 	case <-s.Context().Done():
 		return false
@@ -120,7 +120,7 @@ func (s *clientConnections) cleanConnections() error {
 	return nil
 }
 
-func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
+func (s *clientConnections) openConnection(ctx context.Context, destAddr net.Addr, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	s.access.Lock()
 	defer s.access.Unlock()
 
@@ -146,12 +146,9 @@ func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *in
 
 	newError("dialing QUIC to ", dest).WriteToLog()
 
-	rawConn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
-		IP:   []byte{0, 0, 0, 0},
-		Port: 0,
-	}, streamSettings.SocketSettings)
+	rawConn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
 	if err != nil {
-		return nil, err
+		return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
 	}
 
 	quicConfig := &quic.Config{
@@ -160,7 +157,18 @@ func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *in
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	sysConn, err := wrapSysConn(rawConn.(*net.UDPConn), streamSettings.ProtocolSettings.(*Config))
+	var pc net.PacketConn
+	switch rc := rawConn.(type) {
+	case *internet.PacketConnWrapper:
+		pc = rc.Conn
+	case net.PacketConn:
+		pc = rc
+	default:
+		rawConn.Close()
+		return nil, newError("not a net.PacketConn")
+	}
+
+	sysConn, err := wrapSysConn(pc, streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -179,7 +187,7 @@ func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *in
 		}
 	}
 
-	conn, err := tr.Dial(context.Background(), destAddr, tlsConfig.GetTLSConfig(tls.WithDestination(dest)), quicConfig)
+	conn, err := tr.DialEarly(context.Background(), destAddr, tlsConfig.GetTLSConfig(tls.WithDestination(dest)), quicConfig)
 	if err != nil {
 		sysConn.Close()
 		return nil, err
@@ -220,7 +228,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		destAddr = addr
 	}
 
-	return client.openConnection(destAddr, streamSettings)
+	return client.openConnection(ctx, destAddr, streamSettings)
 }
 
 func init() {
