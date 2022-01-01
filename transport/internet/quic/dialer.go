@@ -115,7 +115,7 @@ func (s *clientConnections) cleanConnections() error {
 	return nil
 }
 
-func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tlsConfig *tls.Config, sockopt *internet.SocketConfig) (internet.Connection, error) {
+func (s *clientConnections) openConnection(ctx context.Context, destAddr net.Addr, config *Config, tlsConfig *tls.Config, sockopt *internet.SocketConfig) (internet.Connection, error) {
 	s.access.Lock()
 	defer s.access.Unlock()
 
@@ -141,12 +141,9 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 
 	newError("dialing QUIC to ", dest).WriteToLog()
 
-	rawConn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
-		IP:   []byte{0, 0, 0, 0},
-		Port: 0,
-	}, sockopt)
+	rawConn, err := internet.DialSystem(ctx, dest, sockopt)
 	if err != nil {
-		return nil, err
+		return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
 	}
 
 	quicConfig := &quic.Config{
@@ -156,7 +153,11 @@ func (s *clientConnections) openConnection(destAddr net.Addr, config *Config, tl
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	sysConn, err := wrapSysConn(rawConn.(*net.UDPConn), config)
+	udpConn, _ := rawConn.(*net.UDPConn)
+	if udpConn == nil {
+		udpConn = rawConn.(*internet.PacketConnWrapper).Conn.(*net.UDPConn)
+	}
+	sysConn, err := wrapSysConn(udpConn, config)
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -212,7 +213,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	config := streamSettings.ProtocolSettings.(*Config)
 
-	return client.openConnection(destAddr, config, tlsConfig, streamSettings.SocketSettings)
+	return client.openConnection(ctx, destAddr, config, tlsConfig, streamSettings.SocketSettings)
 }
 
 func init() {
