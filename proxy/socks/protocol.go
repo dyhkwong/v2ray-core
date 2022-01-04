@@ -3,7 +3,6 @@ package socks
 import (
 	"encoding/binary"
 	"io"
-	gonet "net"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
@@ -360,17 +359,6 @@ func EncodeUDPPacket(request *protocol.RequestHeader, data []byte) (*buf.Buffer,
 	return b, nil
 }
 
-func EncodeUDPPacketFromAddress(address net.Destination, data []byte) (*buf.Buffer, error) {
-	b := buf.New()
-	common.Must2(b.Write([]byte{0, 0, 0 /* Fragment */}))
-	if err := addrParser.WriteAddressPort(b, address.Address, address.Port); err != nil {
-		b.Release()
-		return nil, err
-	}
-	common.Must2(b.Write(data))
-	return b, nil
-}
-
 type UDPReader struct {
 	reader io.Reader
 }
@@ -388,23 +376,6 @@ func (r *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		return nil, err
 	}
 	return buf.MultiBuffer{b}, nil
-}
-
-func (r *UDPReader) ReadFrom(p []byte) (n int, addr gonet.Addr, err error) {
-	buffer := buf.New()
-	_, err = buffer.ReadFrom(r.reader)
-	if err != nil {
-		buffer.Release()
-		return 0, nil, err
-	}
-	req, err := DecodeUDPPacket(buffer)
-	if err != nil {
-		buffer.Release()
-		return 0, nil, err
-	}
-	n = copy(p, buffer.Bytes())
-	buffer.Release()
-	return n, &gonet.UDPAddr{IP: req.Address.IP(), Port: int(req.Port)}, nil
 }
 
 type UDPWriter struct {
@@ -430,21 +401,6 @@ func (w *UDPWriter) Write(b []byte) (int, error) {
 		return 0, err
 	}
 	return len(b), nil
-}
-
-func (w *UDPWriter) WriteTo(payload []byte, addr gonet.Addr) (n int, err error) {
-	request := *w.request
-	udpAddr := addr.(*gonet.UDPAddr)
-	request.Command = protocol.RequestCommandUDP
-	request.Address = net.IPAddress(udpAddr.IP)
-	request.Port = net.Port(udpAddr.Port)
-	packet, err := EncodeUDPPacket(&request, payload)
-	if err != nil {
-		return 0, err
-	}
-	_, err = w.writer.Write(packet.Bytes())
-	packet.Release()
-	return len(payload), err
 }
 
 func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer io.Writer) (*protocol.RequestHeader, error) {
