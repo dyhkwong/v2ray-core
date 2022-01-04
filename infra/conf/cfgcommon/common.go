@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 )
 
@@ -239,18 +238,5 @@ func (v *User) Build() *protocol.User {
 	return &protocol.User{
 		Email: v.EmailString,
 		Level: uint32(v.LevelByte),
-	}
-}
-
-type PacketAddrType string
-
-func (v PacketAddrType) Build() packetaddr.PacketAddrType {
-	switch strings.ToLower(string(v)) {
-	case "none":
-		return packetaddr.PacketAddrType_None
-	case "packet":
-		return packetaddr.PacketAddrType_Packet
-	default:
-		return packetaddr.PacketAddrType_None
 	}
 }

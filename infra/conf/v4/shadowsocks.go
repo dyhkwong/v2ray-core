@@ -10,14 +10,13 @@ import (
 )
 
 type ShadowsocksServerConfig struct {
-	Cipher         string                   `json:"method"`
-	Password       string                   `json:"password"`
-	UDP            bool                     `json:"udp"`
-	Level          byte                     `json:"level"`
-	Email          string                   `json:"email"`
-	NetworkList    *cfgcommon.NetworkList   `json:"network"`
-	IVCheck        bool                     `json:"ivCheck"`
-	PacketEncoding cfgcommon.PacketAddrType `json:"packetEncoding"`
+	Cipher      string                 `json:"method"`
+	Password    string                 `json:"password"`
+	UDP         bool                   `json:"udp"`
+	Level       byte                   `json:"level"`
+	Email       string                 `json:"email"`
+	NetworkList *cfgcommon.NetworkList `json:"network"`
+	IVCheck     bool                   `json:"ivCheck"`
 }
 
 func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
@@ -42,8 +41,6 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 		Level:   uint32(v.Level),
 		Account: serial.ToTypedMessage(account),
 	}
-
-	config.PacketEncoding = v.PacketEncoding.Build()
 
 	return config, nil
 }

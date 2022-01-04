@@ -30,13 +30,12 @@ const (
 )
 
 type SocksServerConfig struct {
-	AuthMethod     string                   `json:"auth"`
-	Accounts       []*SocksAccount          `json:"accounts"`
-	UDP            bool                     `json:"udp"`
-	Host           *cfgcommon.Address       `json:"ip"`
-	Timeout        uint32                   `json:"timeout"`
-	UserLevel      uint32                   `json:"userLevel"`
-	PacketEncoding cfgcommon.PacketAddrType `json:"packetEncoding"`
+	AuthMethod string             `json:"auth"`
+	Accounts   []*SocksAccount    `json:"accounts"`
+	UDP        bool               `json:"udp"`
+	Host       *cfgcommon.Address `json:"ip"`
+	Timeout    uint32             `json:"timeout"`
+	UserLevel  uint32             `json:"userLevel"`
 }
 
 func (v *SocksServerConfig) Build() (proto.Message, error) {
@@ -65,9 +64,6 @@ func (v *SocksServerConfig) Build() (proto.Message, error) {
 
 	config.Timeout = v.Timeout
 	config.UserLevel = v.UserLevel
-
-	config.PacketEncoding = v.PacketEncoding.Build()
-
 	return config, nil
 }
 
