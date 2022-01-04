@@ -33,7 +33,7 @@ type ClassicNameServer struct {
 	ips       map[string]record
 	requests  map[uint16]dnsRequest
 	pub       *pubsub.Service
-	udpServer udp.DispatcherI
+	udpServer *udp.Dispatcher
 	cleanup   *task.Periodic
 	reqID     uint32
 }
@@ -56,7 +56,7 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	s.udpServer = udp.NewDispatcher(dispatcher, s.HandleResponse)
 	newError("DNS: created UDP client initialized for ", address.NetAddr()).AtInfo().WriteToLog()
 	return s
 }
