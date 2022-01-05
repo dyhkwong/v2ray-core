@@ -39,6 +39,8 @@ type Observer struct {
 	persistStorage persistentstorage.ScopedPersistentStorage
 
 	persistOutboundStatusProtoStorage protostorage.ProtoPersistentStorage
+
+	StatusUpdate func(result *OutboundStatus)
 }
 
 func (o *Observer) GetObservation(ctx context.Context) (proto.Message, error) {
@@ -240,6 +242,10 @@ func (o *Observer) updateStatusForResult(outbound string, result *ProbeResult) {
 		if err != nil {
 			newError("failed to persist outbound status").Base(err).WriteToLog()
 		}
+	}
+
+	if o.StatusUpdate != nil {
+		o.StatusUpdate(status)
 	}
 }
 
