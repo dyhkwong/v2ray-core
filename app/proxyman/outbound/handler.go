@@ -6,6 +6,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/proxyman"
 	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
 	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v4/common/mux"
@@ -51,16 +52,17 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx             context.Context
-	tag             string
-	senderSettings  *proxyman.SenderConfig
-	streamSettings  *internet.MemoryStreamConfig
-	proxy           proxy.Outbound
-	outboundManager outbound.Manager
-	mux             *mux.ClientManager
-	uplinkCounter   stats.Counter
-	downlinkCounter stats.Counter
-	dns             dns.Client
+	ctx               context.Context
+	tag               string
+	senderSettings    *proxyman.SenderConfig
+	streamSettings    *internet.MemoryStreamConfig
+	proxy             proxy.Outbound
+	outboundManager   outbound.Manager
+	mux               *mux.ClientManager
+	uplinkCounter     stats.Counter
+	downlinkCounter   stats.Counter
+	dns               dns.Client
+	muxPacketEncoding packetaddr.PacketAddrType
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -113,6 +115,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		if config.Concurrency < 1 || config.Concurrency > 1024 {
 			return nil, newError("invalid mux concurrency: ", config.Concurrency).AtWarning()
 		}
+		h.muxPacketEncoding = h.senderSettings.MultiplexSettings.PacketEncoding
 		h.mux = &mux.ClientManager{
 			Enabled: h.senderSettings.MultiplexSettings.Enabled,
 			Picker: &mux.IncrementalWorkerPicker{
@@ -150,6 +153,11 @@ func (h *Handler) Tag() string {
 
 // Dispatch implements proxy.Outbound.Dispatch.
 func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
+	outbound := session.OutboundFromContext(ctx)
+	if outbound == nil {
+		outbound = new(session.Outbound)
+		ctx = session.ContextWithOutbound(ctx, outbound)
+	}
 	if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
 		outbound := session.OutboundFromContext(ctx)
 		if outbound == nil {
@@ -163,6 +171,23 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		}
 	}
 	if h.mux != nil && (h.mux.Enabled || session.MuxPreferedFromContext(ctx)) {
+		if outbound.Target.Network == net.Network_UDP {
+			switch {
+			case h.muxPacketEncoding == packetaddr.PacketAddrType_Packet && outbound.Target.Address.Family().IsIP():
+				link.Reader = packetaddr.NewReversePacketReader(link.Reader, outbound.Target)
+				link.Writer = packetaddr.NewReversePacketWriter(link.Writer)
+				outbound.Target = net.Destination{
+					Network: net.Network_UDP,
+					Address: net.DomainAddress(packetaddr.SeqPacketMagicAddress),
+					Port:    0,
+				}
+			case h.muxPacketEncoding == packetaddr.PacketAddrType_XUDP:
+				break
+			default:
+				link.Reader = &buf.EndpointErasureReader{Reader: link.Reader}
+				link.Writer = &buf.EndpointErasureWriter{Writer: link.Writer}
+			}
+		}
 		if err := h.mux.Dispatch(ctx, link); err != nil {
 			err := newError("failed to process mux outbound traffic").Base(err)
 			session.SubmitOutboundErrorToOriginator(ctx, err)
