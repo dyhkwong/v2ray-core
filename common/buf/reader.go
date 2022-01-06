@@ -5,12 +5,30 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 func readOneUDP(r io.Reader) (*Buffer, error) {
 	b := New()
 	for i := 0; i < 64; i++ {
 		_, err := b.ReadFrom(r)
+		if !b.IsEmpty() {
+			return b, nil
+		}
+		if err != nil {
+			b.Release()
+			return nil, err
+		}
+	}
+
+	b.Release()
+	return nil, newError("Reader returns too many empty payloads.")
+}
+
+func readOneUDPPacket(r net.PacketConn) (*Buffer, error) {
+	b := New()
+	for i := 0; i < 64; i++ {
+		_, err := b.ReadFromPacketConn(r)
 		if !b.IsEmpty() {
 			return b, nil
 		}
@@ -167,6 +185,19 @@ type PacketReader struct {
 // ReadMultiBuffer implements Reader.
 func (r *PacketReader) ReadMultiBuffer() (MultiBuffer, error) {
 	b, err := readOneUDP(r.Reader)
+	if err != nil {
+		return nil, err
+	}
+	return MultiBuffer{b}, nil
+}
+
+type PacketConnReader struct {
+	net.PacketConn
+}
+
+// ReadMultiBuffer implements Reader.
+func (r *PacketConnReader) ReadMultiBuffer() (MultiBuffer, error) {
+	b, err := readOneUDPPacket(r.PacketConn)
 	if err != nil {
 		return nil, err
 	}
