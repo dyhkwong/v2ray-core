@@ -2,6 +2,7 @@ package proxyman
 
 import (
 	net "github.com/v2fly/v2ray-core/v5/common/net"
+	packetaddr "github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	internet "github.com/v2fly/v2ray-core/v5/transport/internet"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -632,9 +633,10 @@ type MultiplexingConfig struct {
 	// Whether or not Mux is enabled.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Max number of concurrent connections that one Mux connection can handle.
-	Concurrency   uint32 `protobuf:"varint,2,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Concurrency    uint32                    `protobuf:"varint,2,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
+	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,3,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MultiplexingConfig) Reset() {
@@ -679,6 +681,13 @@ func (x *MultiplexingConfig) GetConcurrency() uint32 {
 		return x.Concurrency
 	}
 	return 0
+}
+
+func (x *MultiplexingConfig) GetPacketEncoding() packetaddr.PacketAddrType {
+	if x != nil {
+		return x.PacketEncoding
+	}
+	return packetaddr.PacketAddrType(0)
 }
 
 type AllocationStrategy_AllocationStrategyConcurrency struct {
@@ -773,7 +782,7 @@ var File_app_proxyman_config_proto protoreflect.FileDescriptor
 
 const file_app_proxyman_config_proto_rawDesc = "" +
 	"\n" +
-	"\x19app/proxyman/config.proto\x12\x17v2ray.core.app.proxyman\x1a\x18common/net/address.proto\x1a\x15common/net/port.proto\x1a\x1ftransport/internet/config.proto\x1a\x19google/protobuf/any.proto\"\x0f\n" +
+	"\x19app/proxyman/config.proto\x12\x17v2ray.core.app.proxyman\x1a\x18common/net/address.proto\x1a\x15common/net/port.proto\x1a\x1ftransport/internet/config.proto\x1a\x19google/protobuf/any.proto\x1a\"common/net/packetaddr/config.proto\"\x0f\n" +
 	"\rInboundConfig\"\xc0\x03\n" +
 	"\x12AllocationStrategy\x12D\n" +
 	"\x04type\x18\x01 \x01(\x0e20.v2ray.core.app.proxyman.AllocationStrategy.TypeR\x04type\x12k\n" +
@@ -825,10 +834,11 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\n" +
 	"PREFER_IP4\x10\x04\x12\x0e\n" +
 	"\n" +
-	"PREFER_IP6\x10\x05\"P\n" +
+	"PREFER_IP6\x10\x05\"\xa4\x01\n" +
 	"\x12MultiplexingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12 \n" +
-	"\vconcurrency\x18\x02 \x01(\rR\vconcurrency*#\n" +
+	"\vconcurrency\x18\x02 \x01(\rR\vconcurrency\x12R\n" +
+	"\x0fpacket_encoding\x18\x03 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding*#\n" +
 	"\x0eKnownProtocols\x12\b\n" +
 	"\x04HTTP\x10\x00\x12\a\n" +
 	"\x03TLS\x10\x01Bf\n" +
@@ -867,6 +877,7 @@ var file_app_proxyman_config_proto_goTypes = []any{
 	(*internet.StreamConfig)(nil),                            // 15: v2ray.core.transport.internet.StreamConfig
 	(*anypb.Any)(nil),                                        // 16: google.protobuf.Any
 	(*internet.ProxyConfig)(nil),                             // 17: v2ray.core.transport.internet.ProxyConfig
+	(packetaddr.PacketAddrType)(0),                           // 18: v2ray.core.net.packetaddr.PacketAddrType
 }
 var file_app_proxyman_config_proto_depIdxs = []int32{
 	1,  // 0: v2ray.core.app.proxyman.AllocationStrategy.type:type_name -> v2ray.core.app.proxyman.AllocationStrategy.Type
@@ -886,11 +897,12 @@ var file_app_proxyman_config_proto_depIdxs = []int32{
 	10, // 14: v2ray.core.app.proxyman.SenderConfig.multiplex_settings:type_name -> v2ray.core.app.proxyman.MultiplexingConfig
 	2,  // 15: v2ray.core.app.proxyman.SenderConfig.domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
 	2,  // 16: v2ray.core.app.proxyman.SenderConfig.dial_domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	18, // 17: v2ray.core.app.proxyman.MultiplexingConfig.packet_encoding:type_name -> v2ray.core.net.packetaddr.PacketAddrType
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_app_proxyman_config_proto_init() }
