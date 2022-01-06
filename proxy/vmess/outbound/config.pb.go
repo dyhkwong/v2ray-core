@@ -2,6 +2,7 @@ package outbound
 
 import (
 	net "github.com/v2fly/v2ray-core/v5/common/net"
+	packetaddr "github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	protocol "github.com/v2fly/v2ray-core/v5/common/protocol"
 	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -19,10 +20,11 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Receiver      []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=Receiver,proto3" json:"Receiver,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState     `protogen:"open.v1"`
+	Receiver       []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=Receiver,proto3" json:"Receiver,omitempty"`
+	PacketEncoding packetaddr.PacketAddrType  `protobuf:"varint,2,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -62,13 +64,21 @@ func (x *Config) GetReceiver() []*protocol.ServerEndpoint {
 	return nil
 }
 
+func (x *Config) GetPacketEncoding() packetaddr.PacketAddrType {
+	if x != nil {
+		return x.PacketEncoding
+	}
+	return packetaddr.PacketAddrType(0)
+}
+
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Uuid          string                 `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState    `protogen:"open.v1"`
+	Address        *net.IPOrDomain           `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port           uint32                    `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Uuid           string                    `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {
@@ -122,17 +132,26 @@ func (x *SimplifiedConfig) GetUuid() string {
 	return ""
 }
 
+func (x *SimplifiedConfig) GetPacketEncoding() packetaddr.PacketAddrType {
+	if x != nil {
+		return x.PacketEncoding
+	}
+	return packetaddr.PacketAddrType(0)
+}
+
 var File_proxy_vmess_outbound_config_proto protoreflect.FileDescriptor
 
 const file_proxy_vmess_outbound_config_proto_rawDesc = "" +
 	"\n" +
-	"!proxy/vmess/outbound/config.proto\x12\x1fv2ray.core.proxy.vmess.outbound\x1a!common/protocol/server_spec.proto\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"P\n" +
+	"!proxy/vmess/outbound/config.proto\x12\x1fv2ray.core.proxy.vmess.outbound\x1a!common/protocol/server_spec.proto\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\x1a\"common/net/packetaddr/config.proto\"\xa4\x01\n" +
 	"\x06Config\x12F\n" +
-	"\bReceiver\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\bReceiver\"\x92\x01\n" +
+	"\bReceiver\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\bReceiver\x12R\n" +
+	"\x0fpacket_encoding\x18\x02 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"\xe6\x01\n" +
 	"\x10SimplifiedConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x12\n" +
-	"\x04uuid\x18\x03 \x01(\tR\x04uuid:\x19\x82\xb5\x18\x15\n" +
+	"\x04uuid\x18\x03 \x01(\tR\x04uuid\x12R\n" +
+	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x19\x82\xb5\x18\x15\n" +
 	"\boutbound\x12\x05vmess\x90\xff)\x01B~\n" +
 	"#com.v2ray.core.proxy.vmess.outboundP\x01Z3github.com/v2fly/v2ray-core/v5/proxy/vmess/outbound\xaa\x02\x1fV2Ray.Core.Proxy.Vmess.Outboundb\x06proto3"
 
@@ -153,16 +172,19 @@ var file_proxy_vmess_outbound_config_proto_goTypes = []any{
 	(*Config)(nil),                  // 0: v2ray.core.proxy.vmess.outbound.Config
 	(*SimplifiedConfig)(nil),        // 1: v2ray.core.proxy.vmess.outbound.SimplifiedConfig
 	(*protocol.ServerEndpoint)(nil), // 2: v2ray.core.common.protocol.ServerEndpoint
-	(*net.IPOrDomain)(nil),          // 3: v2ray.core.common.net.IPOrDomain
+	(packetaddr.PacketAddrType)(0),  // 3: v2ray.core.net.packetaddr.PacketAddrType
+	(*net.IPOrDomain)(nil),          // 4: v2ray.core.common.net.IPOrDomain
 }
 var file_proxy_vmess_outbound_config_proto_depIdxs = []int32{
 	2, // 0: v2ray.core.proxy.vmess.outbound.Config.Receiver:type_name -> v2ray.core.common.protocol.ServerEndpoint
-	3, // 1: v2ray.core.proxy.vmess.outbound.SimplifiedConfig.address:type_name -> v2ray.core.common.net.IPOrDomain
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 1: v2ray.core.proxy.vmess.outbound.Config.packet_encoding:type_name -> v2ray.core.net.packetaddr.PacketAddrType
+	4, // 2: v2ray.core.proxy.vmess.outbound.SimplifiedConfig.address:type_name -> v2ray.core.common.net.IPOrDomain
+	3, // 3: v2ray.core.proxy.vmess.outbound.SimplifiedConfig.packet_encoding:type_name -> v2ray.core.net.packetaddr.PacketAddrType
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proxy_vmess_outbound_config_proto_init() }
