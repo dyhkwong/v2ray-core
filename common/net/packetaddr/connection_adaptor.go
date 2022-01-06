@@ -24,7 +24,7 @@ func ToPacketAddrConn(link *transport.Link, dest net.Destination) (net.PacketCon
 		return nil, errNotPacketConn
 	}
 	switch dest.Address.Domain() {
-	case seqPacketMagicAddress:
+	case SeqPacketMagicAddress:
 		return &packetConnectionAdaptor{
 			readerAccess: &sync.Mutex{},
 			readerBuffer: nil,
@@ -40,7 +40,7 @@ func CreatePacketAddrConn(ctx context.Context, dispatcher routing.Dispatcher, is
 		return nil, errUnsupported
 	}
 	packetDest := net.Destination{
-		Address: net.DomainAddress(seqPacketMagicAddress),
+		Address: net.DomainAddress(SeqPacketMagicAddress),
 		Port:    0,
 		Network: net.Network_UDP,
 	}
@@ -172,7 +172,7 @@ func GetDestinationSubsetOf(dest net.Destination) (bool, error) {
 		return false, errNotPacketConn
 	}
 	switch dest.Address.Domain() {
-	case seqPacketMagicAddress:
+	case SeqPacketMagicAddress:
 		return false, nil
 	default:
 		return false, errNotPacketConn

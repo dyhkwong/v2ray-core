@@ -27,6 +27,11 @@ func (p PacketAddrDispatcher) Dispatch(ctx context.Context, destination net.Dest
 	if destination.Network != net.Network_UDP {
 		return
 	}
+	if destination.Address.Family().IsDomain() {
+		newError("PacketAddr does not support domain name").AtError().WriteToLog()
+		payload.Release()
+		return
+	}
 	p.conn.WriteTo(payload.Bytes(), &net.UDPAddr{IP: destination.Address.IP(), Port: int(destination.Port.Value())})
 }
 
