@@ -10,6 +10,7 @@ import "common/net/address.proto";
 import "common/net/port.proto";
 import "transport/internet/config.proto";
 import "google/protobuf/any.proto";
+import "common/net/packetaddr/config.proto";
 
 message InboundConfig {}
 
@@ -111,4 +112,5 @@ message MultiplexingConfig {
   bool enabled = 1;
   // Max number of concurrent connections that one Mux connection can handle.
   uint32 concurrency = 2;
+  v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 3;
 }
