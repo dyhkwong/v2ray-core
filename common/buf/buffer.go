@@ -259,6 +259,21 @@ func (b *Buffer) ReadFrom(reader io.Reader) (int64, error) {
 	return int64(n), err
 }
 
+func (b *Buffer) ReadFromPacketConn(reader net.PacketConn) (int64, error) {
+	n, addr, err := reader.ReadFrom(b.v[b.end:])
+	if addr != nil {
+		if address, ok := addr.(*net.UDPAddr); ok {
+			b.Endpoint = &net.Destination{
+				Network: net.Network_UDP,
+				Address: net.IPAddress(address.IP),
+				Port:    net.Port(address.Port),
+			}
+		}
+	}
+	b.end += int32(n)
+	return int64(n), err
+}
+
 // ReadFullFrom reads exact size of bytes from given reader, or until error occurs.
 func (b *Buffer) ReadFullFrom(reader io.Reader, size int32) (int64, error) {
 	end := b.end + size
