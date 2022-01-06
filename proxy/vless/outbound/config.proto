@@ -9,9 +9,11 @@ option java_multiple_files = true;
 import "common/protocol/server_spec.proto";
 import "common/net/address.proto";
 import "common/protoext/extensions.proto";
+import "common/net/packetaddr/config.proto";
 
 message Config {
   repeated v2ray.core.common.protocol.ServerEndpoint vnext = 1;
+  v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 2;
 }
 
 message SimplifiedConfig {
@@ -21,4 +23,5 @@ message SimplifiedConfig {
   v2ray.core.common.net.IPOrDomain address = 1;
   uint32 port = 2;
   string uuid = 3;
+  v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 4;
 }
