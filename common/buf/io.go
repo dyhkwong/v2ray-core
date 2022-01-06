@@ -81,6 +81,11 @@ func NewPacketReader(reader io.Reader) Reader {
 	if mr, ok := reader.(Reader); ok {
 		return mr
 	}
+	if pc, ok := reader.(net.PacketConn); ok {
+		return &PacketConnReader{
+			PacketConn: pc,
+		}
+	}
 
 	return &PacketReader{
 		Reader: reader,
