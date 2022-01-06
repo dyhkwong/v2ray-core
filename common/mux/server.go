@@ -84,7 +84,7 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 
 func handle(ctx context.Context, s *Session, output buf.Writer) {
 	writer := NewResponseWriter(s.ID, output, s.transferType)
-	if err := buf.Copy(s.input, writer); err != nil {
+	if err := buf.Copy(s.input, &endpointWrapperWriter{Writer: writer, Session: s}); err != nil {
 		newError("session ", s.ID, " ends.").Base(err).WriteToLog(session.ExportIDToError(ctx))
 		writer.hasError = true
 	}
@@ -135,6 +135,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 		parent:       w.sessionManager,
 		ID:           meta.SessionID,
 		transferType: protocol.TransferTypeStream,
+		endpoint:     meta.Target,
 	}
 	if meta.Target.Network == net.Network_UDP {
 		s.transferType = protocol.TransferTypePacket
@@ -145,7 +146,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 		return nil
 	}
 
-	rr := s.NewReader(reader)
+	rr := s.NewReader(reader, &meta.Target)
 	if err := buf.Copy(rr, s.output); err != nil {
 		buf.Copy(rr, buf.Discard)
 		common.Interrupt(s.input)
@@ -168,7 +169,19 @@ func (w *ServerWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 		return buf.Copy(NewStreamReader(reader), buf.Discard)
 	}
 
-	rr := s.NewReader(reader)
+	if s.transferType == protocol.TransferTypePacket {
+		if meta.Target.Network == net.Network_Unknown {
+			if s.sendEndpoint == 0 {
+				s.sendEndpoint = -1
+			}
+		} else {
+			if s.sendEndpoint == -1 {
+				s.sendEndpoint = 1
+			}
+		}
+	}
+
+	rr := s.NewReader(reader, &meta.Target)
 	err := buf.Copy(rr, s.output)
 
 	if err != nil && buf.IsWriteError(err) {
