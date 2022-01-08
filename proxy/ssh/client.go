@@ -1,0 +1,218 @@
+package ssh
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"slices"
+	"strings"
+	"sync"
+
+	"golang.org/x/crypto/ssh"
+
+	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/retry"
+	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/signal"
+	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/features/policy"
+	"github.com/v2fly/v2ray-core/v5/proxy"
+	"github.com/v2fly/v2ray-core/v5/transport"
+	"github.com/v2fly/v2ray-core/v5/transport/internet"
+)
+
+func init() {
+	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
+		c := &Client{}
+		return c, core.RequireFeatures(ctx, func(policyManager policy.Manager) error {
+			return c.Init(config.(*Config), policyManager)
+		})
+	}))
+}
+
+var (
+	_ proxy.Outbound  = (*Client)(nil)
+	_ common.Closable = (*Client)(nil)
+)
+
+type Client struct {
+	config          *Config
+	sessionPolicy   policy.Session
+	server          net.Destination
+	client          *ssh.Client
+	clientLock      sync.Mutex
+	auth            []ssh.AuthMethod
+	connectLock     sync.Mutex
+	hostKeyCallback ssh.HostKeyCallback
+}
+
+func (c *Client) Init(config *Config, policyManager policy.Manager) error {
+	c.config = config
+	c.sessionPolicy = policyManager.ForLevel(config.UserLevel)
+	c.server = net.Destination{
+		Network: net.Network_TCP,
+		Address: config.Address.AsAddress(),
+		Port:    net.Port(config.Port),
+	}
+
+	if config.Password != nil {
+		c.auth = append(c.auth, ssh.Password(*config.Password))
+	}
+	if config.PrivateKey != "" {
+		var signer ssh.Signer
+		var err error
+		if config.PrivateKeyPassphrase != nil {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(config.PrivateKey), []byte(*config.PrivateKeyPassphrase))
+		} else {
+			signer, err = ssh.ParsePrivateKey([]byte(config.PrivateKey))
+		}
+		if err != nil {
+			return newError("parse private key").Base(err)
+		}
+		c.auth = append(c.auth, ssh.PublicKeys(signer))
+	}
+
+	var publicKeys []ssh.PublicKey
+	if config.PublicKey != "" {
+		lines := strings.FieldsFunc(config.PublicKey, func(r rune) bool {
+			return r == '\r' || r == '\n'
+		})
+		for _, line := range lines {
+			if len(line) == 0 {
+				continue
+			}
+			publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(line))
+			if err != nil {
+				return newError("parse public key").Base(err)
+			}
+			publicKeys = append(publicKeys, publicKey)
+		}
+	}
+	if publicKeys != nil {
+		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			if slices.ContainsFunc(publicKeys, func(publicKey ssh.PublicKey) bool {
+				return bytes.Equal(key.Marshal(), publicKey.Marshal())
+			}) {
+				return nil
+			}
+			return newError("ssh host key mismatch, server send ", key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal()))
+		}
+	} else {
+		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			newError("please save server public key for verification").AtError().WriteToLog()
+			newError(key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal())).AtError().WriteToLog()
+			return nil
+		}
+	}
+	return nil
+}
+
+func (c *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+	outbound := session.OutboundFromContext(ctx)
+	if outbound == nil || !outbound.Target.IsValid() {
+		return newError("target not specified")
+	}
+	destination := outbound.Target
+	if destination.Network != net.Network_TCP {
+		return newError("only TCP is supported in SSH proxy")
+	}
+
+	newError("tunneling request to ", destination, " via ", c.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
+
+	client, err := c.connect(ctx, dialer)
+	if err != nil {
+		return err
+	}
+
+	conn, err := client.DialContext(ctx, "tcp", destination.NetAddr())
+	if err != nil {
+		return newError("failed to open ssh proxy connection").Base(err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithCancel(ctx)
+	timer := signal.CancelAfterInactivity(ctx, cancel, c.sessionPolicy.Timeouts.ConnectionIdle)
+
+	if err := task.Run(ctx, func() error {
+		defer timer.SetTimeout(c.sessionPolicy.Timeouts.DownlinkOnly)
+		return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
+	}, func() error {
+		defer timer.SetTimeout(c.sessionPolicy.Timeouts.UplinkOnly)
+		return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+	}); err != nil {
+		return newError("connection ends").Base(err)
+	}
+
+	return nil
+}
+
+func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
+	c.connectLock.Lock()
+	defer c.connectLock.Unlock()
+	c.clientLock.Lock()
+	if c.client != nil {
+		c.clientLock.Unlock()
+		return c.client, nil
+	}
+	c.clientLock.Unlock()
+
+	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+	var conn internet.Connection
+	err := retry.ExponentialBackoff(5, 100).On(func() error {
+		rawConn, err := dialer.Dial(ctx, c.server)
+		if err != nil {
+			return err
+		}
+		conn = rawConn
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	clientConn, chans, reqs, err := ssh.NewClientConn(conn, c.server.Address.String(), &ssh.ClientConfig{
+		User:              c.config.User,
+		Auth:              c.auth,
+		ClientVersion:     c.config.ClientVersion,
+		HostKeyAlgorithms: c.config.HostKeyAlgorithms,
+		HostKeyCallback:   c.hostKeyCallback,
+		BannerCallback: func(message string) error {
+			for line := range strings.SplitSeq(message, "\n") {
+				newError("| ", line).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		conn.Close()
+		return nil, newError("failed to create ssh connection").Base(err)
+	}
+
+	client := ssh.NewClient(clientConn, chans, reqs)
+
+	c.clientLock.Lock()
+	c.client = client
+	c.clientLock.Unlock()
+	go func() {
+		err := client.Wait()
+		newError("ssh client closed").Base(err).AtDebug().WriteToLog()
+		c.clientLock.Lock()
+		client.Close()
+		c.client = nil
+		c.clientLock.Unlock()
+	}()
+	return client, nil
+}
+
+func (c *Client) Close() error {
+	c.clientLock.Lock()
+	if c.client != nil {
+		c.client.Close()
+	}
+	c.client = nil
+	c.clientLock.Unlock()
+	return nil
+}
