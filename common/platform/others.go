@@ -4,7 +4,9 @@
 package platform
 
 import (
+	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/adrg/xdg"
 )
@@ -24,4 +26,8 @@ func GetAssetLocation(file string) string {
 		return defPath
 	}
 	return fullPath
+}
+
+func CheckChildProcess(proc *os.Process) error {
+	return proc.Signal(syscall.Signal(0))
 }
