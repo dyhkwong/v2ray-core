@@ -551,7 +551,7 @@ func (v *StreamCipher) DecodePacket(key []byte, b *buf.Buffer) error {
 
 type NoneCipher struct{}
 
-func (NoneCipher) KeySize() int32 { return 0 }
+func (NoneCipher) KeySize() int32 { return 16 }
 func (NoneCipher) IVSize() int32  { return 0 }
 func (NoneCipher) IsAEAD() bool {
 	return false
