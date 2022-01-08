@@ -11,6 +11,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/mux"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/features/inbound"
 	"github.com/v2fly/v2ray-core/v5/proxy"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -164,6 +165,10 @@ func (h *DynamicInboundHandler) refresh() error {
 				continue
 			}
 			workers = append(workers, worker)
+		}
+
+		if i, ok := p.(inbound.Initializer); ok {
+			i.Initialize(h)
 		}
 	}
 
