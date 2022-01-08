@@ -2,6 +2,8 @@ package shadowsocks_2022 //nolint:stylecheck
 
 import (
 	"context"
+	"io"
+	"strconv"
 
 	shadowsocks "github.com/sagernet/sing-shadowsocks"
 	"github.com/sagernet/sing-shadowsocks/shadowaead"
@@ -13,13 +15,20 @@ import (
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 
+	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman"
+	app_inbound "github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	features_inbound "github.com/v2fly/v2ray-core/v5/features/inbound"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
+	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -38,6 +47,23 @@ type Inbound struct {
 	service  shadowsocks.Service
 	email    string
 	level    int
+
+	tag            string
+	pluginTag      string
+	plugin         sip003.Plugin
+	pluginOverride net.Destination
+	receiverPort   int
+}
+
+func (i *Inbound) Initialize(self features_inbound.Handler) {
+	i.tag = self.Tag()
+}
+
+func (i *Inbound) Close() error {
+	if i.plugin != nil {
+		return i.plugin.Close()
+	}
+	return nil
 }
 
 func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
@@ -69,6 +95,50 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
 		return nil, newError("create service").Base(err)
 	}
 	inbound.service = service
+
+	if config.Plugin != "" {
+		var plugin sip003.Plugin
+		if pc := sip003.Plugins[config.Plugin]; pc != nil {
+			plugin = pc()
+		} else if sip003.PluginLoader == nil {
+			return nil, newError("plugin loader not registered")
+		} else {
+			plugin = sip003.PluginLoader(config.Plugin)
+		}
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		inbound.receiverPort, err = net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin receiver").Base(err)
+		}
+		u := uuid.New()
+		tag := "v2ray.system.shadowsocks-inbound-plugin-receiver." + u.String()
+		inbound.pluginTag = tag
+		handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
+			Listen:    net.NewIPOrDomain(net.LocalHostIP),
+			PortRange: net.SinglePortRange(net.Port(inbound.receiverPort)),
+		}, inbound, true)
+		if err != nil {
+			return nil, newError("failed to create sip003 plugin inbound").Base(err)
+		}
+		v := core.MustFromContext(ctx)
+		inboundManager := v.GetFeature(features_inbound.ManagerType()).(features_inbound.Manager)
+		if err := inboundManager.AddHandler(ctx, handler); err != nil {
+			return nil, newError("failed to add sip003 plugin inbound").Base(err)
+		}
+		inbound.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(inbound.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		inbound.plugin = plugin
+	}
+
 	return inbound, nil
 }
 
@@ -78,6 +148,26 @@ func (i *Inbound) Network() []net.Network {
 
 func (i *Inbound) Process(ctx context.Context, network net.Network, connection internet.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
+
+	if i.plugin != nil {
+		if inbound.Tag != i.pluginTag {
+			dest, err := internet.Dial(ctx, i.pluginOverride, nil)
+			if err != nil {
+				return newError("failed to handle request to shadowsocks SIP003 plugin").Base(err)
+			}
+			if err := task.Run(ctx, func() error {
+				_, err := io.Copy(connection, dest)
+				return err
+			}, func() error {
+				_, err := io.Copy(dest, connection)
+				return err
+			}); err != nil {
+				return newError("connection ends").Base(err)
+			}
+			return nil
+		}
+		inbound.Tag = i.tag
+	}
 
 	var metadata M.Metadata
 	if inbound.Source.IsValid() {

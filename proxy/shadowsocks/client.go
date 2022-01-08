@@ -2,6 +2,7 @@ package shadowsocks
 
 import (
 	"context"
+	"strconv"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -15,6 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/proxy"
+	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
@@ -24,6 +26,16 @@ import (
 type Client struct {
 	serverPicker  protocol.ServerPicker
 	policyManager policy.Manager
+
+	plugin         sip003.Plugin
+	pluginOverride net.Destination
+}
+
+func (c *Client) Close() error {
+	if c.plugin != nil {
+		return c.plugin.Close()
+	}
+	return nil
 }
 
 // NewClient create a new Shadowsocks client.
@@ -45,6 +57,32 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		serverPicker:  protocol.NewRoundRobinServerPicker(serverList),
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 	}
+
+	if config.Plugin != "" {
+		s := client.serverPicker.PickServer()
+		var plugin sip003.Plugin
+		if pc := sip003.Plugins[config.Plugin]; pc != nil {
+			plugin = pc()
+		} else if sip003.PluginLoader == nil {
+			return nil, newError("plugin loader not registered")
+		} else {
+			plugin = sip003.PluginLoader(config.Plugin)
+		}
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		client.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		client.plugin = plugin
+	}
+
 	return client, nil
 }
 
@@ -62,7 +100,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	err := retry.ExponentialBackoff(5, 100).On(func() error {
 		server = c.serverPicker.PickServer()
-		dest := server.Destination()
+		var dest net.Destination
+		if network == net.Network_TCP && c.plugin != nil {
+			dest = c.pluginOverride
+		} else {
+			dest = server.Destination()
+		}
 		dest.Network = network
 		rawConn, err := dialer.Dial(ctx, dest)
 		if err != nil {
