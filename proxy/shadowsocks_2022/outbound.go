@@ -32,6 +32,7 @@ type Outbound struct {
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
+	streamPlugin   sip003.StreamPlugin
 }
 
 func (o *Outbound) Close() error {
@@ -60,19 +61,26 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
-		port, err := net.GetFreePort()
-		if err != nil {
-			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			o.streamPlugin = streamPlugin
+			if err := plugin.Init("", "", config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs, nil); err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+		} else {
+			port, err := net.GetFreePort()
+			if err != nil {
+				return nil, newError("failed to get free port for sip003 plugin").Base(err)
+			}
+			o.pluginOverride = net.Destination{
+				Network: net.Network_TCP,
+				Address: net.LocalHostIP,
+				Port:    net.Port(port),
+			}
+			if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs, nil); err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			o.plugin = plugin
 		}
-		o.pluginOverride = net.Destination{
-			Network: net.Network_TCP,
-			Address: net.LocalHostIP,
-			Port:    net.Port(port),
-		}
-		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs); err != nil {
-			return nil, newError("failed to start plugin").Base(err)
-		}
-		o.plugin = plugin
 	}
 
 	method, err := shadowsocks.CreateMethod(ctx, config.Method, shadowsocks.MethodOptions{Password: config.Key})
