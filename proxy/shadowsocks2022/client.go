@@ -28,6 +28,8 @@ type Client struct {
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
+
+	streamPlugin sip003.StreamPlugin
 }
 
 func (c *Client) Close() error {
@@ -122,7 +124,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			if err != nil {
 				return err
 			}
-			conn = rawConn
+
+			if network == net.Network_TCP && c.streamPlugin != nil {
+				conn = c.streamPlugin.StreamConn(rawConn)
+			} else {
+				conn = rawConn
+			}
 
 			return nil
 		})
@@ -263,6 +270,15 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			c.streamPlugin = streamPlugin
+			if err := streamPlugin.InitStreamPlugin(net.Port(config.Port).String(), config.PluginOpts); err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			return c, nil
+		}
+
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)

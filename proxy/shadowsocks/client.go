@@ -2,6 +2,7 @@ package shadowsocks
 
 import (
 	"context"
+	"crypto/rand"
 	"strconv"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -29,6 +30,9 @@ type Client struct {
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
+
+	streamPlugin   sip003.StreamPlugin
+	protocolPlugin sip003.ProtocolPlugin
 }
 
 func (c *Client) Close() error {
@@ -68,6 +72,23 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			client.streamPlugin = streamPlugin
+			var err error
+			if protocolPlugin, ok := plugin.(sip003.ProtocolPlugin); ok {
+				client.protocolPlugin = protocolPlugin
+				account := s.PickUser().Account.(*MemoryAccount)
+				err = protocolPlugin.InitProtocolPlugin(s.Destination().Address.String(), s.Destination().Port.String(), config.PluginArgs, account.Key, int(account.Cipher.IVSize()))
+			} else {
+				err = streamPlugin.InitStreamPlugin(s.Destination().Port.String(), config.PluginOpts)
+			}
+			if err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			return client, nil
+		}
+
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
@@ -97,21 +118,34 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	var server *protocol.ServerSpec
 	var conn internet.Connection
+	var user *protocol.MemoryUser
 
 	err := retry.ExponentialBackoff(5, 100).On(func() error {
 		server = c.serverPicker.PickServer()
+		user = server.PickUser()
+		_, ok := user.Account.(*MemoryAccount)
+		if !ok {
+			return newError("user account is not valid")
+		}
+
 		var dest net.Destination
 		if network == net.Network_TCP && c.plugin != nil {
 			dest = c.pluginOverride
 		} else {
 			dest = server.Destination()
+			dest.Network = network
 		}
-		dest.Network = network
+
 		rawConn, err := dialer.Dial(ctx, dest)
 		if err != nil {
 			return err
 		}
-		conn = rawConn
+
+		if network == net.Network_TCP && c.streamPlugin != nil {
+			conn = c.streamPlugin.StreamConn(rawConn)
+		} else {
+			conn = rawConn
+		}
 
 		return nil
 	})
@@ -133,22 +167,37 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		request.Command = protocol.RequestCommandUDP
 	}
 
-	user := server.PickUser()
-	_, ok := user.Account.(*MemoryAccount)
-	if !ok {
-		return newError("user account is not valid")
-	}
 	request.User = user
 
 	sessionPolicy := c.policyManager.ForLevel(user.Level)
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
 
+	var protocolConn *sip003.ProtocolConn
+	var iv []byte
+	account := user.Account.(*MemoryAccount)
+	if account.Cipher.IVSize() > 0 {
+		iv = make([]byte, account.Cipher.IVSize())
+		common.Must2(rand.Read(iv))
+		if account.ReducedIVEntropy {
+			remapToPrintable(iv[:6])
+		}
+		if ivError := account.CheckIV(iv); ivError != nil {
+			return newError("failed to mark outgoing iv").Base(ivError)
+		}
+	}
+
+	if c.protocolPlugin != nil {
+		protocolConn = &sip003.ProtocolConn{}
+		c.protocolPlugin.ProtocolConn(protocolConn, iv)
+	}
+
 	if packetConn, err := packetaddr.ToPacketAddrConn(link, destination); err == nil {
 		requestDone := func() error {
 			protocolWriter := &UDPWriter{
 				Writer:  conn,
 				Request: request,
+				Plugin:  c.protocolPlugin,
 			}
 			return udp.CopyPacketConn(protocolWriter, packetConn, udp.UpdateActivity(timer))
 		}
@@ -156,6 +205,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			protocolReader := &UDPReader{
 				Reader: conn,
 				User:   user,
+				Plugin: c.protocolPlugin,
 			}
 			return udp.CopyPacketConn(packetConn, protocolReader, udp.UpdateActivity(timer))
 		}
@@ -170,7 +220,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		requestDone := func() error {
 			defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 			bufferedWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
-			bodyWriter, err := WriteTCPRequest(request, bufferedWriter)
+			bodyWriter, err := WriteTCPRequest(request, bufferedWriter, iv, protocolConn)
 			if err != nil {
 				return newError("failed to write request").Base(err)
 			}
@@ -189,7 +239,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		responseDone := func() error {
 			defer timer.SetTimeout(sessionPolicy.Timeouts.UplinkOnly)
 
-			responseReader, err := ReadTCPResponse(user, conn)
+			responseReader, err := ReadTCPResponse(user, conn, protocolConn)
 			if err != nil {
 				return err
 			}
@@ -209,6 +259,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		writer := &UDPWriter{
 			Writer:  conn,
 			Request: request,
+			Plugin:  c.protocolPlugin,
 		}
 
 		requestDone := func() error {
@@ -226,6 +277,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			reader := &UDPReader{
 				Reader: conn,
 				User:   user,
+				Plugin: c.protocolPlugin,
 			}
 
 			if err := buf.Copy(reader, link.Writer, buf.UpdateActivity(timer)); err != nil {
