@@ -34,6 +34,8 @@ type Outbound struct {
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
+
+	streamPlugin sip003.StreamPlugin
 }
 
 func (o *Outbound) Close() error {
@@ -67,6 +69,15 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			o.streamPlugin = streamPlugin
+			if err := streamPlugin.InitStreamPlugin(net.Port(config.Port).String(), config.PluginOpts); err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			return o, nil
+		}
+
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
@@ -109,6 +120,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 
 	if network == net.Network_TCP {
+		if o.streamPlugin != nil {
+			connection = o.streamPlugin.StreamConn(connection)
+		}
 		serverConn := o.method.DialEarlyConn(connection, singbridge.ToSocksAddr(destination))
 		var handshake bool
 		if timeoutReader, isTimeoutReader := link.Reader.(buf.TimeoutReader); isTimeoutReader {
