@@ -47,6 +47,8 @@ type RelayInbound struct {
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
 	receiverPort   int
+
+	streamPlugin sip003.StreamPlugin
 }
 
 func (i *RelayInbound) Initialize(self features_inbound.Handler) {
@@ -107,6 +109,15 @@ func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbou
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			inbound.streamPlugin = streamPlugin
+			if err := streamPlugin.InitStreamPlugin("", config.PluginOpts); err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			return inbound, nil
+		}
+
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
@@ -169,6 +180,8 @@ func (i *RelayInbound) Process(ctx context.Context, network net.Network, connect
 			return nil
 		}
 		inbound.Tag = i.tag
+	} else if i.streamPlugin != nil {
+		connection = i.streamPlugin.StreamConn(connection)
 	}
 
 	var metadata M.Metadata
