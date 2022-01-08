@@ -19,6 +19,10 @@ message ServerConfig {
   string email = 3;
   int32 level = 4;
   repeated v2ray.core.common.net.Network network = 5;
+  string plugin = 6;
+  string plugin_opts = 7;
+  repeated string plugin_args = 8;
+  string plugin_working_dir = 9;
 }
 
 message MultiUserServerConfig {
@@ -29,6 +33,10 @@ message MultiUserServerConfig {
   string key = 2;
   repeated User users = 3;
   repeated v2ray.core.common.net.Network network = 4;
+  string plugin = 5;
+  string plugin_opts = 6;
+  repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message RelayDestination {
@@ -47,6 +55,10 @@ message RelayServerConfig {
   string key = 2;
   repeated RelayDestination destinations = 3;
   repeated v2ray.core.common.net.Network network = 4;
+  string plugin = 5;
+  string plugin_opts = 6;
+  repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message User {
@@ -63,4 +75,8 @@ message ClientConfig {
   uint32 port = 2;
   string method = 3;
   string key = 4;
+  string plugin = 5;
+  string plugin_opts = 6;
+  repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
