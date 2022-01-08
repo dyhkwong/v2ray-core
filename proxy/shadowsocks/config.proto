@@ -36,8 +36,14 @@ message ServerConfig {
   v2ray.core.common.protocol.User user = 2;
   repeated v2ray.core.common.net.Network network = 3;
   v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 4;
+  string plugin = 5;
+  string plugin_opts = 6;
+  repeated string plugin_args = 7;
 }
 
 message ClientConfig {
   repeated v2ray.core.common.protocol.ServerEndpoint server = 1;
+  string plugin = 2;
+  string plugin_opts = 3;
+  repeated string plugin_args = 4;
 }

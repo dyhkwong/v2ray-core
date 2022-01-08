@@ -38,6 +38,9 @@ func init() {
 			},
 			Network:        simplifiedServer.Networks.GetNetwork(),
 			PacketEncoding: simplifiedServer.PacketEncoding,
+			Plugin:         simplifiedServer.Plugin,
+			PluginOpts:     simplifiedServer.PluginOpts,
+			PluginArgs:     simplifiedServer.PluginArgs,
 		}
 
 		return common.CreateObject(ctx, fullServer)
@@ -61,6 +64,9 @@ func init() {
 					},
 				},
 			},
+			Plugin:     simplifiedClient.Plugin,
+			PluginOpts: simplifiedClient.PluginOpts,
+			PluginArgs: simplifiedClient.PluginArgs,
 		}
 
 		return common.CreateObject(ctx, fullClient)
