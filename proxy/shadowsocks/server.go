@@ -2,9 +2,13 @@ package shadowsocks
 
 import (
 	"context"
+	"io"
+	"strconv"
 	"time"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman"
+	app_inbound "github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/log"
@@ -15,8 +19,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	"github.com/v2fly/v2ray-core/v5/features/inbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
+	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
@@ -25,6 +32,23 @@ type Server struct {
 	config        *ServerConfig
 	user          *protocol.MemoryUser
 	policyManager policy.Manager
+
+	tag            string
+	pluginTag      string
+	plugin         sip003.Plugin
+	pluginOverride net.Destination
+	receiverPort   int
+}
+
+func (s *Server) Initialize(self inbound.Handler) {
+	s.tag = self.Tag()
+}
+
+func (s *Server) Close() error {
+	if s.plugin != nil {
+		return s.plugin.Close()
+	}
+	return nil
 }
 
 // NewServer create a new Shadowsocks server.
@@ -43,6 +67,48 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 		config:        config,
 		user:          mUser,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
+	}
+
+	if config.Plugin != "" {
+		var plugin sip003.Plugin
+		if pc := sip003.Plugins[config.Plugin]; pc != nil {
+			plugin = pc()
+		} else if sip003.PluginLoader == nil {
+			return nil, newError("plugin loader not registered")
+		} else {
+			plugin = sip003.PluginLoader(config.Plugin)
+		}
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		s.receiverPort, err = net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin receiver").Base(err)
+		}
+		u := uuid.New()
+		tag := "v2ray.system.shadowsocks-inbound-plugin-receiver." + u.String()
+		s.pluginTag = tag
+		handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
+			Listen:    net.NewIPOrDomain(net.LocalHostIP),
+			PortRange: net.SinglePortRange(net.Port(s.receiverPort)),
+		}, s, true)
+		if err != nil {
+			return nil, newError("failed to create sip003 plugin inbound").Base(err)
+		}
+		inboundManager := v.GetFeature(inbound.ManagerType()).(inbound.Manager)
+		if err := inboundManager.AddHandler(ctx, handler); err != nil {
+			return nil, newError("failed to add sip003 plugin inbound").Base(err)
+		}
+		s.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(s.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		s.plugin = plugin
 	}
 
 	return s, nil
@@ -154,6 +220,31 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 }
 
 func (s *Server) handleConnection(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
+	inbound := session.InboundFromContext(ctx)
+	if inbound == nil {
+		panic("no inbound metadata")
+	}
+
+	if s.plugin != nil {
+		if inbound.Tag != s.pluginTag {
+			dest, err := internet.Dial(ctx, s.pluginOverride, nil)
+			if err != nil {
+				return newError("failed to handle request to shadowsocks SIP003 plugin").Base(err)
+			}
+			if err := task.Run(ctx, func() error {
+				_, err := io.Copy(conn, dest)
+				return err
+			}, func() error {
+				_, err := io.Copy(dest, conn)
+				return err
+			}); err != nil {
+				return newError("connection ends").Base(err)
+			}
+			return nil
+		}
+		inbound.Tag = s.tag
+	}
+
 	sessionPolicy := s.policyManager.ForLevel(s.user.Level)
 	conn.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake))
 
@@ -170,10 +261,6 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 	}
 	conn.SetReadDeadline(time.Time{})
 
-	inbound := session.InboundFromContext(ctx)
-	if inbound == nil {
-		panic("no inbound metadata")
-	}
 	inbound.User = s.user
 
 	dest := request.Destination()
