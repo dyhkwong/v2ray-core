@@ -153,12 +153,16 @@ type ServerConfig struct {
 	// Deprecated. Use 'network' field.
 	//
 	// Deprecated: Marked as deprecated in proxy/shadowsocks/config.proto.
-	UdpEnabled     bool                      `protobuf:"varint,1,opt,name=udp_enabled,json=udpEnabled,proto3" json:"udp_enabled,omitempty"`
-	User           *protocol.User            `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	Network        []net.Network             `protobuf:"varint,3,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	UdpEnabled       bool                      `protobuf:"varint,1,opt,name=udp_enabled,json=udpEnabled,proto3" json:"udp_enabled,omitempty"`
+	User             *protocol.User            `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	Network          []net.Network             `protobuf:"varint,3,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	PacketEncoding   packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	Plugin           string                    `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                    `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string                  `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                    `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -220,11 +224,43 @@ func (x *ServerConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 	return packetaddr.PacketAddrType(0)
 }
 
+func (x *ServerConfig) GetPlugin() string {
+	if x != nil {
+		return x.Plugin
+	}
+	return ""
+}
+
+func (x *ServerConfig) GetPluginOpts() string {
+	if x != nil {
+		return x.PluginOpts
+	}
+	return ""
+}
+
+func (x *ServerConfig) GetPluginArgs() []string {
+	if x != nil {
+		return x.PluginArgs
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 type ClientConfig struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Server        []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState     `protogen:"open.v1"`
+	Server           []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
+	Plugin           string                     `protobuf:"bytes,2,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                     `protobuf:"bytes,3,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string                   `protobuf:"bytes,4,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                     `protobuf:"bytes,5,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -264,6 +300,34 @@ func (x *ClientConfig) GetServer() []*protocol.ServerEndpoint {
 	return nil
 }
 
+func (x *ClientConfig) GetPlugin() string {
+	if x != nil {
+		return x.Plugin
+	}
+	return ""
+}
+
+func (x *ClientConfig) GetPluginOpts() string {
+	if x != nil {
+		return x.PluginOpts
+	}
+	return ""
+}
+
+func (x *ClientConfig) GetPluginArgs() []string {
+	if x != nil {
+		return x.PluginArgs
+	}
+	return nil
+}
+
+func (x *ClientConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 var File_proxy_shadowsocks_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_config_proto_rawDesc = "" +
@@ -274,15 +338,27 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\vcipher_type\x18\x02 \x01(\x0e2(.v2ray.core.proxy.shadowsocks.CipherTypeR\n" +
 	"cipherType\x12\x19\n" +
 	"\biv_check\x18\x03 \x01(\bR\aivCheck\x12L\n" +
-	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy\"\xf7\x01\n" +
+	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy\"\xff\x02\n" +
 	"\fServerConfig\x12#\n" +
 	"\vudp_enabled\x18\x01 \x01(\bB\x02\x18\x01R\n" +
 	"udpEnabled\x124\n" +
 	"\x04user\x18\x02 \x01(\v2 .v2ray.core.common.protocol.UserR\x04user\x128\n" +
 	"\anetwork\x18\x03 \x03(\x0e2\x1e.v2ray.core.common.net.NetworkR\anetwork\x12R\n" +
-	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"R\n" +
+	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12\x16\n" +
+	"\x06plugin\x18\x05 \x01(\tR\x06plugin\x12\x1f\n" +
+	"\vplugin_opts\x18\x06 \x01(\tR\n" +
+	"pluginOpts\x12\x1f\n" +
+	"\vplugin_args\x18\a \x03(\tR\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\"\xda\x01\n" +
 	"\fClientConfig\x12B\n" +
-	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server*\x85\x01\n" +
+	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\x12\x16\n" +
+	"\x06plugin\x18\x02 \x01(\tR\x06plugin\x12\x1f\n" +
+	"\vplugin_opts\x18\x03 \x01(\tR\n" +
+	"pluginOpts\x12\x1f\n" +
+	"\vplugin_args\x18\x04 \x03(\tR\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir*\x85\x01\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +
