@@ -20,4 +20,8 @@ message ClientConfig {
 
   v2ray.core.common.net.IPOrDomain address = 5;
   uint32 port = 6;
+  string plugin = 7;
+  string plugin_opts = 8;
+  repeated string plugin_args = 9;
+  string plugin_working_dir = 10;
 }
