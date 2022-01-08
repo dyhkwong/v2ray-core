@@ -9,12 +9,15 @@ import (
 )
 
 type Shadowsocks2022ServerConfig struct {
-	Method  string                       `json:"method"`
-	Key     string                       `json:"key"`
-	Level   byte                         `json:"level"`
-	Email   string                       `json:"email"`
-	Network *cfgcommon.NetworkList       `json:"network"`
-	Users   []*Shadowsocks2022UserConfig `json:"users"`
+	Method     string                       `json:"method"`
+	Key        string                       `json:"key"`
+	Level      byte                         `json:"level"`
+	Email      string                       `json:"email"`
+	Network    *cfgcommon.NetworkList       `json:"network"`
+	Users      []*Shadowsocks2022UserConfig `json:"users"`
+	Plugin     string                       `json:"plugin"`
+	PluginOpts string                       `json:"pluginOpts"`
+	PluginArgs *cfgcommon.StringList        `json:"pluginArgs"`
 }
 
 func (v *Shadowsocks2022ServerConfig) Build() (proto.Message, error) {
@@ -22,20 +25,29 @@ func (v *Shadowsocks2022ServerConfig) Build() (proto.Message, error) {
 	if v.Network != nil {
 		network = v.Network.Build()
 	}
-	return &shadowsocks_2022.ServerConfig{
+	config := &shadowsocks_2022.ServerConfig{
 		Method:  v.Method,
 		Key:     v.Key,
 		Level:   int32(v.Level),
 		Email:   v.Email,
 		Network: network,
-	}, nil
+	}
+	config.Plugin = v.Plugin
+	config.PluginOpts = v.PluginOpts
+	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
+		config.PluginArgs = *v.PluginArgs
+	}
+	return config, nil
 }
 
 type Shadowsocks2022MultiUserServerConfig struct {
-	Method  string                       `json:"method"`
-	Key     string                       `json:"key"`
-	Network *cfgcommon.NetworkList       `json:"network"`
-	Users   []*Shadowsocks2022UserConfig `json:"users"`
+	Method     string                       `json:"method"`
+	Key        string                       `json:"key"`
+	Network    *cfgcommon.NetworkList       `json:"network"`
+	Users      []*Shadowsocks2022UserConfig `json:"users"`
+	Plugin     string                       `json:"plugin"`
+	PluginOpts string                       `json:"pluginOpts"`
+	PluginArgs *cfgcommon.StringList        `json:"pluginArgs"`
 }
 
 type Shadowsocks2022UserConfig struct {
@@ -57,12 +69,18 @@ func (v *Shadowsocks2022MultiUserServerConfig) Build() (proto.Message, error) {
 			Email: user.Email,
 		})
 	}
-	return &shadowsocks_2022.MultiUserServerConfig{
+	config := &shadowsocks_2022.MultiUserServerConfig{
 		Method:  v.Method,
 		Key:     v.Key,
 		Network: network,
 		Users:   users,
-	}, nil
+	}
+	config.Plugin = v.Plugin
+	config.PluginOpts = v.PluginOpts
+	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
+		config.PluginArgs = *v.PluginArgs
+	}
+	return config, nil
 }
 
 type Shadowsocks2022RelayDestinationConfig struct {
@@ -78,6 +96,9 @@ type Shadowsocks2022RelayServerConfig struct {
 	Key          string                                   `json:"key"`
 	Network      *cfgcommon.NetworkList                   `json:"network"`
 	Destinations []*Shadowsocks2022RelayDestinationConfig `json:"destinations"`
+	Plugin       string                                   `json:"plugin"`
+	PluginOpts   string                                   `json:"pluginOpts"`
+	PluginArgs   *cfgcommon.StringList                    `json:"pluginArgs"`
 }
 
 func (v *Shadowsocks2022RelayServerConfig) Build() (proto.Message, error) {
@@ -98,29 +119,44 @@ func (v *Shadowsocks2022RelayServerConfig) Build() (proto.Message, error) {
 			Level:   int32(destination.Level),
 		})
 	}
-	return &shadowsocks_2022.RelayServerConfig{
+	config := &shadowsocks_2022.RelayServerConfig{
 		Method:       v.Method,
 		Key:          v.Key,
 		Network:      network,
 		Destinations: destinations,
-	}, nil
+	}
+	config.Plugin = v.Plugin
+	config.PluginOpts = v.PluginOpts
+	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
+		config.PluginArgs = *v.PluginArgs
+	}
+	return config, nil
 }
 
 type Shadowsocks2022ClientConfig struct {
-	Address *cfgcommon.Address `json:"address"`
-	Port    uint16             `json:"port"`
-	Method  string             `json:"method"`
-	Key     string             `json:"key"`
+	Address    *cfgcommon.Address    `json:"address"`
+	Port       uint16                `json:"port"`
+	Method     string                `json:"method"`
+	Key        string                `json:"key"`
+	Plugin     string                `json:"plugin"`
+	PluginOpts string                `json:"pluginOpts"`
+	PluginArgs *cfgcommon.StringList `json:"pluginArgs"`
 }
 
 func (v *Shadowsocks2022ClientConfig) Build() (proto.Message, error) {
 	if v.Address == nil {
 		return nil, newError("shadowsocks 2022: missing server address")
 	}
-	return &shadowsocks_2022.ClientConfig{
+	config := &shadowsocks_2022.ClientConfig{
 		Address: v.Address.Build(),
 		Port:    uint32(v.Port),
 		Method:  v.Method,
 		Key:     v.Key,
-	}, nil
+	}
+	config.Plugin = v.Plugin
+	config.PluginOpts = v.PluginOpts
+	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
+		config.PluginArgs = *v.PluginArgs
+	}
+	return config, nil
 }
