@@ -49,6 +49,7 @@ var (
 		"http":             func() interface{} { return new(HTTPClientConfig) },
 		"shadowsocks":      func() interface{} { return new(ShadowsocksClientConfig) },
 		"socks":            func() interface{} { return new(SocksClientConfig) },
+		"ssh":              func() interface{} { return new(SSHClientConfig) },
 		"vless":            func() interface{} { return new(VLessOutboundConfig) },
 		"vmess":            func() interface{} { return new(VMessOutboundConfig) },
 		"trojan":           func() interface{} { return new(TrojanClientConfig) },
