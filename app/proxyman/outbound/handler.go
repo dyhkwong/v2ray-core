@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/pipe"
 )
 
@@ -307,6 +308,31 @@ func (h *Handler) getStatCouterConnection(conn internet.Connection) internet.Con
 // GetOutbound implements proxy.GetOutbound.
 func (h *Handler) GetOutbound() proxy.Outbound {
 	return h.proxy
+}
+
+func (h *Handler) MuxEnabled() bool {
+	return h.mux != nil && h.mux.Enabled
+}
+
+func (h *Handler) TransportLayerEnabled() bool {
+	if h.streamSettings == nil {
+		return false
+	}
+	if h.streamSettings.ProtocolName != "tcp" {
+		return true
+	}
+	protocolSettings, ok := h.streamSettings.ProtocolSettings.(*tcp.Config)
+	if !ok {
+		return true
+	}
+	if protocolSettings.HeaderSettings != nil && serial.V2TypeFromURL(protocolSettings.HeaderSettings.TypeUrl) != "v2ray.core.transport.internet.headers.noop.ConnectionConfig" {
+		return true
+	}
+	return false
+}
+
+func (h *Handler) StreamSettings() *internet.MemoryStreamConfig {
+	return h.streamSettings
 }
 
 // Start implements common.Runnable.
