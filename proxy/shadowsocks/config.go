@@ -1,7 +1,6 @@
 package shadowsocks
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
@@ -26,35 +25,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/crypto/rc2"
 	"github.com/v2fly/v2ray-core/v5/common/crypto/seed"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
+	ss_common "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/common"
 )
-
-// MemoryAccount is an account type converted from Account.
-type MemoryAccount struct {
-	Cipher Cipher
-	Key    []byte
-
-	replayFilter antireplay.GeneralizedReplayFilter
-
-	ReducedIVEntropy bool
-}
-
-// Equals implements protocol.Account.Equals().
-func (a *MemoryAccount) Equals(another protocol.Account) bool {
-	if account, ok := another.(*MemoryAccount); ok {
-		return bytes.Equal(a.Key, account.Key)
-	}
-	return false
-}
-
-func (a *MemoryAccount) CheckIV(iv []byte) error {
-	if a.replayFilter == nil {
-		return nil
-	}
-	if a.replayFilter.Check(iv) {
-		return nil
-	}
-	return newError("IV is not unique")
-}
 
 func createAesGcm(key []byte) cipher.AEAD {
 	block, err := aes.NewCipher(key)
@@ -76,7 +48,7 @@ func createXChaCha20Poly1305(key []byte) cipher.AEAD {
 	return XChaChaPoly1305
 }
 
-func (a *Account) getCipher() (Cipher, error) {
+func (a *Account) getCipher() (ss_common.Cipher, error) {
 	switch a.CipherType {
 	case CipherType_AES_128_GCM:
 		return &AEADCipher{
@@ -380,10 +352,10 @@ func (a *Account) AsAccount() (protocol.Account, error) {
 	if err != nil {
 		return nil, newError("failed to get cipher").Base(err)
 	}
-	return &MemoryAccount{
+	return &ss_common.MemoryAccount{
 		Cipher: Cipher,
 		Key:    passwordToCipherKey([]byte(a.Password), Cipher.KeySize()),
-		replayFilter: func() antireplay.GeneralizedReplayFilter {
+		ReplayFilter: func() antireplay.GeneralizedReplayFilter {
 			if a.IvCheck {
 				return antireplay.NewBloomRing()
 			}
@@ -391,17 +363,6 @@ func (a *Account) AsAccount() (protocol.Account, error) {
 		}(),
 		ReducedIVEntropy: a.ExperimentReducedIvHeadEntropy,
 	}, nil
-}
-
-// Cipher is an interface for all Shadowsocks ciphers.
-type Cipher interface {
-	KeySize() int32
-	IVSize() int32
-	NewEncryptionWriter(key []byte, iv []byte, writer io.Writer) (buf.Writer, error)
-	NewDecryptionReader(key []byte, iv []byte, reader io.Reader) (buf.Reader, error)
-	IsAEAD() bool
-	EncodePacket(key []byte, b *buf.Buffer) error
-	DecodePacket(key []byte, b *buf.Buffer) error
 }
 
 type AEADCipher struct {
@@ -544,7 +505,7 @@ func (v *StreamCipher) DecodePacket(key []byte, b *buf.Buffer) error {
 
 type NoneCipher struct{}
 
-func (NoneCipher) KeySize() int32 { return 0 }
+func (NoneCipher) KeySize() int32 { return 16 }
 func (NoneCipher) IVSize() int32  { return 0 }
 func (NoneCipher) IsAEAD() bool {
 	return false
