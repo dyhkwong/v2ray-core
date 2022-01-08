@@ -160,7 +160,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		payload := packet.Payload
-		data, err := EncodeUDPPacket(request, payload.Bytes())
+		data, err := EncodeUDPPacket(request, payload.Bytes(), nil)
 		payload.Release()
 		if err != nil {
 			newError("failed to encode UDP packet").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
@@ -185,7 +185,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		for _, payload := range mpayload {
-			request, data, err := DecodeUDPPacket(s.user, payload)
+			request, data, err := DecodeUDPPacket(s.user, payload, nil)
 			if err != nil {
 				if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Source.IsValid() {
 					newError("dropping invalid UDP packet from: ", inbound.Source).Base(err).WriteToLog(session.ExportIDToError(ctx))
