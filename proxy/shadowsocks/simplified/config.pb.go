@@ -20,13 +20,17 @@ const (
 )
 
 type ServerConfig struct {
-	state          protoimpl.MessageState    `protogen:"open.v1"`
-	Method         *CipherTypeWrapper        `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Password       string                    `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	Networks       *net.NetworkList          `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
-	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState    `protogen:"open.v1"`
+	Method           *CipherTypeWrapper        `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Password         string                    `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Networks         *net.NetworkList          `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
+	PacketEncoding   packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	Plugin           string                    `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                    `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string                  `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                    `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -87,12 +91,44 @@ func (x *ServerConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 	return packetaddr.PacketAddrType(0)
 }
 
+func (x *ServerConfig) GetPlugin() string {
+	if x != nil {
+		return x.Plugin
+	}
+	return ""
+}
+
+func (x *ServerConfig) GetPluginOpts() string {
+	if x != nil {
+		return x.PluginOpts
+	}
+	return ""
+}
+
+func (x *ServerConfig) GetPluginArgs() []string {
+	if x != nil {
+		return x.PluginArgs
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 type ClientConfig struct {
 	state                          protoimpl.MessageState `protogen:"open.v1"`
 	Address                        *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Port                           uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	Method                         *CipherTypeWrapper     `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
 	Password                       string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	Plugin                         string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts                     string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs                     []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir               string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
 	ExperimentReducedIvHeadEntropy bool                   `protobuf:"varint,90001,opt,name=experiment_reduced_iv_head_entropy,json=experimentReducedIvHeadEntropy,proto3" json:"experiment_reduced_iv_head_entropy,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
@@ -156,6 +192,34 @@ func (x *ClientConfig) GetPassword() string {
 	return ""
 }
 
+func (x *ClientConfig) GetPlugin() string {
+	if x != nil {
+		return x.Plugin
+	}
+	return ""
+}
+
+func (x *ClientConfig) GetPluginOpts() string {
+	if x != nil {
+		return x.PluginOpts
+	}
+	return ""
+}
+
+func (x *ClientConfig) GetPluginArgs() []string {
+	if x != nil {
+		return x.PluginArgs
+	}
+	return nil
+}
+
+func (x *ClientConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 func (x *ClientConfig) GetExperimentReducedIvHeadEntropy() bool {
 	if x != nil {
 		return x.ExperimentReducedIvHeadEntropy
@@ -211,18 +275,30 @@ var File_proxy_shadowsocks_simplified_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_simplified_config_proto_rawDesc = "" +
 	"\n" +
-	")proxy/shadowsocks/simplified/config.proto\x12'v2ray.core.proxy.shadowsocks.simplified\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\x1a\x18common/net/network.proto\x1a\"common/net/packetaddr/config.proto\x1a\x1eproxy/shadowsocks/config.proto\"\xae\x02\n" +
+	")proxy/shadowsocks/simplified/config.proto\x12'v2ray.core.proxy.shadowsocks.simplified\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\x1a\x18common/net/network.proto\x1a\"common/net/packetaddr/config.proto\x1a\x1eproxy/shadowsocks/config.proto\"\xb6\x03\n" +
 	"\fServerConfig\x12R\n" +
 	"\x06method\x18\x01 \x01(\v2:.v2ray.core.proxy.shadowsocks.simplified.CipherTypeWrapperR\x06method\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12>\n" +
 	"\bnetworks\x18\x03 \x01(\v2\".v2ray.core.common.net.NetworkListR\bnetworks\x12R\n" +
-	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x1a\x82\xb5\x18\x16\n" +
-	"\ainbound\x12\vshadowsocks\"\xba\x02\n" +
+	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12\x16\n" +
+	"\x06plugin\x18\x05 \x01(\tR\x06plugin\x12\x1f\n" +
+	"\vplugin_opts\x18\x06 \x01(\tR\n" +
+	"pluginOpts\x12\x1f\n" +
+	"\vplugin_args\x18\a \x03(\tR\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir:\x1a\x82\xb5\x18\x16\n" +
+	"\ainbound\x12\vshadowsocks\"\xc2\x03\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12R\n" +
 	"\x06method\x18\x03 \x01(\v2:.v2ray.core.proxy.shadowsocks.simplified.CipherTypeWrapperR\x06method\x12\x1a\n" +
-	"\bpassword\x18\x04 \x01(\tR\bpassword\x12L\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x16\n" +
+	"\x06plugin\x18\x05 \x01(\tR\x06plugin\x12\x1f\n" +
+	"\vplugin_opts\x18\x06 \x01(\tR\n" +
+	"pluginOpts\x12\x1f\n" +
+	"\vplugin_args\x18\a \x03(\tR\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\x12L\n" +
 	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy:\x1b\x82\xb5\x18\x17\n" +
 	"\boutbound\x12\vshadowsocks\"S\n" +
 	"\x11CipherTypeWrapper\x12>\n" +
