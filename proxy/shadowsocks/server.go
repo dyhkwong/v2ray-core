@@ -2,6 +2,7 @@ package shadowsocks
 
 import (
 	"context"
+	"crypto/rand"
 	"io"
 	"strconv"
 	"time"
@@ -38,6 +39,9 @@ type Server struct {
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
 	receiverPort   int
+
+	streamPlugin   sip003.StreamPlugin
+	protocolPlugin sip003.ProtocolPlugin
 }
 
 func (s *Server) Initialize(self inbound.Handler) {
@@ -78,6 +82,23 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
+		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
+			s.streamPlugin = streamPlugin
+			var err error
+			if protocolPlugin, ok := plugin.(sip003.ProtocolPlugin); ok {
+				s.protocolPlugin = protocolPlugin
+				account := s.user.Account.(*MemoryAccount)
+				err = protocolPlugin.InitProtocolPlugin("", "", config.PluginArgs, account.Key, int(account.Cipher.IVSize()))
+			} else {
+				err = streamPlugin.InitStreamPlugin("", config.PluginOpts)
+			}
+			if err != nil {
+				return nil, newError("failed to start plugin").Base(err)
+			}
+			return s, nil
+		}
+
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
@@ -151,6 +172,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		request = protocol.RequestHeaderFromContext(ctx)
 		if request == nil {
 			request = &protocol.RequestHeader{}
+			request.User = s.user
 		}
 		if packet.Source.IsValid() {
 			request.Port = packet.Source.Port
@@ -158,8 +180,9 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		payload := packet.Payload
-		data, err := EncodeUDPPacket(request, payload.Bytes())
+		data, err := EncodeUDPPacket(request, payload.Bytes(), s.protocolPlugin)
 		payload.Release()
+
 		if err != nil {
 			newError("failed to encode UDP packet").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 			return
@@ -183,7 +206,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		for _, payload := range mpayload {
-			request, data, err := DecodeUDPPacket(s.user, payload)
+			request, data, err := DecodeUDPPacket(s.user, payload, s.protocolPlugin)
 			if err != nil {
 				if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Source.IsValid() {
 					newError("dropping invalid UDP packet from: ", inbound.Source).Base(err).WriteToLog(session.ExportIDToError(ctx))
@@ -243,13 +266,30 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 			return nil
 		}
 		inbound.Tag = s.tag
+	} else if s.streamPlugin != nil {
+		conn = s.streamPlugin.StreamConn(conn)
 	}
 
 	sessionPolicy := s.policyManager.ForLevel(s.user.Level)
 	conn.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake))
 
+	var protocolConn *sip003.ProtocolConn
+	var iv []byte
+	account := s.user.Account.(*MemoryAccount)
+	if account.Cipher.IVSize() > 0 {
+		iv = make([]byte, account.Cipher.IVSize())
+		common.Must2(rand.Read(iv))
+		if ivError := account.CheckIV(iv); ivError != nil {
+			return newError("failed to mark outgoing iv").Base(ivError)
+		}
+	}
+	if s.protocolPlugin != nil {
+		protocolConn = &sip003.ProtocolConn{}
+		s.protocolPlugin.ProtocolConn(protocolConn, iv)
+	}
+
 	bufferedReader := buf.BufferedReader{Reader: buf.NewReader(conn)}
-	request, bodyReader, err := ReadTCPSession(s.user, &bufferedReader)
+	request, bodyReader, err := ReadTCPSession(s.user, &bufferedReader, protocolConn)
 	if err != nil {
 		log.Record(&log.AccessMessage{
 			From:   conn.RemoteAddr(),
@@ -286,7 +326,7 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 		defer timer.SetTimeout(sessionPolicy.Timeouts.UplinkOnly)
 
 		bufferedWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
-		responseWriter, err := WriteTCPResponse(request, bufferedWriter)
+		responseWriter, err := WriteTCPResponse(request, bufferedWriter, iv, protocolConn)
 		if err != nil {
 			return newError("failed to write response").Base(err)
 		}
