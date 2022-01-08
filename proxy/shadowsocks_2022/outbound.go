@@ -3,6 +3,7 @@ package shadowsocks_2022 // nolint:stylecheck
 import (
 	"context"
 	"io"
+	"strconv"
 	"time"
 
 	shadowsocks "github.com/sagernet/sing-shadowsocks2"
@@ -15,6 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -29,6 +31,16 @@ type Outbound struct {
 	ctx    context.Context
 	server net.Destination
 	method cipher.Method
+
+	plugin         sip003.Plugin
+	pluginOverride net.Destination
+}
+
+func (o *Outbound) Close() error {
+	if o.plugin != nil {
+		return o.plugin.Close()
+	}
+	return nil
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -45,6 +57,31 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		return nil, newError("create method").Base(err)
 	}
 	o.method = method
+
+	if config.Plugin != "" {
+		var plugin sip003.Plugin
+		if pc := sip003.Plugins[config.Plugin]; pc != nil {
+			plugin = pc()
+		} else if sip003.PluginLoader == nil {
+			return nil, newError("plugin loader not registered")
+		} else {
+			plugin = sip003.PluginLoader(config.Plugin)
+		}
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		o.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		o.plugin = plugin
+	}
+
 	return o, nil
 }
 
@@ -58,7 +95,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 
 	newError("tunneling request to ", destination, " via ", o.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
-	serverDestination := o.server
+	var serverDestination net.Destination
+	if network == net.Network_TCP && o.plugin != nil {
+		serverDestination = o.pluginOverride
+	} else {
+		serverDestination = o.server
+	}
 	serverDestination.Network = network
 
 	connection, err := dialer.Dial(ctx, serverDestination)
