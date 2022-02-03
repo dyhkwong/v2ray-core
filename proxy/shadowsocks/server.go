@@ -9,7 +9,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -72,22 +71,11 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	udpDispatcherConstructor := udp.NewSplitDispatcher
-	switch s.config.PacketEncoding {
-	case packetaddr.PacketAddrType_None:
-		break
-	case packetaddr.PacketAddrType_Packet:
-		packetAddrDispatcherFactory := udp.NewPacketAddrDispatcherCreator(ctx)
-		udpDispatcherConstructor = packetAddrDispatcherFactory.NewPacketAddrDispatcher
-	}
 
 	udpServer := udpDispatcherConstructor(dispatcher, func(ctx context.Context, packet *udp_proto.Packet) {
 		request := protocol.RequestHeaderFromContext(ctx)
 		if request == nil {
-			request = &protocol.RequestHeader{
-				Port:    packet.Source.Port,
-				Address: packet.Source.Address,
-				User:    s.user,
-			}
+			return
 		}
 
 		payload := packet.Payload
