@@ -7,7 +7,7 @@ option java_package = "com.v2ray.core";
 option java_multiple_files = true;
 
 import "google/protobuf/any.proto";
-import "transport/config.proto";
+import "transport/global/config.proto";
 
 // Config is the master config of V2Ray. V2Ray takes this config as input and
 // functions accordingly.
@@ -29,7 +29,7 @@ message Config {
   // Transport settings.
   // Deprecated. Each inbound and outbound should choose their own transport
   // config. Date to remove: 2020-01-13
-  v2ray.core.transport.Config transport = 5 [deprecated = true];
+  v2ray.core.transport.global.Config transport = 5 [deprecated = true];
 
   // Configuration for extensions. The config may not work if corresponding
   // extension is not loaded into V2Ray. V2Ray will ignore such config during
