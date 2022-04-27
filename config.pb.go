@@ -8,7 +8,7 @@ package core
 
 import (
 	serial "github.com/v2fly/v2ray-core/v4/common/serial"
-	transport "github.com/v2fly/v2ray-core/v4/transport"
+	global "github.com/v2fly/v2ray-core/v4/transport/global"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -41,7 +41,7 @@ type Config struct {
 	// config. Date to remove: 2020-01-13
 	//
 	// Deprecated: Marked as deprecated in config.proto.
-	Transport *transport.Config `protobuf:"bytes,5,opt,name=transport,proto3" json:"transport,omitempty"`
+	Transport *global.Config `protobuf:"bytes,5,opt,name=transport,proto3" json:"transport,omitempty"`
 	// Configuration for extensions. The config may not work if corresponding
 	// extension is not loaded into V2Ray. V2Ray will ignore such config during
 	// initialization.
@@ -102,7 +102,7 @@ func (x *Config) GetApp() []*serial.TypedMessage {
 }
 
 // Deprecated: Marked as deprecated in config.proto.
-func (x *Config) GetTransport() *transport.Config {
+func (x *Config) GetTransport() *global.Config {
 	if x != nil {
 		return x.Transport
 	}
@@ -268,12 +268,12 @@ var File_config_proto protoreflect.FileDescriptor
 const file_config_proto_rawDesc = "" +
 	"\n" +
 	"\fconfig.proto\x12\n" +
-	"v2ray.core\x1a!common/serial/typed_message.proto\x1a\x16transport/config.proto\"\xc9\x02\n" +
+	"v2ray.core\x1a!common/serial/typed_message.proto\x1a\x1dtransport/global/config.proto\"\xd0\x02\n" +
 	"\x06Config\x12:\n" +
 	"\ainbound\x18\x01 \x03(\v2 .v2ray.core.InboundHandlerConfigR\ainbound\x12=\n" +
 	"\boutbound\x18\x02 \x03(\v2!.v2ray.core.OutboundHandlerConfigR\boutbound\x128\n" +
-	"\x03app\x18\x04 \x03(\v2&.v2ray.core.common.serial.TypedMessageR\x03app\x12>\n" +
-	"\ttransport\x18\x05 \x01(\v2\x1c.v2ray.core.transport.ConfigB\x02\x18\x01R\ttransport\x12D\n" +
+	"\x03app\x18\x04 \x03(\v2&.v2ray.core.common.serial.TypedMessageR\x03app\x12E\n" +
+	"\ttransport\x18\x05 \x01(\v2#.v2ray.core.transport.global.ConfigB\x02\x18\x01R\ttransport\x12D\n" +
 	"\textension\x18\x06 \x03(\v2&.v2ray.core.common.serial.TypedMessageR\textensionJ\x04\b\x03\x10\x04\"\xcc\x01\n" +
 	"\x14InboundHandlerConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12S\n" +
@@ -306,13 +306,13 @@ var file_config_proto_goTypes = []any{
 	(*InboundHandlerConfig)(nil),  // 1: v2ray.core.InboundHandlerConfig
 	(*OutboundHandlerConfig)(nil), // 2: v2ray.core.OutboundHandlerConfig
 	(*serial.TypedMessage)(nil),   // 3: v2ray.core.common.serial.TypedMessage
-	(*transport.Config)(nil),      // 4: v2ray.core.transport.Config
+	(*global.Config)(nil),         // 4: v2ray.core.transport.global.Config
 }
 var file_config_proto_depIdxs = []int32{
 	1, // 0: v2ray.core.Config.inbound:type_name -> v2ray.core.InboundHandlerConfig
 	2, // 1: v2ray.core.Config.outbound:type_name -> v2ray.core.OutboundHandlerConfig
 	3, // 2: v2ray.core.Config.app:type_name -> v2ray.core.common.serial.TypedMessage
-	4, // 3: v2ray.core.Config.transport:type_name -> v2ray.core.transport.Config
+	4, // 3: v2ray.core.Config.transport:type_name -> v2ray.core.transport.global.Config
 	3, // 4: v2ray.core.Config.extension:type_name -> v2ray.core.common.serial.TypedMessage
 	3, // 5: v2ray.core.InboundHandlerConfig.receiver_settings:type_name -> v2ray.core.common.serial.TypedMessage
 	3, // 6: v2ray.core.InboundHandlerConfig.proxy_settings:type_name -> v2ray.core.common.serial.TypedMessage
