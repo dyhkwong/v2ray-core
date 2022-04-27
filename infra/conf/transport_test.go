@@ -9,7 +9,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/protocol"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
 	. "github.com/v2fly/v2ray-core/v4/infra/conf"
-	"github.com/v2fly/v2ray-core/v4/transport"
+	"github.com/v2fly/v2ray-core/v4/transport/global"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/headers/http"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/headers/noop"
@@ -100,7 +100,7 @@ func TestTransportConfig(t *testing.T) {
 				}
 			}`,
 			Parser: createParser(),
-			Output: &transport.Config{
+			Output: &global.Config{
 				TransportSettings: []*internet.TransportConfig{
 					{
 						ProtocolName: "tcp",
