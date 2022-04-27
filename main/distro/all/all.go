@@ -46,6 +46,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/proxy/loopback"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/mtproto"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/shadowsocks"
+	_ "github.com/v2fly/v2ray-core/v4/proxy/shadowsocks_2022"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/socks"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/trojan"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/vless/inbound"
