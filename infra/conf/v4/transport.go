@@ -2,7 +2,7 @@ package v4
 
 import (
 	"github.com/v2fly/v2ray-core/v5/common/serial"
-	"github.com/v2fly/v2ray-core/v5/transport"
+	"github.com/v2fly/v2ray-core/v5/transport/global"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -18,8 +18,8 @@ type TransportConfig struct {
 }
 
 // Build implements Buildable.
-func (c *TransportConfig) Build() (*transport.Config, error) {
-	config := new(transport.Config)
+func (c *TransportConfig) Build() (*global.Config, error) {
+	config := new(global.Config)
 
 	if c.TCPConfig != nil {
 		ts, err := c.TCPConfig.Build()
