@@ -43,6 +43,8 @@ type Inbound struct {
 	Tag string
 	// User is the user that authencates for the inbound. May be nil if the protocol allows anounymous traffic.
 	User *protocol.MemoryUser
+	// Conn is actually internet.Connection. May be nil.
+	Conn net.Conn
 }
 
 // Outbound is the metadata of an outbound connection.

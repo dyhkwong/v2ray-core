@@ -1,12 +1,15 @@
 package v4
 
 import (
+	"strings"
+
 	"github.com/golang/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon"
 	"github.com/v2fly/v2ray-core/v5/proxy/shadowsocks"
+	shadowsocks_2022 "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks_2022"
 )
 
 type ShadowsocksServerConfig struct {
@@ -21,6 +24,16 @@ type ShadowsocksServerConfig struct {
 }
 
 func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
+	if strings.HasPrefix(v.Cipher, "2022-blake3-") {
+		config := new(shadowsocks_2022.ServerConfig)
+		config.Method = v.Cipher
+		config.Key = v.Password
+		config.Level = int32(v.Level)
+		config.Email = v.Email
+		config.Network = v.NetworkList.Build()
+		return config, nil
+	}
+
 	config := new(shadowsocks.ServerConfig)
 	config.UdpEnabled = v.UDP
 	config.Network = v.NetworkList.Build()
@@ -65,14 +78,40 @@ type ShadowsocksClientConfig struct {
 }
 
 func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
-	config := new(shadowsocks.ClientConfig)
-
 	if len(v.Servers) == 0 {
 		return nil, newError("0 Shadowsocks server configured.")
 	}
 
+	if len(v.Servers) == 1 {
+		server := v.Servers[0]
+
+		if server.Address == nil {
+			return nil, newError("Shadowsocks server address is not set.")
+		}
+		if server.Port == 0 {
+			return nil, newError("Invalid Shadowsocks port.")
+		}
+		if server.Password == "" {
+			return nil, newError("Shadowsocks password is not specified.")
+		}
+
+		if strings.HasPrefix(server.Cipher, "2022-blake3-") {
+			config := new(shadowsocks_2022.ClientConfig)
+			config.Address = server.Address.Build()
+			config.Port = uint32(server.Port)
+			config.Method = server.Cipher
+			config.Key = server.Password
+			return config, nil
+		}
+	}
+
+	config := new(shadowsocks.ClientConfig)
+
 	serverSpecs := make([]*protocol.ServerEndpoint, len(v.Servers))
 	for idx, server := range v.Servers {
+		if strings.HasPrefix(server.Cipher, "2022-blake3-") {
+			return nil, newError("Shadowsocks 2022 accept no multi servers")
+		}
 		if server.Address == nil {
 			return nil, newError("Shadowsocks server address is not set.")
 		}

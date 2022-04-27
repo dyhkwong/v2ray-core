@@ -19,6 +19,8 @@ require (
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pires/go-proxyproto v0.6.2
+	github.com/sagernet/sing v0.0.0-20220801112236-1bb95f9661fc
+	github.com/sagernet/sing-shadowsocks v0.0.0-20220801112336-a91eacdd01e1
 	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb
 	github.com/stretchr/testify v1.8.0
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
@@ -49,6 +51,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
@@ -71,4 +74,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+	lukechampine.com/blake3 v1.1.7 // indirect
 )

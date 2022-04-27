@@ -23,28 +23,30 @@ import (
 
 var (
 	inboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
-		"dokodemo-door": func() interface{} { return new(DokodemoConfig) },
-		"http":          func() interface{} { return new(HTTPServerConfig) },
-		"shadowsocks":   func() interface{} { return new(ShadowsocksServerConfig) },
-		"socks":         func() interface{} { return new(SocksServerConfig) },
-		"vless":         func() interface{} { return new(VLessInboundConfig) },
-		"vmess":         func() interface{} { return new(VMessInboundConfig) },
-		"trojan":        func() interface{} { return new(TrojanServerConfig) },
-		"vliteu":        func() interface{} { return new(VLiteUDPInboundConfig) },
+		"dokodemo-door":    func() interface{} { return new(DokodemoConfig) },
+		"http":             func() interface{} { return new(HTTPServerConfig) },
+		"shadowsocks":      func() interface{} { return new(ShadowsocksServerConfig) },
+		"socks":            func() interface{} { return new(SocksServerConfig) },
+		"vless":            func() interface{} { return new(VLessInboundConfig) },
+		"vmess":            func() interface{} { return new(VMessInboundConfig) },
+		"trojan":           func() interface{} { return new(TrojanServerConfig) },
+		"vliteu":           func() interface{} { return new(VLiteUDPInboundConfig) },
+		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ServerConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
-		"blackhole":   func() interface{} { return new(BlackholeConfig) },
-		"freedom":     func() interface{} { return new(FreedomConfig) },
-		"http":        func() interface{} { return new(HTTPClientConfig) },
-		"shadowsocks": func() interface{} { return new(ShadowsocksClientConfig) },
-		"socks":       func() interface{} { return new(SocksClientConfig) },
-		"vless":       func() interface{} { return new(VLessOutboundConfig) },
-		"vmess":       func() interface{} { return new(VMessOutboundConfig) },
-		"trojan":      func() interface{} { return new(TrojanClientConfig) },
-		"dns":         func() interface{} { return new(DNSOutboundConfig) },
-		"loopback":    func() interface{} { return new(LoopbackConfig) },
-		"vliteu":      func() interface{} { return new(VLiteUDPOutboundConfig) },
+		"blackhole":        func() interface{} { return new(BlackholeConfig) },
+		"freedom":          func() interface{} { return new(FreedomConfig) },
+		"http":             func() interface{} { return new(HTTPClientConfig) },
+		"shadowsocks":      func() interface{} { return new(ShadowsocksClientConfig) },
+		"socks":            func() interface{} { return new(SocksClientConfig) },
+		"vless":            func() interface{} { return new(VLessOutboundConfig) },
+		"vmess":            func() interface{} { return new(VMessOutboundConfig) },
+		"trojan":           func() interface{} { return new(TrojanClientConfig) },
+		"dns":              func() interface{} { return new(DNSOutboundConfig) },
+		"loopback":         func() interface{} { return new(LoopbackConfig) },
+		"vliteu":           func() interface{} { return new(VLiteUDPOutboundConfig) },
+		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ClientConfig) },
 	}, "protocol", "settings")
 )
 

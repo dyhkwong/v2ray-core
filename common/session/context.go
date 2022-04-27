@@ -2,6 +2,8 @@ package session
 
 import (
 	"context"
+
+	"github.com/v2fly/v2ray-core/v5/features/routing"
 )
 
 type sessionKey int
@@ -15,6 +17,7 @@ const (
 	sockoptSessionKey
 	trackedConnectionErrorKey
 	handlerSessionKey // nolint: varcheck
+	dispatcherKey
 )
 
 // ContextWithID returns a new context with the given ID.
@@ -132,4 +135,15 @@ func SubmitOutboundErrorToOriginator(ctx context.Context, err error) {
 
 func TrackedConnectionError(ctx context.Context, tracker TrackedRequestErrorFeedback) context.Context {
 	return context.WithValue(ctx, trackedConnectionErrorKey, tracker)
+}
+
+func ContextWithDispatcher(ctx context.Context, dispatcher routing.Dispatcher) context.Context {
+	return context.WithValue(ctx, dispatcherKey, dispatcher)
+}
+
+func DispatcherFromContext(ctx context.Context) routing.Dispatcher {
+	if dispatcher, ok := ctx.Value(dispatcherKey).(routing.Dispatcher); ok {
+		return dispatcher
+	}
+	return nil
 }

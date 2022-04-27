@@ -82,6 +82,7 @@ func (w *tcpWorker) callback(conn internet.Connection) {
 		Source:  net.DestinationFromAddr(conn.RemoteAddr()),
 		Gateway: net.TCPDestination(w.address, w.port),
 		Tag:     w.tag,
+		Conn:    conn,
 	})
 	content := new(session.Content)
 	if w.sniffingConfig != nil {
@@ -309,6 +310,7 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 				Source:  source,
 				Gateway: net.UDPDestination(w.address, w.port),
 				Tag:     w.tag,
+				Conn:    conn,
 			})
 			content := new(session.Content)
 			if w.sniffingConfig != nil {
@@ -448,6 +450,7 @@ func (w *dsWorker) callback(conn internet.Connection) {
 		Source:  net.DestinationFromAddr(conn.RemoteAddr()),
 		Gateway: net.UnixDestination(w.address),
 		Tag:     w.tag,
+		Conn:    conn,
 	})
 	content := new(session.Content)
 	if w.sniffingConfig != nil {
