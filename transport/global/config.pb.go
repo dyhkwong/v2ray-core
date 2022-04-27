@@ -1,4 +1,4 @@
-package transport
+package global
 
 import (
 	internet "github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -19,7 +19,7 @@ const (
 // Global transport settings. This affects all type of connections that go
 // through V2Ray. Deprecated. Use each settings in StreamConfig.
 //
-// Deprecated: Marked as deprecated in transport/config.proto.
+// Deprecated: Marked as deprecated in transport/global/config.proto.
 type Config struct {
 	state             protoimpl.MessageState      `protogen:"open.v1"`
 	TransportSettings []*internet.TransportConfig `protobuf:"bytes,1,rep,name=transport_settings,json=transportSettings,proto3" json:"transport_settings,omitempty"`
@@ -29,7 +29,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_transport_config_proto_msgTypes[0]
+	mi := &file_transport_global_config_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_transport_config_proto_msgTypes[0]
+	mi := &file_transport_global_config_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_transport_config_proto_rawDescGZIP(), []int{0}
+	return file_transport_global_config_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Config) GetTransportSettings() []*internet.TransportConfig {
@@ -64,34 +64,34 @@ func (x *Config) GetTransportSettings() []*internet.TransportConfig {
 	return nil
 }
 
-var File_transport_config_proto protoreflect.FileDescriptor
+var File_transport_global_config_proto protoreflect.FileDescriptor
 
-const file_transport_config_proto_rawDesc = "" +
+const file_transport_global_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16transport/config.proto\x12\x14v2ray.core.transport\x1a\x1ftransport/internet/config.proto\"k\n" +
+	"\x1dtransport/global/config.proto\x12\x1bv2ray.core.transport.global\x1a\x1ftransport/internet/config.proto\"k\n" +
 	"\x06Config\x12]\n" +
-	"\x12transport_settings\x18\x01 \x03(\v2..v2ray.core.transport.internet.TransportConfigR\x11transportSettings:\x02\x18\x01B]\n" +
-	"\x18com.v2ray.core.transportP\x01Z(github.com/v2fly/v2ray-core/v5/transport\xaa\x02\x14V2Ray.Core.Transportb\x06proto3"
+	"\x12transport_settings\x18\x01 \x03(\v2..v2ray.core.transport.internet.TransportConfigR\x11transportSettings:\x02\x18\x01Br\n" +
+	"\x1fcom.v2ray.core.transport.globalP\x01Z/github.com/v2fly/v2ray-core/v5/transport/global\xaa\x02\x1bV2Ray.Core.Transport.Globalb\x06proto3"
 
 var (
-	file_transport_config_proto_rawDescOnce sync.Once
-	file_transport_config_proto_rawDescData []byte
+	file_transport_global_config_proto_rawDescOnce sync.Once
+	file_transport_global_config_proto_rawDescData []byte
 )
 
-func file_transport_config_proto_rawDescGZIP() []byte {
-	file_transport_config_proto_rawDescOnce.Do(func() {
-		file_transport_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_transport_config_proto_rawDesc), len(file_transport_config_proto_rawDesc)))
+func file_transport_global_config_proto_rawDescGZIP() []byte {
+	file_transport_global_config_proto_rawDescOnce.Do(func() {
+		file_transport_global_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_transport_global_config_proto_rawDesc), len(file_transport_global_config_proto_rawDesc)))
 	})
-	return file_transport_config_proto_rawDescData
+	return file_transport_global_config_proto_rawDescData
 }
 
-var file_transport_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_config_proto_goTypes = []any{
-	(*Config)(nil),                   // 0: v2ray.core.transport.Config
+var file_transport_global_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_transport_global_config_proto_goTypes = []any{
+	(*Config)(nil),                   // 0: v2ray.core.transport.global.Config
 	(*internet.TransportConfig)(nil), // 1: v2ray.core.transport.internet.TransportConfig
 }
-var file_transport_config_proto_depIdxs = []int32{
-	1, // 0: v2ray.core.transport.Config.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
+var file_transport_global_config_proto_depIdxs = []int32{
+	1, // 0: v2ray.core.transport.global.Config.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -99,26 +99,26 @@ var file_transport_config_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_transport_config_proto_init() }
-func file_transport_config_proto_init() {
-	if File_transport_config_proto != nil {
+func init() { file_transport_global_config_proto_init() }
+func file_transport_global_config_proto_init() {
+	if File_transport_global_config_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_config_proto_rawDesc), len(file_transport_config_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_global_config_proto_rawDesc), len(file_transport_global_config_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_transport_config_proto_goTypes,
-		DependencyIndexes: file_transport_config_proto_depIdxs,
-		MessageInfos:      file_transport_config_proto_msgTypes,
+		GoTypes:           file_transport_global_config_proto_goTypes,
+		DependencyIndexes: file_transport_global_config_proto_depIdxs,
+		MessageInfos:      file_transport_global_config_proto_msgTypes,
 	}.Build()
-	File_transport_config_proto = out.File
-	file_transport_config_proto_goTypes = nil
-	file_transport_config_proto_depIdxs = nil
+	File_transport_global_config_proto = out.File
+	file_transport_global_config_proto_goTypes = nil
+	file_transport_global_config_proto_depIdxs = nil
 }
