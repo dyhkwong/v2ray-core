@@ -28,6 +28,9 @@ func RetrieveOriginalDest(oob []byte) net.Destination {
 // ReadUDPMsg stores laddr, caddr for later use
 func ReadUDPMsg(conn *net.UDPConn, payload []byte, oob []byte) (int, int, int, *net.UDPAddr, error) {
 	nBytes, addr, err := conn.ReadFromUDP(payload)
+	if err != nil {
+		return nBytes, 0, 0, addr, err
+	}
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode(conn.LocalAddr().(*net.UDPAddr))
