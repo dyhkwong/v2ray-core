@@ -101,6 +101,13 @@ message StrategyLeastPingConfig {
   bool sticky_choice = 8;
 }
 
+message StrategyFallbackConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "balancer";
+  option (v2ray.core.common.protoext.message_opt).short_name = "fallback";
+
+  string observer_tag = 7;
+}
+
 message StrategyLeastLoadConfig {
   option (v2ray.core.common.protoext.message_opt).type = "balancer";
   option (v2ray.core.common.protoext.message_opt).short_name = "leastload";
