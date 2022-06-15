@@ -148,6 +148,10 @@ message StrategyLeastPingConfig {
   string observer_tag = 7;
 }
 
+message StrategyFallbackConfig {
+  string observer_tag = 7;
+}
+
 message StrategyLeastLoadConfig {
   // weight settings
   repeated StrategyWeight costs = 2;
