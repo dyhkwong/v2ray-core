@@ -127,7 +127,7 @@ func (x Config_DomainStrategy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Config_DomainStrategy.Descriptor instead.
 func (Config_DomainStrategy) EnumDescriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{13, 0}
+	return file_app_router_config_proto_rawDescGZIP(), []int{14, 0}
 }
 
 // Domain for routing decision.
@@ -981,6 +981,50 @@ func (x *StrategyLeastPingConfig) GetStickyChoice() bool {
 	return false
 }
 
+type StrategyFallbackConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObserverTag   string                 `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StrategyFallbackConfig) Reset() {
+	*x = StrategyFallbackConfig{}
+	mi := &file_app_router_config_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StrategyFallbackConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StrategyFallbackConfig) ProtoMessage() {}
+
+func (x *StrategyFallbackConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_app_router_config_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StrategyFallbackConfig.ProtoReflect.Descriptor instead.
+func (*StrategyFallbackConfig) Descriptor() ([]byte, []int) {
+	return file_app_router_config_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *StrategyFallbackConfig) GetObserverTag() string {
+	if x != nil {
+		return x.ObserverTag
+	}
+	return ""
+}
+
 type StrategyLeastLoadConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// weight settings
@@ -1000,7 +1044,7 @@ type StrategyLeastLoadConfig struct {
 
 func (x *StrategyLeastLoadConfig) Reset() {
 	*x = StrategyLeastLoadConfig{}
-	mi := &file_app_router_config_proto_msgTypes[12]
+	mi := &file_app_router_config_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1056,7 @@ func (x *StrategyLeastLoadConfig) String() string {
 func (*StrategyLeastLoadConfig) ProtoMessage() {}
 
 func (x *StrategyLeastLoadConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[12]
+	mi := &file_app_router_config_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1069,7 @@ func (x *StrategyLeastLoadConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyLeastLoadConfig.ProtoReflect.Descriptor instead.
 func (*StrategyLeastLoadConfig) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{12}
+	return file_app_router_config_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *StrategyLeastLoadConfig) GetCosts() []*StrategyWeight {
@@ -1081,7 +1125,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_app_router_config_proto_msgTypes[13]
+	mi := &file_app_router_config_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1093,7 +1137,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[13]
+	mi := &file_app_router_config_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1106,7 +1150,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{13}
+	return file_app_router_config_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Config) GetDomainStrategy() Config_DomainStrategy {
@@ -1144,7 +1188,7 @@ type Domain_Attribute struct {
 
 func (x *Domain_Attribute) Reset() {
 	*x = Domain_Attribute{}
-	mi := &file_app_router_config_proto_msgTypes[14]
+	mi := &file_app_router_config_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1156,7 +1200,7 @@ func (x *Domain_Attribute) String() string {
 func (*Domain_Attribute) ProtoMessage() {}
 
 func (x *Domain_Attribute) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[14]
+	mi := &file_app_router_config_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1302,7 +1346,9 @@ const file_app_router_config_proto_rawDesc = "" +
 	"alive_only\x18\b \x01(\bR\taliveOnly\"a\n" +
 	"\x17StrategyLeastPingConfig\x12!\n" +
 	"\fobserver_tag\x18\a \x01(\tR\vobserverTag\x12#\n" +
-	"\rsticky_choice\x18\b \x01(\bR\fstickyChoice\"\xe9\x01\n" +
+	"\rsticky_choice\x18\b \x01(\bR\fstickyChoice\";\n" +
+	"\x16StrategyFallbackConfig\x12!\n" +
+	"\fobserver_tag\x18\a \x01(\tR\vobserverTag\"\xe9\x01\n" +
 	"\x17StrategyLeastLoadConfig\x12;\n" +
 	"\x05costs\x18\x02 \x03(\v2%.v2ray.core.app.router.StrategyWeightR\x05costs\x12\x1c\n" +
 	"\tbaselines\x18\x03 \x03(\x03R\tbaselines\x12\x1a\n" +
@@ -1335,7 +1381,7 @@ func file_app_router_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_router_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_app_router_config_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_app_router_config_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_app_router_config_proto_goTypes = []any{
 	(Domain_Type)(0),                // 0: v2ray.core.app.router.Domain.Type
 	(Config_DomainStrategy)(0),      // 1: v2ray.core.app.router.Config.DomainStrategy
@@ -1351,18 +1397,19 @@ var file_app_router_config_proto_goTypes = []any{
 	(*StrategyWeight)(nil),          // 11: v2ray.core.app.router.StrategyWeight
 	(*StrategyRandomConfig)(nil),    // 12: v2ray.core.app.router.StrategyRandomConfig
 	(*StrategyLeastPingConfig)(nil), // 13: v2ray.core.app.router.StrategyLeastPingConfig
-	(*StrategyLeastLoadConfig)(nil), // 14: v2ray.core.app.router.StrategyLeastLoadConfig
-	(*Config)(nil),                  // 15: v2ray.core.app.router.Config
-	(*Domain_Attribute)(nil),        // 16: v2ray.core.app.router.Domain.Attribute
-	(*net.PortRange)(nil),           // 17: v2ray.core.common.net.PortRange
-	(*net.PortList)(nil),            // 18: v2ray.core.common.net.PortList
-	(*net.NetworkList)(nil),         // 19: v2ray.core.common.net.NetworkList
-	(net.Network)(0),                // 20: v2ray.core.common.net.Network
-	(*serial.TypedMessage)(nil),     // 21: v2ray.core.common.serial.TypedMessage
+	(*StrategyFallbackConfig)(nil),  // 14: v2ray.core.app.router.StrategyFallbackConfig
+	(*StrategyLeastLoadConfig)(nil), // 15: v2ray.core.app.router.StrategyLeastLoadConfig
+	(*Config)(nil),                  // 16: v2ray.core.app.router.Config
+	(*Domain_Attribute)(nil),        // 17: v2ray.core.app.router.Domain.Attribute
+	(*net.PortRange)(nil),           // 18: v2ray.core.common.net.PortRange
+	(*net.PortList)(nil),            // 19: v2ray.core.common.net.PortList
+	(*net.NetworkList)(nil),         // 20: v2ray.core.common.net.NetworkList
+	(net.Network)(0),                // 21: v2ray.core.common.net.Network
+	(*serial.TypedMessage)(nil),     // 22: v2ray.core.common.serial.TypedMessage
 }
 var file_app_router_config_proto_depIdxs = []int32{
 	0,  // 0: v2ray.core.app.router.Domain.type:type_name -> v2ray.core.app.router.Domain.Type
-	16, // 1: v2ray.core.app.router.Domain.attribute:type_name -> v2ray.core.app.router.Domain.Attribute
+	17, // 1: v2ray.core.app.router.Domain.attribute:type_name -> v2ray.core.app.router.Domain.Attribute
 	3,  // 2: v2ray.core.app.router.GeoIP.cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 3: v2ray.core.app.router.GeoIPList.entry:type_name -> v2ray.core.app.router.GeoIP
 	2,  // 4: v2ray.core.app.router.GeoSite.domain:type_name -> v2ray.core.app.router.Domain
@@ -1370,15 +1417,15 @@ var file_app_router_config_proto_depIdxs = []int32{
 	2,  // 6: v2ray.core.app.router.RoutingRule.domain:type_name -> v2ray.core.app.router.Domain
 	3,  // 7: v2ray.core.app.router.RoutingRule.cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 8: v2ray.core.app.router.RoutingRule.geoip:type_name -> v2ray.core.app.router.GeoIP
-	17, // 9: v2ray.core.app.router.RoutingRule.port_range:type_name -> v2ray.core.common.net.PortRange
-	18, // 10: v2ray.core.app.router.RoutingRule.port_list:type_name -> v2ray.core.common.net.PortList
-	19, // 11: v2ray.core.app.router.RoutingRule.network_list:type_name -> v2ray.core.common.net.NetworkList
-	20, // 12: v2ray.core.app.router.RoutingRule.networks:type_name -> v2ray.core.common.net.Network
+	18, // 9: v2ray.core.app.router.RoutingRule.port_range:type_name -> v2ray.core.common.net.PortRange
+	19, // 10: v2ray.core.app.router.RoutingRule.port_list:type_name -> v2ray.core.common.net.PortList
+	20, // 11: v2ray.core.app.router.RoutingRule.network_list:type_name -> v2ray.core.common.net.NetworkList
+	21, // 12: v2ray.core.app.router.RoutingRule.networks:type_name -> v2ray.core.common.net.Network
 	3,  // 13: v2ray.core.app.router.RoutingRule.source_cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 14: v2ray.core.app.router.RoutingRule.source_geoip:type_name -> v2ray.core.app.router.GeoIP
-	18, // 15: v2ray.core.app.router.RoutingRule.source_port_list:type_name -> v2ray.core.common.net.PortList
+	19, // 15: v2ray.core.app.router.RoutingRule.source_port_list:type_name -> v2ray.core.common.net.PortList
 	8,  // 16: v2ray.core.app.router.RoutingRule.set_attribute:type_name -> v2ray.core.app.router.SetAttribute
-	21, // 17: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> v2ray.core.common.serial.TypedMessage
+	22, // 17: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> v2ray.core.common.serial.TypedMessage
 	11, // 18: v2ray.core.app.router.StrategyLeastLoadConfig.costs:type_name -> v2ray.core.app.router.StrategyWeight
 	1,  // 19: v2ray.core.app.router.Config.domain_strategy:type_name -> v2ray.core.app.router.Config.DomainStrategy
 	9,  // 20: v2ray.core.app.router.Config.rule:type_name -> v2ray.core.app.router.RoutingRule
@@ -1399,7 +1446,7 @@ func file_app_router_config_proto_init() {
 		(*RoutingRule_Tag)(nil),
 		(*RoutingRule_BalancingTag)(nil),
 	}
-	file_app_router_config_proto_msgTypes[14].OneofWrappers = []any{
+	file_app_router_config_proto_msgTypes[15].OneofWrappers = []any{
 		(*Domain_Attribute_BoolValue)(nil),
 		(*Domain_Attribute_IntValue)(nil),
 	}
@@ -1409,7 +1456,7 @@ func file_app_router_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_router_config_proto_rawDesc), len(file_app_router_config_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
