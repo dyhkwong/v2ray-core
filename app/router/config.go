@@ -125,6 +125,20 @@ func (br *BalancingRule) Build(ohm outbound.Manager, dispatcher routing.Dispatch
 			strategy:  &LeastPingStrategy{config: s},
 			ohm:       ohm, fallbackTag: br.FallbackTag,
 		}, nil
+	case "fallback":
+		i, err := br.StrategySettings.GetInstance()
+		if err != nil {
+			return nil, err
+		}
+		s, ok := i.(*StrategyFallbackConfig)
+		if !ok {
+			return nil, newError("not a StrategyFallbackConfig").AtError()
+		}
+		return &Balancer{
+			selectors: br.OutboundSelector,
+			strategy:  &FallbackStrategy{config: s},
+			ohm:       ohm,
+		}, nil
 	case "leastload":
 		i, err := br.StrategySettings.GetInstance()
 		if err != nil {
