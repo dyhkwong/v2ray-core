@@ -9,6 +9,7 @@ package dns
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -265,11 +266,16 @@ func (s *DNS) sortClients(domain string) []*Client {
 	clientUsed := make([]bool, len(s.clients))
 	clientNames := make([]string, 0, len(s.clients))
 	domainRules := []string{}
+	matcherInfos := make([]DomainMatcherInfo, 0, len(s.matcherInfos))
 
 	// Priority domain matching
 	hasMatch := false
 	for _, match := range s.domainMatcher.Match(domain) {
 		info := s.matcherInfos[match]
+		matcherInfos = append(matcherInfos, info)
+	}
+	sort.Slice(matcherInfos, func(i, j int) bool { return matcherInfos[i].clientIdx < matcherInfos[j].clientIdx })
+	for _, info := range matcherInfos {
 		client := s.clients[info.clientIdx]
 		domainRule := client.domains[info.domainRuleIdx]
 		domainRules = append(domainRules, fmt.Sprintf("%s(DNS idx:%d)", domainRule, info.clientIdx))
