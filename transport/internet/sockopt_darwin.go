@@ -1,7 +1,13 @@
 package internet
 
 import (
+	"os"
+	"syscall"
+	"unsafe"
+
 	"golang.org/x/sys/unix"
+
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 const (
@@ -10,6 +16,71 @@ const (
 	// TCP_FASTOPEN_CLIENT is the value to enable TCP fast open on darwin for client connections.
 	TCP_FASTOPEN_CLIENT = 0x02 // nolint: revive,stylecheck
 )
+
+const (
+	PfOut       = 2
+	IOCOut      = 0x40000000
+	IOCIn       = 0x80000000
+	IOCInOut    = IOCIn | IOCOut
+	IOCPARMMask = 0x1FFF
+	LEN         = 4*16 + 4*4 + 4*1
+	// #define	_IOC(inout,group,num,len) (inout | ((len & IOCPARMMask) << 16) | ((group) << 8) | (num))
+	// #define	_IOWR(g,n,t)	_IOC(IOCInOut,	(g), (n), sizeof(t))
+	// #define DIOCNATLOOK		_IOWR('D', 23, struct pfioc_natlook)
+	DIOCNATLOOK = IOCInOut | ((LEN & IOCPARMMask) << 16) | ('D' << 8) | 23
+)
+
+// OriginalDst uses ioctl to read original destination from /dev/pf
+func OriginalDst(la, ra net.Addr) (net.IP, int, error) {
+	f, err := os.Open("/dev/pf")
+	if err != nil {
+		return net.IP{}, -1, newError("failed to open device /dev/pf").Base(err)
+	}
+	defer f.Close()
+	fd := f.Fd()
+	nl := struct { // struct pfioc_natlook
+		saddr, daddr, rsaddr, rdaddr       [16]byte
+		sxport, dxport, rsxport, rdxport   [4]byte
+		af, proto, protoVariant, direction uint8
+	}{
+		af:        syscall.AF_INET,
+		proto:     syscall.IPPROTO_TCP,
+		direction: PfOut,
+	}
+	raIP, laIP := ra.(*net.TCPAddr).IP, la.(*net.TCPAddr).IP
+	raPort, laPort := ra.(*net.TCPAddr).Port, la.(*net.TCPAddr).Port
+	if raIP.To4() != nil {
+		if laIP.IsUnspecified() {
+			laIP = net.ParseIP("127.0.0.1")
+		}
+		copy(nl.saddr[:net.IPv4len], raIP.To4())
+		copy(nl.daddr[:net.IPv4len], laIP.To4())
+	}
+	if raIP.To16() != nil && raIP.To4() == nil {
+		if laIP.IsUnspecified() {
+			laIP = net.ParseIP("::1")
+		}
+		copy(nl.saddr[:], raIP)
+		copy(nl.daddr[:], laIP)
+	}
+	nl.sxport[0], nl.sxport[1] = byte(raPort>>8), byte(raPort)
+	nl.dxport[0], nl.dxport[1] = byte(laPort>>8), byte(laPort)
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, DIOCNATLOOK, uintptr(unsafe.Pointer(&nl))); errno != 0 {
+		return net.IP{}, -1, os.NewSyscallError("ioctl", errno)
+	}
+
+	odPort := nl.rdxport
+	var odIP net.IP
+	switch nl.af {
+	case syscall.AF_INET:
+		odIP = make(net.IP, net.IPv4len)
+		copy(odIP, nl.rdaddr[:net.IPv4len])
+	case syscall.AF_INET6:
+		odIP = make(net.IP, net.IPv6len)
+		copy(odIP, nl.rdaddr[:])
+	}
+	return odIP, int(net.PortFromBytes(odPort[:2])), nil
+}
 
 func applyOutboundSocketOptions(network string, address string, fd uintptr, config *SocketConfig) error {
 	if isTCPSocket(network) {
