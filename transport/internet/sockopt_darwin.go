@@ -1,6 +1,7 @@
 package internet
 
 import (
+	gonet "net"
 	"os"
 	"syscall"
 	"unsafe"
@@ -113,6 +114,19 @@ func applyOutboundSocketOptions(network string, address string, fd uintptr, conf
 		}
 	}
 
+	if config.BindToDevice != "" {
+		iface, err := gonet.InterfaceByName(config.BindToDevice)
+		if err != nil {
+			return newError("failed to get interface ", config.BindToDevice).Base(err)
+		}
+		if err := unix.SetsockoptInt(int(fd), unix.IPPROTO_IP, unix.IP_BOUND_IF, iface.Index); err != nil {
+			return newError("failed to set IP_BOUND_IF", err)
+		}
+		if err := unix.SetsockoptInt(int(fd), unix.IPPROTO_IPV6, unix.IPV6_BOUND_IF, iface.Index); err != nil {
+			return newError("failed to set IPV6_BOUND_IF", err)
+		}
+	}
+
 	if config.TxBufSize != 0 {
 		if err := unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_SNDBUF, int(config.TxBufSize)); err != nil {
 			return newError("failed to set SO_SNDBUF").Base(err)
@@ -154,6 +168,19 @@ func applyInboundSocketOptions(network string, fd uintptr, config *SocketConfig)
 			if err := unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, unix.SO_KEEPALIVE, 1); err != nil {
 				return newError("failed to set SO_KEEPALIVE").Base(err)
 			}
+		}
+	}
+
+	if config.BindToDevice != "" {
+		iface, err := gonet.InterfaceByName(config.BindToDevice)
+		if err != nil {
+			return newError("failed to get interface ", config.BindToDevice).Base(err)
+		}
+		if err := unix.SetsockoptInt(int(fd), unix.IPPROTO_IP, unix.IP_BOUND_IF, iface.Index); err != nil {
+			return newError("failed to set IP_BOUND_IF", err)
+		}
+		if err := unix.SetsockoptInt(int(fd), unix.IPPROTO_IPV6, unix.IPV6_BOUND_IF, iface.Index); err != nil {
+			return newError("failed to set IPV6_BOUND_IF", err)
 		}
 	}
 
