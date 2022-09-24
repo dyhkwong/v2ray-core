@@ -38,7 +38,6 @@ func (l *Loopback) Process(ctx context.Context, link *transport.Link, _ internet
 		dialDest := destination
 
 		content := new(session.Content)
-		content.SkipDNSResolve = true
 
 		ctx = session.ContextWithContent(ctx, content)
 
