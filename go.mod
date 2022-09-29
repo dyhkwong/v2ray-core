@@ -10,7 +10,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
-	github.com/gorilla/websocket v1.5.0
+	github.com/llycoris/websocket v0.0.0-20220914133224-cd92300c33fb
 	github.com/jhump/protoreflect v1.13.0
 	github.com/lucas-clemente/quic-go v0.29.1
 	github.com/marten-seemann/qtls-go1-18 v0.1.2
