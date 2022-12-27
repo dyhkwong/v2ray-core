@@ -15,11 +15,15 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet/domainsocket"
 	httpheader "github.com/v2fly/v2ray-core/v4/transport/internet/headers/http"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/http"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/hysteria2"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/kcp"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/quic"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/request/stereotype/meek"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/request/stereotype/mekya"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/tls/utls"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/websocket"
 )
 
@@ -232,6 +236,36 @@ func (c *HTTPConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type HTTPUpgradeHeaderConfig struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type HTTPUpgradeConfig struct {
+	Host                string                    `json:"host"`
+	Path                string                    `json:"path"`
+	MaxEarlyData        int32                     `json:"maxEarlyData"`
+	EarlyDataHeaderName string                    `json:"earlyDataHeaderName"`
+	Header              []HTTPUpgradeHeaderConfig `json:"header"`
+}
+
+// Build implements Buildable.
+func (c *HTTPUpgradeConfig) Build() (proto.Message, error) {
+	config := &httpupgrade.Config{
+		Host:                c.Host,
+		Path:                c.Path,
+		MaxEarlyData:        c.MaxEarlyData,
+		EarlyDataHeaderName: c.EarlyDataHeaderName,
+	}
+	for _, header := range c.Header {
+		config.Header = append(config.Header, &httpupgrade.Header{
+			Key:   header.Key,
+			Value: header.Value,
+		})
+	}
+	return config, nil
+}
+
 type QUICConfig struct {
 	Header   json.RawMessage `json:"header"`
 	Security string          `json:"security"`
@@ -288,6 +322,51 @@ func (c *DomainSocketConfig) Build() (proto.Message, error) {
 	}, nil
 }
 
+type MeekConfig struct {
+	URL string `json:"url"`
+}
+
+// Build implements Buildable.
+func (c *MeekConfig) Build() (proto.Message, error) {
+	return &meek.Config{Url: c.URL}, nil
+}
+
+type MekyaConfig struct {
+	KCP                            *KCPConfig `json:"kcp"`
+	MaxWriteDelay                  int32      `json:"maxWriteDelay"`
+	MaxRequestSize                 int32      `json:"maxRequestSize"`
+	PollingIntervalInitial         int32      `json:"pollingIntervalInitial"`
+	MaxWriteSize                   int32      `json:"maxWriteSize"`
+	MaxWriteDurationMs             int32      `json:"maxWriteDurationMs"`
+	MaxSimultaneousWriteConnection int32      `json:"maxSimultaneousWriteConnection"`
+	PacketWritingBuffer            int32      `json:"packetWritingBuffer"`
+	URL                            string     `json:"url"`
+	H2PoolSize                     int32      `json:"h2PoolSize"`
+}
+
+// Build implements Buildable.
+func (c *MekyaConfig) Build() (proto.Message, error) {
+	config := &mekya.Config{
+		MaxWriteDelay:                  c.MaxWriteDelay,
+		MaxRequestSize:                 c.MaxRequestSize,
+		PollingIntervalInitial:         c.PollingIntervalInitial,
+		MaxWriteSize:                   c.MaxWriteSize,
+		MaxWriteDurationMs:             c.MaxWriteDurationMs,
+		MaxSimultaneousWriteConnection: c.MaxSimultaneousWriteConnection,
+		PacketWritingBuffer:            c.PacketWritingBuffer,
+		Url:                            c.URL,
+		H2PoolSize:                     c.H2PoolSize,
+	}
+	if c.KCP != nil {
+		kcpConfig, err := c.KCP.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Kcp = kcpConfig.(*kcp.Config)
+	}
+	return config, nil
+}
+
 func readFileOrString(f string, s []string) ([]byte, error) {
 	if len(f) > 0 {
 		return filesystem.ReadFile(f)
@@ -341,16 +420,22 @@ func (c *TLSCertConfig) Build() (*tls.Certificate, error) {
 }
 
 type TLSConfig struct {
-	Insecure                         bool                  `json:"allowInsecure"`
-	Certs                            []*TLSCertConfig      `json:"certificates"`
-	ServerName                       string                `json:"serverName"`
-	ALPN                             *cfgcommon.StringList `json:"alpn"`
-	EnableSessionResumption          bool                  `json:"enableSessionResumption"`
-	DisableSystemRoot                bool                  `json:"disableSystemRoot"`
-	PinnedPeerCertificateChainSha256 *[]string             `json:"pinnedPeerCertificateChainSha256"`
-	VerifyClientCertificate          bool                  `json:"verifyClientCertificate"`
-	ECHConfig                        string                `json:"echConfig"`
-	ECHDOHServer                     string                `json:"echDohServer"`
+	Insecure                             bool                  `json:"allowInsecure"`
+	Certs                                []*TLSCertConfig      `json:"certificates"`
+	ServerName                           string                `json:"serverName"`
+	ALPN                                 *cfgcommon.StringList `json:"alpn"`
+	EnableSessionResumption              bool                  `json:"enableSessionResumption"`
+	DisableSystemRoot                    bool                  `json:"disableSystemRoot"`
+	PinnedPeerCertificateChainSha256     *[]string             `json:"pinnedPeerCertificateChainSha256"`
+	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
+	ECHConfig                            string                `json:"echConfig"`
+	ECHDOHServer                         string                `json:"echDohServer"`
+	ECHQueryDomain                       string                `json:"echQueryDomain"`
+	MinVersion                           string                `json:"minVersion"`
+	MaxVersion                           string                `json:"maxVersion"`
+	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
+	Ciphersuites                         []uint32              `json:"ciphersuites"`
+	Fingerprint                          string                `json:"fingerprint"`
 }
 
 // Build implements Buildable.
@@ -395,7 +480,69 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 		config.EchConfig = ECHConfig
 	}
 	config.Ech_DOHserver = c.ECHDOHServer
+	config.EchQueryDomain = c.ECHQueryDomain
 
+	switch strings.ToLower(c.MinVersion) {
+	case "tls1_0", "tls1.0":
+		config.MinVersion = tls.Config_TLS1_0
+	case "tls1_1", "tls1.1":
+		config.MinVersion = tls.Config_TLS1_1
+	case "tls1_2", "tls1.2":
+		config.MinVersion = tls.Config_TLS1_2
+	case "tls1_3", "tls1.3":
+		config.MinVersion = tls.Config_TLS1_3
+	}
+
+	switch strings.ToLower(c.MaxVersion) {
+	case "tls1_0", "tls1.0":
+		config.MaxVersion = tls.Config_TLS1_0
+	case "tls1_1", "tls1.1":
+		config.MaxVersion = tls.Config_TLS1_1
+	case "tls1_2", "tls1.2":
+		config.MaxVersion = tls.Config_TLS1_2
+	case "tls1_3", "tls1.3":
+		config.MaxVersion = tls.Config_TLS1_3
+	}
+
+	config.AllowInsecureIfPinnedPeerCertificate = c.AllowInsecureIfPinnedPeerCertificate
+
+	config.Ciphersuites = c.Ciphersuites
+
+	return config, nil
+}
+
+type UTLSConfig struct {
+	TLSConfig *TLSConfig `json:"tlsConfig"`
+	Imitate   string     `json:"imitate"`
+	NoSNI     bool       `json:"noSNI"`
+	ForceALPN string     `json:"forceALPN"`
+}
+
+// Build implements Buildable.
+func (c *UTLSConfig) Build() (proto.Message, error) {
+	config := new(utls.Config)
+	if c.TLSConfig != nil {
+		tlsConfig, err := c.TLSConfig.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.TlsConfig = tlsConfig.(*tls.Config)
+	}
+	imitate := c.Imitate
+	if len(c.Imitate) > 0 {
+		config.Imitate = imitate
+	}
+	config.NoSNI = c.NoSNI
+	switch strings.ToLower(c.ForceALPN) {
+	case "transportpreferencetakepriority", "transport_preference_take_priority":
+		config.ForceAlpn = utls.ForcedALPN_TRANSPORT_PREFERENCE_TAKE_PRIORITY
+	case "noalpn", "no_alpn":
+		config.ForceAlpn = utls.ForcedALPN_NO_ALPN
+	case "utlspreset", "utls_preset":
+		config.ForceAlpn = utls.ForcedALPN_UTLS_PRESET
+	default:
+		config.ForceAlpn = utls.ForcedALPN_TRANSPORT_PREFERENCE_TAKE_PRIORITY
+	}
 	return config, nil
 }
 
@@ -420,6 +567,12 @@ func (p TransportProtocol) Build() (string, error) {
 		return "gun", nil
 	case "hy2", "hysteria2":
 		return "hysteria2", nil
+	case "meek":
+		return "meek", nil
+	case "httpupgrade":
+		return "httpupgrade", nil
+	case "mekya":
+		return "mekya", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
 	}
@@ -492,19 +645,23 @@ func (c *SocketConfig) Build() (*internet.SocketConfig, error) {
 }
 
 type StreamConfig struct {
-	Network        *TransportProtocol  `json:"network"`
-	Security       string              `json:"security"`
-	TLSSettings    *TLSConfig          `json:"tlsSettings"`
-	TCPSettings    *TCPConfig          `json:"tcpSettings"`
-	KCPSettings    *KCPConfig          `json:"kcpSettings"`
-	WSSettings     *WebSocketConfig    `json:"wsSettings"`
-	HTTPSettings   *HTTPConfig         `json:"httpSettings"`
-	DSSettings     *DomainSocketConfig `json:"dsSettings"`
-	QUICSettings   *QUICConfig         `json:"quicSettings"`
-	GunSettings    *GunConfig          `json:"gunSettings"`
-	GRPCSettings   *GunConfig          `json:"grpcSettings"`
-	Hy2Settings    *Hy2Config          `json:"hy2Settings"`
-	SocketSettings *SocketConfig       `json:"sockopt"`
+	Network             *TransportProtocol  `json:"network"`
+	Security            string              `json:"security"`
+	TLSSettings         *TLSConfig          `json:"tlsSettings"`
+	UTLSSettings        *UTLSConfig         `json:"utlsSettings"`
+	TCPSettings         *TCPConfig          `json:"tcpSettings"`
+	KCPSettings         *KCPConfig          `json:"kcpSettings"`
+	WSSettings          *WebSocketConfig    `json:"wsSettings"`
+	HTTPSettings        *HTTPConfig         `json:"httpSettings"`
+	DSSettings          *DomainSocketConfig `json:"dsSettings"`
+	QUICSettings        *QUICConfig         `json:"quicSettings"`
+	GunSettings         *GunConfig          `json:"gunSettings"`
+	GRPCSettings        *GunConfig          `json:"grpcSettings"`
+	Hy2Settings         *Hy2Config          `json:"hy2Settings"`
+	MeekSettings        *MeekConfig         `json:"meekSettings"`
+	HTTPUpgradeSettings *HTTPUpgradeConfig  `json:"httpupgradeSettings"`
+	MekyaSettings       *MekyaConfig        `json:"mekyaSettings"`
+	SocketSettings      *SocketConfig       `json:"sockopt"`
 }
 
 // Build implements Buildable.
@@ -524,11 +681,43 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		if tlsSettings == nil {
 			tlsSettings = &TLSConfig{}
 		}
-		ts, err := tlsSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build TLS config.").Base(err)
+		if tlsSettings.Fingerprint != "" {
+			imitate := strings.ToLower(tlsSettings.Fingerprint)
+			imitate = strings.TrimPrefix(imitate, "hello")
+			switch imitate {
+			case "chrome", "firefox", "safari", "ios", "edge", "360", "qq":
+				imitate += "_auto"
+			}
+			utlsSettings := &UTLSConfig{
+				TLSConfig: tlsSettings,
+				Imitate:   imitate,
+			}
+			us, err := utlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build UTLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(us)
+			config.SecuritySettings = append(config.SecuritySettings, tm)
+			config.SecurityType = tm.Type
+		} else {
+			ts, err := tlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build TLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(ts)
+			config.SecuritySettings = append(config.SecuritySettings, tm)
+			config.SecurityType = tm.Type
 		}
-		tm := serial.ToTypedMessage(ts)
+	} else if strings.EqualFold(c.Security, "utls") {
+		utlsSettings := c.UTLSSettings
+		if utlsSettings == nil {
+			utlsSettings = &UTLSConfig{}
+		}
+		us, err := utlsSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build UTLS config.").Base(err)
+		}
+		tm := serial.ToTypedMessage(us)
 		config.SecuritySettings = append(config.SecuritySettings, tm)
 		config.SecurityType = tm.Type
 	}
@@ -613,6 +802,36 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "hysteria2",
 			Settings:     serial.ToTypedMessage(hy2),
+		})
+	}
+	if c.MeekSettings != nil {
+		ms, err := c.MeekSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build Meek config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "meek",
+			Settings:     serial.ToTypedMessage(ms),
+		})
+	}
+	if c.HTTPUpgradeSettings != nil {
+		hs, err := c.HTTPUpgradeSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build HTTPUpgrade config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "httpupgrade",
+			Settings:     serial.ToTypedMessage(hs),
+		})
+	}
+	if c.MekyaSettings != nil {
+		ms, err := c.MekyaSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build Mekya config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "mekya",
+			Settings:     serial.ToTypedMessage(ms),
 		})
 	}
 	if c.SocketSettings != nil {
