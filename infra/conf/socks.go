@@ -67,10 +67,10 @@ func (v *SocksServerConfig) Build() (proto.Message, error) {
 	config.Timeout = v.Timeout
 	config.UserLevel = v.UserLevel
 
-	switch v.PacketEncoding {
-	case "Packet":
+	switch strings.ToLower(v.PacketEncoding) {
+	case "packet":
 		config.PacketEncoding = packetaddr.PacketAddrType_Packet
-	case "", "None":
+	case "", "none":
 		config.PacketEncoding = packetaddr.PacketAddrType_None
 	}
 
@@ -84,8 +84,9 @@ type SocksRemoteConfig struct {
 }
 
 type SocksClientConfig struct {
-	Servers []*SocksRemoteConfig `json:"servers"`
-	Version string               `json:"version"`
+	Servers        []*SocksRemoteConfig `json:"servers"`
+	Version        string               `json:"version"`
+	DelayAuthWrite bool                 `json:"delayAuthWrite"`
 }
 
 func (v *SocksClientConfig) Build() (proto.Message, error) {
@@ -123,5 +124,6 @@ func (v *SocksClientConfig) Build() (proto.Message, error) {
 		}
 		config.Server[idx] = server
 	}
+	config.DelayAuthWrite = v.DelayAuthWrite
 	return config, nil
 }

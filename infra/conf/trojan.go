@@ -169,10 +169,10 @@ func (c *TrojanServerConfig) Build() (proto.Message, error) {
 		}
 	}
 
-	switch c.PacketEncoding {
-	case "Packet":
+	switch strings.ToLower(c.PacketEncoding) {
+	case "packet":
 		config.PacketEncoding = packetaddr.PacketAddrType_Packet
-	case "", "None":
+	case "", "none":
 		config.PacketEncoding = packetaddr.PacketAddrType_None
 	}
 
