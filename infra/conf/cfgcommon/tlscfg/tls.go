@@ -14,16 +14,22 @@ import (
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 type TLSConfig struct {
-	Insecure                         bool                  `json:"allowInsecure"`
-	Certs                            []*TLSCertConfig      `json:"certificates"`
-	ServerName                       string                `json:"serverName"`
-	ALPN                             *cfgcommon.StringList `json:"alpn"`
-	EnableSessionResumption          bool                  `json:"enableSessionResumption"`
-	DisableSystemRoot                bool                  `json:"disableSystemRoot"`
-	PinnedPeerCertificateChainSha256 *[]string             `json:"pinnedPeerCertificateChainSha256"`
-	VerifyClientCertificate          bool                  `json:"verifyClientCertificate"`
-	ECHConfig                        string                `json:"echConfig"`
-	ECHDOHServer                     string                `json:"echDohServer"`
+	Insecure                             bool                  `json:"allowInsecure"`
+	Certs                                []*TLSCertConfig      `json:"certificates"`
+	ServerName                           string                `json:"serverName"`
+	ALPN                                 *cfgcommon.StringList `json:"alpn"`
+	EnableSessionResumption              bool                  `json:"enableSessionResumption"`
+	DisableSystemRoot                    bool                  `json:"disableSystemRoot"`
+	PinnedPeerCertificateChainSha256     *[]string             `json:"pinnedPeerCertificateChainSha256"`
+	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
+	ECHConfig                            string                `json:"echConfig"`
+	ECHDOHServer                         string                `json:"echDohServer"`
+	ECHQueryDomain                       string                `json:"echQueryDomain"`
+	MinVersion                           string                `json:"minVersion"`
+	MaxVersion                           string                `json:"maxVersion"`
+	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
+	Ciphersuites                         []uint32              `json:"ciphersuites"`
+	Fingerprint                          string                `json:"fingerprint"`
 }
 
 // Build implements Buildable.
@@ -69,6 +75,33 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 	}
 
 	config.Ech_DOHserver = c.ECHDOHServer
+	config.EchQueryDomain = c.ECHQueryDomain
+
+	switch strings.ToLower(c.MinVersion) {
+	case "tls1_0", "tls1.0":
+		config.MinVersion = tls.Config_TLS1_0
+	case "tls1_1", "tls1.1":
+		config.MinVersion = tls.Config_TLS1_1
+	case "tls1_2", "tls1.2":
+		config.MinVersion = tls.Config_TLS1_2
+	case "tls1_3", "tls1.3":
+		config.MinVersion = tls.Config_TLS1_3
+	}
+
+	switch strings.ToLower(c.MaxVersion) {
+	case "tls1_0", "tls1.0":
+		config.MaxVersion = tls.Config_TLS1_0
+	case "tls1_1", "tls1.1":
+		config.MaxVersion = tls.Config_TLS1_1
+	case "tls1_2", "tls1.2":
+		config.MaxVersion = tls.Config_TLS1_2
+	case "tls1_3", "tls1.3":
+		config.MaxVersion = tls.Config_TLS1_3
+	}
+
+	config.AllowInsecureIfPinnedPeerCertificate = c.AllowInsecureIfPinnedPeerCertificate
+
+	config.Ciphersuites = c.Ciphersuites
 
 	return config, nil
 }
