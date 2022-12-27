@@ -92,11 +92,15 @@ func (v *strategyLeastLoadConfig) Build() (proto.Message, error) {
 }
 
 type strategyLeastPingConfig struct {
-	ObserverTag string `json:"observerTag,omitempty"`
+	ObserverTag  string `json:"observerTag,omitempty"`
+	StickyChoice bool   `json:"stickyChoice,omitempty"`
 }
 
 func (s strategyLeastPingConfig) Build() (proto.Message, error) {
-	return &router.StrategyLeastPingConfig{ObserverTag: s.ObserverTag}, nil
+	return &router.StrategyLeastPingConfig{
+		ObserverTag:  s.ObserverTag,
+		StickyChoice: s.StickyChoice,
+	}, nil
 }
 
 type strategyRandomConfig struct {

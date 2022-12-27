@@ -16,9 +16,12 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/domainsocket"
 	httpheader "github.com/v2fly/v2ray-core/v5/transport/internet/headers/http"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/http"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/kcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/quic"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/meek"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/mekya"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
@@ -232,6 +235,36 @@ func (c *HTTPConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type HTTPUpgradeHeaderConfig struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type HTTPUpgradeConfig struct {
+	Host                string                    `json:"host"`
+	Path                string                    `json:"path"`
+	MaxEarlyData        int32                     `json:"maxEarlyData"`
+	EarlyDataHeaderName string                    `json:"earlyDataHeaderName"`
+	Header              []HTTPUpgradeHeaderConfig `json:"header"`
+}
+
+// Build implements Buildable.
+func (c *HTTPUpgradeConfig) Build() (proto.Message, error) {
+	config := &httpupgrade.Config{
+		Host:                c.Host,
+		Path:                c.Path,
+		MaxEarlyData:        c.MaxEarlyData,
+		EarlyDataHeaderName: c.EarlyDataHeaderName,
+	}
+	for _, header := range c.Header {
+		config.Header = append(config.Header, &httpupgrade.Header{
+			Key:   header.Key,
+			Value: header.Value,
+		})
+	}
+	return config, nil
+}
+
 type QUICConfig struct {
 	Header   json.RawMessage `json:"header"`
 	Security string          `json:"security"`
@@ -288,6 +321,51 @@ func (c *DomainSocketConfig) Build() (proto.Message, error) {
 	}, nil
 }
 
+type MeekConfig struct {
+	URL string `json:"url"`
+}
+
+// Build implements Buildable.
+func (c *MeekConfig) Build() (proto.Message, error) {
+	return &meek.Config{Url: c.URL}, nil
+}
+
+type MekyaConfig struct {
+	KCP                            *KCPConfig `json:"kcp"`
+	MaxWriteDelay                  int32      `json:"maxWriteDelay"`
+	MaxRequestSize                 int32      `json:"maxRequestSize"`
+	PollingIntervalInitial         int32      `json:"pollingIntervalInitial"`
+	MaxWriteSize                   int32      `json:"maxWriteSize"`
+	MaxWriteDurationMs             int32      `json:"maxWriteDurationMs"`
+	MaxSimultaneousWriteConnection int32      `json:"maxSimultaneousWriteConnection"`
+	PacketWritingBuffer            int32      `json:"packetWritingBuffer"`
+	URL                            string     `json:"url"`
+	H2PoolSize                     int32      `json:"h2PoolSize"`
+}
+
+// Build implements Buildable.
+func (c *MekyaConfig) Build() (proto.Message, error) {
+	config := &mekya.Config{
+		MaxWriteDelay:                  c.MaxWriteDelay,
+		MaxRequestSize:                 c.MaxRequestSize,
+		PollingIntervalInitial:         c.PollingIntervalInitial,
+		MaxWriteSize:                   c.MaxWriteSize,
+		MaxWriteDurationMs:             c.MaxWriteDurationMs,
+		MaxSimultaneousWriteConnection: c.MaxSimultaneousWriteConnection,
+		PacketWritingBuffer:            c.PacketWritingBuffer,
+		Url:                            c.URL,
+		H2PoolSize:                     c.H2PoolSize,
+	}
+	if c.KCP != nil {
+		kcpConfig, err := c.KCP.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Kcp = kcpConfig.(*kcp.Config)
+	}
+	return config, nil
+}
+
 type TransportProtocol string
 
 // Build implements Buildable.
@@ -309,25 +387,35 @@ func (p TransportProtocol) Build() (string, error) {
 		return "gun", nil
 	case "hy2", "hysteria2":
 		return "hysteria2", nil
+	case "meek":
+		return "meek", nil
+	case "httpupgrade":
+		return "httpupgrade", nil
+	case "mekya":
+		return "mekya", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
 	}
 }
 
 type StreamConfig struct {
-	Network        *TransportProtocol      `json:"network"`
-	Security       string                  `json:"security"`
-	TLSSettings    *tlscfg.TLSConfig       `json:"tlsSettings"`
-	TCPSettings    *TCPConfig              `json:"tcpSettings"`
-	KCPSettings    *KCPConfig              `json:"kcpSettings"`
-	WSSettings     *WebSocketConfig        `json:"wsSettings"`
-	HTTPSettings   *HTTPConfig             `json:"httpSettings"`
-	DSSettings     *DomainSocketConfig     `json:"dsSettings"`
-	QUICSettings   *QUICConfig             `json:"quicSettings"`
-	GunSettings    *GunConfig              `json:"gunSettings"`
-	GRPCSettings   *GunConfig              `json:"grpcSettings"`
-	Hy2Settings    *Hy2Config              `json:"hy2Settings"`
-	SocketSettings *socketcfg.SocketConfig `json:"sockopt"`
+	Network             *TransportProtocol      `json:"network"`
+	Security            string                  `json:"security"`
+	TLSSettings         *tlscfg.TLSConfig       `json:"tlsSettings"`
+	UTLSSettings        *tlscfg.UTLSConfig      `json:"utlsSettings"`
+	TCPSettings         *TCPConfig              `json:"tcpSettings"`
+	KCPSettings         *KCPConfig              `json:"kcpSettings"`
+	WSSettings          *WebSocketConfig        `json:"wsSettings"`
+	HTTPSettings        *HTTPConfig             `json:"httpSettings"`
+	DSSettings          *DomainSocketConfig     `json:"dsSettings"`
+	QUICSettings        *QUICConfig             `json:"quicSettings"`
+	GunSettings         *GunConfig              `json:"gunSettings"`
+	GRPCSettings        *GunConfig              `json:"grpcSettings"`
+	Hy2Settings         *Hy2Config              `json:"hy2Settings"`
+	MeekSettings        *MeekConfig             `json:"meekSettings"`
+	HTTPUpgradeSettings *HTTPUpgradeConfig      `json:"httpupgradeSettings"`
+	MekyaSettings       *MekyaConfig            `json:"mekyaSettings"`
+	SocketSettings      *socketcfg.SocketConfig `json:"sockopt"`
 }
 
 // Build implements Buildable.
@@ -347,11 +435,43 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		if tlsSettings == nil {
 			tlsSettings = &tlscfg.TLSConfig{}
 		}
-		ts, err := tlsSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build TLS config.").Base(err)
+		if tlsSettings.Fingerprint != "" {
+			imitate := strings.ToLower(tlsSettings.Fingerprint)
+			imitate = strings.TrimPrefix(imitate, "hello")
+			switch imitate {
+			case "chrome", "firefox", "safari", "ios", "edge", "360", "qq":
+				imitate += "_auto"
+			}
+			utlsSettings := &tlscfg.UTLSConfig{
+				TLSConfig: tlsSettings,
+				Imitate:   imitate,
+			}
+			us, err := utlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build UTLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(us)
+			config.SecuritySettings = append(config.SecuritySettings, tm)
+			config.SecurityType = serial.V2Type(tm)
+		} else {
+			ts, err := tlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build TLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(ts)
+			config.SecuritySettings = append(config.SecuritySettings, tm)
+			config.SecurityType = serial.V2Type(tm)
 		}
-		tm := serial.ToTypedMessage(ts)
+	} else if strings.EqualFold(c.Security, "utls") {
+		utlsSettings := c.UTLSSettings
+		if utlsSettings == nil {
+			utlsSettings = &tlscfg.UTLSConfig{}
+		}
+		us, err := utlsSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build UTLS config.").Base(err)
+		}
+		tm := serial.ToTypedMessage(us)
 		config.SecuritySettings = append(config.SecuritySettings, tm)
 		config.SecurityType = serial.V2Type(tm)
 	}
@@ -436,6 +556,36 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "hysteria2",
 			Settings:     serial.ToTypedMessage(hy2),
+		})
+	}
+	if c.MeekSettings != nil {
+		ms, err := c.MeekSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build Meek config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "meek",
+			Settings:     serial.ToTypedMessage(ms),
+		})
+	}
+	if c.HTTPUpgradeSettings != nil {
+		hs, err := c.HTTPUpgradeSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build HTTPUpgrade config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "httpupgrade",
+			Settings:     serial.ToTypedMessage(hs),
+		})
+	}
+	if c.MekyaSettings != nil {
+		ms, err := c.MekyaSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build Mekya config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "mekya",
+			Settings:     serial.ToTypedMessage(ms),
 		})
 	}
 	if c.SocketSettings != nil {
