@@ -36,20 +36,23 @@ var (
 		"vmess":         func() interface{} { return new(VMessInboundConfig) },
 		"trojan":        func() interface{} { return new(TrojanServerConfig) },
 		"hysteria2":     func() interface{} { return new(Hysteria2ServerConfig) },
+		"vliteu":        func() interface{} { return new(VLiteUDPInboundConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
-		"blackhole":   func() interface{} { return new(BlackholeConfig) },
-		"freedom":     func() interface{} { return new(FreedomConfig) },
-		"http":        func() interface{} { return new(HTTPClientConfig) },
-		"shadowsocks": func() interface{} { return new(ShadowsocksClientConfig) },
-		"socks":       func() interface{} { return new(SocksClientConfig) },
-		"vless":       func() interface{} { return new(VLessOutboundConfig) },
-		"vmess":       func() interface{} { return new(VMessOutboundConfig) },
-		"trojan":      func() interface{} { return new(TrojanClientConfig) },
-		"hysteria2":   func() interface{} { return new(Hysteria2ClientConfig) },
-		"dns":         func() interface{} { return new(DNSOutboundConfig) },
-		"loopback":    func() interface{} { return new(LoopbackConfig) },
+		"blackhole":       func() interface{} { return new(BlackholeConfig) },
+		"freedom":         func() interface{} { return new(FreedomConfig) },
+		"http":            func() interface{} { return new(HTTPClientConfig) },
+		"shadowsocks":     func() interface{} { return new(ShadowsocksClientConfig) },
+		"socks":           func() interface{} { return new(SocksClientConfig) },
+		"vless":           func() interface{} { return new(VLessOutboundConfig) },
+		"vmess":           func() interface{} { return new(VMessOutboundConfig) },
+		"trojan":          func() interface{} { return new(TrojanClientConfig) },
+		"hysteria2":       func() interface{} { return new(Hysteria2ClientConfig) },
+		"dns":             func() interface{} { return new(DNSOutboundConfig) },
+		"loopback":        func() interface{} { return new(LoopbackConfig) },
+		"vliteu":          func() interface{} { return new(VLiteUDPOutboundConfig) },
+		"shadowsocks2022": func() interface{} { return new(Shadowsocks2022Config) },
 	}, "protocol", "settings")
 )
 
@@ -325,6 +328,8 @@ type Config struct {
 	Observatory      *ObservatoryConfig      `json:"observatory"`
 	BurstObservatory *BurstObservatoryConfig `json:"burstObservatory"`
 	MultiObservatory *MultiObservatoryConfig `json:"multiObservatory"`
+	RestfulAPI       *RestfulAPIConfig       `json:"restfulAPI"`
+	TUN              *TUNConfig              `json:"tun"`
 
 	Services map[string]*json.RawMessage `json:"services"`
 }
@@ -482,6 +487,22 @@ func (c *Config) Build() (*core.Config, error) {
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(r))
+	}
+
+	if c.RestfulAPI != nil {
+		r, err := c.RestfulAPI.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.App = append(config.App, serial.ToTypedMessage(r))
+	}
+
+	if c.TUN != nil {
+		t, err := c.TUN.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.App = append(config.App, serial.ToTypedMessage(t))
 	}
 
 	// Load Additional Services that do not have a json translator
