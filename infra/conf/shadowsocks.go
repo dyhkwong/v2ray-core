@@ -61,10 +61,10 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 		Account: serial.ToTypedMessage(account),
 	}
 
-	switch v.PacketEncoding {
-	case "Packet":
+	switch strings.ToLower(v.PacketEncoding) {
+	case "packet":
 		config.PacketEncoding = packetaddr.PacketAddrType_Packet
-	case "", "None":
+	case "", "none":
 		config.PacketEncoding = packetaddr.PacketAddrType_None
 	}
 
@@ -72,14 +72,15 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 }
 
 type ShadowsocksServerTarget struct {
-	Address  *cfgcommon.Address `json:"address"`
-	Port     uint16             `json:"port"`
-	Cipher   string             `json:"method"`
-	Password string             `json:"password"`
-	Email    string             `json:"email"`
-	Ota      bool               `json:"ota"`
-	Level    byte               `json:"level"`
-	IVCheck  bool               `json:"ivCheck"`
+	Address                        *cfgcommon.Address `json:"address"`
+	Port                           uint16             `json:"port"`
+	Cipher                         string             `json:"method"`
+	Password                       string             `json:"password"`
+	Email                          string             `json:"email"`
+	Ota                            bool               `json:"ota"`
+	Level                          byte               `json:"level"`
+	IVCheck                        bool               `json:"ivCheck"`
+	ExperimentReducedIvHeadEntropy bool               `json:"experimentReducedIvHeadEntropy"`
 }
 
 type ShadowsocksClientConfig struct {
@@ -113,6 +114,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 		}
 
 		account.IvCheck = server.IVCheck
+		account.ExperimentReducedIvHeadEntropy = server.ExperimentReducedIvHeadEntropy
 
 		ss := &protocol.ServerEndpoint{
 			Address: server.Address.Build(),
