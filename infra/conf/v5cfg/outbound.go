@@ -50,6 +50,10 @@ func (c OutboundConfig) BuildV5(ctx context.Context) (proto.Message, error) {
 		senderSettings.DomainStrategy = proxyman.SenderConfig_USE_IP4
 	case "UseIP6":
 		senderSettings.DomainStrategy = proxyman.SenderConfig_USE_IP6
+	case "PreferIP4":
+		senderSettings.DomainStrategy = proxyman.SenderConfig_PREFER_IP4
+	case "PreferIP6":
+		senderSettings.DomainStrategy = proxyman.SenderConfig_PREFER_IP6
 	case "AsIs", "":
 	default:
 		return nil, newError("unknown domain strategy: ", c.DomainStrategy)
