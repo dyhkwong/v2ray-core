@@ -69,10 +69,12 @@ func (ProtocolReplacement) EnumDescriptor() ([]byte, []int) {
 type Config_DomainStrategy int32
 
 const (
-	Config_AS_IS   Config_DomainStrategy = 0
-	Config_USE_IP  Config_DomainStrategy = 1
-	Config_USE_IP4 Config_DomainStrategy = 2
-	Config_USE_IP6 Config_DomainStrategy = 3
+	Config_AS_IS      Config_DomainStrategy = 0
+	Config_USE_IP     Config_DomainStrategy = 1
+	Config_USE_IP4    Config_DomainStrategy = 2
+	Config_USE_IP6    Config_DomainStrategy = 3
+	Config_PREFER_IP4 Config_DomainStrategy = 4
+	Config_PREFER_IP6 Config_DomainStrategy = 5
 )
 
 // Enum value maps for Config_DomainStrategy.
@@ -82,12 +84,16 @@ var (
 		1: "USE_IP",
 		2: "USE_IP4",
 		3: "USE_IP6",
+		4: "PREFER_IP4",
+		5: "PREFER_IP6",
 	}
 	Config_DomainStrategy_value = map[string]int32{
-		"AS_IS":   0,
-		"USE_IP":  1,
-		"USE_IP4": 2,
-		"USE_IP6": 3,
+		"AS_IS":      0,
+		"USE_IP":     1,
+		"USE_IP4":    2,
+		"USE_IP6":    3,
+		"PREFER_IP4": 4,
+		"PREFER_IP6": 5,
 	}
 )
 
@@ -298,20 +304,24 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\"Y\n" +
 	"\x13DestinationOverride\x12B\n" +
-	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xa6\x03\n" +
+	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xc6\x03\n" +
 	"\x06Config\x12X\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2/.v2ray.core.proxy.freedom.Config.DomainStrategyR\x0edomainStrategy\x12\x1c\n" +
 	"\atimeout\x18\x02 \x01(\rB\x02\x18\x01R\atimeout\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12\x1d\n" +
 	"\n" +
 	"user_level\x18\x04 \x01(\rR\tuserLevel\x12`\n" +
-	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\"A\n" +
+	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
 	"\x06USE_IP\x10\x01\x12\v\n" +
 	"\aUSE_IP4\x10\x02\x12\v\n" +
-	"\aUSE_IP6\x10\x03\"\xef\x01\n" +
+	"\aUSE_IP6\x10\x03\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP4\x10\x04\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP6\x10\x05\"\xef\x01\n" +
 	"\x10SimplifiedConfig\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12`\n" +
 	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement:\x17\x82\xb5\x18\x13\n" +
