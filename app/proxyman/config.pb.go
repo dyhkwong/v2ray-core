@@ -119,10 +119,12 @@ func (AllocationStrategy_Type) EnumDescriptor() ([]byte, []int) {
 type SenderConfig_DomainStrategy int32
 
 const (
-	SenderConfig_AS_IS   SenderConfig_DomainStrategy = 0
-	SenderConfig_USE_IP  SenderConfig_DomainStrategy = 1
-	SenderConfig_USE_IP4 SenderConfig_DomainStrategy = 2
-	SenderConfig_USE_IP6 SenderConfig_DomainStrategy = 3
+	SenderConfig_AS_IS      SenderConfig_DomainStrategy = 0
+	SenderConfig_USE_IP     SenderConfig_DomainStrategy = 1
+	SenderConfig_USE_IP4    SenderConfig_DomainStrategy = 2
+	SenderConfig_USE_IP6    SenderConfig_DomainStrategy = 3
+	SenderConfig_PREFER_IP4 SenderConfig_DomainStrategy = 4
+	SenderConfig_PREFER_IP6 SenderConfig_DomainStrategy = 5
 )
 
 // Enum value maps for SenderConfig_DomainStrategy.
@@ -132,12 +134,16 @@ var (
 		1: "USE_IP",
 		2: "USE_IP4",
 		3: "USE_IP6",
+		4: "PREFER_IP4",
+		5: "PREFER_IP6",
 	}
 	SenderConfig_DomainStrategy_value = map[string]int32{
-		"AS_IS":   0,
-		"USE_IP":  1,
-		"USE_IP4": 2,
-		"USE_IP6": 3,
+		"AS_IS":      0,
+		"USE_IP":     1,
+		"USE_IP4":    2,
+		"USE_IP6":    3,
+		"PREFER_IP4": 4,
+		"PREFER_IP6": 5,
 	}
 )
 
@@ -794,19 +800,23 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12A\n" +
 	"\x11receiver_settings\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x10receiverSettings\x12;\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\rproxySettings\"\x10\n" +
-	"\x0eOutboundConfig\"\xea\x03\n" +
+	"\x0eOutboundConfig\"\x8a\x04\n" +
 	"\fSenderConfig\x123\n" +
 	"\x03via\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\x03via\x12T\n" +
 	"\x0fstream_settings\x18\x02 \x01(\v2+.v2ray.core.transport.internet.StreamConfigR\x0estreamSettings\x12Q\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2*.v2ray.core.transport.internet.ProxyConfigR\rproxySettings\x12Z\n" +
 	"\x12multiplex_settings\x18\x04 \x01(\v2+.v2ray.core.app.proxyman.MultiplexingConfigR\x11multiplexSettings\x12]\n" +
-	"\x0fdomain_strategy\x18\x05 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x0edomainStrategy\"A\n" +
+	"\x0fdomain_strategy\x18\x05 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x0edomainStrategy\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
 	"\x06USE_IP\x10\x01\x12\v\n" +
 	"\aUSE_IP4\x10\x02\x12\v\n" +
-	"\aUSE_IP6\x10\x03\"P\n" +
+	"\aUSE_IP6\x10\x03\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP4\x10\x04\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP6\x10\x05\"P\n" +
 	"\x12MultiplexingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12 \n" +
 	"\vconcurrency\x18\x02 \x01(\rR\vconcurrency*#\n" +
