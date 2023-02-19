@@ -9,7 +9,6 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-	"github.com/v2fly/v2ray-core/v5/common/dice"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
@@ -71,8 +70,8 @@ func (h *Handler) policy() policy.Session {
 
 func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address) net.Address {
 	ips, err := dns.LookupIPWithOption(h.dns, domain, dns.IPOption{
-		IPv4Enable: h.config.DomainStrategy == Config_USE_IP || h.config.DomainStrategy == Config_USE_IP4 || (localAddr != nil && localAddr.Family().IsIPv4()),
-		IPv6Enable: h.config.DomainStrategy == Config_USE_IP || h.config.DomainStrategy == Config_USE_IP6 || (localAddr != nil && localAddr.Family().IsIPv6()),
+		IPv4Enable: h.config.DomainStrategy != Config_USE_IP6 || (localAddr != nil && localAddr.Family().IsIPv4()),
+		IPv6Enable: h.config.DomainStrategy != Config_USE_IP4 || (localAddr != nil && localAddr.Family().IsIPv6()),
 		FakeEnable: false,
 	})
 	if err != nil {
@@ -81,7 +80,16 @@ func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Ad
 	if len(ips) == 0 {
 		return nil
 	}
-	return net.IPAddress(ips[dice.Roll(len(ips))])
+	if h.config.DomainStrategy == Config_PREFER_IP4 || h.config.DomainStrategy == Config_PREFER_IP6 {
+		var addr net.Address
+		for _, ip := range ips {
+			addr = net.IPAddress(ip)
+			if addr.Family().IsIPv4() == (h.config.DomainStrategy == Config_PREFER_IP4) {
+				return addr
+			}
+		}
+	}
+	return net.IPAddress(ips[0])
 }
 
 func isValidAddress(addr *net.IPOrDomain) bool {
