@@ -6,7 +6,6 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/proxyman"
 	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/common/dice"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/mux"
@@ -281,8 +280,8 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address) net.Address {
 	strategy := h.senderSettings.DomainStrategy
 	ips, err := dns.LookupIPWithOption(h.dns, domain, dns.IPOption{
-		IPv4Enable: strategy == proxyman.SenderConfig_USE_IP || strategy == proxyman.SenderConfig_USE_IP4 || (localAddr != nil && localAddr.Family().IsIPv4()),
-		IPv6Enable: strategy == proxyman.SenderConfig_USE_IP || strategy == proxyman.SenderConfig_USE_IP6 || (localAddr != nil && localAddr.Family().IsIPv6()),
+		IPv4Enable: strategy != proxyman.SenderConfig_USE_IP6 || (localAddr != nil && localAddr.Family().IsIPv4()),
+		IPv6Enable: strategy != proxyman.SenderConfig_USE_IP4 || (localAddr != nil && localAddr.Family().IsIPv6()),
 		FakeEnable: false,
 	})
 	if err != nil {
@@ -291,7 +290,16 @@ func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Ad
 	if len(ips) == 0 {
 		return nil
 	}
-	return net.IPAddress(ips[dice.Roll(len(ips))])
+	if strategy == proxyman.SenderConfig_PREFER_IP4 || strategy == proxyman.SenderConfig_PREFER_IP6 {
+		var addr net.Address
+		for _, ip := range ips {
+			addr = net.IPAddress(ip)
+			if addr.Family().IsIPv4() == (strategy == proxyman.SenderConfig_PREFER_IP4) {
+				return addr
+			}
+		}
+	}
+	return net.IPAddress(ips[0])
 }
 
 func (h *Handler) getStatCouterConnection(conn internet.Connection) internet.Connection {

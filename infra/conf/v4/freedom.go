@@ -30,6 +30,10 @@ func (c *FreedomConfig) Build() (proto.Message, error) {
 		config.DomainStrategy = freedom.Config_USE_IP4
 	case "useip6", "useipv6", "use_ip6", "use_ipv6", "use_ip_v6", "use-ip6", "use-ipv6", "use-ip-v6":
 		config.DomainStrategy = freedom.Config_USE_IP6
+	case "preferip4", "preferipv4", "prefer_ip4", "prefer_ipv4", "prefer_ip_v4", "prefer-ip4", "prefer-ipv4", "prefer-ip-v4":
+		config.DomainStrategy = freedom.Config_PREFER_IP4
+	case "preferip6", "preferipv6", "prefer_ip6", "prefer_ipv6", "prefer_ip_v6", "prefer-ip6", "prefer-ipv6", "prefer-ip-v6":
+		config.DomainStrategy = freedom.Config_PREFER_IP6
 	}
 
 	if c.Timeout != nil {
