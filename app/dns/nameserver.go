@@ -74,6 +74,10 @@ func NewServer(ctx context.Context, dest net.Destination, onCreated func(Server)
 			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewUDPNameServer(u, dispatcher)) })
 		case strings.EqualFold(u.Scheme, "udp+local"): // UDP classic DNS Local mode
 			return onCreatedWithError(NewUDPLocalNameServer(u))
+		case strings.EqualFold(u.Scheme, "tls"): // DOT Remote mode
+			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewDoTNameServer(u, dispatcher)) })
+		case strings.EqualFold(u.Scheme, "tls+local"): // DOT Local mode
+			return onCreatedWithError(NewDoTLocalNameServer(u))
 		}
 	}
 	if dest.Network == net.Network_Unknown {
