@@ -7,6 +7,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
 )
 
 var effectiveSystemDialer SystemDialer = &DefaultSystemDialer{}
@@ -152,6 +153,69 @@ func (c *PacketConnWrapper) SetReadDeadline(t time.Time) error {
 
 func (c *PacketConnWrapper) SetWriteDeadline(t time.Time) error {
 	return c.Conn.SetWriteDeadline(t)
+}
+
+type quicUDPConnWrapper struct {
+	*net.UDPConn
+	localAddr net.Addr
+}
+
+func (c *quicUDPConnWrapper) LocalAddr() net.Addr {
+	return c.localAddr
+}
+
+func NewQUICUDPConnWrapper(udpConn *net.UDPConn) net.PacketConn {
+	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
+	uuid := uuid.New()
+	return &quicUDPConnWrapper{
+		UDPConn:   udpConn,
+		localAddr: &net.UnixAddr{Name: uuid.String()},
+	}
+}
+
+type quicPacketConnWrapper struct {
+	net.PacketConn
+	localAddr net.Addr
+}
+
+func (c *quicPacketConnWrapper) LocalAddr() net.Addr {
+	return c.localAddr
+}
+
+func NewQUICPacketConnWrapper(packetConn net.PacketConn) net.PacketConn {
+	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
+	uuid := uuid.New()
+	return &quicPacketConnWrapper{
+		PacketConn: packetConn,
+		localAddr:  &net.UnixAddr{Name: uuid.String()},
+	}
+}
+
+type quicConnWrapper struct {
+	net.Conn
+	localAddr net.Addr
+}
+
+func (c *quicConnWrapper) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	n, err = c.Read(p)
+	return n, c.RemoteAddr(), err
+}
+
+func (c *quicConnWrapper) WriteTo(p []byte, _ net.Addr) (n int, err error) {
+	return c.Write(p)
+}
+
+func (c *quicConnWrapper) LocalAddr() net.Addr {
+	return c.localAddr
+}
+
+func NewQUICConnWrapper(conn net.Conn) net.PacketConn {
+	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
+	uuid := uuid.New()
+	return &quicConnWrapper{
+		Conn:      conn,
+		localAddr: &net.UnixAddr{Name: uuid.String()},
+	}
 }
 
 type SystemDialerAdapter interface {
