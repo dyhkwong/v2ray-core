@@ -36,12 +36,13 @@ type DoHNameServer struct {
 	httpClient *http.Client
 	dohURL     string
 	name       string
+	protocol   string
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
 func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
-	s := baseDOHNameServer(url, "DOH")
+	s := baseDOHNameServer(url, "DOH", "tls")
 
 	tr := &http.Transport{
 		MaxIdleConns:        30,
@@ -91,7 +92,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 // NewDoHLocalNameServer creates DOH client object for local resolving
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "DOHL")
+	s := baseDOHNameServer(url, "DOHL", "tls")
 	tr := &http.Transport{
 		IdleConnTimeout:   90 * time.Second,
 		ForceAttemptHTTP2: true,
@@ -115,12 +116,13 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	return s
 }
 
-func baseDOHNameServer(url *url.URL, prefix string) *DoHNameServer {
+func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 	s := &DoHNameServer{
-		ips:    make(map[string]record),
-		pub:    pubsub.NewService(),
-		name:   prefix + "//" + url.Host,
-		dohURL: url.String(),
+		ips:      make(map[string]record),
+		pub:      pubsub.NewService(),
+		name:     prefix + "//" + url.Host,
+		dohURL:   url.String(),
+		protocol: protocol,
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -236,7 +238,7 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			}
 
 			dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
-				Protocol:       "tls",
+				Protocol:       s.protocol,
 				SkipDNSResolve: true,
 			})
 

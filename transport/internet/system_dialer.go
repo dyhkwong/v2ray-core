@@ -164,6 +164,23 @@ func (c *PacketConnWrapper) SetWriteDeadline(t time.Time) error {
 	return c.Conn.SetWriteDeadline(t)
 }
 
+func NewConnWrapper(c net.Conn) net.PacketConn {
+	return &ConnWrapper{Conn: c}
+}
+
+type ConnWrapper struct {
+	net.Conn
+}
+
+func (c *ConnWrapper) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	n, err = c.Read(p)
+	return n, c.RemoteAddr(), err
+}
+
+func (c *ConnWrapper) WriteTo(p []byte, _ net.Addr) (n int, err error) {
+	return c.Write(p)
+}
+
 type SystemDialerAdapter interface {
 	Dial(network string, address string) (net.Conn, error)
 }
