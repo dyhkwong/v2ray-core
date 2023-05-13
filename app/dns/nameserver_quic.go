@@ -14,11 +14,14 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/routing"
+	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -36,7 +39,37 @@ type QUICNameServer struct {
 	cleanup     *task.Periodic
 	name        string
 	destination net.Destination
-	connection  quic.Connection
+	connection  quic.EarlyConnection
+	dispatcher  routing.Dispatcher
+}
+
+// NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
+func NewQUICRemoteNameServer(url *url.URL, dispatcher routing.Dispatcher) (*QUICNameServer, error) {
+	newError("DNS: created Remote DNS-over-QUIC client for ", url.String()).AtInfo().WriteToLog()
+
+	var err error
+	port := net.Port(853)
+	if url.Port() != "" {
+		port, err = net.PortFromString(url.Port())
+		if err != nil {
+			return nil, err
+		}
+	}
+	dest := net.UDPDestination(net.ParseAddress(url.Hostname()), port)
+
+	s := &QUICNameServer{
+		ips:         make(map[string]record),
+		pub:         pubsub.NewService(),
+		name:        url.String(),
+		destination: dest,
+		dispatcher:  dispatcher,
+	}
+	s.cleanup = &task.Periodic{
+		Interval: time.Minute,
+		Execute:  s.Cleanup,
+	}
+
+	return s, nil
 }
 
 // NewQUICNameServer creates DNS-over-QUIC client object for local resolving
@@ -331,7 +364,7 @@ func (s *QUICNameServer) QueryIP(ctx context.Context, domain string, clientIP ne
 	}
 }
 
-func isActive(s quic.Connection) bool {
+func isActive(s quic.EarlyConnection) bool {
 	select {
 	case <-s.Context().Done():
 		return false
@@ -340,8 +373,8 @@ func isActive(s quic.Connection) bool {
 	}
 }
 
-func (s *QUICNameServer) getConnection(ctx context.Context) (quic.Connection, error) {
-	var conn quic.Connection
+func (s *QUICNameServer) getConnection(ctx context.Context) (quic.EarlyConnection, error) {
+	var conn quic.EarlyConnection
 	s.RLock()
 	conn = s.connection
 	if conn != nil && isActive(conn) {
@@ -374,7 +407,7 @@ func (s *QUICNameServer) getConnection(ctx context.Context) (quic.Connection, er
 	return conn, nil
 }
 
-func (s *QUICNameServer) openConnection(ctx context.Context) (quic.Connection, error) {
+func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnection, error) {
 	tlsConfig := tls.Config{
 		ServerName: func() string {
 			switch s.destination.Address.Family() {
@@ -391,12 +424,33 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.Connection, e
 		HandshakeIdleTimeout: handshakeIdleTimeout,
 	}
 
-	conn, err := quic.DialAddr(ctx, s.destination.NetAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	if s.dispatcher != nil {
+		link, err := s.dispatcher.Dispatch(ctx, s.destination)
+		if err != nil {
+			return nil, err
+		}
+		rawConn := cnc.NewConnection(
+			cnc.ConnectionInputMulti(link.Writer),
+			cnc.ConnectionOutputMultiUDP(link.Reader),
+		)
+
+		return quic.DialEarly(ctx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	}
+
+	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	return conn, nil
+	var pc net.PacketConn
+	switch rc := rawConn.(type) {
+	case *internet.PacketConnWrapper:
+		pc = rc.Conn
+	case net.PacketConn:
+		pc = rc
+	default:
+		pc = internet.NewConnWrapper(rc)
+	}
+	return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (quic.Stream, error) {
