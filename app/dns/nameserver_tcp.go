@@ -37,11 +37,12 @@ type TCPNameServer struct {
 	cleanup     *task.Periodic
 	reqID       uint32
 	dial        func(context.Context) (net.Conn, error)
+	protocol    string
 }
 
 // NewTCPNameServer creates DNS over TCP server object for remote resolving.
 func NewTCPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*TCPNameServer, error) {
-	s, err := baseTCPNameServer(url, "TCP")
+	s, err := baseTCPNameServer(url, "TCP", net.Port(53), "dns")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func NewTCPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*TCPNameServ
 
 // NewTCPLocalNameServer creates DNS over TCP client object for local resolving
 func NewTCPLocalNameServer(url *url.URL) (*TCPNameServer, error) {
-	s, err := baseTCPNameServer(url, "TCPL")
+	s, err := baseTCPNameServer(url, "TCPL", net.Port(53), "dns")
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +76,8 @@ func NewTCPLocalNameServer(url *url.URL) (*TCPNameServer, error) {
 	return s, nil
 }
 
-func baseTCPNameServer(url *url.URL, prefix string) (*TCPNameServer, error) {
+func baseTCPNameServer(url *url.URL, prefix string, port net.Port, protocol string) (*TCPNameServer, error) {
 	var err error
-	port := net.Port(53)
 	if url.Port() != "" {
 		port, err = net.PortFromString(url.Port())
 		if err != nil {
@@ -91,6 +91,7 @@ func baseTCPNameServer(url *url.URL, prefix string) (*TCPNameServer, error) {
 		ips:         make(map[string]record),
 		pub:         pubsub.NewService(),
 		name:        prefix + "//" + dest.NetAddr(),
+		protocol:    protocol,
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -204,7 +205,7 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			}
 
 			dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
-				Protocol:       "dns",
+				Protocol:       s.protocol,
 				SkipDNSResolve: true,
 			})
 
