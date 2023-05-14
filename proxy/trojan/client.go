@@ -91,7 +91,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		postRequest := func() error {
 			defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 
-			var buffer [2048]byte
+			var buffer [buf.Size]byte
 			n, addr, err := packetConn.ReadFrom(buffer[:])
 			if err != nil {
 				return newError("failed to read a packet").Base(err)
