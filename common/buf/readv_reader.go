@@ -141,11 +141,11 @@ func init() {
 	const defaultFlagValue = "NOT_DEFINED_AT_ALL"
 	value := platform.NewEnvFlag("v2ray.buf.readv").GetValue(func() string { return defaultFlagValue })
 	switch value {
-	case defaultFlagValue, "auto":
+	case "auto":
 		if (runtime.GOARCH == "386" || runtime.GOARCH == "amd64" || runtime.GOARCH == "s390x") && (runtime.GOOS == "linux" || runtime.GOOS == "darwin" || runtime.GOOS == "windows") {
 			useReadv = true
 		}
-	case "enable":
+	case defaultFlagValue, "enable":
 		useReadv = true
 	}
 }
