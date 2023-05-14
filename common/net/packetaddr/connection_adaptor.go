@@ -135,7 +135,7 @@ type FusedConnection interface {
 
 func (pc *packetConnWrapper) Read(p []byte) (n int, err error) {
 	recbuf := buf.StackNew()
-	recbuf.Extend(2048)
+	recbuf.Extend(buf.Size)
 	n, addr, err := pc.PacketConn.ReadFrom(recbuf.Bytes())
 	if err != nil {
 		return 0, err
