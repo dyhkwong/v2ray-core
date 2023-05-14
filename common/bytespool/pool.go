@@ -9,7 +9,7 @@ func createAllocFunc(size int32) func() interface{} {
 }
 
 // The following parameters controls the size of buffer pools.
-// There are numPools pools. Starting from 2k size, the size of each pool is sizeMulti of the previous one.
+// There are numPools pools. Starting from 16k size, the size of each pool is sizeMulti of the previous one.
 // Package buf is guaranteed to not use buffers larger than the largest pool.
 // Other packets may use larger buffers.
 const (
@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	size := int32(2048)
+	size := int32(16384)
 	for i := 0; i < numPools; i++ {
 		pool[i] = sync.Pool{
 			New: createAllocFunc(size),
@@ -46,7 +46,7 @@ func GetPool(size int32) *sync.Pool {
 	return nil
 }
 
-// Alloc returns a byte slice with at least the given size. Minimum size of returned slice is 2048.
+// Alloc returns a byte slice with at least the given size. Minimum size of returned slice is 32768.
 //
 // v2ray:api:stable
 func Alloc(size int32) []byte {
