@@ -3,6 +3,7 @@ package udp
 import (
 	gonet "net"
 
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 )
@@ -20,7 +21,7 @@ func CopyPacketConn(dst internet.AbstractPacketConnWriter, src internet.Abstract
 	for _, option := range options {
 		option(&handler)
 	}
-	var buffer [2048]byte
+	var buffer [buf.Size]byte
 	for {
 		n, addr, err := src.ReadFrom(buffer[:])
 		if err != nil {
