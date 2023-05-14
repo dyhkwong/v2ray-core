@@ -39,7 +39,7 @@ func (p PacketAddrDispatcher) Dispatch(ctx context.Context, destination net.Dest
 func (p PacketAddrDispatcher) readWorker() {
 	for {
 		readBuf := buf.New()
-		n, addr, err := p.conn.ReadFrom(readBuf.Extend(2048))
+		n, addr, err := p.conn.ReadFrom(readBuf.Extend(buf.Size))
 		if err != nil {
 			return
 		}
