@@ -94,7 +94,7 @@ func (h *UDPHandler) Handle(conn tun_net.UDPConn) error {
 		case <-ctx.Done():
 			return nil
 		default:
-			var buffer [2048]byte
+			var buffer [buf.Size]byte
 			n, _, err := conn.ReadFrom(buffer[:])
 			if err != nil {
 				return newError("failed to read UDP packet").Base(err)
