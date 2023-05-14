@@ -9,7 +9,7 @@ import (
 
 const (
 	// Size of a regular buffer.
-	Size = 2048
+	Size = 16384
 )
 
 var pool = bytespool.GetPool(Size)
@@ -34,7 +34,7 @@ type Buffer struct {
 	Endpoint  *net.Destination
 }
 
-// New creates a Buffer with 0 length and 2K capacity.
+// New creates a Buffer with 0 length and 16K capacity.
 func New() *Buffer {
 	return &Buffer{
 		v: pool.Get().([]byte),
