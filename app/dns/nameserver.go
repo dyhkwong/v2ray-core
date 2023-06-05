@@ -68,6 +68,10 @@ func NewServer(ctx context.Context, dest net.Destination, onCreated func(Server)
 			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewTCPNameServer(u, dispatcher)) })
 		case strings.EqualFold(u.Scheme, "tcp+local"): // DNS-over-TCP Local mode
 			return onCreatedWithError(NewTCPLocalNameServer(u))
+		case strings.EqualFold(u.Scheme, "quic"): // DNS-over-QUIC Remote mode
+			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error {
+				return onCreatedWithError(NewQUICRemoteNameServer(u, dispatcher))
+			})
 		case strings.EqualFold(u.Scheme, "quic+local"): // DNS-over-QUIC Local mode
 			return onCreatedWithError(NewQUICNameServer(u))
 		case strings.EqualFold(u.Scheme, "udp"): // UDP classic DNS Remote mode
@@ -78,6 +82,10 @@ func NewServer(ctx context.Context, dest net.Destination, onCreated func(Server)
 			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewDoTNameServer(u, dispatcher)) })
 		case strings.EqualFold(u.Scheme, "tls+local"): // DOT Local mode
 			return onCreatedWithError(NewDoTLocalNameServer(u))
+		case strings.EqualFold(u.Scheme, "h3"): // H3 Remote mode
+			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewH3NameServer(u, dispatcher)) })
+		case strings.EqualFold(u.Scheme, "h3+local"): // H3 Local mode
+			return onCreated(NewH3LocalNameServer(u))
 		}
 	}
 	if dest.Network == net.Network_Unknown {
