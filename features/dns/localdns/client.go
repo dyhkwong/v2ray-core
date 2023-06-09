@@ -2,6 +2,7 @@ package localdns
 
 import (
 	"context"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
@@ -46,6 +47,18 @@ func (*Client) LookupIPv4(host string) ([]net.IP, error) {
 // LookupIPv6 implements IPv6Lookup.
 func (*Client) LookupIPv6(host string) ([]net.IP, error) {
 	return lookupFunc("ip6", host)
+}
+
+// LookupIPv4WithTTL implements IPv4LookupWithTTL.
+func (c *Client) LookupIPv4WithTTL(host string) ([]net.IP, time.Time, error) {
+	ips, err := c.LookupIPv4(host)
+	return ips, time.Now().Add(time.Duration(600) * time.Second), err
+}
+
+// LookupIPv6WithTTL implements IPv6LookupWithTTL.
+func (c *Client) LookupIPv6WithTTL(host string) ([]net.IP, time.Time, error) {
+	ips, err := c.LookupIPv6(host)
+	return ips, time.Now().Add(time.Duration(600) * time.Second), err
 }
 
 // New create a new dns.Client that queries localhost for DNS.
