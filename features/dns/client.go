@@ -1,6 +1,8 @@
 package dns
 
 import (
+	"time"
+
 	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
@@ -43,11 +45,23 @@ type IPv4Lookup interface {
 	LookupIPv4(domain string) ([]net.IP, error)
 }
 
+// IPv4LookupWithTTL is an optional feature for querying IPv4 addresses only, with TTL information.
+type IPv4LookupWithTTL interface {
+	IPv4Lookup
+	LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error)
+}
+
 // IPv6Lookup is an optional feature for querying IPv6 addresses only.
 //
 // v2ray:api:beta
 type IPv6Lookup interface {
 	LookupIPv6(domain string) ([]net.IP, error)
+}
+
+// IPv6LookupWithTTL is an optional feature for querying IPv6 addresses only, with TTL information.
+type IPv6LookupWithTTL interface {
+	IPv6Lookup
+	LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error)
 }
 
 // LookupIPWithOption is a helper function for querying DNS information from a dns.Client with dns.IPOption.
