@@ -52,7 +52,7 @@ func Test_parseResponse(t *testing.T) {
 	}{
 		{
 			"empty",
-			&IPRecord{0, []net.Address(nil), time.Time{}, dnsmessage.RCodeSuccess},
+			&IPRecord{0, []net.Address(nil), time.Time{}, dnsmessage.RCodeSuccess, 600},
 			false,
 		},
 		{
@@ -67,12 +67,13 @@ func Test_parseResponse(t *testing.T) {
 				[]net.Address{net.ParseAddress("8.8.8.8"), net.ParseAddress("8.8.4.4")},
 				time.Time{},
 				dnsmessage.RCodeSuccess,
+				600,
 			},
 			false,
 		},
 		{
 			"aaaa record",
-			&IPRecord{2, []net.Address{net.ParseAddress("2001::123:8888"), net.ParseAddress("2001::123:8844")}, time.Time{}, dnsmessage.RCodeSuccess},
+			&IPRecord{2, []net.Address{net.ParseAddress("2001::123:8888"), net.ParseAddress("2001::123:8844")}, time.Time{}, dnsmessage.RCodeSuccess, 600},
 			false,
 		},
 	}
@@ -87,6 +88,8 @@ func Test_parseResponse(t *testing.T) {
 			if got != nil {
 				// reset the time
 				got.Expire = time.Time{}
+				// reset TTL
+				got.TTL = 600
 			}
 			if cmp.Diff(got, tt.want) != "" {
 				t.Errorf(cmp.Diff(got, tt.want))
