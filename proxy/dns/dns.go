@@ -239,12 +239,22 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	var err error
 
 	var ttl uint32 = 600
+	timeNow := time.Now()
+	expireAt := timeNow.Add(time.Duration(ttl) * time.Second)
 
 	switch qType {
 	case dnsmessage.TypeA:
-		ips, err = h.ipv4Lookup.LookupIPv4(domain)
+		if ipv4Lookup, ok := h.ipv4Lookup.(dns.IPv4LookupWithTTL); ok {
+			ips, ttl, expireAt, err = ipv4Lookup.LookupIPv4WithTTL(domain)
+		} else {
+			ips, err = h.ipv4Lookup.LookupIPv4(domain)
+		}
 	case dnsmessage.TypeAAAA:
-		ips, err = h.ipv6Lookup.LookupIPv6(domain)
+		if ipv6Lookup, ok := h.ipv6Lookup.(dns.IPv6LookupWithTTL); ok {
+			ips, ttl, expireAt, err = ipv6Lookup.LookupIPv6WithTTL(domain)
+		} else {
+			ips, err = h.ipv6Lookup.LookupIPv6(domain)
+		}
 	}
 
 	rcode := dns.RCodeFromError(err)
@@ -271,7 +281,12 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	}))
 	common.Must(builder.StartAnswers())
 
-	rHeader := dnsmessage.ResourceHeader{Name: dnsmessage.MustNewName(domain), Class: dnsmessage.ClassINET, TTL: ttl}
+	nowTTL := int((expireAt.Sub(timeNow).Seconds()))
+	if nowTTL < 0 {
+		nowTTL = 0
+	}
+	duration := ttl - uint32(nowTTL)
+	rHeader := dnsmessage.ResourceHeader{Name: dnsmessage.MustNewName(domain), Class: dnsmessage.ClassINET, TTL: ttl - duration}
 	for _, ip := range ips {
 		if len(ip) == net.IPv4len {
 			var r dnsmessage.AResource
