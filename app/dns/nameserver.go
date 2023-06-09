@@ -25,6 +25,13 @@ type Server interface {
 	QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, error)
 }
 
+// ServerWithTTL is the interface for Name Server with TTL information.
+type ServerWithTTL interface {
+	Server
+	// QueryIPWithTTL sends IP queries to its configured server.
+	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, time.Time, error)
+}
+
 // Client is the interface for DNS client.
 type Client struct {
 	server   Server
@@ -196,10 +203,16 @@ func (c *Client) Name() string {
 
 // QueryIP send DNS query to the name server with the client's IP and IP options.
 func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, error) {
+	ips, _, err := c.QueryIPWithTTL(ctx, domain, option)
+	return ips, err
+}
+
+// QueryIPWithTTL send DNS query to the name server with the client's IP and IP options, with TTL information returned.
+func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
 	queryOption := option.With(c.queryStrategy)
 	if !queryOption.IsValid() {
 		newError(c.server.Name(), " returns empty answer: ", domain, ". ", toReqTypes(option)).AtInfo().WriteToLog()
-		return nil, dns.ErrEmptyResponse
+		return nil, time.Time{}, dns.ErrEmptyResponse
 	}
 	server := c.server
 	if queryOption.FakeEnable && c.fakeDNS != nil {
@@ -209,13 +222,21 @@ func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption
 
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	ips, err := server.QueryIP(ctx, domain, c.clientIP, queryOption, disableCache)
+	var ips []net.IP
+	expireAt := time.Now().Add(time.Duration(600) * time.Second)
+	var err error
+	if serverWithTTL, ok := server.(ServerWithTTL); ok {
+		ips, expireAt, err = serverWithTTL.QueryIPWithTTL(ctx, domain, c.clientIP, queryOption, disableCache)
+	} else {
+		ips, err = server.QueryIP(ctx, domain, c.clientIP, queryOption, disableCache)
+	}
 	cancel()
 
 	if err != nil || queryOption.FakeEnable {
-		return ips, err
+		return ips, expireAt, err
 	}
-	return c.MatchExpectedIPs(domain, ips)
+	ips, err = c.MatchExpectedIPs(domain, ips)
+	return ips, expireAt, err
 }
 
 // MatchExpectedIPs matches queried domain IPs with expected IPs and returns matched ones.
