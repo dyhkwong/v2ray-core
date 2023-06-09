@@ -276,19 +276,25 @@ func (s *DoHNameServer) dohHTTPSContext(ctx context.Context, b []byte) ([]byte, 
 	return io.ReadAll(resp.Body)
 }
 
-func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, error) {
+func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {
 	s.RLock()
 	record, found := s.ips[domain]
 	s.RUnlock()
 
 	if !found {
-		return nil, errRecordNotFound
+		return nil, time.Time{}, errRecordNotFound
 	}
 
-	var ips []net.Address
-	var lastErr error
+	var ips, a, aaaa []net.Address
+	var expireAt time.Time
+	var err, lastErr error
+	updated := false
 	if option.IPv4Enable {
-		a, err := record.A.getIPs()
+		a, expireAt, err = record.A.getIPs()
+		if record.A != nil && record.A.TTL == 0 {
+			record.A = nil
+			updated = true
+		}
 		if err != nil {
 			lastErr = err
 		}
@@ -296,35 +302,46 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option dns_feature.IPOpt
 	}
 
 	if option.IPv6Enable {
-		aaaa, err := record.AAAA.getIPs()
+		aaaa, expireAt, err = record.AAAA.getIPs()
+		if record.AAAA != nil && record.AAAA.TTL == 0 {
+			record.AAAA = nil
+			updated = true
+		}
 		if err != nil {
 			lastErr = err
 		}
 		ips = append(ips, aaaa...)
 	}
 
+	if updated {
+		s.Lock()
+		s.ips[domain] = record
+		s.Unlock()
+	}
+
 	if len(ips) > 0 {
-		return toNetIP(ips)
+		ips, err := toNetIP(ips)
+		return ips, expireAt, err
 	}
 
 	if lastErr != nil {
-		return nil, lastErr
+		return nil, expireAt, lastErr
 	}
 
-	return nil, dns_feature.ErrEmptyResponse
+	return nil, expireAt, dns_feature.ErrEmptyResponse
 }
 
-// QueryIP implements Server.
-func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, error) { // nolint: dupl
+// QueryIPWithTTL implements ServerWithTTL.
+func (s *DoHNameServer) QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, time.Time, error) { // nolint: dupl
 	fqdn := Fqdn(domain)
 
 	if disableCache {
 		newError("DNS cache is disabled. Querying IP for ", domain, " at ", s.name).AtDebug().WriteToLog()
 	} else {
-		ips, err := s.findIPsForDomain(fqdn, option)
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
 		if err != errRecordNotFound {
 			newError(s.name, " cache HIT ", domain, " -> ", ips).Base(err).AtDebug().WriteToLog()
-			return ips, err
+			return ips, expireAt, err
 		}
 	}
 
@@ -359,13 +376,19 @@ func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, clientIP net
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
 
-		ips, err := s.findIPsForDomain(fqdn, option)
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
 		if err != errRecordNotFound {
-			return ips, err
+			return ips, expireAt, err
 		}
 	}
+}
+
+// QueryIP implements Server.
+func (s *DoHNameServer) QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, error) { // nolint: dupl
+	ips, _, err := s.QueryIPWithTTL(ctx, domain, clientIP, option, disableCache)
+	return ips, err
 }
