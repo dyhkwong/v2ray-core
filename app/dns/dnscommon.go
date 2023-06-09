@@ -32,16 +32,17 @@ type IPRecord struct {
 	IP     []net.Address
 	Expire time.Time
 	RCode  dnsmessage.RCode
+	TTL    uint32
 }
 
-func (r *IPRecord) getIPs() ([]net.Address, error) {
-	if r == nil || r.Expire.Before(time.Now()) {
-		return nil, errRecordNotFound
+func (r *IPRecord) getIPs() ([]net.Address, time.Time, error) {
+	if r == nil || r.TTL > 0 && r.Expire.Before(time.Now()) {
+		return nil, time.Time{}, errRecordNotFound
 	}
 	if r.RCode != dnsmessage.RCodeSuccess {
-		return nil, dns_feature.RCodeError(r.RCode)
+		return nil, r.Expire, dns_feature.RCodeError(r.RCode)
 	}
-	return r.IP, nil
+	return r.IP, r.Expire, nil
 }
 
 func isNewer(baseRec *IPRecord, newRec *IPRecord) bool {
@@ -178,7 +179,8 @@ func parseResponse(payload []byte) (*IPRecord, error) {
 	ipRecord := &IPRecord{
 		ReqID:  h.ID,
 		RCode:  h.RCode,
-		Expire: now.Add(time.Second * 600),
+		Expire: now,
+		TTL:    0,
 	}
 
 L:
@@ -191,14 +193,8 @@ L:
 			break
 		}
 
-		ttl := ah.TTL
-		if ttl == 0 {
-			ttl = 600
-		}
-		expire := now.Add(time.Duration(ttl) * time.Second)
-		if ipRecord.Expire.After(expire) {
-			ipRecord.Expire = expire
-		}
+		ipRecord.TTL = ah.TTL
+		ipRecord.Expire = now.Add(time.Duration(ipRecord.TTL) * time.Second)
 
 		switch ah.Type {
 		case dnsmessage.TypeA:
@@ -221,6 +217,15 @@ L:
 				break L
 			}
 			continue
+		}
+	}
+
+	if len(ipRecord.IP) == 0 && h.RCode == dnsmessage.RCodeSuccess || h.RCode == dnsmessage.RCodeNameError {
+		if ah, err := parser.AuthorityHeader(); err == nil && ah.Type == dnsmessage.TypeSOA {
+			if ans, err := parser.SOAResource(); err == nil {
+				ipRecord.TTL = min(ah.TTL, ans.MinTTL)
+				ipRecord.Expire = now.Add(time.Duration(ipRecord.TTL) * time.Second)
+			}
 		}
 	}
 
