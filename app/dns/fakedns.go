@@ -3,6 +3,8 @@
 package dns
 
 import (
+	"time"
+
 	fakedns "github.com/v2fly/v2ray-core/v4/app/dns/fakedns"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
@@ -26,6 +28,16 @@ func (s *FakeDNSClient) LookupIPv4(domain string) ([]net.IP, error) {
 // LookupIPv6 implements dns.IPv6Lookup.
 func (s *FakeDNSClient) LookupIPv6(domain string) ([]net.IP, error) {
 	return s.lookupIPInternal(domain, dns.IPOption{IPv6Enable: true, FakeEnable: true})
+}
+
+// LookupIPv4WithTTL implements dns.IPv4LookupWithTTL.
+func (s *FakeDNSClient) LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error) {
+	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv4Enable: true, FakeEnable: true})
+}
+
+// LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
+func (s *FakeDNSClient) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
+	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: true})
 }
 
 // FakeDNSEngine is an implementation of dns.FakeDNSEngine based on a fully functional DNS.
