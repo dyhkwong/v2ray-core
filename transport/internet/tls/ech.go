@@ -33,6 +33,9 @@ func ApplyECH(c *Config, config *tls.Config) error {
 		if err != nil {
 			return err
 		}
+		if len(ECHConfig) == 0 {
+			return newError("no ech record found")
+		}
 	}
 
 	config.EncryptedClientHelloConfigList = ECHConfig
@@ -52,9 +55,12 @@ var (
 func QueryRecord(domain string, server string) ([]byte, error) {
 	mutex.Lock()
 	rec, found := dnsCache[domain]
-	if found && rec.expire.After(time.Now()) {
-		mutex.Unlock()
-		return rec.record, nil
+	if found {
+		if rec.expire.After(time.Now()) {
+			mutex.Unlock()
+			return rec.record, nil
+		}
+		delete(dnsCache, domain)
 	}
 	mutex.Unlock()
 
@@ -64,15 +70,14 @@ func QueryRecord(domain string, server string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	if ttl < 600 {
-		ttl = 600
+	if ttl > 0 {
+		mutex.Lock()
+		defer mutex.Unlock()
+		rec.record = record
+		rec.expire = time.Now().Add(time.Second * time.Duration(ttl))
+		dnsCache[domain] = rec
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-	rec.record = record
-	rec.expire = time.Now().Add(time.Second * time.Duration(ttl))
-	dnsCache[domain] = rec
 	return record, nil
 }
 
@@ -134,6 +139,13 @@ func dohQuery(server string, domain string) ([]byte, uint32, error) {
 						return echConfig.ECH, answer.Header().Ttl, nil
 					}
 				}
+			}
+		}
+	}
+	if len(respMsg.Answer) == 0 && respMsg.Rcode == dns.RcodeSuccess || respMsg.Rcode == dns.RcodeNameError {
+		for _, ns := range respMsg.Ns {
+			if soa, ok := ns.(*dns.SOA); ok {
+				return []byte{}, min(ns.Header().Ttl, soa.Minttl), nil
 			}
 		}
 	}
