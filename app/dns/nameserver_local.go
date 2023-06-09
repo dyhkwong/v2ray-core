@@ -2,6 +2,7 @@ package dns
 
 import (
 	"context"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
@@ -13,9 +14,11 @@ type LocalNameServer struct {
 	client *localdns.Client
 }
 
-// QueryIP implements Server.
-func (s *LocalNameServer) QueryIP(_ context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, error) {
+// QueryIPWithTTL implements ServerWithTTL.
+func (s *LocalNameServer) QueryIPWithTTL(_ context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, uint32, time.Time, error) {
 	var ips []net.IP
+	ttl := uint32(600)
+	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
 	var err error
 
 	switch {
@@ -31,6 +34,12 @@ func (s *LocalNameServer) QueryIP(_ context.Context, domain string, _ net.IP, op
 		newError("Localhost got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 	}
 
+	return ips, ttl, expireAt, err
+}
+
+// QueryIP implements Server.
+func (s *LocalNameServer) QueryIP(_ context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, error) {
+	ips, _, _, err := s.QueryIPWithTTL(context.TODO(), domain, nil, option, false)
 	return ips, err
 }
 
