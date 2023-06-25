@@ -3,12 +3,17 @@ package inbound
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"bytes"
 	"context"
+	gotls "crypto/tls"
 	"io"
+	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/pires/go-proxyproto"
+	goreality "github.com/xtls/reality"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -28,8 +33,10 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
 
 func init() {
@@ -389,7 +396,58 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	}
 	inbound.User = request.User
 
+	account := request.User.Account.(*vless.MemoryAccount)
+
 	responseAddons := &encoding.Addons{}
+
+	var input *bytes.Reader
+	var rawInput *bytes.Buffer
+	switch requestAddons.Flow {
+	case vless.XRV:
+		if account.Flow == requestAddons.Flow {
+			switch request.Command {
+			case protocol.RequestCommandUDP:
+				return newError(requestAddons.Flow + " doesn't support UDP").AtWarning()
+			case protocol.RequestCommandMux:
+				fallthrough // we will break Mux connections that contain TCP requests
+			case protocol.RequestCommandTCP:
+				var t reflect.Type
+				var p uintptr
+				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+					iConn = httpupgradeConn.Conn
+				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+					iConn = websocketConn.Conn.NetConn()
+				}
+				if tlsConn, ok := iConn.(*tls.Conn); ok {
+					if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
+					}
+					t = reflect.TypeOf(tlsConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(tlsConn.Conn))
+				} else if realityConn, ok := iConn.(*reality.Conn); ok {
+					t = reflect.TypeOf(realityConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(realityConn.Conn))
+				} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
+					if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
+					}
+					t = reflect.TypeOf(gotlsConn).Elem()
+					p = uintptr(unsafe.Pointer(gotlsConn))
+				} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
+					t = reflect.TypeOf(gorealityConn).Elem()
+					p = uintptr(unsafe.Pointer(gorealityConn))
+				} else {
+					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+				}
+				i, _ := t.FieldByName("input")
+				r, _ := t.FieldByName("rawInput")
+				input = (*bytes.Reader)(unsafe.Pointer(p + i.Offset))
+				rawInput = (*bytes.Buffer)(unsafe.Pointer(p + r.Offset))
+			}
+		} else {
+			return newError(account.ID.String() + " is not able to use " + requestAddons.Flow).AtWarning()
+		}
+	}
 
 	if request.Command != protocol.RequestCommandMux {
 		ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
@@ -414,14 +472,24 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	serverReader := link.Reader // .(*pipe.Reader)
 	serverWriter := link.Writer // .(*pipe.Writer)
 
+	trafficState := encoding.NewTrafficState(account.ID.Bytes())
+
 	postRequest := func() error {
 		defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 
 		// default: clientReader := reader
 		clientReader := encoding.DecodeBodyAddons(reader, request, requestAddons)
 
-		// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
-		if err := buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer)); err != nil {
+		var err error
+		if requestAddons.Flow == vless.XRV {
+			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx)
+			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx)
+		} else {
+			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
+			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
+		}
+
+		if err != nil {
 			return newError("failed to transfer request payload").Base(err).AtInfo()
 		}
 
@@ -437,7 +505,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		}
 
 		// default: clientWriter := bufferWriter
-		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, responseAddons)
+		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, false, ctx)
 		{
 			multiBuffer, err := serverReader.ReadMultiBuffer()
 			if err != nil {
@@ -453,8 +521,14 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			return newError("failed to write A response payload").Base(err).AtWarning()
 		}
 
-		// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
-		if err := buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer)); err != nil {
+		var err error
+		if requestAddons.Flow == vless.XRV {
+			err = encoding.XtlsWrite(serverReader, clientWriter, timer, connection, trafficState, false, ctx)
+		} else {
+			// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
+			err = buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer))
+		}
+		if err != nil {
 			return newError("failed to transfer response payload").Base(err).AtInfo()
 		}
 
