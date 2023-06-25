@@ -1,19 +1,36 @@
 package encoding
 
 import (
+	"context"
 	"io"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
+	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 )
 
 // EncodeHeaderAddons Add addons byte to the header
 func EncodeHeaderAddons(buffer *buf.Buffer, addons *Addons) error {
-	if err := buffer.WriteByte(0); err != nil {
-		return newError("failed to write addons protobuf length").Base(err)
+	switch addons.Flow {
+	case vless.XRV:
+		bytes, err := proto.Marshal(addons)
+		if err != nil {
+			return newError("failed to marshal addons protobuf value").Base(err)
+		}
+		if err := buffer.WriteByte(byte(len(bytes))); err != nil {
+			return newError("failed to write addons protobuf length").Base(err)
+		}
+		if _, err := buffer.Write(bytes); err != nil {
+			return newError("failed to write addons protobuf value").Base(err)
+		}
+	default:
+		if err := buffer.WriteByte(0); err != nil {
+			return newError("failed to write addons protobuf length").Base(err)
+		}
 	}
 	return nil
 }
@@ -40,11 +57,15 @@ func DecodeHeaderAddons(buffer *buf.Buffer, reader io.Reader) (*Addons, error) {
 }
 
 // EncodeBodyAddons returns a Writer that auto-encrypt content written by caller.
-func EncodeBodyAddons(writer io.Writer, request *protocol.RequestHeader, addons *Addons) buf.Writer {
+func EncodeBodyAddons(writer io.Writer, request *protocol.RequestHeader, addons *Addons, state *TrafficState, isUplink bool, context context.Context, conn net.Conn) buf.Writer {
 	if request.Command == protocol.RequestCommandUDP {
 		return NewMultiLengthPacketWriter(writer.(buf.Writer))
 	}
-	return buf.NewWriter(writer)
+	w := buf.NewWriter(writer)
+	if addons.Flow == vless.XRV {
+		w = NewVisionWriter(w, state, isUplink, context, conn)
+	}
+	return w
 }
 
 // DecodeBodyAddons returns a Reader from which caller can fetch decrypted body.
