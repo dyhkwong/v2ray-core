@@ -10,8 +10,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 )
 
-type connection struct {
-	conn       net.Conn
+type Connection struct {
+	Conn       net.Conn
 	reader     io.Reader
 	remoteAddr net.Addr
 
@@ -23,17 +23,17 @@ type connection struct {
 
 type delayedDialer func(ctx context.Context, earlyData []byte) (conn net.Conn, earlyReply io.Reader, err error)
 
-func newConnectionWithPendingRead(conn net.Conn, remoteAddr net.Addr, earlyReplyReader io.Reader) *connection {
-	return &connection{
-		conn:       conn,
+func newConnectionWithPendingRead(conn net.Conn, remoteAddr net.Addr, earlyReplyReader io.Reader) *Connection {
+	return &Connection{
+		Conn:       conn,
 		remoteAddr: remoteAddr,
 		reader:     earlyReplyReader,
 	}
 }
 
-func newConnectionWithDelayedDial(ctx context.Context, dialer delayedDialer) *connection {
+func newConnectionWithDelayedDial(ctx context.Context, dialer delayedDialer) *Connection {
 	ctx, cancel := context.WithCancel(ctx)
-	return &connection{
+	return &Connection{
 		shouldWait:        true,
 		delayedDialFinish: ctx,
 		finishedDial:      cancel,
@@ -42,10 +42,10 @@ func newConnectionWithDelayedDial(ctx context.Context, dialer delayedDialer) *co
 }
 
 // Read implements net.Conn.Read()
-func (c *connection) Read(b []byte) (int, error) {
+func (c *Connection) Read(b []byte) (int, error) {
 	if c.shouldWait {
 		<-c.delayedDialFinish.Done()
-		if c.conn == nil {
+		if c.Conn == nil {
 			return 0, newError("unable to read delayed dial websocket connection as it do not exist")
 		}
 	}
@@ -54,15 +54,15 @@ func (c *connection) Read(b []byte) (int, error) {
 		n, err := c.reader.Read(b)
 		if err == io.EOF {
 			c.reader = nil
-			return c.conn.Read(b)
+			return c.Conn.Read(b)
 		}
 		return n, err
 	}
-	return c.conn.Read(b)
+	return c.Conn.Read(b)
 }
 
 // Write implements io.Writer.
-func (c *connection) Write(b []byte) (int, error) {
+func (c *Connection) Write(b []byte) (int, error) {
 	if c.shouldWait {
 		conn, earlyReply, err := c.dialer(c.delayedDialFinish, b)
 		if err != nil {
@@ -72,35 +72,35 @@ func (c *connection) Write(b []byte) (int, error) {
 		if earlyReply != nil {
 			c.reader = earlyReply
 		}
-		c.conn = conn
-		c.remoteAddr = c.conn.RemoteAddr()
+		c.Conn = conn
+		c.remoteAddr = c.Conn.RemoteAddr()
 		c.shouldWait = false
 		c.finishedDial()
 		return len(b), nil
 	}
-	return c.conn.Write(b)
+	return c.Conn.Write(b)
 }
 
-func (c *connection) WriteMultiBuffer(mb buf.MultiBuffer) error {
+func (c *Connection) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	mb = buf.Compact(mb)
 	mb, err := buf.WriteMultiBuffer(c, mb)
 	buf.ReleaseMulti(mb)
 	return err
 }
 
-func (c *connection) Close() error {
+func (c *Connection) Close() error {
 	if c.shouldWait {
 		select {
 		case <-c.delayedDialFinish.Done():
 		default:
 			c.finishedDial()
 		}
-		if c.conn == nil {
+		if c.Conn == nil {
 			return newError("unable to close delayed dial websocket connection as it do not exist")
 		}
 	}
 	var closeErrors []interface{}
-	if err := c.conn.Close(); err != nil {
+	if err := c.Conn.Close(); err != nil {
 		closeErrors = append(closeErrors, err)
 	}
 	if len(closeErrors) > 0 {
@@ -109,10 +109,10 @@ func (c *connection) Close() error {
 	return nil
 }
 
-func (c *connection) LocalAddr() net.Addr {
+func (c *Connection) LocalAddr() net.Addr {
 	if c.shouldWait {
 		<-c.delayedDialFinish.Done()
-		if c.conn == nil {
+		if c.Conn == nil {
 			newError("websocket transport is not materialized when LocalAddr() is called").AtWarning().WriteToLog()
 			return &net.UnixAddr{
 				Name: "@placeholder",
@@ -120,13 +120,13 @@ func (c *connection) LocalAddr() net.Addr {
 			}
 		}
 	}
-	return c.conn.LocalAddr()
+	return c.Conn.LocalAddr()
 }
 
-func (c *connection) RemoteAddr() net.Addr {
+func (c *Connection) RemoteAddr() net.Addr {
 	if c.shouldWait {
 		<-c.delayedDialFinish.Done()
-		if c.conn == nil {
+		if c.Conn == nil {
 			newError("websocket transport is not materialized when RemoteAddr() is called").AtWarning().WriteToLog()
 			return &net.UnixAddr{
 				Name: "@placeholder",
@@ -137,31 +137,31 @@ func (c *connection) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
-func (c *connection) SetDeadline(t time.Time) error {
+func (c *Connection) SetDeadline(t time.Time) error {
 	if err := c.SetReadDeadline(t); err != nil {
 		return err
 	}
 	return c.SetWriteDeadline(t)
 }
 
-func (c *connection) SetReadDeadline(t time.Time) error {
+func (c *Connection) SetReadDeadline(t time.Time) error {
 	if c.shouldWait {
 		<-c.delayedDialFinish.Done()
-		if c.conn == nil {
+		if c.Conn == nil {
 			newError("httpupgrade transport is not materialized when SetReadDeadline() is called").AtWarning().WriteToLog()
 			return nil
 		}
 	}
-	return c.conn.SetReadDeadline(t)
+	return c.Conn.SetReadDeadline(t)
 }
 
-func (c *connection) SetWriteDeadline(t time.Time) error {
+func (c *Connection) SetWriteDeadline(t time.Time) error {
 	if c.shouldWait {
 		<-c.delayedDialFinish.Done()
-		if c.conn == nil {
+		if c.Conn == nil {
 			newError("httpupgrade transport is not materialized when SetWriteDeadline() is called").AtWarning().WriteToLog()
 			return nil
 		}
 	}
-	return c.conn.SetWriteDeadline(t)
+	return c.Conn.SetWriteDeadline(t)
 }
