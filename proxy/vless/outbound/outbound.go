@@ -3,7 +3,10 @@ package outbound
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"bytes"
 	"context"
+	"reflect"
+	"unsafe"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -23,6 +26,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
 
 func init() {
@@ -99,6 +107,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	}
 	defer conn.Close()
 
+	iConn := conn
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
+		iConn = statConn.Connection
+	}
+
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified").AtError()
@@ -129,6 +143,49 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		Flow: account.Flow,
 	}
 
+	var input *bytes.Reader
+	var rawInput *bytes.Buffer
+	allowUDP443 := false
+	switch requestAddons.Flow {
+	case vless.XRV + "-udp443":
+		allowUDP443 = true
+		requestAddons.Flow = requestAddons.Flow[:16]
+		fallthrough
+	case vless.XRV:
+		switch request.Command {
+		case protocol.RequestCommandUDP:
+			if !allowUDP443 && request.Port == 443 {
+				return newError("XTLS rejected UDP/443 traffic").AtInfo()
+			}
+		case protocol.RequestCommandMux:
+			fallthrough // let server break Mux connections that contain TCP requests
+		case protocol.RequestCommandTCP:
+			var t reflect.Type
+			var p uintptr
+			if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+				iConn = httpupgradeConn.Conn
+			} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+				iConn = websocketConn.Conn.NetConn()
+			}
+			if tlsConn, ok := iConn.(*tls.Conn); ok {
+				t = reflect.TypeOf(tlsConn.Conn).Elem()
+				p = uintptr(unsafe.Pointer(tlsConn.Conn))
+			} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
+				t = reflect.TypeOf(utlsConn.Conn).Elem()
+				p = uintptr(unsafe.Pointer(utlsConn.Conn))
+			} else if realityConn, ok := iConn.(*reality.UConn); ok {
+				t = reflect.TypeOf(realityConn.Conn).Elem()
+				p = uintptr(unsafe.Pointer(realityConn.Conn))
+			} else {
+				return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+			}
+			i, _ := t.FieldByName("input")
+			r, _ := t.FieldByName("rawInput")
+			input = (*bytes.Reader)(unsafe.Pointer(p + i.Offset))
+			rawInput = (*bytes.Buffer)(unsafe.Pointer(p + r.Offset))
+		}
+	}
+
 	sessionPolicy := h.policyManager.ForLevel(request.User.Level)
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
@@ -136,17 +193,19 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	clientReader := link.Reader // .(*pipe.Reader)
 	clientWriter := link.Writer // .(*pipe.Writer)
 
+	trafficState := encoding.NewTrafficState(account.ID.Bytes())
+
 	packetEncoding := packetaddr.PacketAddrType_None
 	if command == protocol.RequestCommandUDP && request.Port > 0 {
 		switch {
-		case h.packetEncoding == packetaddr.PacketAddrType_Packet && request.Address.Family().IsIP():
-			packetEncoding = h.packetEncoding
-			request.Address = net.DomainAddress(packetaddr.SeqPacketMagicAddress)
-			request.Port = 0
-		case h.packetEncoding == packetaddr.PacketAddrType_XUDP && request.Port != 53 && request.Port != 443:
+		case requestAddons.Flow == vless.XRV, h.packetEncoding == packetaddr.PacketAddrType_XUDP && request.Port != 53 && request.Port != 443:
 			packetEncoding = h.packetEncoding
 			request.Command = protocol.RequestCommandMux
 			request.Address = net.DomainAddress("v1.mux.cool")
+			request.Port = 0
+		case h.packetEncoding == packetaddr.PacketAddrType_Packet && request.Address.Family().IsIP():
+			packetEncoding = h.packetEncoding
+			request.Address = net.DomainAddress(packetaddr.SeqPacketMagicAddress)
 			request.Port = 0
 		}
 	}
@@ -160,7 +219,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 
 		// default: serverWriter := bufferWriter
-		serverWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons)
+		serverWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, true, ctx, conn)
 		switch packetEncoding {
 		case packetaddr.PacketAddrType_Packet:
 			serverWriter = packetaddr.NewPacketWriter(serverWriter, target)
@@ -168,13 +227,41 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 			serverWriter = xudp.NewPacketWriter(serverWriter, target)
 		}
 
-		if err := buf.CopyOnceTimeout(clientReader, serverWriter, proxy.FirstPayloadTimeout); err != nil && err != buf.ErrNotTimeoutReader && err != buf.ErrReadTimeout {
-			return err // ...
+		timeoutReader, ok := clientReader.(buf.TimeoutReader)
+		if ok {
+			multiBuffer, err1 := timeoutReader.ReadMultiBufferTimeout(proxy.FirstPayloadTimeout)
+			if err1 == nil {
+				if err := serverWriter.WriteMultiBuffer(multiBuffer); err != nil {
+					return err // ...
+				}
+			} else if err1 != buf.ErrReadTimeout {
+				return err1
+			} else if requestAddons.Flow == vless.XRV {
+				mb := make(buf.MultiBuffer, 1)
+				newError("Insert padding with empty content to camouflage VLESS header ", mb.Len()).WriteToLog(session.ExportIDToError(ctx))
+				if err := serverWriter.WriteMultiBuffer(mb); err != nil {
+					return err // ...
+				}
+			}
+		} else {
+			newError("Reader is not timeout reader, will send out vless header separately from first payload").AtDebug().WriteToLog(session.ExportIDToError(ctx))
 		}
 
 		// Flush; bufferWriter.WriteMultiBuffer now is bufferWriter.writer.WriteMultiBuffer
 		if err := bufferWriter.SetBuffered(false); err != nil {
 			return newError("failed to write A request payload").Base(err).AtWarning()
+		}
+
+		if requestAddons.Flow == vless.XRV {
+			if tlsConn, ok := iConn.(*tls.Conn); ok {
+				if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+					return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
+				}
+			} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
+				if utlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+					return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, utlsConn.ConnectionState().Version).AtWarning()
+				}
+			}
 		}
 
 		// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
@@ -195,6 +282,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 		// default: serverReader := buf.NewReader(conn)
 		serverReader := encoding.DecodeBodyAddons(conn, request, responseAddons)
+		if requestAddons.Flow == vless.XRV {
+			serverReader = encoding.NewVisionReader(serverReader, trafficState, false, ctx, conn, input, rawInput)
+		}
 		switch packetEncoding {
 		case packetaddr.PacketAddrType_Packet:
 			serverReader = packetaddr.NewPacketReader(serverReader)
