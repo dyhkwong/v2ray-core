@@ -7,6 +7,7 @@ package freedom
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	core "github.com/v2fly/v2ray-core/v4"
@@ -154,6 +155,8 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		isPacketAddr = true
 	}
 
+	ipToDomain := new(sync.Map)
+
 	requestDone := func() error {
 		defer timer.SetTimeout(plcy.Timeouts.DownlinkOnly)
 
@@ -164,7 +167,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		case redirect.Address != nil, redirect.Port != 0, isPacketAddr:
 			writer = &buf.SequentialWriter{Writer: conn}
 		default:
-			writer = NewPacketWriter(ctx, h, conn, destination)
+			writer = NewPacketWriter(ctx, h, conn, destination, ipToDomain)
 		}
 
 		if err := buf.Copy(input, writer, buf.UpdateActivity(timer)); err != nil {
@@ -184,7 +187,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		case redirect.Address != nil, redirect.Port != 0, isPacketAddr:
 			reader = &buf.PacketReader{Reader: conn}
 		default:
-			reader = NewPacketReader(conn)
+			reader = NewPacketReader(conn, ipToDomain)
 		}
 		if err := buf.Copy(reader, output, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to process response").Base(err)
@@ -200,7 +203,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	return nil
 }
 
-func NewPacketReader(conn net.Conn) buf.Reader {
+func NewPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
 	iConn := conn
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
@@ -214,6 +217,7 @@ func NewPacketReader(conn net.Conn) buf.Reader {
 		return &PacketReader{
 			packetConn: c,
 			counter:    counter,
+			ipToDomain: ipToDomain,
 		}
 	}
 	return &buf.PacketReader{Reader: conn}
@@ -222,6 +226,7 @@ func NewPacketReader(conn net.Conn) buf.Reader {
 type PacketReader struct {
 	packetConn net.PacketConn
 	counter    stats.Counter
+	ipToDomain *sync.Map
 }
 
 func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
@@ -238,13 +243,16 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		Port:    net.Port(d.(*net.UDPAddr).Port),
 		Network: net.Network_UDP,
 	}
+	if domain, ok := r.ipToDomain.Load(d.(*net.UDPAddr).AddrPort().Addr()); ok {
+		b.Endpoint.Address = domain.(net.Address)
+	}
 	if r.counter != nil {
 		r.counter.Add(int64(n))
 	}
 	return buf.MultiBuffer{b}, nil
 }
 
-func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination) buf.Writer {
+func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination, ipToDomain *sync.Map) buf.Writer {
 	iConn := conn
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
@@ -261,6 +269,7 @@ func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.De
 			packetConn: c,
 			counter:    counter,
 			dest:       dest,
+			ipToDomain: ipToDomain,
 		}
 	}
 	return &buf.SequentialWriter{Writer: conn}
@@ -272,6 +281,7 @@ type PacketWriter struct {
 	packetConn net.PacketConn
 	counter    stats.Counter
 	dest       net.Destination
+	ipToDomain *sync.Map
 }
 
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
@@ -286,6 +296,7 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		} else {
 			dest = w.dest
 		}
+		originalDest := dest
 		if w.handler.config.useIP() && dest.Address.Family().IsDomain() {
 			ip := w.handler.resolveIP(w.ctx, dest.Address.Domain(), nil)
 			if ip != nil {
@@ -295,6 +306,9 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if destAddr == nil {
 			continue
+		}
+		if originalDest.Address.Family().IsDomain() {
+			w.ipToDomain.LoadOrStore(destAddr.AddrPort().Addr(), originalDest.Address)
 		}
 		n, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
 		if err != nil {
