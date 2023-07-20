@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"sync"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/proxyman"
@@ -63,6 +64,7 @@ type Handler struct {
 	uplinkCounter     stats.Counter
 	downlinkCounter   stats.Counter
 	dns               dns.Client
+	fakedns           dns.FakeDNSEngine
 	muxPacketEncoding packetaddr.PacketAddrType
 }
 
@@ -143,6 +145,11 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		}
 	}
 
+	_ = core.RequireFeatures(ctx, func(fakedns dns.FakeDNSEngine) error {
+		h.fakedns = fakedns
+		return nil
+	})
+
 	h.proxy = proxyHandler
 	return h, nil
 }
@@ -159,11 +166,41 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		outbound = new(session.Outbound)
 		ctx = session.ContextWithOutbound(ctx, outbound)
 	}
-	if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+	if outbound.Target.Network != net.Network_UDP && h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
 		if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address()); addr != nil {
 				outbound.Target.Address = addr
 			}
+		}
+	}
+	if outbound.Target.Network == net.Network_UDP {
+		var mutex *sync.Mutex
+		var ipToDomain map[net.Address]net.Address
+		if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+			if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
+				if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address()); addr != nil {
+					mutex = &sync.Mutex{}
+					ipToDomain = make(map[net.Address]net.Address)
+					ipToDomain[addr] = outbound.Target.Address
+					outbound.Target.Address = addr
+				}
+			}
+		}
+		link.Reader = &EndpointOverrideReader{
+			Reader:       link.Reader,
+			Dest:         outbound.Target.Address,
+			OriginalDest: outbound.OriginalTarget.Address,
+			Handler:      h,
+			mutex:        mutex,
+			ipToDomain:   ipToDomain,
+		}
+		link.Writer = &EndpointOverrideWriter{
+			Writer:       link.Writer,
+			Dest:         outbound.Target.Address,
+			OriginalDest: outbound.OriginalTarget.Address,
+			Handler:      h,
+			mutex:        mutex,
+			ipToDomain:   ipToDomain,
 		}
 	}
 	if h.mux != nil && (h.mux.Enabled || session.MuxPreferedFromContext(ctx)) {
