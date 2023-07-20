@@ -4,6 +4,7 @@ package dispatcher
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -205,7 +206,8 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 		panic("Dispatcher: Invalid destination.")
 	}
 	ob := &session.Outbound{
-		Target: destination,
+		OriginalTarget: destination,
+		Target:         destination,
 	}
 	ctx = session.ContextWithOutbound(ctx, ob)
 
@@ -219,6 +221,9 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 	if !sniffingRequest.Enabled {
 		go d.routedDispatch(ctx, outbound, destination)
 	} else {
+		if slices.Contains(sniffingRequest.OverrideDestinationForProtocol, "fakedns") {
+			ob.OverrideFakeDNS = true
+		}
 		go func() {
 			cReader := &cachedReader{
 				reader: outbound.Reader.(*pipe.Reader),
