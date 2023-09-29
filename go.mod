@@ -13,6 +13,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/metacubex/utls v1.8.3
 	github.com/miekg/dns v1.1.69
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
@@ -47,7 +48,7 @@ require (
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
@@ -63,7 +64,7 @@ require (
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
+	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
