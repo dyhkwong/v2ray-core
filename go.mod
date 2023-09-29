@@ -1,6 +1,6 @@
 module github.com/v2fly/v2ray-core/v5
 
-go 1.22.0
+go 1.23
 
 require (
 	github.com/adrg/xdg v0.5.3
@@ -27,6 +27,7 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
+	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.33.0
