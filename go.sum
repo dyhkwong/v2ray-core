@@ -297,6 +297,8 @@ github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2 h1:JwiRCsLsmnNX
 github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2/go.mod h1:PChnkENmpgFKJRVZ6mX1tFBSZMqXrjbtmc48+fANnwo=
 github.com/xtaci/smux v1.5.15 h1:6hMiXswcleXj5oNfcJc+DXS8Vj36XX2LaX98udog6Kc=
 github.com/xtaci/smux v1.5.15/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
+github.com/xtls/reality v0.0.0-20250607105625-90e738a94c8c h1:GiY3/SynO0ujSH3rQDEIrE4MTTZM9KHufR3zx3JLD3c=
+github.com/xtls/reality v0.0.0-20250607105625-90e738a94c8c/go.mod h1:Rkdcxe9Yd8SWQRRP+LSvX6wxk1m4lmNkyUZEHzbPDZw=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
