@@ -28,6 +28,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -216,6 +217,12 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			alpn := ""
 			if tlsConn, ok := iConn.(*tls.Conn); ok {
 				cs := tlsConn.ConnectionState()
+				name = cs.ServerName
+				alpn = cs.NegotiatedProtocol
+				newError("realName = " + name).AtInfo().WriteToLog(sid)
+				newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+			} else if realityConn, ok := iConn.(*reality.Conn); ok {
+				cs := realityConn.ConnectionState()
 				name = cs.ServerName
 				alpn = cs.NegotiatedProtocol
 				newError("realName = " + name).AtInfo().WriteToLog(sid)
