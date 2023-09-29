@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	goreality "github.com/xtls/reality"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/grpc/encoding"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -104,6 +106,10 @@ func Listen(ctx context.Context, address net.Address, port net.Port, settings *i
 		}
 
 		encoding.RegisterGunServiceServerX(s, listener, grpcSettings.ServiceName)
+
+		if realityConfig := reality.ConfigFromStreamSettings(settings); realityConfig != nil {
+			streamListener = goreality.NewListener(streamListener, realityConfig.GetREALITYConfig())
+		}
 
 		if err = s.Serve(streamListener); err != nil {
 			newError("Listener for grpc ended").Base(err).WriteToLog()
