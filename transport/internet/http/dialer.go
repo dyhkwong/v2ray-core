@@ -16,6 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/pipe"
 )
@@ -71,6 +72,10 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 				return nil, err
 			}
 
+			if realitySettings := reality.ConfigFromStreamSettings(streamSettings); realitySettings != nil {
+				return reality.UClient(pconn, realitySettings, detachedContext, dest)
+			}
+
 			cn, err := (*securityEngine).Client(pconn,
 				security.OptionWithDestination{Dest: dest})
 			if err != nil {
@@ -104,12 +109,10 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 // Dial dials a new TCP connection to the given destination.
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	httpSettings := streamSettings.ProtocolSettings.(*Config)
-	securityEngine, err := security.CreateSecurityEngineFromSettings(ctx, streamSettings)
-	if err != nil {
-		return nil, newError("unable to create security engine").Base(err)
-	}
-	if securityEngine == nil {
-		return nil, newError("TLS must be enabled for http transport.").AtWarning()
+	securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings)
+	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
+	if securityEngine == nil && realityConfig == nil {
+		return nil, newError("TLS or REALITY must be enabled for http transport.").AtWarning()
 	}
 	client, canceller := getHTTPClient(ctx, dest, &securityEngine, streamSettings)
 
