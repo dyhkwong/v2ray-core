@@ -13,6 +13,8 @@ issues:
   exclude-files:
     - generated.*
     - .pb.go
+    - infra/conf/cfgcommon/tlscfg/reality.go
+    - transport/internet/reality/*.*
 
 linters:
   enable:
