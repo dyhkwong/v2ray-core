@@ -12,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/transportcommon"
 )
@@ -20,10 +21,20 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 
 	dialer := func(ctx context.Context, earlyData []byte) (net.Conn, io.Reader, error) {
-		conn, err := transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings,
-			security.OptionWithDestination{Dest: dest},
-			security.OptionWithALPN{ALPNs: []string{"http/1.1"}},
-		)
+		var conn internet.Connection
+		var err error
+		if realityConfig := reality.ConfigFromStreamSettings(streamSettings); realityConfig != nil {
+			conn, err = internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
+			if err != nil {
+				return nil, nil, newError("failed to dial request to ", dest).Base(err)
+			}
+			conn, err = reality.UClient(ctx, conn, dest, realityConfig)
+		} else {
+			conn, err = transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings,
+				security.OptionWithDestination{Dest: dest},
+				security.OptionWithALPN{ALPNs: []string{"http/1.1"}},
+			)
+		}
 		if err != nil {
 			return nil, nil, newError("failed to dial request to ", dest).Base(err)
 		}
