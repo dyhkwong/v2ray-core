@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	goreality "github.com/xtls/reality"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -180,9 +182,12 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		}
 
 		if config == nil {
+			if realityConfig := reality.ConfigFromStreamSettings(streamSettings); realityConfig != nil {
+				streamListener = goreality.NewListener(streamListener, realityConfig.GetREALITYConfig())
+			}
 			err = server.Serve(streamListener)
 			if err != nil {
-				newError("stopping serving H2C").Base(err).WriteToLog(session.ExportIDToError(ctx))
+				newError("stopping serving H2C or REALITY H2").Base(err).WriteToLog(session.ExportIDToError(ctx))
 			}
 		} else {
 			err = server.ServeTLS(streamListener, "", "")
