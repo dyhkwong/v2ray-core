@@ -6,21 +6,25 @@ import (
 	"strings"
 	"time"
 
+	goreality "github.com/xtls/reality"
+
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 // Listener is an internet.Listener that listens for TCP connections.
 type Listener struct {
-	listener   net.Listener
-	tlsConfig  *gotls.Config
-	authConfig internet.ConnectionAuthenticator
-	config     *Config
-	addConn    internet.ConnHandler
+	listener      net.Listener
+	tlsConfig     *gotls.Config
+	realityConfig *goreality.Config
+	authConfig    internet.ConnectionAuthenticator
+	config        *Config
+	addConn       internet.ConnHandler
 }
 
 // ListenTCP creates a new Listener based on configurations.
@@ -67,6 +71,9 @@ func ListenTCP(ctx context.Context, address net.Address, port net.Port, streamSe
 	if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
 		l.tlsConfig = config.GetTLSConfig()
 	}
+	if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
+		l.realityConfig = config.GetREALITYConfig()
+	}
 
 	if tcpSettings.HeaderSettings != nil {
 		headerConfig, err := serial.GetInstanceOf(tcpSettings.HeaderSettings)
@@ -98,15 +105,21 @@ func (v *Listener) keepAccepting() {
 			}
 			continue
 		}
-
-		if v.tlsConfig != nil {
-			conn = tls.Server(conn, v.tlsConfig)
-		}
-		if v.authConfig != nil {
-			conn = v.authConfig.Server(conn)
-		}
-
-		v.addConn(internet.Connection(conn))
+		go func() {
+			if v.tlsConfig != nil {
+				conn = tls.Server(conn, v.tlsConfig)
+			}
+			if v.realityConfig != nil {
+				if conn, err = reality.Server(conn, v.realityConfig); err != nil {
+					newError(err).AtInfo().WriteToLog()
+					return
+				}
+			}
+			if v.authConfig != nil {
+				conn = v.authConfig.Server(conn)
+			}
+			v.addConn(internet.Connection(conn))
+		}()
 	}
 }
 
