@@ -13,6 +13,7 @@ func init() {
 		cmdLove,
 		tls.CmdTLS,
 		cmdUUID,
+		cmdX25519,
 
 		// documents
 		docFormat,
