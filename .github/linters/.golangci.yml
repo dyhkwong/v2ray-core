@@ -46,6 +46,8 @@ linters:
     paths:
       - generated.*
       - .pb.go
+      - infra/conf/cfgcommon/tlscfg/reality.go
+      - transport/internet/reality/*.*
       - third_party$
       - builtin$
       - examples$
