@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package v2ray.core.transport.internet.reality;
+option csharp_namespace = "V2Ray.Core.Transport.Internet.Reality";
+option go_package = "github.com/v2fly/v2ray-core/v5/transport/internet/reality";
+option java_package = "com.v2ray.core.transport.internet.reality";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+
+message Config {
+  option (v2ray.core.common.protoext.message_opt).type = "security";
+  option (v2ray.core.common.protoext.message_opt).short_name = "reality";
+
+  string dest = 1;
+  string type = 2;
+  uint64 xver = 3;
+  repeated string server_names = 4;
+  bytes private_key = 5;
+  repeated bytes short_ids = 6;
+
+  string fingerprint = 21;
+  string server_name = 22;
+  bytes public_key = 23;
+  bytes short_id = 24;
+
+  bytes version = 99;
+  bool disable_x25519mlkem768 = 100;
+  bool reenable_chacha20poly1305 = 101;
+}
