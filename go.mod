@@ -32,6 +32,7 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
+	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130
 	go.uber.org/mock v0.5.2
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.39.0
