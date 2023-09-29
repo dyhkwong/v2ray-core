@@ -24,6 +24,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
@@ -336,6 +337,12 @@ func (s *Server) fallback(ctx context.Context, sid errors.ExportOption, err erro
 	alpn := ""
 	if tlsConn, ok := iConn.(*tls.Conn); ok {
 		cs := tlsConn.ConnectionState()
+		name = cs.ServerName
+		alpn = cs.NegotiatedProtocol
+		newError("realName = " + name).AtInfo().WriteToLog(sid)
+		newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
+	} else if realityConn, ok := iConn.(*reality.Conn); ok {
+		cs := realityConn.ConnectionState()
 		name = cs.ServerName
 		alpn = cs.NegotiatedProtocol
 		newError("realName = " + name).AtInfo().WriteToLog(sid)
