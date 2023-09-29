@@ -9,6 +9,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -26,6 +27,8 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
 		return tls.Client(conn, config.GetTLSConfig(tls.WithDestination(dest))), nil
+	} else if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
+		return reality.UClient(conn, config, ctx, dest)
 	}
 
 	return conn, nil
