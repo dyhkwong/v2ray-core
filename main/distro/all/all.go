@@ -71,6 +71,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/http"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/kcp"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/quic"
+	_ "github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
