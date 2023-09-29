@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	utls "github.com/metacubex/utls"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	http_proto "github.com/v2fly/v2ray-core/v5/common/protocol/http"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	v2tls "github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -133,7 +135,9 @@ func ListenWS(ctx context.Context, address net.Address, port net.Port, streamSet
 		newError("accepting PROXY protocol").AtWarning().WriteToLog(session.ExportIDToError(ctx))
 	}
 
-	if config := v2tls.ConfigFromStreamSettings(streamSettings); config != nil {
+	if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
+		listener = utls.NewRealityListener(listener, config.GetREALITYConfig())
+	} else if config := v2tls.ConfigFromStreamSettings(streamSettings); config != nil {
 		if tlsConfig := config.GetTLSConfig(); tlsConfig != nil {
 			listener = tls.NewListener(listener, tlsConfig)
 		}
