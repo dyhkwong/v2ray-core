@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/grpc/encoding"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
 )
@@ -129,7 +130,14 @@ func getGrpcClient(ctx context.Context, dest net.Destination, streamSettings *in
 			}
 			address := net.ParseAddress(rawHost)
 			detachedContext := core.ToBackgroundDetachedContext(ctx)
-			return internet.DialSystem(detachedContext, net.TCPDestination(address, port), streamSettings.SocketSettings)
+			conn, err := internet.DialSystem(detachedContext, net.TCPDestination(address, port), streamSettings.SocketSettings)
+			if err != nil {
+				return nil, err
+			}
+			if realityConfig := reality.ConfigFromStreamSettings(streamSettings); realityConfig != nil {
+				return reality.UClient(detachedContext, conn, dest, realityConfig)
+			}
+			return conn, err
 		}),
 		grpc.WithDisableServiceConfig(),
 	}
