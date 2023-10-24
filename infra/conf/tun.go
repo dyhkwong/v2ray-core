@@ -1,3 +1,5 @@
+//go:build tun && linux && (amd64 || arm64)
+
 package conf
 
 import (
