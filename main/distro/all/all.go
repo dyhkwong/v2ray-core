@@ -36,7 +36,6 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/app/observatory/burst"
 	_ "github.com/v2fly/v2ray-core/v4/app/observatory/multiobservatory"
 	_ "github.com/v2fly/v2ray-core/v4/app/persistentstorage/filesystemstorage"
-	_ "github.com/v2fly/v2ray-core/v4/app/tun"
 
 	// Inbound and outbound proxies.
 	_ "github.com/v2fly/v2ray-core/v4/proxy/blackhole"
