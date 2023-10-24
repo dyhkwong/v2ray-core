@@ -499,8 +499,8 @@ func (c *Config) Build() (*core.Config, error) {
 	}
 
 	if c.TUN != nil {
-		t, err := c.TUN.Build()
-		if err != nil {
+		t, err := c.TUN.Build() // nolint:staticcheck
+		if err != nil {         // nolint:staticcheck
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(t))
