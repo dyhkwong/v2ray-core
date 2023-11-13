@@ -15,6 +15,7 @@ func init() {
 		cmdUUID,
 		cmdX25519,
 		cmdMLKEM768,
+		cmdWG,
 
 		// documents
 		docFormat,
