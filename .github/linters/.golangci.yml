@@ -51,6 +51,7 @@ linters:
       - proxy/vless/encryption/*.*
       - proxy/vless/inbound/inbound.go
       - proxy/vless/outbound/outbound.go
+      - proxy/wireguard/*.*
       - transport/internet/reality/*.*
       - transport/internet/splithttp/*.*
       - third_party$
