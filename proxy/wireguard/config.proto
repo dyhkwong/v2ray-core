@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.wireguard;
+option csharp_namespace = "V2Ray.Core.Proxy.WireGuard";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/wireguard";
+option java_package = "com.v2ray.core.proxy.wireguard";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+
+message PeerConfig {
+  string public_key = 1;
+  string pre_shared_key = 2;
+  string endpoint = 3;
+  uint32 keep_alive = 4;
+  repeated string allowed_ips = 5;
+}
+
+message DeviceConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "wireguard";
+
+  enum DomainStrategy {
+    USE_IP = 0;
+    USE_IP4 = 1;
+    USE_IP6 = 2;
+    PREFER_IP4 = 3;
+    PREFER_IP6 = 4;
+  }
+  string secret_key = 1;
+  repeated string endpoint = 2;
+  repeated PeerConfig peers = 3;
+  int32 mtu = 4;
+  int32 num_workers = 5;
+  bytes reserved = 6;
+  DomainStrategy domain_strategy = 7;
+}
