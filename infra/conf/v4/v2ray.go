@@ -55,6 +55,7 @@ var (
 		"loopback":         func() interface{} { return new(LoopbackConfig) },
 		"shadowsocks2022":  func() interface{} { return new(Shadowsocks2022Config) },
 		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ClientConfig) },
+		"wireguard":        func() interface{} { return new(WireGuardClientConfig) },
 	}, "protocol", "settings")
 )
 
