@@ -239,6 +239,82 @@ func (x *ClientConfig) GetDomainStrategy() ClientConfig_DomainStrategy {
 	return ClientConfig_USE_IP
 }
 
+type ServerConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SecretKey     string                 `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
+	Address       []string               `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
+	Peers         []*PeerConfig          `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	Mtu           int32                  `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	NumWorkers    int32                  `protobuf:"varint,5,opt,name=num_workers,json=numWorkers,proto3" json:"num_workers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerConfig) Reset() {
+	*x = ServerConfig{}
+	mi := &file_proxy_wireguard_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerConfig) ProtoMessage() {}
+
+func (x *ServerConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_wireguard_config_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerConfig.ProtoReflect.Descriptor instead.
+func (*ServerConfig) Descriptor() ([]byte, []int) {
+	return file_proxy_wireguard_config_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ServerConfig) GetSecretKey() string {
+	if x != nil {
+		return x.SecretKey
+	}
+	return ""
+}
+
+func (x *ServerConfig) GetAddress() []string {
+	if x != nil {
+		return x.Address
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetPeers() []*PeerConfig {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+func (x *ServerConfig) GetMtu() int32 {
+	if x != nil {
+		return x.Mtu
+	}
+	return 0
+}
+
+func (x *ServerConfig) GetNumWorkers() int32 {
+	if x != nil {
+		return x.NumWorkers
+	}
+	return 0
+}
+
 var File_proxy_wireguard_config_proto protoreflect.FileDescriptor
 
 const file_proxy_wireguard_config_proto_rawDesc = "" +
@@ -273,7 +349,16 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"PREFER_IP4\x10\x03\x12\x0e\n" +
 	"\n" +
 	"PREFER_IP6\x10\x04:\x19\x82\xb5\x18\x15\n" +
-	"\boutbound\x12\twireguardBo\n" +
+	"\boutbound\x12\twireguard\"\xd2\x01\n" +
+	"\fServerConfig\x12\x1d\n" +
+	"\n" +
+	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x18\n" +
+	"\aaddress\x18\x02 \x03(\tR\aaddress\x12<\n" +
+	"\x05peers\x18\x03 \x03(\v2&.v2ray.core.proxy.wireguard.PeerConfigR\x05peers\x12\x10\n" +
+	"\x03mtu\x18\x04 \x01(\x05R\x03mtu\x12\x1f\n" +
+	"\vnum_workers\x18\x05 \x01(\x05R\n" +
+	"numWorkers:\x18\x82\xb5\x18\x14\n" +
+	"\ainbound\x12\twireguardBo\n" +
 	"\x1ecom.v2ray.core.proxy.wireguardP\x01Z.github.com/v2fly/v2ray-core/v5/proxy/wireguard\xaa\x02\x1aV2Ray.Core.Proxy.WireGuardb\x06proto3"
 
 var (
@@ -289,20 +374,22 @@ func file_proxy_wireguard_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_wireguard_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proxy_wireguard_config_proto_goTypes = []any{
 	(ClientConfig_DomainStrategy)(0), // 0: v2ray.core.proxy.wireguard.ClientConfig.DomainStrategy
 	(*PeerConfig)(nil),               // 1: v2ray.core.proxy.wireguard.PeerConfig
 	(*ClientConfig)(nil),             // 2: v2ray.core.proxy.wireguard.ClientConfig
+	(*ServerConfig)(nil),             // 3: v2ray.core.proxy.wireguard.ServerConfig
 }
 var file_proxy_wireguard_config_proto_depIdxs = []int32{
 	1, // 0: v2ray.core.proxy.wireguard.ClientConfig.peers:type_name -> v2ray.core.proxy.wireguard.PeerConfig
 	0, // 1: v2ray.core.proxy.wireguard.ClientConfig.domain_strategy:type_name -> v2ray.core.proxy.wireguard.ClientConfig.DomainStrategy
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1, // 2: v2ray.core.proxy.wireguard.ServerConfig.peers:type_name -> v2ray.core.proxy.wireguard.PeerConfig
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proxy_wireguard_config_proto_init() }
@@ -316,7 +403,7 @@ func file_proxy_wireguard_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_wireguard_config_proto_rawDesc), len(file_proxy_wireguard_config_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
