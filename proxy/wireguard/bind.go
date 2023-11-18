@@ -193,6 +193,31 @@ func (bind *netBindClient) Send(buff [][]byte, endpoint conn.Endpoint) error {
 	return nil
 }
 
+type netBindServer struct {
+	netBind
+}
+
+func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
+	var err error
+
+	nend, ok := endpoint.(*netEndpoint)
+	if !ok {
+		return conn.ErrWrongEndpointType
+	}
+
+	if nend.conn == nil {
+		return errors.New("connection not open yet")
+	}
+
+	for _, buff := range buff {
+		if _, err = nend.conn.Write(buff); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 type netEndpoint struct {
 	dst  net.Destination
 	conn net.Conn
