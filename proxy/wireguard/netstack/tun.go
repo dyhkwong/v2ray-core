@@ -38,11 +38,11 @@ type netTun struct {
 
 type Net netTun
 
-func CreateNetTUN(localAddresses []netip.Addr, mtu int) (tun.Device, *Net, error) {
+func CreateNetTUN(localAddresses []netip.Addr, mtu int, promiscuousMode bool) (tun.Device, *Net, *stack.Stack, error) {
 	opts := stack.Options{
 		NetworkProtocols:   []stack.NetworkProtocolFactory{ipv4.NewProtocol, ipv6.NewProtocol},
 		TransportProtocols: []stack.TransportProtocolFactory{tcp.NewProtocol, udp.NewProtocol},
-		HandleLocal:        true,
+		HandleLocal:        !promiscuousMode,
 	}
 	dev := &netTun{
 		ep:             channel.New(1024, uint32(mtu), ""),
@@ -55,12 +55,12 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int) (tun.Device, *Net, error
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true) // TCP SACK is disabled by default
 	tcpipErr := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt)
 	if tcpipErr != nil {
-		return nil, nil, fmt.Errorf("could not enable TCP SACK: %v", tcpipErr)
+		return nil, nil, dev.stack, fmt.Errorf("could not enable TCP SACK: %v", tcpipErr)
 	}
 	dev.ep.AddNotify(dev)
 	tcpipErr = dev.stack.CreateNIC(1, dev.ep)
 	if tcpipErr != nil {
-		return nil, nil, fmt.Errorf("CreateNIC: %v", tcpipErr)
+		return nil, nil, dev.stack, fmt.Errorf("CreateNIC: %v", tcpipErr)
 	}
 	for _, ip := range localAddresses {
 		var protoNumber tcpip.NetworkProtocolNumber
@@ -75,7 +75,7 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int) (tun.Device, *Net, error
 		}
 		tcpipErr := dev.stack.AddProtocolAddress(1, protoAddr, stack.AddressProperties{})
 		if tcpipErr != nil {
-			return nil, nil, fmt.Errorf("AddProtocolAddress(%v): %v", ip, tcpipErr)
+			return nil, nil, dev.stack, fmt.Errorf("AddProtocolAddress(%v): %v", ip, tcpipErr)
 		}
 		if ip.Is4() {
 			dev.hasV4 = true
@@ -89,9 +89,14 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int) (tun.Device, *Net, error
 	if dev.hasV6 {
 		dev.stack.AddRoute(tcpip.Route{Destination: header.IPv6EmptySubnet, NIC: 1})
 	}
+	if promiscuousMode {
+		// enable promiscuous mode to handle all packets processed by netstack
+		dev.stack.SetPromiscuousMode(1, true)
+		dev.stack.SetSpoofing(1, true)
+	}
 
 	dev.events <- tun.EventUp
-	return dev, (*Net)(dev), nil
+	return dev, (*Net)(dev), dev.stack, nil
 }
 
 func (tun *netTun) Name() (string, error) {
