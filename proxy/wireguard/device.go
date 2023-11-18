@@ -6,10 +6,16 @@ import (
 	"fmt"
 	"net/netip"
 	"sync"
+	"time"
 
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/tun"
+	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"gvisor.dev/gvisor/pkg/waiter"
 
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -98,12 +104,69 @@ func (g *wgNet) DialUDPAddrPort(laddr, raddr netip.AddrPort) (net.Conn, error) {
 	return g.net.DialUDPAddrPort(laddr, raddr)
 }
 
-func createTun(localAddresses []netip.Addr, mtu int) (Tunnel, error) {
+func createTun(localAddresses []netip.Addr, mtu int, handler func(dest net.Destination, conn net.Conn)) (Tunnel, error) {
 	out := &wgNet{}
-	tun, n, err := netstack.CreateNetTUN(localAddresses, mtu)
+	tun, n, stack, err := netstack.CreateNetTUN(localAddresses, mtu, handler != nil)
 	if err != nil {
 		return nil, err
 	}
+
+	if handler != nil {
+		// handler is only used for promiscuous mode
+		// capture all packets and send to handler
+
+		tcpForwarder := tcp.NewForwarder(stack, 0, 65535, func(r *tcp.ForwarderRequest) {
+			go func(r *tcp.ForwarderRequest) {
+				var (
+					wq waiter.Queue
+					id = r.ID()
+				)
+
+				// Perform a TCP three-way handshake.
+				ep, err := r.CreateEndpoint(&wq)
+				if err != nil {
+					newError(err.String()).AtError().WriteToLog()
+					r.Complete(true)
+					return
+				}
+				r.Complete(false)
+				defer ep.Close()
+
+				// enable tcp keep-alive to prevent hanging connections
+				ep.SocketOptions().SetKeepAlive(true)
+
+				// local address is actually destination
+				handler(net.TCPDestination(net.IPAddress(id.LocalAddress.AsSlice()), net.Port(id.LocalPort)), gonet.NewTCPConn(&wq, ep))
+			}(r)
+		})
+		stack.SetTransportProtocolHandler(tcp.ProtocolNumber, tcpForwarder.HandlePacket)
+
+		udpForwarder := udp.NewForwarder(stack, func(r *udp.ForwarderRequest) {
+			go func(r *udp.ForwarderRequest) {
+				var (
+					wq waiter.Queue
+					id = r.ID()
+				)
+
+				ep, err := r.CreateEndpoint(&wq)
+				if err != nil {
+					newError(err.String()).AtError().WriteToLog()
+					return
+				}
+				defer ep.Close()
+
+				// prevents hanging connections and ensure timely release
+				ep.SocketOptions().SetLinger(tcpip.LingerOption{
+					Enabled: true,
+					Timeout: 15 * time.Second,
+				})
+
+				handler(net.UDPDestination(net.IPAddress(id.LocalAddress.AsSlice()), net.Port(id.LocalPort)), gonet.NewUDPConn(&wq, ep))
+			}(r)
+		})
+		stack.SetTransportProtocolHandler(udp.ProtocolNumber, udpForwarder.HandlePacket)
+	}
+
 	out.tun, out.net = tun, n
 	return out, nil
 }
