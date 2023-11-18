@@ -159,6 +159,26 @@ func (bind *netBindClient) Send(buff [][]byte, endpoint conn.Endpoint) error {
 	return nil
 }
 
+type netBindServer struct {
+	netBind
+}
+
+func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
+	nend, ok := endpoint.(*netEndpoint)
+	if !ok {
+		return conn.ErrWrongEndpointType
+	}
+	if nend.conn == nil {
+		return newError("peer closed")
+	}
+	for _, buff := range buff {
+		if _, err := nend.conn.Write(buff); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type netEndpoint struct {
 	dest net.Destination
 	conn net.Conn
