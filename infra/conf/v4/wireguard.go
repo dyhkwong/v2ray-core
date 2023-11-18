@@ -99,6 +99,43 @@ func (c *WireGuardClientConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type WireGuardServerConfig struct {
+	SecretKey  string                `json:"secretKey"`
+	Address    []string              `json:"address"`
+	Peers      []WireGuardPeerConfig `json:"peers"`
+	MTU        int32                 `json:"mtu"`
+	NumWorkers int32                 `json:"workers"`
+}
+
+func (c *WireGuardServerConfig) Build() (proto.Message, error) {
+	config := new(wireguard.ServerConfig)
+	var err error
+	config.SecretKey, err = parseWireGuardKey(c.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(c.Address) == 0 {
+		return nil, newError("empty address")
+	}
+	config.Address = c.Address
+	for _, peer := range c.Peers {
+		msg, err := peer.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Peers = append(config.Peers, msg.(*wireguard.PeerConfig))
+	}
+	if c.MTU == 0 {
+		config.Mtu = 1420
+	} else {
+		config.Mtu = c.MTU
+	}
+	// these a fallback code in wireguard-go code,
+	// we don't need to process fallback manually
+	config.NumWorkers = c.NumWorkers
+	return config, nil
+}
+
 func parseWireGuardKey(key string) (string, error) {
 	if key == "" {
 		return "", newError("key must not be empty")
