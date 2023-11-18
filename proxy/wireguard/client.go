@@ -206,12 +206,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 // creates a tun interface on netstack given a configuration
 func (c *Client) makeVirtualTun() (Tunnel, error) {
-	t, err := createTun(c.addresses, int(c.conf.Mtu))
+	t, err := createTun(c.addresses, int(c.conf.Mtu), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = t.BuildDevice(createIPCRequest(c.conf.SecretKey, c.conf.Peers), c.bind); err != nil {
+	if err = t.BuildDevice(createIPCRequest(c.conf.SecretKey, c.conf.Peers, false), c.bind); err != nil {
 		_ = t.Close()
 		return nil, err
 	}
