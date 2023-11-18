@@ -194,7 +194,7 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 // creates a tun interface on netstack given a configuration
 func (h *Client) makeVirtualTun() (Tunnel, error) {
-	t, err := createTun(h.endpoints, int(h.conf.Mtu))
+	t, err := createTun(h.endpoints, int(h.conf.Mtu), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (h *Client) makeVirtualTun() (Tunnel, error) {
 	h.bind.dnsOption.IPv4Enable = h.hasIPv4
 	h.bind.dnsOption.IPv6Enable = h.hasIPv6
 
-	if err = t.BuildDevice(createIPCRequest(h.conf.SecretKey, h.conf.Peers), h.bind); err != nil {
+	if err = t.BuildDevice(createIPCRequest(h.conf.SecretKey, h.conf.Peers, false), h.bind); err != nil {
 		_ = t.Close()
 		return nil, err
 	}

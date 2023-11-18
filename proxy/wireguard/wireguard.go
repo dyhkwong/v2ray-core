@@ -60,10 +60,15 @@ func parseEndpoints(ep []string) ([]netip.Addr, bool, bool, error) {
 }
 
 // serialize the config into an IPC request
-func createIPCRequest(secretKey string, peers []*PeerConfig) string {
+func createIPCRequest(secretKey string, peers []*PeerConfig, isServer bool) string {
 	var request strings.Builder
 
 	request.WriteString(fmt.Sprintf("private_key=%s\n", secretKey))
+
+	if isServer {
+		// placeholder, we'll handle actual port listening on Xray
+		request.WriteString("listen_port=1337\n")
+	}
 
 	for _, peer := range peers {
 		if peer.PublicKey != "" {

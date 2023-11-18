@@ -117,6 +117,53 @@ func (c *WireGuardClientConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type WireGuardServerConfig struct {
+	SecretKey  string                 `json:"secretKey"`
+	Address    []string               `json:"address"`
+	Peers      []*WireGuardPeerConfig `json:"peers"`
+	MTU        int32                  `json:"mtu"`
+	NumWorkers int32                  `json:"workers"`
+}
+
+func (c *WireGuardServerConfig) Build() (proto.Message, error) {
+	config := new(wireguard.ServerConfig)
+
+	var err error
+	config.SecretKey, err = parseWireGuardKey(c.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Address == nil {
+		// bogon ips
+		config.Endpoint = []string{"10.0.0.1", "fd59:7153:2388:b5fd:0000:0000:0000:0001"}
+	} else {
+		config.Endpoint = c.Address
+	}
+
+	if c.Peers != nil {
+		config.Peers = make([]*wireguard.PeerConfig, len(c.Peers))
+		for i, p := range c.Peers {
+			msg, err := p.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.Peers[i] = msg.(*wireguard.PeerConfig)
+		}
+	}
+
+	if c.MTU == 0 {
+		config.Mtu = 1420
+	} else {
+		config.Mtu = c.MTU
+	}
+	// these a fallback code in wireguard-go code,
+	// we don't need to process fallback manually
+	config.NumWorkers = c.NumWorkers
+
+	return config, nil
+}
+
 func parseWireGuardKey(str string) (string, error) {
 	var err error
 	if len(str)%2 == 0 {
