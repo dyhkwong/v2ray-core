@@ -68,6 +68,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		method = newAES128GCMMethod()
 	case "2022-blake3-aes-256-gcm":
 		method = newAES256GCMMethod()
+	case "2022-blake3-chacha20-poly1305":
+		method = newChacha20Poly1305Method()
 	default:
 		return newError("unknown method: ", c.config.Method)
 	}
@@ -211,7 +213,7 @@ func (c *Client) getUDPSession(ctx context.Context, network net.Network, dialer 
 		if err != nil {
 			return nil, newError("failed to find an available destination").AtWarning().Base(err)
 		}
-		newError("creating udp session to ", network, ":", c.config.Address).WriteToLog(session.ExportIDToError(ctx))
+		newError("creating udp session to ", network, ":", net.UDPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port)).NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 		packetProcessor, err := method.GetUDPClientProcessor(c.config.Ipsk, c.config.Psk, keyDerivation)
 		if err != nil {
 			return nil, newError("failed to create UDP client packet processor").Base(err)
