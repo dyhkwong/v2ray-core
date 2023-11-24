@@ -13,6 +13,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
 
 func NewClientUDPSession(ctx context.Context, conn io.ReadWriteCloser, packetProcessor UDPClientPacketProcessor) *ClientUDPSession {
@@ -230,12 +231,28 @@ func (c *ClientUDPSessionConn) Close() error {
 func (c *ClientUDPSessionConn) WriteTo(p []byte, addr gonet.Addr) (n int, err error) {
 	thisPacketID := c.nextWritePacketID
 	c.nextWritePacketID += 1
+	var address net.Address
+	var port int
+	if udpAddr, ok := addr.(*net.UDPAddr); ok {
+		address = net.IPAddress(udpAddr.IP)
+		port = udpAddr.Port
+	} else if monoDestUDPAddr, ok := addr.(*udp.MonoDestUDPAddr); ok {
+		address = monoDestUDPAddr.Address
+		port = int(monoDestUDPAddr.Port)
+	} else {
+		dest, err := net.ParseDestination(addr.Network() + ":" + addr.String())
+		if err != nil {
+			return 0, newError("unable to parse destination").Base(err)
+		}
+		address = dest.Address
+		port = int(dest.Port)
+	}
 	req := &UDPRequest{
 		SessionID: [8]byte{},
 		PacketID:  thisPacketID,
 		TimeStamp: uint64(time.Now().Unix()),
-		Address:   net.IPAddress(addr.(*gonet.UDPAddr).IP),
-		Port:      addr.(*net.UDPAddr).Port,
+		Address:   address,
+		Port:      port,
 		Payload:   nil,
 	}
 	copy(req.SessionID[:], c.sessionID)
@@ -285,7 +302,12 @@ func (c *ClientUDPSessionConn) ReadFrom(p []byte) (n int, addr net.Addr, err err
 			}
 			trackedState.lastSeen = time.Now()
 
-			addr = &net.UDPAddr{IP: resp.Address.IP(), Port: resp.Port}
+			if !resp.Address.Family().IsDomain() {
+				addr = &net.UDPAddr{IP: resp.Address.IP(), Port: resp.Port}
+			} else {
+				port, _ := net.PortFromInt(uint32(resp.Port))
+				addr = &udp.MonoDestUDPAddr{Address: resp.Address, Port: port}
+			}
 		}
 		return n, addr, nil
 	}
