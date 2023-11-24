@@ -162,7 +162,13 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		if err != nil {
 			return newError("failed to get UDP udpSession").Base(err)
 		}
-		monoDestUDPConn := udp.NewMonoDestUDPConn(udpSession, &gonet.UDPAddr{IP: destination.Address.IP(), Port: int(destination.Port)})
+		var addr net.Addr
+		if !destination.Address.Family().IsDomain() {
+			addr = &gonet.UDPAddr{IP: destination.Address.IP(), Port: int(destination.Port)}
+		} else {
+			addr = &udp.MonoDestUDPAddr{Address: destination.Address, Port: destination.Port}
+		}
+		monoDestUDPConn := udp.NewMonoDestUDPConn(udpSession, addr)
 		requestDone := func() error {
 			return buf.Copy(link.Reader, monoDestUDPConn, buf.UpdateActivity(timer))
 		}
