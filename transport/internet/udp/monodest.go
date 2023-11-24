@@ -8,6 +8,29 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 )
 
+func NewMonoDestUDPAddr(address net.Address, port net.Port) net.Addr {
+	if !address.Family().IsDomain() {
+		return &net.UDPAddr{IP: address.IP(), Port: int(port)}
+	}
+	return &MonoDestUDPAddr{
+		Address: address,
+		Port:    port,
+	}
+}
+
+type MonoDestUDPAddr struct {
+	Address net.Address
+	Port    net.Port
+}
+
+func (*MonoDestUDPAddr) Network() string {
+	return "udp"
+}
+
+func (a *MonoDestUDPAddr) String() string {
+	return a.Address.String() + ":" + a.Port.String()
+}
+
 func NewMonoDestUDPConn(conn internet.AbstractPacketConn, addr net.Addr) *MonoDestUDPConn {
 	return &MonoDestUDPConn{
 		AbstractPacketConn: conn,
@@ -23,19 +46,48 @@ type MonoDestUDPConn struct {
 func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	buffer := buf.New()
 	buffer.Extend(buf.Size)
-	nBytes, _, err := m.ReadFrom(buffer.Bytes())
+	nBytes, addr, err := m.ReadFrom(buffer.Bytes())
 	if err != nil {
 		buffer.Release()
 		return nil, err
 	}
 	buffer.Resize(0, int32(nBytes))
+	switch addr := addr.(type) {
+	case *net.UDPAddr:
+		buffer.Endpoint = &net.Destination{
+			Address: net.IPAddress(addr.IP),
+			Port:    net.Port(addr.Port),
+			Network: net.Network_UDP,
+		}
+	case *MonoDestUDPAddr:
+		buffer.Endpoint = &net.Destination{
+			Address: addr.Address,
+			Port:    addr.Port,
+			Network: net.Network_UDP,
+		}
+	default:
+		dest, err := net.ParseDestination(addr.Network() + ":" + addr.String())
+		if err != nil {
+			buffer.Release()
+			return nil, newError("unable to parse destination").Base(err)
+		}
+		buffer.Endpoint = &net.Destination{
+			Address: dest.Address,
+			Port:    dest.Port,
+			Network: net.Network_UDP,
+		}
+	}
 	return buf.MultiBuffer{buffer}, nil
 }
 
 func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 	defer buf.ReleaseMulti(buffer)
 	for _, b := range buffer {
-		_, err := m.WriteTo(b.Bytes(), m.dest)
+		dest := m.dest
+		if b.Endpoint != nil {
+			dest = NewMonoDestUDPAddr(b.Endpoint.Address, b.Endpoint.Port)
+		}
+		_, err := m.WriteTo(b.Bytes(), dest)
 		if err != nil {
 			return err
 		}
