@@ -72,11 +72,11 @@ var File_transport_internet_grpc_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_grpc_config_proto_rawDesc = "" +
 	"\n" +
-	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"a\n" +
+	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"]\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName: \x82\xb5\x18\x1c\n" +
-	"\ttransport\x12\x04grpc\x8a\xff)\x03gun\x90\xff)\x01B\x87\x01\n" +
+	"\fservice_name\x18\x02 \x01(\tR\vserviceName:\x1c\x82\xb5\x18\x18\n" +
+	"\ttransport\x12\x04grpc\x8a\xff)\x03gunB\x87\x01\n" +
 	"&com.v2ray.core.transport.internet.grpcP\x01Z6github.com/v2fly/v2ray-core/v5/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
 
 var (
