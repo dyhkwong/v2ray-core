@@ -21,10 +21,6 @@ const (
 	FormatAuto = "auto"
 	// FormatJSON represents json format
 	FormatJSON = "json"
-	// FormatTOML represents toml format
-	FormatTOML = "toml"
-	// FormatYAML represents yaml format
-	FormatYAML = "yaml"
 	// FormatProtobuf represents protobuf format
 	FormatProtobuf = "protobuf"
 	// FormatProtobufShort is the short of FormatProtobuf
