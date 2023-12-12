@@ -13,7 +13,6 @@ import "transport/internet/kcp/config.proto";
 message Config{
   option (v2ray.core.common.protoext.message_opt).type = "transport";
   option (v2ray.core.common.protoext.message_opt).short_name = "mekya";
-  option (v2ray.core.common.protoext.message_opt).allow_restricted_mode_load = true;
 
 
   v2ray.core.transport.internet.kcp.Config kcp = 1;
