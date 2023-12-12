@@ -151,14 +151,14 @@ const file_transport_internet_httpupgrade_config_proto_rawDesc = "" +
 	"+transport/internet/httpupgrade/config.proto\x121v2ray.core.transport.internet.request.httpupgrade\x1a common/protoext/extensions.proto\"0\n" +
 	"\x06Header\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\x80\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xfc\x01\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04host\x18\x02 \x01(\tR\x04host\x12$\n" +
 	"\x0emax_early_data\x18\x03 \x01(\x05R\fmaxEarlyData\x123\n" +
 	"\x16early_data_header_name\x18\x04 \x01(\tR\x13earlyDataHeaderName\x12Q\n" +
-	"\x06header\x18\x05 \x03(\v29.v2ray.core.transport.internet.request.httpupgrade.HeaderR\x06header: \x82\xb5\x18\x1c\n" +
-	"\ttransport\x12\vhttpupgrade\x90\xff)\x01B\x9c\x01\n" +
+	"\x06header\x18\x05 \x03(\v29.v2ray.core.transport.internet.request.httpupgrade.HeaderR\x06header:\x1c\x82\xb5\x18\x18\n" +
+	"\ttransport\x12\vhttpupgradeB\x9c\x01\n" +
 	"-com.v2ray.core.transport.internet.httpupgradeP\x01Z=github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade\xaa\x02)V2Ray.Core.Transport.Internet.HttpUpgradeb\x06proto3"
 
 var (
