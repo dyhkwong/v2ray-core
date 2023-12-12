@@ -23,7 +23,7 @@ Arguments:
 
 	-format <format>
 		The input format.
-		Available values: "auto", "json", "toml", "yaml"
+		Available values: "auto", "json"
 		Default: "auto"
 
 	-r
@@ -41,7 +41,7 @@ Arguments:
 Example:
 
     {{.Exec}} {{.LongName}} dir
-    {{.Exec}} {{.LongName}} c1.json c2.yaml
+    {{.Exec}} {{.LongName}} c1.json c2.json
     {{.Exec}} {{.LongName}} -tags tag1 tag2
 `,
 	Run: executeRemoveInbounds,
