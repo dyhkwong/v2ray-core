@@ -146,13 +146,13 @@ const file_proxy_vmess_outbound_config_proto_rawDesc = "" +
 	"!proxy/vmess/outbound/config.proto\x12\x1fv2ray.core.proxy.vmess.outbound\x1a!common/protocol/server_spec.proto\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\x1a\"common/net/packetaddr/config.proto\"\xa4\x01\n" +
 	"\x06Config\x12F\n" +
 	"\bReceiver\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\bReceiver\x12R\n" +
-	"\x0fpacket_encoding\x18\x02 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"\xe6\x01\n" +
+	"\x0fpacket_encoding\x18\x02 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"\xe2\x01\n" +
 	"\x10SimplifiedConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x12\n" +
 	"\x04uuid\x18\x03 \x01(\tR\x04uuid\x12R\n" +
-	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x19\x82\xb5\x18\x15\n" +
-	"\boutbound\x12\x05vmess\x90\xff)\x01B~\n" +
+	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x15\x82\xb5\x18\x11\n" +
+	"\boutbound\x12\x05vmessB~\n" +
 	"#com.v2ray.core.proxy.vmess.outboundP\x01Z3github.com/v2fly/v2ray-core/v5/proxy/vmess/outbound\xaa\x02\x1fV2Ray.Core.Proxy.Vmess.Outboundb\x06proto3"
 
 var (
