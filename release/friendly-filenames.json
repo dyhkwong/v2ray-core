@@ -28,8 +28,5 @@
   "windows-386": { "friendlyName": "windows-32" },
   "windows-arm64": { "friendlyName": "windows-arm64-v8a" },
   "windows-arm7": { "friendlyName": "windows-arm32-v7a" },
-  "android-arm64": { "friendlyName": "android-arm64-v8a" },
-  "linux-amd64tun": { "friendlyName": "linux-64-tun" },
-  "linux-arm64tun": { "friendlyName": "linux-arm64-v8a-tun" },
-  "android-arm64tun": { "friendlyName": "android-arm64-v8a-tun" }
+  "android-arm64": { "friendlyName": "android-arm64-v8a" }
 }
