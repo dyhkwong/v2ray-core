@@ -160,15 +160,15 @@ const file_transport_internet_websocket_config_proto_rawDesc = "" +
 	")transport/internet/websocket/config.proto\x12'v2ray.core.transport.internet.websocket\x1a common/protoext/extensions.proto\"0\n" +
 	"\x06Header\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xd6\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xd2\x02\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12G\n" +
 	"\x06header\x18\x03 \x03(\v2/.v2ray.core.transport.internet.websocket.HeaderR\x06header\x122\n" +
 	"\x15accept_proxy_protocol\x18\x04 \x01(\bR\x13acceptProxyProtocol\x12$\n" +
 	"\x0emax_early_data\x18\x05 \x01(\x05R\fmaxEarlyData\x124\n" +
 	"\x16use_browser_forwarding\x18\x06 \x01(\bR\x14useBrowserForwarding\x123\n" +
-	"\x16early_data_header_name\x18\a \x01(\tR\x13earlyDataHeaderName:$\x82\xb5\x18 \n" +
-	"\ttransport\x12\x02ws\x8a\xff)\twebsocket\x90\xff)\x01J\x04\b\x01\x10\x02B\x96\x01\n" +
+	"\x16early_data_header_name\x18\a \x01(\tR\x13earlyDataHeaderName: \x82\xb5\x18\x1c\n" +
+	"\ttransport\x12\x02ws\x8a\xff)\twebsocketJ\x04\b\x01\x10\x02B\x96\x01\n" +
 	"+com.v2ray.core.transport.internet.websocketP\x01Z;github.com/v2fly/v2ray-core/v5/transport/internet/websocket\xaa\x02'V2Ray.Core.Transport.Internet.Websocketb\x06proto3"
 
 var (
