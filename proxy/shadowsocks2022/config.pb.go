@@ -97,14 +97,14 @@ var File_proxy_shadowsocks2022_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks2022_config_proto_rawDesc = "" +
 	"\n" +
-	"\"proxy/shadowsocks2022/config.proto\x12 v2ray.core.proxy.shadowsocks2022\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xc2\x01\n" +
+	"\"proxy/shadowsocks2022/config.proto\x12 v2ray.core.proxy.shadowsocks2022\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xbe\x01\n" +
 	"\fClientConfig\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03psk\x18\x02 \x01(\fR\x03psk\x12\x12\n" +
 	"\x04ipsk\x18\x04 \x03(\fR\x04ipsk\x12;\n" +
 	"\aaddress\x18\x05 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
-	"\x04port\x18\x06 \x01(\rR\x04port:#\x82\xb5\x18\x1f\n" +
-	"\boutbound\x12\x0fshadowsocks2022\x90\xff)\x01B\x81\x01\n" +
+	"\x04port\x18\x06 \x01(\rR\x04port:\x1f\x82\xb5\x18\x1b\n" +
+	"\boutbound\x12\x0fshadowsocks2022B\x81\x01\n" +
 	"$com.v2ray.core.proxy.shadowsocks2022P\x01Z4github.com/v2fly/v2ray-core/v5/proxy/shadowsocks2022\xaa\x02 V2Ray.Core.Proxy.Shadowsocks2022b\x06proto3"
 
 var (
