@@ -6,14 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pelletier/go-toml/v2"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 
 	core "github.com/v2fly/v2ray-core/v5"
-	"github.com/v2fly/v2ray-core/v5/infra/conf/jsonpb"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/merge"
-	"github.com/v2fly/v2ray-core/v5/infra/conf/v2jsonpb"
 	"github.com/v2fly/v2ray-core/v5/main/commands/base"
 	"github.com/v2fly/v2ray-core/v5/main/commands/helpers"
 )
@@ -30,12 +26,12 @@ Arguments:
 
 	-i, -input <format>
 		The input format.
-		Available values: "auto", "json", "toml", "yaml"
+		Available values: "auto", "json"
 		Default: "auto"
 
 	-o, -output <format>
 		The output format
-		Available values: "json", "toml", "yaml", "protobuf" / "pb"
+		Available values: "json", "protobuf" / "pb"
 		Default: "json"
 
 	-r
@@ -44,14 +40,14 @@ Arguments:
 Examples:
 
 	{{.Exec}} {{.LongName}} -output=protobuf "path/to/dir"   (1)
-	{{.Exec}} {{.LongName}} -o=yaml config.toml              (2)
+	{{.Exec}} {{.LongName}} -o=pb config.json                (2)
 	{{.Exec}} {{.LongName}} c1.json c2.json                  (3)
-	{{.Exec}} {{.LongName}} -output=yaml c1.yaml <url>.yaml  (4)
+	{{.Exec}} {{.LongName}} -output=json c1.json <url>.json  (4)
 
 (1) Merge all supported files in dir and convert to protobuf
-(2) Convert toml to yaml
+(2) Convert json to pb
 (3) Merge json files
-(4) Merge yaml files
+(4) Merge json files
 
 Use "{{.Exec}} help config-merge" for more information about merge.
 `,
@@ -101,16 +97,6 @@ func executeConvert(cmd *base.Command, args []string) {
 		if err != nil {
 			base.Fatalf("failed to convert to json: %s", err)
 		}
-	case core.FormatTOML:
-		out, err = toml.Marshal(m)
-		if err != nil {
-			base.Fatalf("failed to convert to toml: %s", err)
-		}
-	case core.FormatYAML:
-		out, err = yaml.Marshal(m)
-		if err != nil {
-			base.Fatalf("failed to convert to yaml: %s", err)
-		}
 	case core.FormatProtobuf, core.FormatProtobufShort:
 		data, err := json.Marshal(m)
 		if err != nil {
@@ -124,36 +110,6 @@ func executeConvert(cmd *base.Command, args []string) {
 		out, err = proto.Marshal(pbConfig)
 		if err != nil {
 			base.Fatalf("failed to convert to protobuf: %s", err)
-		}
-	case jsonpb.FormatProtobufJSONPB:
-		data, err := json.Marshal(m)
-		if err != nil {
-			base.Fatalf("failed to marshal json: %s", err)
-		}
-		r := bytes.NewReader(data)
-		pbConfig, err := core.LoadConfig(inputFormat, r)
-		if err != nil {
-			base.Fatalf(err.Error())
-		}
-		w := bytes.NewBuffer(nil)
-		err = jsonpb.DumpJSONPb(pbConfig, w)
-		if err != nil {
-			base.Fatalf(err.Error())
-		}
-		out = w.Bytes()
-	case v2jsonpb.FormatProtobufV2JSONPB:
-		data, err := json.Marshal(m)
-		if err != nil {
-			base.Fatalf("failed to marshal json: %s", err)
-		}
-		r := bytes.NewReader(data)
-		pbConfig, err := core.LoadConfig(inputFormat, r)
-		if err != nil {
-			base.Fatalf(err.Error())
-		}
-		out, err = v2jsonpb.DumpV2JsonPb(pbConfig)
-		if err != nil {
-			base.Fatalf(err.Error())
 		}
 	default:
 		base.Errorf("invalid output format: %s", outputFormat)
