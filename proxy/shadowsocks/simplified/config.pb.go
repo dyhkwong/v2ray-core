@@ -217,14 +217,14 @@ const file_proxy_shadowsocks_simplified_config_proto_rawDesc = "" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12>\n" +
 	"\bnetworks\x18\x03 \x01(\v2\".v2ray.core.common.net.NetworkListR\bnetworks\x12R\n" +
 	"\x0fpacket_encoding\x18\x04 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x1a\x82\xb5\x18\x16\n" +
-	"\ainbound\x12\vshadowsocks\"\xbe\x02\n" +
+	"\ainbound\x12\vshadowsocks\"\xba\x02\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12R\n" +
 	"\x06method\x18\x03 \x01(\v2:.v2ray.core.proxy.shadowsocks.simplified.CipherTypeWrapperR\x06method\x12\x1a\n" +
 	"\bpassword\x18\x04 \x01(\tR\bpassword\x12L\n" +
-	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy:\x1f\x82\xb5\x18\x1b\n" +
-	"\boutbound\x12\vshadowsocks\x90\xff)\x01\"S\n" +
+	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy:\x1b\x82\xb5\x18\x17\n" +
+	"\boutbound\x12\vshadowsocks\"S\n" +
 	"\x11CipherTypeWrapper\x12>\n" +
 	"\x05value\x18\x01 \x01(\x0e2(.v2ray.core.proxy.shadowsocks.CipherTypeR\x05valueB\x96\x01\n" +
 	"+com.v2ray.core.proxy.shadowsocks.simplifiedP\x01Z;github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/simplified\xaa\x02'V2Ray.Core.Proxy.Shadowsocks.Simplifiedb\x06proto3"
