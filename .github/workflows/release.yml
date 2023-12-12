@@ -29,8 +29,6 @@ jobs:
             goos: dragonfly
           - goarch: 386
             goos: darwin
-          - goarch: amd64
-            goos: linux
         include:
           # BEGIN Linux ARM 5 6 7
           - goos: linux
@@ -92,17 +90,6 @@ jobs:
             goarch: mips
           # END MIPS
           # END Other architectures
-          - goos: linux
-            goarch: arm64
-            tun: tun
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: amd64
-            tun: tun
-          - goos: android
-            goarch: arm64
-            tun: tun
       fail-fast: false
 
     runs-on: ubuntu-latest
@@ -110,7 +97,6 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       GOARM: ${{ matrix.goarm }}
-      TUN: ${{ matrix.tun }}
       CGO_ENABLED: 0
 
     steps:
@@ -136,7 +122,6 @@ jobs:
         run: go mod download
 
       - name: Build V2Ray
-        if: matrix.tun != 'tun'
         run: |
           mkdir -p build_assets
           EXTRA_ARG=""
@@ -150,12 +135,6 @@ jobs:
               ;;
           esac
           go build -v -o build_assets/v2ray -trimpath -ldflags "-s -w -buildid=" ./main
-
-      - name: Build V2Ray with TUN
-        if: matrix.tun == 'tun'
-        run: |
-          mkdir -p build_assets
-          go build -v -o build_assets/v2ray -trimpath -ldflags "-s -w -buildid=" -tags "tun" ./main
 
       - name: Rename Windows V2Ray
         if: matrix.goos == 'windows'
