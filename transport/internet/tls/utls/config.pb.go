@@ -138,15 +138,15 @@ var File_transport_internet_tls_utls_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_tls_utls_config_proto_rawDesc = "" +
 	"\n" +
-	"(transport/internet/tls/utls/config.proto\x12&v2ray.core.transport.internet.tls.utls\x1a common/protoext/extensions.proto\x1a#transport/internet/tls/config.proto\"\xef\x01\n" +
+	"(transport/internet/tls/utls/config.proto\x12&v2ray.core.transport.internet.tls.utls\x1a common/protoext/extensions.proto\x1a#transport/internet/tls/config.proto\"\xeb\x01\n" +
 	"\x06Config\x12H\n" +
 	"\n" +
 	"tls_config\x18\x01 \x01(\v2).v2ray.core.transport.internet.tls.ConfigR\ttlsConfig\x12\x18\n" +
 	"\aimitate\x18\x02 \x01(\tR\aimitate\x12\x14\n" +
 	"\x05noSNI\x18\x03 \x01(\bR\x05noSNI\x12Q\n" +
 	"\n" +
-	"force_alpn\x18\x04 \x01(\x0e22.v2ray.core.transport.internet.tls.utls.ForcedALPNR\tforceAlpn:\x18\x82\xb5\x18\x14\n" +
-	"\bsecurity\x12\x04utls\x90\xff)\x01*R\n" +
+	"force_alpn\x18\x04 \x01(\x0e22.v2ray.core.transport.internet.tls.utls.ForcedALPNR\tforceAlpn:\x14\x82\xb5\x18\x10\n" +
+	"\bsecurity\x12\x04utls*R\n" +
 	"\n" +
 	"ForcedALPN\x12&\n" +
 	"\"TRANSPORT_PREFERENCE_TAKE_PRIORITY\x10\x00\x12\v\n" +
