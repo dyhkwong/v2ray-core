@@ -505,7 +505,7 @@ const file_transport_internet_kcp_config_proto_rawDesc = "" +
 	"\x0fConnectionReuse\x12\x16\n" +
 	"\x06enable\x18\x01 \x01(\bR\x06enable\"$\n" +
 	"\x0eEncryptionSeed\x12\x12\n" +
-	"\x04seed\x18\x01 \x01(\tR\x04seed\"\xa7\x05\n" +
+	"\x04seed\x18\x01 \x01(\tR\x04seed\"\xa3\x05\n" +
 	"\x06Config\x128\n" +
 	"\x03mtu\x18\x01 \x01(\v2&.v2ray.core.transport.internet.kcp.MTUR\x03mtu\x128\n" +
 	"\x03tti\x18\x02 \x01(\v2&.v2ray.core.transport.internet.kcp.TTIR\x03tti\x12Z\n" +
@@ -519,8 +519,8 @@ const file_transport_internet_kcp_config_proto_rawDesc = "" +
 	"readBuffer\x129\n" +
 	"\rheader_config\x18\b \x01(\v2\x14.google.protobuf.AnyR\fheaderConfig\x12E\n" +
 	"\x04seed\x18\n" +
-	" \x01(\v21.v2ray.core.transport.internet.kcp.EncryptionSeedR\x04seed: \x82\xb5\x18\x1c\n" +
-	"\ttransport\x12\x03kcp\x8a\xff)\x04mkcp\x90\xff)\x01J\x04\b\t\x10\n" +
+	" \x01(\v21.v2ray.core.transport.internet.kcp.EncryptionSeedR\x04seed:\x1c\x82\xb5\x18\x18\n" +
+	"\ttransport\x12\x03kcp\x8a\xff)\x04mkcpJ\x04\b\t\x10\n" +
 	"B\x84\x01\n" +
 	"%com.v2ray.core.transport.internet.kcpP\x01Z5github.com/v2fly/v2ray-core/v5/transport/internet/kcp\xaa\x02!V2Ray.Core.Transport.Internet.Kcpb\x06proto3"
 
