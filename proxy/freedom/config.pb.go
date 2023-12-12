@@ -17,55 +17,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ProtocolReplacement int32
-
-const (
-	ProtocolReplacement_IDENTITY  ProtocolReplacement = 0
-	ProtocolReplacement_FORCE_TCP ProtocolReplacement = 1
-	ProtocolReplacement_FORCE_UDP ProtocolReplacement = 2
-)
-
-// Enum value maps for ProtocolReplacement.
-var (
-	ProtocolReplacement_name = map[int32]string{
-		0: "IDENTITY",
-		1: "FORCE_TCP",
-		2: "FORCE_UDP",
-	}
-	ProtocolReplacement_value = map[string]int32{
-		"IDENTITY":  0,
-		"FORCE_TCP": 1,
-		"FORCE_UDP": 2,
-	}
-)
-
-func (x ProtocolReplacement) Enum() *ProtocolReplacement {
-	p := new(ProtocolReplacement)
-	*p = x
-	return p
-}
-
-func (x ProtocolReplacement) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ProtocolReplacement) Descriptor() protoreflect.EnumDescriptor {
-	return file_proxy_freedom_config_proto_enumTypes[0].Descriptor()
-}
-
-func (ProtocolReplacement) Type() protoreflect.EnumType {
-	return &file_proxy_freedom_config_proto_enumTypes[0]
-}
-
-func (x ProtocolReplacement) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ProtocolReplacement.Descriptor instead.
-func (ProtocolReplacement) EnumDescriptor() ([]byte, []int) {
-	return file_proxy_freedom_config_proto_rawDescGZIP(), []int{0}
-}
-
 type Config_DomainStrategy int32
 
 const (
@@ -108,11 +59,11 @@ func (x Config_DomainStrategy) String() string {
 }
 
 func (Config_DomainStrategy) Descriptor() protoreflect.EnumDescriptor {
-	return file_proxy_freedom_config_proto_enumTypes[1].Descriptor()
+	return file_proxy_freedom_config_proto_enumTypes[0].Descriptor()
 }
 
 func (Config_DomainStrategy) Type() protoreflect.EnumType {
-	return &file_proxy_freedom_config_proto_enumTypes[1]
+	return &file_proxy_freedom_config_proto_enumTypes[0]
 }
 
 func (x Config_DomainStrategy) Number() protoreflect.EnumNumber {
@@ -175,7 +126,6 @@ type Config struct {
 	Timeout             uint32               `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	DestinationOverride *DestinationOverride `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
 	UserLevel           uint32               `protobuf:"varint,4,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
-	ProtocolReplacement ProtocolReplacement  `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -239,17 +189,9 @@ func (x *Config) GetUserLevel() uint32 {
 	return 0
 }
 
-func (x *Config) GetProtocolReplacement() ProtocolReplacement {
-	if x != nil {
-		return x.ProtocolReplacement
-	}
-	return ProtocolReplacement_IDENTITY
-}
-
 type SimplifiedConfig struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	DestinationOverride *DestinationOverride   `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
-	ProtocolReplacement ProtocolReplacement    `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -291,27 +233,19 @@ func (x *SimplifiedConfig) GetDestinationOverride() *DestinationOverride {
 	return nil
 }
 
-func (x *SimplifiedConfig) GetProtocolReplacement() ProtocolReplacement {
-	if x != nil {
-		return x.ProtocolReplacement
-	}
-	return ProtocolReplacement_IDENTITY
-}
-
 var File_proxy_freedom_config_proto protoreflect.FileDescriptor
 
 const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\"Y\n" +
 	"\x13DestinationOverride\x12B\n" +
-	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xc6\x03\n" +
+	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xe4\x02\n" +
 	"\x06Config\x12X\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2/.v2ray.core.proxy.freedom.Config.DomainStrategyR\x0edomainStrategy\x12\x1c\n" +
 	"\atimeout\x18\x02 \x01(\rB\x02\x18\x01R\atimeout\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12\x1d\n" +
 	"\n" +
-	"user_level\x18\x04 \x01(\rR\tuserLevel\x12`\n" +
-	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\"a\n" +
+	"user_level\x18\x04 \x01(\rR\tuserLevel\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -321,15 +255,10 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"PREFER_IP4\x10\x04\x12\x0e\n" +
 	"\n" +
-	"PREFER_IP6\x10\x05\"\xef\x01\n" +
+	"PREFER_IP6\x10\x05\"\x8d\x01\n" +
 	"\x10SimplifiedConfig\x12`\n" +
-	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12`\n" +
-	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement:\x17\x82\xb5\x18\x13\n" +
-	"\boutbound\x12\afreedom*A\n" +
-	"\x13ProtocolReplacement\x12\f\n" +
-	"\bIDENTITY\x10\x00\x12\r\n" +
-	"\tFORCE_TCP\x10\x01\x12\r\n" +
-	"\tFORCE_UDP\x10\x02Bi\n" +
+	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride:\x17\x82\xb5\x18\x13\n" +
+	"\boutbound\x12\afreedomBi\n" +
 	"\x1ccom.v2ray.core.proxy.freedomP\x01Z,github.com/v2fly/v2ray-core/v5/proxy/freedom\xaa\x02\x18V2Ray.Core.Proxy.Freedomb\x06proto3"
 
 var (
@@ -344,28 +273,25 @@ func file_proxy_freedom_config_proto_rawDescGZIP() []byte {
 	return file_proxy_freedom_config_proto_rawDescData
 }
 
-var file_proxy_freedom_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proxy_freedom_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_proxy_freedom_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proxy_freedom_config_proto_goTypes = []any{
-	(ProtocolReplacement)(0),        // 0: v2ray.core.proxy.freedom.ProtocolReplacement
-	(Config_DomainStrategy)(0),      // 1: v2ray.core.proxy.freedom.Config.DomainStrategy
-	(*DestinationOverride)(nil),     // 2: v2ray.core.proxy.freedom.DestinationOverride
-	(*Config)(nil),                  // 3: v2ray.core.proxy.freedom.Config
-	(*SimplifiedConfig)(nil),        // 4: v2ray.core.proxy.freedom.SimplifiedConfig
-	(*protocol.ServerEndpoint)(nil), // 5: v2ray.core.common.protocol.ServerEndpoint
+	(Config_DomainStrategy)(0),      // 0: v2ray.core.proxy.freedom.Config.DomainStrategy
+	(*DestinationOverride)(nil),     // 1: v2ray.core.proxy.freedom.DestinationOverride
+	(*Config)(nil),                  // 2: v2ray.core.proxy.freedom.Config
+	(*SimplifiedConfig)(nil),        // 3: v2ray.core.proxy.freedom.SimplifiedConfig
+	(*protocol.ServerEndpoint)(nil), // 4: v2ray.core.common.protocol.ServerEndpoint
 }
 var file_proxy_freedom_config_proto_depIdxs = []int32{
-	5, // 0: v2ray.core.proxy.freedom.DestinationOverride.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
-	1, // 1: v2ray.core.proxy.freedom.Config.domain_strategy:type_name -> v2ray.core.proxy.freedom.Config.DomainStrategy
-	2, // 2: v2ray.core.proxy.freedom.Config.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
-	0, // 3: v2ray.core.proxy.freedom.Config.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
-	2, // 4: v2ray.core.proxy.freedom.SimplifiedConfig.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
-	0, // 5: v2ray.core.proxy.freedom.SimplifiedConfig.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 0: v2ray.core.proxy.freedom.DestinationOverride.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
+	0, // 1: v2ray.core.proxy.freedom.Config.domain_strategy:type_name -> v2ray.core.proxy.freedom.Config.DomainStrategy
+	1, // 2: v2ray.core.proxy.freedom.Config.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
+	1, // 3: v2ray.core.proxy.freedom.SimplifiedConfig.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proxy_freedom_config_proto_init() }
@@ -378,7 +304,7 @@ func file_proxy_freedom_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_freedom_config_proto_rawDesc), len(file_proxy_freedom_config_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,

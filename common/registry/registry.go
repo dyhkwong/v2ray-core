@@ -73,12 +73,6 @@ func (i *implementationRegistry) LoadImplementationByAlias(ctx context.Context, 
 
 	implementationConfigInstancev2 := proto.MessageV2(implementationConfigInstance)
 
-	if isRestrictedModeContext(ctx) {
-		if err := enforceRestriction(implementationConfigInstancev2); err != nil {
-			return nil, err
-		}
-	}
-
 	if err := protofilter.FilterProtoConfig(ctx, implementationConfigInstancev2); err != nil {
 		return nil, err
 	}
