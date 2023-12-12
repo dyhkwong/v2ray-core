@@ -119,12 +119,12 @@ const file_proxy_http_simplified_config_proto_rawDesc = "" +
 	"\n" +
 	"\"proxy/http/simplified/config.proto\x12 v2ray.core.proxy.http.simplified\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"#\n" +
 	"\fServerConfig:\x13\x82\xb5\x18\x0f\n" +
-	"\ainbound\x12\x04http\"\xad\x01\n" +
+	"\ainbound\x12\x04http\"\xa9\x01\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x122\n" +
-	"\x16h1_skip_wait_for_reply\x18\x03 \x01(\bR\x12h1SkipWaitForReply:\x18\x82\xb5\x18\x14\n" +
-	"\boutbound\x12\x04http\x90\xff)\x01B\x81\x01\n" +
+	"\x16h1_skip_wait_for_reply\x18\x03 \x01(\bR\x12h1SkipWaitForReply:\x14\x82\xb5\x18\x10\n" +
+	"\boutbound\x12\x04httpB\x81\x01\n" +
 	"$com.v2ray.core.proxy.http.simplifiedP\x01Z4github.com/v2fly/v2ray-core/v5/proxy/http/simplified\xaa\x02 V2Ray.Core.Proxy.Http.Simplifiedb\x06proto3"
 
 var (
