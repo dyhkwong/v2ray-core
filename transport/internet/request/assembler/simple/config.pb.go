@@ -31,11 +31,9 @@ type ClientConfig struct {
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -46,7 +44,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -120,11 +118,9 @@ type ServerConfig struct {
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -135,7 +131,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_assembler_simple_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -231,7 +227,7 @@ func file_transport_internet_request_assembler_simple_config_proto_rawDescGZIP()
 }
 
 var file_transport_internet_request_assembler_simple_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_transport_internet_request_assembler_simple_config_proto_goTypes = []interface{}{
+var file_transport_internet_request_assembler_simple_config_proto_goTypes = []any{
 	(*ClientConfig)(nil), // 0: v2ray.core.transport.internet.request.assembler.simple.ClientConfig
 	(*ServerConfig)(nil), // 1: v2ray.core.transport.internet.request.assembler.simple.ServerConfig
 }
@@ -247,32 +243,6 @@ func init() { file_transport_internet_request_assembler_simple_config_proto_init
 func file_transport_internet_request_assembler_simple_config_proto_init() {
 	if File_transport_internet_request_assembler_simple_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_request_assembler_simple_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_request_assembler_simple_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
