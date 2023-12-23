@@ -33,11 +33,9 @@ type Account struct {
 
 func (x *Account) Reset() {
 	*x = Account{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_vmess_account_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_vmess_account_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Account) String() string {
@@ -48,7 +46,7 @@ func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_vmess_account_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -133,7 +131,7 @@ func file_proxy_vmess_account_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_vmess_account_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proxy_vmess_account_proto_goTypes = []interface{}{
+var file_proxy_vmess_account_proto_goTypes = []any{
 	(*Account)(nil),                 // 0: v2ray.core.proxy.vmess.Account
 	(*protocol.SecurityConfig)(nil), // 1: v2ray.core.common.protocol.SecurityConfig
 }
@@ -150,20 +148,6 @@ func init() { file_proxy_vmess_account_proto_init() }
 func file_proxy_vmess_account_proto_init() {
 	if File_proxy_vmess_account_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_vmess_account_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Account); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

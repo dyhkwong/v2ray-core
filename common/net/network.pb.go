@@ -81,11 +81,9 @@ type NetworkList struct {
 
 func (x *NetworkList) Reset() {
 	*x = NetworkList{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_network_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_network_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *NetworkList) String() string {
@@ -96,7 +94,7 @@ func (*NetworkList) ProtoMessage() {}
 
 func (x *NetworkList) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_network_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -156,7 +154,7 @@ func file_common_net_network_proto_rawDescGZIP() []byte {
 
 var file_common_net_network_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_net_network_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_net_network_proto_goTypes = []interface{}{
+var file_common_net_network_proto_goTypes = []any{
 	(Network)(0),        // 0: v2ray.core.common.net.Network
 	(*NetworkList)(nil), // 1: v2ray.core.common.net.NetworkList
 }
@@ -173,20 +171,6 @@ func init() { file_common_net_network_proto_init() }
 func file_common_net_network_proto_init() {
 	if File_common_net_network_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_network_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NetworkList); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

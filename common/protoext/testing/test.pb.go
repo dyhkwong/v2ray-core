@@ -25,11 +25,9 @@ type TestingMessage struct {
 
 func (x *TestingMessage) Reset() {
 	*x = TestingMessage{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_protoext_testing_test_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_protoext_testing_test_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *TestingMessage) String() string {
@@ -40,7 +38,7 @@ func (*TestingMessage) ProtoMessage() {}
 
 func (x *TestingMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_common_protoext_testing_test_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -101,7 +99,7 @@ func file_common_protoext_testing_test_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protoext_testing_test_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protoext_testing_test_proto_goTypes = []interface{}{
+var file_common_protoext_testing_test_proto_goTypes = []any{
 	(*TestingMessage)(nil), // 0: v2ray.core.common.protoext.testing.TestingMessage
 }
 var file_common_protoext_testing_test_proto_depIdxs = []int32{
@@ -116,20 +114,6 @@ func init() { file_common_protoext_testing_test_proto_init() }
 func file_common_protoext_testing_test_proto_init() {
 	if File_common_protoext_testing_test_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_protoext_testing_test_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TestingMessage); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

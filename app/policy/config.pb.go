@@ -25,11 +25,9 @@ type Second struct {
 
 func (x *Second) Reset() {
 	*x = Second{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Second) String() string {
@@ -40,7 +38,7 @@ func (*Second) ProtoMessage() {}
 
 func (x *Second) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -74,11 +72,9 @@ type Policy struct {
 
 func (x *Policy) Reset() {
 	*x = Policy{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Policy) String() string {
@@ -89,7 +85,7 @@ func (*Policy) ProtoMessage() {}
 
 func (x *Policy) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -136,11 +132,9 @@ type SystemPolicy struct {
 
 func (x *SystemPolicy) Reset() {
 	*x = SystemPolicy{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SystemPolicy) String() string {
@@ -151,7 +145,7 @@ func (*SystemPolicy) ProtoMessage() {}
 
 func (x *SystemPolicy) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -191,11 +185,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -206,7 +198,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -249,11 +241,9 @@ type Policy_Timeout struct {
 
 func (x *Policy_Timeout) Reset() {
 	*x = Policy_Timeout{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Policy_Timeout) String() string {
@@ -264,7 +254,7 @@ func (*Policy_Timeout) ProtoMessage() {}
 
 func (x *Policy_Timeout) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -318,11 +308,9 @@ type Policy_Stats struct {
 
 func (x *Policy_Stats) Reset() {
 	*x = Policy_Stats{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Policy_Stats) String() string {
@@ -333,7 +321,7 @@ func (*Policy_Stats) ProtoMessage() {}
 
 func (x *Policy_Stats) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -373,11 +361,9 @@ type Policy_Buffer struct {
 
 func (x *Policy_Buffer) Reset() {
 	*x = Policy_Buffer{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Policy_Buffer) String() string {
@@ -388,7 +374,7 @@ func (*Policy_Buffer) ProtoMessage() {}
 
 func (x *Policy_Buffer) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -423,11 +409,9 @@ type SystemPolicy_Stats struct {
 
 func (x *SystemPolicy_Stats) Reset() {
 	*x = SystemPolicy_Stats{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_policy_config_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_policy_config_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SystemPolicy_Stats) String() string {
@@ -438,7 +422,7 @@ func (*SystemPolicy_Stats) ProtoMessage() {}
 
 func (x *SystemPolicy_Stats) ProtoReflect() protoreflect.Message {
 	mi := &file_app_policy_config_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -586,7 +570,7 @@ func file_app_policy_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_policy_config_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_app_policy_config_proto_goTypes = []interface{}{
+var file_app_policy_config_proto_goTypes = []any{
 	(*Second)(nil),             // 0: v2ray.core.app.policy.Second
 	(*Policy)(nil),             // 1: v2ray.core.app.policy.Policy
 	(*SystemPolicy)(nil),       // 2: v2ray.core.app.policy.SystemPolicy
@@ -620,104 +604,6 @@ func init() { file_app_policy_config_proto_init() }
 func file_app_policy_config_proto_init() {
 	if File_app_policy_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_policy_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Second); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Policy); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SystemPolicy); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Policy_Timeout); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Policy_Stats); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Policy_Buffer); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_policy_config_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SystemPolicy_Stats); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

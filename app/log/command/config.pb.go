@@ -22,11 +22,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_command_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_command_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -37,7 +35,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_command_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -60,11 +58,9 @@ type RestartLoggerRequest struct {
 
 func (x *RestartLoggerRequest) Reset() {
 	*x = RestartLoggerRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_command_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_command_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RestartLoggerRequest) String() string {
@@ -75,7 +71,7 @@ func (*RestartLoggerRequest) ProtoMessage() {}
 
 func (x *RestartLoggerRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_command_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -98,11 +94,9 @@ type RestartLoggerResponse struct {
 
 func (x *RestartLoggerResponse) Reset() {
 	*x = RestartLoggerResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_command_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_command_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RestartLoggerResponse) String() string {
@@ -113,7 +107,7 @@ func (*RestartLoggerResponse) ProtoMessage() {}
 
 func (x *RestartLoggerResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_command_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -136,11 +130,9 @@ type FollowLogRequest struct {
 
 func (x *FollowLogRequest) Reset() {
 	*x = FollowLogRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_command_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_command_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FollowLogRequest) String() string {
@@ -151,7 +143,7 @@ func (*FollowLogRequest) ProtoMessage() {}
 
 func (x *FollowLogRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_command_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -176,11 +168,9 @@ type FollowLogResponse struct {
 
 func (x *FollowLogResponse) Reset() {
 	*x = FollowLogResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_command_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_command_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FollowLogResponse) String() string {
@@ -191,7 +181,7 @@ func (*FollowLogResponse) ProtoMessage() {}
 
 func (x *FollowLogResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_command_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -266,7 +256,7 @@ func file_app_log_command_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_log_command_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_app_log_command_config_proto_goTypes = []interface{}{
+var file_app_log_command_config_proto_goTypes = []any{
 	(*Config)(nil),                // 0: v2ray.core.app.log.command.Config
 	(*RestartLoggerRequest)(nil),  // 1: v2ray.core.app.log.command.RestartLoggerRequest
 	(*RestartLoggerResponse)(nil), // 2: v2ray.core.app.log.command.RestartLoggerResponse
@@ -289,68 +279,6 @@ func init() { file_app_log_command_config_proto_init() }
 func file_app_log_command_config_proto_init() {
 	if File_app_log_command_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_log_command_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_log_command_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RestartLoggerRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_log_command_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RestartLoggerResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_log_command_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FollowLogRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_log_command_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FollowLogResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
