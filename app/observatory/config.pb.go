@@ -526,7 +526,7 @@ func file_app_observatory_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_observatory_config_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_app_observatory_config_proto_goTypes = []interface{}{
+var file_app_observatory_config_proto_goTypes = []any{
 	(*ObservationResult)(nil),           // 0: v2ray.core.app.observatory.ObservationResult
 	(*HealthPingMeasurementResult)(nil), // 1: v2ray.core.app.observatory.HealthPingMeasurementResult
 	(*OutboundStatus)(nil),              // 2: v2ray.core.app.observatory.OutboundStatus
@@ -550,7 +550,7 @@ func file_app_observatory_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_observatory_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ObservationResult); i {
 			case 0:
 				return &v.state
@@ -562,7 +562,7 @@ func file_app_observatory_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*HealthPingMeasurementResult); i {
 			case 0:
 				return &v.state
@@ -574,7 +574,7 @@ func file_app_observatory_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*OutboundStatus); i {
 			case 0:
 				return &v.state
@@ -586,7 +586,7 @@ func file_app_observatory_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*ProbeResult); i {
 			case 0:
 				return &v.state
@@ -598,7 +598,7 @@ func file_app_observatory_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*Intensity); i {
 			case 0:
 				return &v.state
@@ -610,7 +610,7 @@ func file_app_observatory_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_config_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_config_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state

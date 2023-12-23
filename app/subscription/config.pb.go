@@ -219,7 +219,7 @@ func file_app_subscription_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_subscription_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_subscription_config_proto_goTypes = []interface{}{
+var file_app_subscription_config_proto_goTypes = []any{
 	(*ImportSource)(nil), // 0: v2ray.core.app.subscription.ImportSource
 	(*Config)(nil),       // 1: v2ray.core.app.subscription.Config
 }
@@ -238,7 +238,7 @@ func file_app_subscription_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_subscription_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_subscription_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ImportSource); i {
 			case 0:
 				return &v.state
@@ -250,7 +250,7 @@ func file_app_subscription_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_subscription_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_subscription_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state

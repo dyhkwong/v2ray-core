@@ -309,7 +309,7 @@ func file_app_subscription_specs_abstract_spec_proto_rawDescGZIP() []byte {
 }
 
 var file_app_subscription_specs_abstract_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_app_subscription_specs_abstract_spec_proto_goTypes = []interface{}{
+var file_app_subscription_specs_abstract_spec_proto_goTypes = []any{
 	(*ServerConfiguration)(nil),      // 0: v2ray.core.app.subscription.specs.ServerConfiguration
 	(*SubscriptionServerConfig)(nil), // 1: v2ray.core.app.subscription.specs.SubscriptionServerConfig
 	(*SubscriptionDocument)(nil),     // 2: v2ray.core.app.subscription.specs.SubscriptionDocument
@@ -338,7 +338,7 @@ func file_app_subscription_specs_abstract_spec_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_subscription_specs_abstract_spec_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_subscription_specs_abstract_spec_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ServerConfiguration); i {
 			case 0:
 				return &v.state
@@ -350,7 +350,7 @@ func file_app_subscription_specs_abstract_spec_proto_init() {
 				return nil
 			}
 		}
-		file_app_subscription_specs_abstract_spec_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_subscription_specs_abstract_spec_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*SubscriptionServerConfig); i {
 			case 0:
 				return &v.state
@@ -362,7 +362,7 @@ func file_app_subscription_specs_abstract_spec_proto_init() {
 				return nil
 			}
 		}
-		file_app_subscription_specs_abstract_spec_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_app_subscription_specs_abstract_spec_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*SubscriptionDocument); i {
 			case 0:
 				return &v.state
