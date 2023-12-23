@@ -16,22 +16,19 @@ const (
 
 // Endpoint of a network connection.
 type Endpoint struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Network       Network                `protobuf:"varint,1,opt,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Address       *IPOrDomain            `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Network Network     `protobuf:"varint,1,opt,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Address *IPOrDomain `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32      `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Endpoint) Reset() {
 	*x = Endpoint{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_destination_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_destination_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Endpoint) String() string {
@@ -42,7 +39,7 @@ func (*Endpoint) ProtoMessage() {}
 
 func (x *Endpoint) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_destination_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -119,7 +116,7 @@ func file_common_net_destination_proto_rawDescGZIP() []byte {
 }
 
 var file_common_net_destination_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_net_destination_proto_goTypes = []interface{}{
+var file_common_net_destination_proto_goTypes = []any{
 	(*Endpoint)(nil),   // 0: v2ray.core.common.net.Endpoint
 	(Network)(0),       // 1: v2ray.core.common.net.Network
 	(*IPOrDomain)(nil), // 2: v2ray.core.common.net.IPOrDomain
@@ -141,20 +138,6 @@ func file_common_net_destination_proto_init() {
 	}
 	file_common_net_network_proto_init()
 	file_common_net_address_proto_init()
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_destination_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Endpoint); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

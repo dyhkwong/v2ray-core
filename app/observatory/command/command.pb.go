@@ -17,20 +17,17 @@ const (
 )
 
 type GetOutboundStatusRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=Tag,proto3" json:"Tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag string `protobuf:"bytes,1,opt,name=Tag,proto3" json:"Tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetOutboundStatusRequest) Reset() {
 	*x = GetOutboundStatusRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_observatory_command_command_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_observatory_command_command_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GetOutboundStatusRequest) String() string {
@@ -41,7 +38,7 @@ func (*GetOutboundStatusRequest) ProtoMessage() {}
 
 func (x *GetOutboundStatusRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_observatory_command_command_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -64,20 +61,17 @@ func (x *GetOutboundStatusRequest) GetTag() string {
 }
 
 type GetOutboundStatusResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Status        *observatory.ObservationResult `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Status *observatory.ObservationResult `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetOutboundStatusResponse) Reset() {
 	*x = GetOutboundStatusResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_observatory_command_command_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_observatory_command_command_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GetOutboundStatusResponse) String() string {
@@ -88,7 +82,7 @@ func (*GetOutboundStatusResponse) ProtoMessage() {}
 
 func (x *GetOutboundStatusResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_observatory_command_command_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -111,18 +105,16 @@ func (x *GetOutboundStatusResponse) GetStatus() *observatory.ObservationResult {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_observatory_command_command_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_observatory_command_command_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -133,7 +125,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_observatory_command_command_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -207,7 +199,7 @@ func file_app_observatory_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_observatory_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_app_observatory_command_command_proto_goTypes = []interface{}{
+var file_app_observatory_command_command_proto_goTypes = []any{
 	(*GetOutboundStatusRequest)(nil),      // 0: v2ray.core.app.observatory.command.GetOutboundStatusRequest
 	(*GetOutboundStatusResponse)(nil),     // 1: v2ray.core.app.observatory.command.GetOutboundStatusResponse
 	(*Config)(nil),                        // 2: v2ray.core.app.observatory.command.Config
@@ -228,44 +220,6 @@ func init() { file_app_observatory_command_command_proto_init() }
 func file_app_observatory_command_command_proto_init() {
 	if File_app_observatory_command_command_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_observatory_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetOutboundStatusRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_observatory_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetOutboundStatusResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_observatory_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

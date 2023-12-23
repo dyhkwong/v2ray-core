@@ -62,23 +62,20 @@ func (DTLSMode) EnumDescriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Mode                   DTLSMode `protobuf:"varint,1,opt,name=mode,proto3,enum=v2ray.core.transport.internet.dtls.DTLSMode" json:"mode,omitempty"`
-	Psk                    []byte   `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
-	Mtu                    uint32   `protobuf:"varint,3,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	ReplayProtectionWindow uint32   `protobuf:"varint,4,opt,name=replay_protection_window,json=replayProtectionWindow,proto3" json:"replay_protection_window,omitempty"`
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Mode                   DTLSMode               `protobuf:"varint,1,opt,name=mode,proto3,enum=v2ray.core.transport.internet.dtls.DTLSMode" json:"mode,omitempty"`
+	Psk                    []byte                 `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
+	Mtu                    uint32                 `protobuf:"varint,3,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	ReplayProtectionWindow uint32                 `protobuf:"varint,4,opt,name=replay_protection_window,json=replayProtectionWindow,proto3" json:"replay_protection_window,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_dtls_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_dtls_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -89,7 +86,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_dtls_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -199,20 +196,6 @@ func init() { file_transport_internet_dtls_config_proto_init() }
 func file_transport_internet_dtls_config_proto_init() {
 	if File_transport_internet_dtls_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_dtls_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
