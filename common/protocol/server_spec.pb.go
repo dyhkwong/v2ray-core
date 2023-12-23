@@ -121,7 +121,7 @@ func file_common_protocol_server_spec_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protocol_server_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_server_spec_proto_goTypes = []interface{}{
+var file_common_protocol_server_spec_proto_goTypes = []any{
 	(*ServerEndpoint)(nil), // 0: v2ray.core.common.protocol.ServerEndpoint
 	(*net.IPOrDomain)(nil), // 1: v2ray.core.common.net.IPOrDomain
 	(*User)(nil),           // 2: v2ray.core.common.protocol.User
@@ -143,7 +143,7 @@ func file_common_protocol_server_spec_proto_init() {
 	}
 	file_common_protocol_user_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_server_spec_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_protocol_server_spec_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ServerEndpoint); i {
 			case 0:
 				return &v.state

@@ -165,7 +165,7 @@ func file_common_protocol_headers_proto_rawDescGZIP() []byte {
 
 var file_common_protocol_headers_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_protocol_headers_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_headers_proto_goTypes = []interface{}{
+var file_common_protocol_headers_proto_goTypes = []any{
 	(SecurityType)(0),      // 0: v2ray.core.common.protocol.SecurityType
 	(*SecurityConfig)(nil), // 1: v2ray.core.common.protocol.SecurityConfig
 }
@@ -184,7 +184,7 @@ func file_common_protocol_headers_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_headers_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_protocol_headers_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*SecurityConfig); i {
 			case 0:
 				return &v.state

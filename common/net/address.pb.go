@@ -131,7 +131,7 @@ func file_common_net_address_proto_rawDescGZIP() []byte {
 }
 
 var file_common_net_address_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_net_address_proto_goTypes = []interface{}{
+var file_common_net_address_proto_goTypes = []any{
 	(*IPOrDomain)(nil), // 0: v2ray.core.common.net.IPOrDomain
 }
 var file_common_net_address_proto_depIdxs = []int32{
@@ -148,7 +148,7 @@ func file_common_net_address_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_common_net_address_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_net_address_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*IPOrDomain); i {
 			case 0:
 				return &v.state
@@ -161,7 +161,7 @@ func file_common_net_address_proto_init() {
 			}
 		}
 	}
-	file_common_net_address_proto_msgTypes[0].OneofWrappers = []interface{}{
+	file_common_net_address_proto_msgTypes[0].OneofWrappers = []any{
 		(*IPOrDomain_Ip)(nil),
 		(*IPOrDomain_Domain)(nil),
 	}

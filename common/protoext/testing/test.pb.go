@@ -101,7 +101,7 @@ func file_common_protoext_testing_test_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protoext_testing_test_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protoext_testing_test_proto_goTypes = []interface{}{
+var file_common_protoext_testing_test_proto_goTypes = []any{
 	(*TestingMessage)(nil), // 0: v2ray.core.common.protoext.testing.TestingMessage
 }
 var file_common_protoext_testing_test_proto_depIdxs = []int32{
@@ -118,7 +118,7 @@ func file_common_protoext_testing_test_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_common_protoext_testing_test_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_protoext_testing_test_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*TestingMessage); i {
 			case 0:
 				return &v.state

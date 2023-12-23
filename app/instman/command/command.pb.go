@@ -399,7 +399,7 @@ func file_app_instman_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_instman_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_app_instman_command_command_proto_goTypes = []interface{}{
+var file_app_instman_command_command_proto_goTypes = []any{
 	(*ListInstanceReq)(nil),   // 0: v2ray.core.app.instman.command.ListInstanceReq
 	(*ListInstanceResp)(nil),  // 1: v2ray.core.app.instman.command.ListInstanceResp
 	(*AddInstanceReq)(nil),    // 2: v2ray.core.app.instman.command.AddInstanceReq
@@ -428,7 +428,7 @@ func file_app_instman_command_command_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_instman_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ListInstanceReq); i {
 			case 0:
 				return &v.state
@@ -440,7 +440,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*ListInstanceResp); i {
 			case 0:
 				return &v.state
@@ -452,7 +452,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*AddInstanceReq); i {
 			case 0:
 				return &v.state
@@ -464,7 +464,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*AddInstanceResp); i {
 			case 0:
 				return &v.state
@@ -476,7 +476,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*StartInstanceReq); i {
 			case 0:
 				return &v.state
@@ -488,7 +488,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*StartInstanceResp); i {
 			case 0:
 				return &v.state
@@ -500,7 +500,7 @@ func file_app_instman_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_instman_command_command_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_app_instman_command_command_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
