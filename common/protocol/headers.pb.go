@@ -76,20 +76,17 @@ func (SecurityType) EnumDescriptor() ([]byte, []int) {
 }
 
 type SecurityConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          SecurityType           `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.common.protocol.SecurityType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type SecurityType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.common.protocol.SecurityType" json:"type,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SecurityConfig) Reset() {
 	*x = SecurityConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_protocol_headers_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_protocol_headers_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SecurityConfig) String() string {
@@ -100,7 +97,7 @@ func (*SecurityConfig) ProtoMessage() {}
 
 func (x *SecurityConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_common_protocol_headers_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -165,7 +162,7 @@ func file_common_protocol_headers_proto_rawDescGZIP() []byte {
 
 var file_common_protocol_headers_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_protocol_headers_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_headers_proto_goTypes = []interface{}{
+var file_common_protocol_headers_proto_goTypes = []any{
 	(SecurityType)(0),      // 0: v2ray.core.common.protocol.SecurityType
 	(*SecurityConfig)(nil), // 1: v2ray.core.common.protocol.SecurityConfig
 }
@@ -182,20 +179,6 @@ func init() { file_common_protocol_headers_proto_init() }
 func file_common_protocol_headers_proto_init() {
 	if File_common_protocol_headers_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_headers_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SecurityConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

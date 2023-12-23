@@ -16,22 +16,19 @@ const (
 )
 
 type ServerEndpoint struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	User          []*User                `protobuf:"bytes,3,rep,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Address *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	User    []*User         `protobuf:"bytes,3,rep,name=user,proto3" json:"user,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerEndpoint) Reset() {
 	*x = ServerEndpoint{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_protocol_server_spec_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_protocol_server_spec_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerEndpoint) String() string {
@@ -42,7 +39,7 @@ func (*ServerEndpoint) ProtoMessage() {}
 
 func (x *ServerEndpoint) ProtoReflect() protoreflect.Message {
 	mi := &file_common_protocol_server_spec_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -121,7 +118,7 @@ func file_common_protocol_server_spec_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protocol_server_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_server_spec_proto_goTypes = []interface{}{
+var file_common_protocol_server_spec_proto_goTypes = []any{
 	(*ServerEndpoint)(nil), // 0: v2ray.core.common.protocol.ServerEndpoint
 	(*net.IPOrDomain)(nil), // 1: v2ray.core.common.net.IPOrDomain
 	(*User)(nil),           // 2: v2ray.core.common.protocol.User
@@ -142,20 +139,6 @@ func file_common_protocol_server_spec_proto_init() {
 		return
 	}
 	file_common_protocol_user_proto_init()
-	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_server_spec_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServerEndpoint); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

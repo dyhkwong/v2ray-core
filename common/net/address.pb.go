@@ -17,24 +17,21 @@ const (
 // Address of a network host. It may be either an IP address or a domain
 // address.
 type IPOrDomain struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Address:
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Address:
 	//
 	//	*IPOrDomain_Ip
 	//	*IPOrDomain_Domain
-	Address isIPOrDomain_Address `protobuf_oneof:"address"`
+	Address       isIPOrDomain_Address `protobuf_oneof:"address"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IPOrDomain) Reset() {
 	*x = IPOrDomain{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_address_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_address_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *IPOrDomain) String() string {
@@ -45,7 +42,7 @@ func (*IPOrDomain) ProtoMessage() {}
 
 func (x *IPOrDomain) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_address_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -60,23 +57,27 @@ func (*IPOrDomain) Descriptor() ([]byte, []int) {
 	return file_common_net_address_proto_rawDescGZIP(), []int{0}
 }
 
-func (m *IPOrDomain) GetAddress() isIPOrDomain_Address {
-	if m != nil {
-		return m.Address
+func (x *IPOrDomain) GetAddress() isIPOrDomain_Address {
+	if x != nil {
+		return x.Address
 	}
 	return nil
 }
 
 func (x *IPOrDomain) GetIp() []byte {
-	if x, ok := x.GetAddress().(*IPOrDomain_Ip); ok {
-		return x.Ip
+	if x != nil {
+		if x, ok := x.Address.(*IPOrDomain_Ip); ok {
+			return x.Ip
+		}
 	}
 	return nil
 }
 
 func (x *IPOrDomain) GetDomain() string {
-	if x, ok := x.GetAddress().(*IPOrDomain_Domain); ok {
-		return x.Domain
+	if x != nil {
+		if x, ok := x.Address.(*IPOrDomain_Domain); ok {
+			return x.Domain
+		}
 	}
 	return ""
 }
@@ -131,7 +132,7 @@ func file_common_net_address_proto_rawDescGZIP() []byte {
 }
 
 var file_common_net_address_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_net_address_proto_goTypes = []interface{}{
+var file_common_net_address_proto_goTypes = []any{
 	(*IPOrDomain)(nil), // 0: v2ray.core.common.net.IPOrDomain
 }
 var file_common_net_address_proto_depIdxs = []int32{
@@ -147,21 +148,7 @@ func file_common_net_address_proto_init() {
 	if File_common_net_address_proto != nil {
 		return
 	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_address_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IPOrDomain); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
-	file_common_net_address_proto_msgTypes[0].OneofWrappers = []interface{}{
+	file_common_net_address_proto_msgTypes[0].OneofWrappers = []any{
 		(*IPOrDomain_Ip)(nil),
 		(*IPOrDomain_Domain)(nil),
 	}

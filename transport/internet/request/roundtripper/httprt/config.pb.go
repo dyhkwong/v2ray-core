@@ -16,22 +16,19 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Http          *HTTPConfig            `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
+	AllowHttp     bool                   `protobuf:"varint,2,opt,name=allow_http,json=allowHttp,proto3" json:"allow_http,omitempty"`
+	H2PoolSize    int32                  `protobuf:"varint,3,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Http       *HTTPConfig `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
-	AllowHttp  bool        `protobuf:"varint,2,opt,name=allow_http,json=allowHttp,proto3" json:"allow_http,omitempty"`
-	H2PoolSize int32       `protobuf:"varint,3,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -42,7 +39,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -79,21 +76,18 @@ func (x *ClientConfig) GetH2PoolSize() int32 {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Http                 *HTTPConfig `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
-	NoDecodingSessionTag bool        `protobuf:"varint,2,opt,name=no_decoding_session_tag,json=noDecodingSessionTag,proto3" json:"no_decoding_session_tag,omitempty"`
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Http                 *HTTPConfig            `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
+	NoDecodingSessionTag bool                   `protobuf:"varint,2,opt,name=no_decoding_session_tag,json=noDecodingSessionTag,proto3" json:"no_decoding_session_tag,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -104,7 +98,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -134,21 +128,18 @@ func (x *ServerConfig) GetNoDecodingSessionTag() bool {
 }
 
 type HTTPConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	UrlPrefix     string                 `protobuf:"bytes,2,opt,name=urlPrefix,proto3" json:"urlPrefix,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Path      string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	UrlPrefix string `protobuf:"bytes,2,opt,name=urlPrefix,proto3" json:"urlPrefix,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HTTPConfig) Reset() {
 	*x = HTTPConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *HTTPConfig) String() string {
@@ -159,7 +150,7 @@ func (*HTTPConfig) ProtoMessage() {}
 
 func (x *HTTPConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -261,7 +252,7 @@ func file_transport_internet_request_roundtripper_httprt_config_proto_rawDescGZI
 }
 
 var file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_transport_internet_request_roundtripper_httprt_config_proto_goTypes = []interface{}{
+var file_transport_internet_request_roundtripper_httprt_config_proto_goTypes = []any{
 	(*ClientConfig)(nil), // 0: v2ray.core.transport.internet.request.roundtripper.httprt.ClientConfig
 	(*ServerConfig)(nil), // 1: v2ray.core.transport.internet.request.roundtripper.httprt.ServerConfig
 	(*HTTPConfig)(nil),   // 2: v2ray.core.transport.internet.request.roundtripper.httprt.HTTPConfig
@@ -280,44 +271,6 @@ func init() { file_transport_internet_request_roundtripper_httprt_config_proto_i
 func file_transport_internet_request_roundtripper_httprt_config_proto_init() {
 	if File_transport_internet_request_roundtripper_httprt_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_request_roundtripper_httprt_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HTTPConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

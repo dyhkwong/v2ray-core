@@ -16,23 +16,20 @@ const (
 
 // PortRange represents a range of ports.
 type PortRange struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// The port that this range starts from.
 	From uint32 `protobuf:"varint,1,opt,name=From,proto3" json:"From,omitempty"`
 	// The port that this range ends with (inclusive).
-	To uint32 `protobuf:"varint,2,opt,name=To,proto3" json:"To,omitempty"`
+	To            uint32 `protobuf:"varint,2,opt,name=To,proto3" json:"To,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PortRange) Reset() {
 	*x = PortRange{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_port_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_port_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PortRange) String() string {
@@ -43,7 +40,7 @@ func (*PortRange) ProtoMessage() {}
 
 func (x *PortRange) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_port_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -74,20 +71,17 @@ func (x *PortRange) GetTo() uint32 {
 
 // PortList is a list of ports.
 type PortList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         []*PortRange           `protobuf:"bytes,1,rep,name=range,proto3" json:"range,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Range []*PortRange `protobuf:"bytes,1,rep,name=range,proto3" json:"range,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PortList) Reset() {
 	*x = PortList{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_port_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_port_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PortList) String() string {
@@ -98,7 +92,7 @@ func (*PortList) ProtoMessage() {}
 
 func (x *PortList) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_port_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -155,7 +149,7 @@ func file_common_net_port_proto_rawDescGZIP() []byte {
 }
 
 var file_common_net_port_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_common_net_port_proto_goTypes = []interface{}{
+var file_common_net_port_proto_goTypes = []any{
 	(*PortRange)(nil), // 0: v2ray.core.common.net.PortRange
 	(*PortList)(nil),  // 1: v2ray.core.common.net.PortList
 }
@@ -172,32 +166,6 @@ func init() { file_common_net_port_proto_init() }
 func file_common_net_port_proto_init() {
 	if File_common_net_port_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_port_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PortRange); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_common_net_port_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PortList); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

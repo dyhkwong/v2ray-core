@@ -17,24 +17,21 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	UnderlyingTransportSetting *anypb.Any `protobuf:"bytes,1,opt,name=underlying_transport_setting,json=underlyingTransportSetting,proto3" json:"underlying_transport_setting,omitempty"`
-	UnderlyingTransportName    string     `protobuf:"bytes,2,opt,name=underlying_transport_name,json=underlyingTransportName,proto3" json:"underlying_transport_name,omitempty"`
-	MaxWriteDelay              int32      `protobuf:"varint,3,opt,name=max_write_delay,json=maxWriteDelay,proto3" json:"max_write_delay,omitempty"`
-	MaxRequestSize             int32      `protobuf:"varint,4,opt,name=max_request_size,json=maxRequestSize,proto3" json:"max_request_size,omitempty"`
-	PollingIntervalInitial     int32      `protobuf:"varint,5,opt,name=polling_interval_initial,json=pollingIntervalInitial,proto3" json:"polling_interval_initial,omitempty"`
+	state                      protoimpl.MessageState `protogen:"open.v1"`
+	UnderlyingTransportSetting *anypb.Any             `protobuf:"bytes,1,opt,name=underlying_transport_setting,json=underlyingTransportSetting,proto3" json:"underlying_transport_setting,omitempty"`
+	UnderlyingTransportName    string                 `protobuf:"bytes,2,opt,name=underlying_transport_name,json=underlyingTransportName,proto3" json:"underlying_transport_name,omitempty"`
+	MaxWriteDelay              int32                  `protobuf:"varint,3,opt,name=max_write_delay,json=maxWriteDelay,proto3" json:"max_write_delay,omitempty"`
+	MaxRequestSize             int32                  `protobuf:"varint,4,opt,name=max_request_size,json=maxRequestSize,proto3" json:"max_request_size,omitempty"`
+	PollingIntervalInitial     int32                  `protobuf:"varint,5,opt,name=polling_interval_initial,json=pollingIntervalInitial,proto3" json:"polling_interval_initial,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -45,7 +42,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -96,25 +93,22 @@ func (x *ClientConfig) GetPollingIntervalInitial() int32 {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	UnderlyingTransportSetting     *anypb.Any `protobuf:"bytes,1,opt,name=underlying_transport_setting,json=underlyingTransportSetting,proto3" json:"underlying_transport_setting,omitempty"`
-	UnderlyingTransportName        string     `protobuf:"bytes,2,opt,name=underlying_transport_name,json=underlyingTransportName,proto3" json:"underlying_transport_name,omitempty"`
-	MaxWriteSize                   int32      `protobuf:"varint,3,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
-	MaxWriteDurationMs             int32      `protobuf:"varint,4,opt,name=max_write_duration_ms,json=maxWriteDurationMs,proto3" json:"max_write_duration_ms,omitempty"`
-	MaxSimultaneousWriteConnection int32      `protobuf:"varint,5,opt,name=max_simultaneous_write_connection,json=maxSimultaneousWriteConnection,proto3" json:"max_simultaneous_write_connection,omitempty"`
-	PacketWritingBuffer            int32      `protobuf:"varint,6,opt,name=packet_writing_buffer,json=packetWritingBuffer,proto3" json:"packet_writing_buffer,omitempty"`
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	UnderlyingTransportSetting     *anypb.Any             `protobuf:"bytes,1,opt,name=underlying_transport_setting,json=underlyingTransportSetting,proto3" json:"underlying_transport_setting,omitempty"`
+	UnderlyingTransportName        string                 `protobuf:"bytes,2,opt,name=underlying_transport_name,json=underlyingTransportName,proto3" json:"underlying_transport_name,omitempty"`
+	MaxWriteSize                   int32                  `protobuf:"varint,3,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
+	MaxWriteDurationMs             int32                  `protobuf:"varint,4,opt,name=max_write_duration_ms,json=maxWriteDurationMs,proto3" json:"max_write_duration_ms,omitempty"`
+	MaxSimultaneousWriteConnection int32                  `protobuf:"varint,5,opt,name=max_simultaneous_write_connection,json=maxSimultaneousWriteConnection,proto3" json:"max_simultaneous_write_connection,omitempty"`
+	PacketWritingBuffer            int32                  `protobuf:"varint,6,opt,name=packet_writing_buffer,json=packetWritingBuffer,proto3" json:"packet_writing_buffer,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -125,7 +119,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -294,32 +288,6 @@ func init() { file_transport_internet_request_assembler_packetconn_packetConn_pr
 func file_transport_internet_request_assembler_packetconn_packetConn_proto_init() {
 	if File_transport_internet_request_assembler_packetconn_packetConn_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_request_assembler_packetconn_packetConn_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
