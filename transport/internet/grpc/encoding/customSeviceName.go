@@ -1,6 +1,3 @@
-//go:build !confonly
-// +build !confonly
-
 package encoding
 
 import (
@@ -26,7 +23,7 @@ func ServerDesc(name string) grpc.ServiceDesc {
 	}
 }
 
-func (c *gunServiceClient) TunCustomName(ctx context.Context, name string, opts ...grpc.CallOption) (GunService_TunClient, error) {
+func (c *gunServiceClient) TunCustomName(ctx context.Context, name string, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Hunk, Hunk], error) {
 	stream, err := c.cc.NewStream(ctx, &ServerDesc(name).Streams[0], "/"+name+"/Tun", opts...)
 	if err != nil {
 		return nil, err
@@ -36,8 +33,8 @@ func (c *gunServiceClient) TunCustomName(ctx context.Context, name string, opts 
 }
 
 type GunServiceClientX interface {
-	TunCustomName(ctx context.Context, name string, opts ...grpc.CallOption) (GunService_TunClient, error)
-	Tun(ctx context.Context, opts ...grpc.CallOption) (GunService_TunClient, error)
+	TunCustomName(ctx context.Context, name string, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Hunk, Hunk], error)
+	Tun(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Hunk, Hunk], error)
 }
 
 func RegisterGunServiceServerX(s *grpc.Server, srv GunServiceServer, name string) {
