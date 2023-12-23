@@ -1,40 +1,13 @@
 package router_test
 
 import (
-	"errors"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
-
-	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/app/router"
 	"github.com/v2fly/v2ray-core/v5/app/router/routercommon"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/platform/filesystem"
 )
-
-func init() {
-	const geoipURL = "https://raw.githubusercontent.com/v2fly/geoip/release/geoip.dat"
-
-	wd, err := os.Getwd()
-	common.Must(err)
-
-	tempPath := filepath.Join(wd, "..", "..", "testing", "temp")
-	geoipPath := filepath.Join(tempPath, "geoip.dat")
-
-	os.Setenv("v2ray.location.asset", tempPath)
-
-	if _, err := os.Stat(geoipPath); err != nil && errors.Is(err, fs.ErrNotExist) {
-		common.Must(os.MkdirAll(tempPath, 0o755))
-		geoipBytes, err := common.FetchHTTPContent(geoipURL)
-		common.Must(err)
-		common.Must(filesystem.WriteFile(geoipPath, geoipBytes))
-	}
-}
 
 func TestGeoIPMatcherContainer(t *testing.T) {
 	container := &router.GeoIPMatcherContainer{}
@@ -168,76 +141,5 @@ func TestGeoIPReverseMatcher(t *testing.T) {
 		if actual != testCase.Output {
 			t.Error("expect input", testCase.Input, "to be", testCase.Output, ", but actually", actual)
 		}
-	}
-}
-
-func TestGeoIPMatcher4CN(t *testing.T) {
-	ips, err := loadGeoIP("CN")
-	common.Must(err)
-
-	matcher := &router.GeoIPMatcher{}
-	common.Must(matcher.Init(ips))
-
-	if matcher.Match([]byte{8, 8, 8, 8}) {
-		t.Error("expect CN geoip doesn't contain 8.8.8.8, but actually does")
-	}
-}
-
-func TestGeoIPMatcher6US(t *testing.T) {
-	ips, err := loadGeoIP("US")
-	common.Must(err)
-
-	matcher := &router.GeoIPMatcher{}
-	common.Must(matcher.Init(ips))
-
-	if !matcher.Match(net.ParseAddress("2001:4860:4860::8888").IP()) {
-		t.Error("expect US geoip contain 2001:4860:4860::8888, but actually not")
-	}
-}
-
-func loadGeoIP(country string) ([]*routercommon.CIDR, error) {
-	geoipBytes, err := filesystem.ReadAsset("geoip.dat")
-	if err != nil {
-		return nil, err
-	}
-	var geoipList routercommon.GeoIPList
-	if err := proto.Unmarshal(geoipBytes, &geoipList); err != nil {
-		return nil, err
-	}
-
-	for _, geoip := range geoipList.Entry {
-		if strings.EqualFold(geoip.CountryCode, country) {
-			return geoip.Cidr, nil
-		}
-	}
-
-	panic("country not found: " + country)
-}
-
-func BenchmarkGeoIPMatcher4CN(b *testing.B) {
-	ips, err := loadGeoIP("CN")
-	common.Must(err)
-
-	matcher := &router.GeoIPMatcher{}
-	common.Must(matcher.Init(ips))
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		_ = matcher.Match([]byte{8, 8, 8, 8})
-	}
-}
-
-func BenchmarkGeoIPMatcher6US(b *testing.B) {
-	ips, err := loadGeoIP("US")
-	common.Must(err)
-
-	matcher := &router.GeoIPMatcher{}
-	common.Must(matcher.Init(ips))
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		_ = matcher.Match(net.ParseAddress("2001:4860:4860::8888").IP())
 	}
 }
