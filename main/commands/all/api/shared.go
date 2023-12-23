@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -73,7 +74,7 @@ func dialAPIServerWithoutTimeout() (conn *grpc.ClientConn, ctx context.Context, 
 }
 
 func dialAPIServerWithContext(ctx context.Context) (conn *grpc.ClientConn) {
-	conn, err := grpc.DialContext(ctx, apiServerAddrPtr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, apiServerAddrPtr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		base.Fatalf("failed to dial %s", apiServerAddrPtr)
 	}

@@ -28,11 +28,9 @@ type Header struct {
 
 func (x *Header) Reset() {
 	*x = Header{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Header) String() string {
@@ -43,7 +41,7 @@ func (*Header) ProtoMessage() {}
 
 func (x *Header) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -83,11 +81,9 @@ type Version struct {
 
 func (x *Version) Reset() {
 	*x = Version{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Version) String() string {
@@ -98,7 +94,7 @@ func (*Version) ProtoMessage() {}
 
 func (x *Version) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -131,11 +127,9 @@ type Method struct {
 
 func (x *Method) Reset() {
 	*x = Method{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Method) String() string {
@@ -146,7 +140,7 @@ func (*Method) ProtoMessage() {}
 
 func (x *Method) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -184,11 +178,9 @@ type RequestConfig struct {
 
 func (x *RequestConfig) Reset() {
 	*x = RequestConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RequestConfig) String() string {
@@ -199,7 +191,7 @@ func (*RequestConfig) ProtoMessage() {}
 
 func (x *RequestConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -255,11 +247,9 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Status) String() string {
@@ -270,7 +260,7 @@ func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -311,11 +301,9 @@ type ResponseConfig struct {
 
 func (x *ResponseConfig) Reset() {
 	*x = ResponseConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ResponseConfig) String() string {
@@ -326,7 +314,7 @@ func (*ResponseConfig) ProtoMessage() {}
 
 func (x *ResponseConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -377,11 +365,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_http_config_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_http_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -392,7 +378,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_http_config_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -510,7 +496,7 @@ func file_transport_internet_headers_http_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_headers_http_config_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_transport_internet_headers_http_config_proto_goTypes = []interface{}{
+var file_transport_internet_headers_http_config_proto_goTypes = []any{
 	(*Header)(nil),         // 0: v2ray.core.transport.internet.headers.http.Header
 	(*Version)(nil),        // 1: v2ray.core.transport.internet.headers.http.Version
 	(*Method)(nil),         // 2: v2ray.core.transport.internet.headers.http.Method
@@ -539,92 +525,6 @@ func init() { file_transport_internet_headers_http_config_proto_init() }
 func file_transport_internet_headers_http_config_proto_init() {
 	if File_transport_internet_headers_http_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_headers_http_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Header); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Version); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Method); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RequestConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Status); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ResponseConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_headers_http_config_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

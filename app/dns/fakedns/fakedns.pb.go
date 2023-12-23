@@ -26,11 +26,9 @@ type FakeDnsPool struct {
 
 func (x *FakeDnsPool) Reset() {
 	*x = FakeDnsPool{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FakeDnsPool) String() string {
@@ -41,7 +39,7 @@ func (*FakeDnsPool) ProtoMessage() {}
 
 func (x *FakeDnsPool) ProtoReflect() protoreflect.Message {
 	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -80,11 +78,9 @@ type FakeDnsPoolMulti struct {
 
 func (x *FakeDnsPoolMulti) Reset() {
 	*x = FakeDnsPoolMulti{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FakeDnsPoolMulti) String() string {
@@ -95,7 +91,7 @@ func (*FakeDnsPoolMulti) ProtoMessage() {}
 
 func (x *FakeDnsPoolMulti) ProtoReflect() protoreflect.Message {
 	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -161,7 +157,7 @@ func file_app_dns_fakedns_fakedns_proto_rawDescGZIP() []byte {
 }
 
 var file_app_dns_fakedns_fakedns_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_dns_fakedns_fakedns_proto_goTypes = []interface{}{
+var file_app_dns_fakedns_fakedns_proto_goTypes = []any{
 	(*FakeDnsPool)(nil),      // 0: v2ray.core.app.dns.fakedns.FakeDnsPool
 	(*FakeDnsPoolMulti)(nil), // 1: v2ray.core.app.dns.fakedns.FakeDnsPoolMulti
 }
@@ -178,32 +174,6 @@ func init() { file_app_dns_fakedns_fakedns_proto_init() }
 func file_app_dns_fakedns_fakedns_proto_init() {
 	if File_app_dns_fakedns_fakedns_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_dns_fakedns_fakedns_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FakeDnsPool); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_dns_fakedns_fakedns_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FakeDnsPoolMulti); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
