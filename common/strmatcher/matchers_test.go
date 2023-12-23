@@ -1,7 +1,6 @@
 package strmatcher_test
 
 import (
-	"reflect"
 	"testing"
 	"unsafe"
 
@@ -84,7 +83,7 @@ func TestToDomain(t *testing.T) {
 		if domain != input {
 			t.Error("unexpected output: ", domain, " for test case ", input)
 		}
-		if (*reflect.StringHeader)(unsafe.Pointer(&input)).Data != (*reflect.StringHeader)(unsafe.Pointer(&domain)).Data {
+		if unsafe.StringData(input) != unsafe.StringData(domain) {
 			t.Error("different string data of output: ", domain, " and test case ", input)
 		}
 	}
