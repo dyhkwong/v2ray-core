@@ -118,7 +118,7 @@ func file_common_protocol_user_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protocol_user_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_user_proto_goTypes = []interface{}{
+var file_common_protocol_user_proto_goTypes = []any{
 	(*User)(nil),      // 0: v2ray.core.common.protocol.User
 	(*anypb.Any)(nil), // 1: google.protobuf.Any
 }
@@ -137,7 +137,7 @@ func file_common_protocol_user_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_user_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_protocol_user_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*User); i {
 			case 0:
 				return &v.state

@@ -119,7 +119,7 @@ func file_common_net_destination_proto_rawDescGZIP() []byte {
 }
 
 var file_common_net_destination_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_net_destination_proto_goTypes = []interface{}{
+var file_common_net_destination_proto_goTypes = []any{
 	(*Endpoint)(nil),   // 0: v2ray.core.common.net.Endpoint
 	(Network)(0),       // 1: v2ray.core.common.net.Network
 	(*IPOrDomain)(nil), // 2: v2ray.core.common.net.IPOrDomain
@@ -142,7 +142,7 @@ func file_common_net_destination_proto_init() {
 	file_common_net_network_proto_init()
 	file_common_net_address_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_common_net_destination_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_common_net_destination_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Endpoint); i {
 			case 0:
 				return &v.state

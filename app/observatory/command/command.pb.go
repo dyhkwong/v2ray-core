@@ -207,7 +207,7 @@ func file_app_observatory_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_observatory_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_app_observatory_command_command_proto_goTypes = []interface{}{
+var file_app_observatory_command_command_proto_goTypes = []any{
 	(*GetOutboundStatusRequest)(nil),      // 0: v2ray.core.app.observatory.command.GetOutboundStatusRequest
 	(*GetOutboundStatusResponse)(nil),     // 1: v2ray.core.app.observatory.command.GetOutboundStatusResponse
 	(*Config)(nil),                        // 2: v2ray.core.app.observatory.command.Config
@@ -230,7 +230,7 @@ func file_app_observatory_command_command_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_observatory_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_command_command_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*GetOutboundStatusRequest); i {
 			case 0:
 				return &v.state
@@ -242,7 +242,7 @@ func file_app_observatory_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_command_command_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*GetOutboundStatusResponse); i {
 			case 0:
 				return &v.state
@@ -254,7 +254,7 @@ func file_app_observatory_command_command_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_command_command_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state

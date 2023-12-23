@@ -89,7 +89,7 @@ func file_transport_internet_headers_wireguard_config_proto_rawDescGZIP() []byte
 }
 
 var file_transport_internet_headers_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_internet_headers_wireguard_config_proto_goTypes = []interface{}{
+var file_transport_internet_headers_wireguard_config_proto_goTypes = []any{
 	(*WireguardConfig)(nil), // 0: v2ray.core.transport.internet.headers.wireguard.WireguardConfig
 }
 var file_transport_internet_headers_wireguard_config_proto_depIdxs = []int32{
@@ -106,7 +106,7 @@ func file_transport_internet_headers_wireguard_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_headers_wireguard_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_transport_internet_headers_wireguard_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*WireguardConfig); i {
 			case 0:
 				return &v.state

@@ -195,7 +195,7 @@ func file_transport_internet_tls_utls_config_proto_rawDescGZIP() []byte {
 
 var file_transport_internet_tls_utls_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_transport_internet_tls_utls_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_internet_tls_utls_config_proto_goTypes = []interface{}{
+var file_transport_internet_tls_utls_config_proto_goTypes = []any{
 	(ForcedALPN)(0),    // 0: v2ray.core.transport.internet.tls.utls.ForcedALPN
 	(*Config)(nil),     // 1: v2ray.core.transport.internet.tls.utls.Config
 	(*tls.Config)(nil), // 2: v2ray.core.transport.internet.tls.Config
@@ -216,7 +216,7 @@ func file_transport_internet_tls_utls_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_tls_utls_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_transport_internet_tls_utls_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
