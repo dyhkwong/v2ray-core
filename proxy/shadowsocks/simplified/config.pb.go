@@ -31,11 +31,9 @@ type ServerConfig struct {
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -46,7 +44,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -103,11 +101,9 @@ type ClientConfig struct {
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -118,7 +114,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -178,11 +174,9 @@ type CipherTypeWrapper struct {
 
 func (x *CipherTypeWrapper) Reset() {
 	*x = CipherTypeWrapper{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *CipherTypeWrapper) String() string {
@@ -193,7 +187,7 @@ func (*CipherTypeWrapper) ProtoMessage() {}
 
 func (x *CipherTypeWrapper) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_simplified_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -303,7 +297,7 @@ func file_proxy_shadowsocks_simplified_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_shadowsocks_simplified_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proxy_shadowsocks_simplified_config_proto_goTypes = []interface{}{
+var file_proxy_shadowsocks_simplified_config_proto_goTypes = []any{
 	(*ServerConfig)(nil),           // 0: v2ray.core.proxy.shadowsocks.simplified.ServerConfig
 	(*ClientConfig)(nil),           // 1: v2ray.core.proxy.shadowsocks.simplified.ClientConfig
 	(*CipherTypeWrapper)(nil),      // 2: v2ray.core.proxy.shadowsocks.simplified.CipherTypeWrapper
@@ -330,44 +324,6 @@ func init() { file_proxy_shadowsocks_simplified_config_proto_init() }
 func file_proxy_shadowsocks_simplified_config_proto_init() {
 	if File_proxy_shadowsocks_simplified_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_shadowsocks_simplified_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_simplified_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_simplified_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CipherTypeWrapper); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

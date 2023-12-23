@@ -28,11 +28,9 @@ type AddUserOperation struct {
 
 func (x *AddUserOperation) Reset() {
 	*x = AddUserOperation{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddUserOperation) String() string {
@@ -43,7 +41,7 @@ func (*AddUserOperation) ProtoMessage() {}
 
 func (x *AddUserOperation) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -75,11 +73,9 @@ type RemoveUserOperation struct {
 
 func (x *RemoveUserOperation) Reset() {
 	*x = RemoveUserOperation{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RemoveUserOperation) String() string {
@@ -90,7 +86,7 @@ func (*RemoveUserOperation) ProtoMessage() {}
 
 func (x *RemoveUserOperation) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -122,11 +118,9 @@ type AddInboundRequest struct {
 
 func (x *AddInboundRequest) Reset() {
 	*x = AddInboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddInboundRequest) String() string {
@@ -137,7 +131,7 @@ func (*AddInboundRequest) ProtoMessage() {}
 
 func (x *AddInboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -167,11 +161,9 @@ type AddInboundResponse struct {
 
 func (x *AddInboundResponse) Reset() {
 	*x = AddInboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddInboundResponse) String() string {
@@ -182,7 +174,7 @@ func (*AddInboundResponse) ProtoMessage() {}
 
 func (x *AddInboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -207,11 +199,9 @@ type RemoveInboundRequest struct {
 
 func (x *RemoveInboundRequest) Reset() {
 	*x = RemoveInboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RemoveInboundRequest) String() string {
@@ -222,7 +212,7 @@ func (*RemoveInboundRequest) ProtoMessage() {}
 
 func (x *RemoveInboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -252,11 +242,9 @@ type RemoveInboundResponse struct {
 
 func (x *RemoveInboundResponse) Reset() {
 	*x = RemoveInboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RemoveInboundResponse) String() string {
@@ -267,7 +255,7 @@ func (*RemoveInboundResponse) ProtoMessage() {}
 
 func (x *RemoveInboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -293,11 +281,9 @@ type AlterInboundRequest struct {
 
 func (x *AlterInboundRequest) Reset() {
 	*x = AlterInboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AlterInboundRequest) String() string {
@@ -308,7 +294,7 @@ func (*AlterInboundRequest) ProtoMessage() {}
 
 func (x *AlterInboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -345,11 +331,9 @@ type AlterInboundResponse struct {
 
 func (x *AlterInboundResponse) Reset() {
 	*x = AlterInboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AlterInboundResponse) String() string {
@@ -360,7 +344,7 @@ func (*AlterInboundResponse) ProtoMessage() {}
 
 func (x *AlterInboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -385,11 +369,9 @@ type AddOutboundRequest struct {
 
 func (x *AddOutboundRequest) Reset() {
 	*x = AddOutboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddOutboundRequest) String() string {
@@ -400,7 +382,7 @@ func (*AddOutboundRequest) ProtoMessage() {}
 
 func (x *AddOutboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -430,11 +412,9 @@ type AddOutboundResponse struct {
 
 func (x *AddOutboundResponse) Reset() {
 	*x = AddOutboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddOutboundResponse) String() string {
@@ -445,7 +425,7 @@ func (*AddOutboundResponse) ProtoMessage() {}
 
 func (x *AddOutboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -470,11 +450,9 @@ type RemoveOutboundRequest struct {
 
 func (x *RemoveOutboundRequest) Reset() {
 	*x = RemoveOutboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RemoveOutboundRequest) String() string {
@@ -485,7 +463,7 @@ func (*RemoveOutboundRequest) ProtoMessage() {}
 
 func (x *RemoveOutboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -515,11 +493,9 @@ type RemoveOutboundResponse struct {
 
 func (x *RemoveOutboundResponse) Reset() {
 	*x = RemoveOutboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[11]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RemoveOutboundResponse) String() string {
@@ -530,7 +506,7 @@ func (*RemoveOutboundResponse) ProtoMessage() {}
 
 func (x *RemoveOutboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[11]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -556,11 +532,9 @@ type AlterOutboundRequest struct {
 
 func (x *AlterOutboundRequest) Reset() {
 	*x = AlterOutboundRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[12]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AlterOutboundRequest) String() string {
@@ -571,7 +545,7 @@ func (*AlterOutboundRequest) ProtoMessage() {}
 
 func (x *AlterOutboundRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[12]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -608,11 +582,9 @@ type AlterOutboundResponse struct {
 
 func (x *AlterOutboundResponse) Reset() {
 	*x = AlterOutboundResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[13]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AlterOutboundResponse) String() string {
@@ -623,7 +595,7 @@ func (*AlterOutboundResponse) ProtoMessage() {}
 
 func (x *AlterOutboundResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[13]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -646,11 +618,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_proxyman_command_command_proto_msgTypes[14]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_proxyman_command_command_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -661,7 +631,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_proxyman_command_command_proto_msgTypes[14]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -809,7 +779,7 @@ func file_app_proxyman_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_proxyman_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_app_proxyman_command_command_proto_goTypes = []interface{}{
+var file_app_proxyman_command_command_proto_goTypes = []any{
 	(*AddUserOperation)(nil),         // 0: v2ray.core.app.proxyman.command.AddUserOperation
 	(*RemoveUserOperation)(nil),      // 1: v2ray.core.app.proxyman.command.RemoveUserOperation
 	(*AddInboundRequest)(nil),        // 2: v2ray.core.app.proxyman.command.AddInboundRequest
@@ -859,188 +829,6 @@ func init() { file_app_proxyman_command_command_proto_init() }
 func file_app_proxyman_command_command_proto_init() {
 	if File_app_proxyman_command_command_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_proxyman_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddUserOperation); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveUserOperation); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddInboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddInboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveInboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveInboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AlterInboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AlterInboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddOutboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddOutboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveOutboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveOutboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AlterOutboundRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AlterOutboundResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_proxyman_command_command_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

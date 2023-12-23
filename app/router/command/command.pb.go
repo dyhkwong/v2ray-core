@@ -40,11 +40,9 @@ type RoutingContext struct {
 
 func (x *RoutingContext) Reset() {
 	*x = RoutingContext{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RoutingContext) String() string {
@@ -55,7 +53,7 @@ func (*RoutingContext) ProtoMessage() {}
 
 func (x *RoutingContext) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -182,11 +180,9 @@ type SubscribeRoutingStatsRequest struct {
 
 func (x *SubscribeRoutingStatsRequest) Reset() {
 	*x = SubscribeRoutingStatsRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SubscribeRoutingStatsRequest) String() string {
@@ -197,7 +193,7 @@ func (*SubscribeRoutingStatsRequest) ProtoMessage() {}
 
 func (x *SubscribeRoutingStatsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -238,11 +234,9 @@ type TestRouteRequest struct {
 
 func (x *TestRouteRequest) Reset() {
 	*x = TestRouteRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *TestRouteRequest) String() string {
@@ -253,7 +247,7 @@ func (*TestRouteRequest) ProtoMessage() {}
 
 func (x *TestRouteRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -299,11 +293,9 @@ type PrincipleTargetInfo struct {
 
 func (x *PrincipleTargetInfo) Reset() {
 	*x = PrincipleTargetInfo{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PrincipleTargetInfo) String() string {
@@ -314,7 +306,7 @@ func (*PrincipleTargetInfo) ProtoMessage() {}
 
 func (x *PrincipleTargetInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -346,11 +338,9 @@ type OverrideInfo struct {
 
 func (x *OverrideInfo) Reset() {
 	*x = OverrideInfo{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *OverrideInfo) String() string {
@@ -361,7 +351,7 @@ func (*OverrideInfo) ProtoMessage() {}
 
 func (x *OverrideInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -394,11 +384,9 @@ type BalancerMsg struct {
 
 func (x *BalancerMsg) Reset() {
 	*x = BalancerMsg{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *BalancerMsg) String() string {
@@ -409,7 +397,7 @@ func (*BalancerMsg) ProtoMessage() {}
 
 func (x *BalancerMsg) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -448,11 +436,9 @@ type GetBalancerInfoRequest struct {
 
 func (x *GetBalancerInfoRequest) Reset() {
 	*x = GetBalancerInfoRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GetBalancerInfoRequest) String() string {
@@ -463,7 +449,7 @@ func (*GetBalancerInfoRequest) ProtoMessage() {}
 
 func (x *GetBalancerInfoRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -495,11 +481,9 @@ type GetBalancerInfoResponse struct {
 
 func (x *GetBalancerInfoResponse) Reset() {
 	*x = GetBalancerInfoResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GetBalancerInfoResponse) String() string {
@@ -510,7 +494,7 @@ func (*GetBalancerInfoResponse) ProtoMessage() {}
 
 func (x *GetBalancerInfoResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -543,11 +527,9 @@ type OverrideBalancerTargetRequest struct {
 
 func (x *OverrideBalancerTargetRequest) Reset() {
 	*x = OverrideBalancerTargetRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *OverrideBalancerTargetRequest) String() string {
@@ -558,7 +540,7 @@ func (*OverrideBalancerTargetRequest) ProtoMessage() {}
 
 func (x *OverrideBalancerTargetRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -595,11 +577,9 @@ type OverrideBalancerTargetResponse struct {
 
 func (x *OverrideBalancerTargetResponse) Reset() {
 	*x = OverrideBalancerTargetResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *OverrideBalancerTargetResponse) String() string {
@@ -610,7 +590,7 @@ func (*OverrideBalancerTargetResponse) ProtoMessage() {}
 
 func (x *OverrideBalancerTargetResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -633,11 +613,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_command_command_proto_msgTypes[10]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_command_command_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -648,7 +626,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_command_command_proto_msgTypes[10]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -819,7 +797,7 @@ func file_app_router_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_router_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_app_router_command_command_proto_goTypes = []interface{}{
+var file_app_router_command_command_proto_goTypes = []any{
 	(*RoutingContext)(nil),                 // 0: v2ray.core.app.router.command.RoutingContext
 	(*SubscribeRoutingStatsRequest)(nil),   // 1: v2ray.core.app.router.command.SubscribeRoutingStatsRequest
 	(*TestRouteRequest)(nil),               // 2: v2ray.core.app.router.command.TestRouteRequest
@@ -860,140 +838,6 @@ func init() { file_app_router_command_command_proto_init() }
 func file_app_router_command_command_proto_init() {
 	if File_app_router_command_command_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_router_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RoutingContext); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SubscribeRoutingStatsRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TestRouteRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PrincipleTargetInfo); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OverrideInfo); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BalancerMsg); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBalancerInfoRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBalancerInfoResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OverrideBalancerTargetRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OverrideBalancerTargetResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_command_command_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
