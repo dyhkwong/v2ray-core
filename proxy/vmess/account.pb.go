@@ -133,7 +133,7 @@ func file_proxy_vmess_account_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_vmess_account_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proxy_vmess_account_proto_goTypes = []interface{}{
+var file_proxy_vmess_account_proto_goTypes = []any{
 	(*Account)(nil),                 // 0: v2ray.core.proxy.vmess.Account
 	(*protocol.SecurityConfig)(nil), // 1: v2ray.core.common.protocol.SecurityConfig
 }
@@ -152,7 +152,7 @@ func file_proxy_vmess_account_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_proxy_vmess_account_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_proxy_vmess_account_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Account); i {
 			case 0:
 				return &v.state

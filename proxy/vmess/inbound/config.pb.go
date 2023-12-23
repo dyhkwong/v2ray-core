@@ -297,7 +297,7 @@ func file_proxy_vmess_inbound_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_vmess_inbound_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_proxy_vmess_inbound_config_proto_goTypes = []interface{}{
+var file_proxy_vmess_inbound_config_proto_goTypes = []any{
 	(*DetourConfig)(nil),     // 0: v2ray.core.proxy.vmess.inbound.DetourConfig
 	(*DefaultConfig)(nil),    // 1: v2ray.core.proxy.vmess.inbound.DefaultConfig
 	(*Config)(nil),           // 2: v2ray.core.proxy.vmess.inbound.Config
@@ -321,7 +321,7 @@ func file_proxy_vmess_inbound_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_proxy_vmess_inbound_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_proxy_vmess_inbound_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*DetourConfig); i {
 			case 0:
 				return &v.state
@@ -333,7 +333,7 @@ func file_proxy_vmess_inbound_config_proto_init() {
 				return nil
 			}
 		}
-		file_proxy_vmess_inbound_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_proxy_vmess_inbound_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*DefaultConfig); i {
 			case 0:
 				return &v.state
@@ -345,7 +345,7 @@ func file_proxy_vmess_inbound_config_proto_init() {
 				return nil
 			}
 		}
-		file_proxy_vmess_inbound_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_proxy_vmess_inbound_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
@@ -357,7 +357,7 @@ func file_proxy_vmess_inbound_config_proto_init() {
 				return nil
 			}
 		}
-		file_proxy_vmess_inbound_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_proxy_vmess_inbound_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*SimplifiedConfig); i {
 			case 0:
 				return &v.state

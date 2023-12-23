@@ -266,7 +266,7 @@ func file_app_log_command_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_log_command_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_app_log_command_config_proto_goTypes = []interface{}{
+var file_app_log_command_config_proto_goTypes = []any{
 	(*Config)(nil),                // 0: v2ray.core.app.log.command.Config
 	(*RestartLoggerRequest)(nil),  // 1: v2ray.core.app.log.command.RestartLoggerRequest
 	(*RestartLoggerResponse)(nil), // 2: v2ray.core.app.log.command.RestartLoggerResponse
@@ -291,7 +291,7 @@ func file_app_log_command_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_log_command_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_log_command_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
@@ -303,7 +303,7 @@ func file_app_log_command_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_log_command_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_log_command_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*RestartLoggerRequest); i {
 			case 0:
 				return &v.state
@@ -315,7 +315,7 @@ func file_app_log_command_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_log_command_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_app_log_command_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*RestartLoggerResponse); i {
 			case 0:
 				return &v.state
@@ -327,7 +327,7 @@ func file_app_log_command_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_log_command_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_app_log_command_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*FollowLogRequest); i {
 			case 0:
 				return &v.state
@@ -339,7 +339,7 @@ func file_app_log_command_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_log_command_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_app_log_command_config_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*FollowLogResponse); i {
 			case 0:
 				return &v.state

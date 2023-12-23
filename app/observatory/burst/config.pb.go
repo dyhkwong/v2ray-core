@@ -212,7 +212,7 @@ func file_app_observatory_burst_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_observatory_burst_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_observatory_burst_config_proto_goTypes = []interface{}{
+var file_app_observatory_burst_config_proto_goTypes = []any{
 	(*Config)(nil),           // 0: v2ray.core.app.observatory.burst.Config
 	(*HealthPingConfig)(nil), // 1: v2ray.core.app.observatory.burst.HealthPingConfig
 }
@@ -231,7 +231,7 @@ func file_app_observatory_burst_config_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_app_observatory_burst_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_burst_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
@@ -243,7 +243,7 @@ func file_app_observatory_burst_config_proto_init() {
 				return nil
 			}
 		}
-		file_app_observatory_burst_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_app_observatory_burst_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*HealthPingConfig); i {
 			case 0:
 				return &v.state
