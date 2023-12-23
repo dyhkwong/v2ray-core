@@ -23,11 +23,9 @@ type ListInstanceReq struct {
 
 func (x *ListInstanceReq) Reset() {
 	*x = ListInstanceReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListInstanceReq) String() string {
@@ -38,7 +36,7 @@ func (*ListInstanceReq) ProtoMessage() {}
 
 func (x *ListInstanceReq) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -63,11 +61,9 @@ type ListInstanceResp struct {
 
 func (x *ListInstanceResp) Reset() {
 	*x = ListInstanceResp{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ListInstanceResp) String() string {
@@ -78,7 +74,7 @@ func (*ListInstanceResp) ProtoMessage() {}
 
 func (x *ListInstanceResp) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -112,11 +108,9 @@ type AddInstanceReq struct {
 
 func (x *AddInstanceReq) Reset() {
 	*x = AddInstanceReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddInstanceReq) String() string {
@@ -127,7 +121,7 @@ func (*AddInstanceReq) ProtoMessage() {}
 
 func (x *AddInstanceReq) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -171,11 +165,9 @@ type AddInstanceResp struct {
 
 func (x *AddInstanceResp) Reset() {
 	*x = AddInstanceResp{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *AddInstanceResp) String() string {
@@ -186,7 +178,7 @@ func (*AddInstanceResp) ProtoMessage() {}
 
 func (x *AddInstanceResp) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -211,11 +203,9 @@ type StartInstanceReq struct {
 
 func (x *StartInstanceReq) Reset() {
 	*x = StartInstanceReq{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StartInstanceReq) String() string {
@@ -226,7 +216,7 @@ func (*StartInstanceReq) ProtoMessage() {}
 
 func (x *StartInstanceReq) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -256,11 +246,9 @@ type StartInstanceResp struct {
 
 func (x *StartInstanceResp) Reset() {
 	*x = StartInstanceResp{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StartInstanceResp) String() string {
@@ -271,7 +259,7 @@ func (*StartInstanceResp) ProtoMessage() {}
 
 func (x *StartInstanceResp) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -294,11 +282,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_instman_command_command_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_instman_command_command_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -309,7 +295,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_instman_command_command_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -399,7 +385,7 @@ func file_app_instman_command_command_proto_rawDescGZIP() []byte {
 }
 
 var file_app_instman_command_command_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_app_instman_command_command_proto_goTypes = []interface{}{
+var file_app_instman_command_command_proto_goTypes = []any{
 	(*ListInstanceReq)(nil),   // 0: v2ray.core.app.instman.command.ListInstanceReq
 	(*ListInstanceResp)(nil),  // 1: v2ray.core.app.instman.command.ListInstanceResp
 	(*AddInstanceReq)(nil),    // 2: v2ray.core.app.instman.command.AddInstanceReq
@@ -426,92 +412,6 @@ func init() { file_app_instman_command_command_proto_init() }
 func file_app_instman_command_command_proto_init() {
 	if File_app_instman_command_command_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_instman_command_command_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListInstanceReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListInstanceResp); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddInstanceReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddInstanceResp); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StartInstanceReq); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StartInstanceResp); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_instman_command_command_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

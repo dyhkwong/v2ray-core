@@ -72,11 +72,9 @@ type Control struct {
 
 func (x *Control) Reset() {
 	*x = Control{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_reverse_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_reverse_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Control) String() string {
@@ -87,7 +85,7 @@ func (*Control) ProtoMessage() {}
 
 func (x *Control) ProtoReflect() protoreflect.Message {
 	mi := &file_app_reverse_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -127,11 +125,9 @@ type BridgeConfig struct {
 
 func (x *BridgeConfig) Reset() {
 	*x = BridgeConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_reverse_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_reverse_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *BridgeConfig) String() string {
@@ -142,7 +138,7 @@ func (*BridgeConfig) ProtoMessage() {}
 
 func (x *BridgeConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_reverse_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -182,11 +178,9 @@ type PortalConfig struct {
 
 func (x *PortalConfig) Reset() {
 	*x = PortalConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_reverse_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_reverse_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PortalConfig) String() string {
@@ -197,7 +191,7 @@ func (*PortalConfig) ProtoMessage() {}
 
 func (x *PortalConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_reverse_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -237,11 +231,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_reverse_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_reverse_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -252,7 +244,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_reverse_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -340,7 +332,7 @@ func file_app_reverse_config_proto_rawDescGZIP() []byte {
 
 var file_app_reverse_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_app_reverse_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_app_reverse_config_proto_goTypes = []interface{}{
+var file_app_reverse_config_proto_goTypes = []any{
 	(Control_State)(0),   // 0: v2ray.core.app.reverse.Control.State
 	(*Control)(nil),      // 1: v2ray.core.app.reverse.Control
 	(*BridgeConfig)(nil), // 2: v2ray.core.app.reverse.BridgeConfig
@@ -362,56 +354,6 @@ func init() { file_app_reverse_config_proto_init() }
 func file_app_reverse_config_proto_init() {
 	if File_app_reverse_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_reverse_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Control); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_reverse_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BridgeConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_reverse_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PortalConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_reverse_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
