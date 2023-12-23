@@ -16,22 +16,19 @@ const (
 )
 
 type Congestion struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	UpMbps        uint64                 `protobuf:"varint,2,opt,name=up_mbps,json=upMbps,proto3" json:"up_mbps,omitempty"`
+	DownMbps      uint64                 `protobuf:"varint,3,opt,name=down_mbps,json=downMbps,proto3" json:"down_mbps,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type     string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	UpMbps   uint64 `protobuf:"varint,2,opt,name=up_mbps,json=upMbps,proto3" json:"up_mbps,omitempty"`
-	DownMbps uint64 `protobuf:"varint,3,opt,name=down_mbps,json=downMbps,proto3" json:"down_mbps,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Congestion) Reset() {
 	*x = Congestion{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_hysteria2_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_hysteria2_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Congestion) String() string {
@@ -42,7 +39,7 @@ func (*Congestion) ProtoMessage() {}
 
 func (x *Congestion) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_hysteria2_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -79,23 +76,20 @@ func (x *Congestion) GetDownMbps() uint64 {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Password              string      `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	Congestion            *Congestion `protobuf:"bytes,4,opt,name=congestion,proto3" json:"congestion,omitempty"`
-	IgnoreClientBandwidth bool        `protobuf:"varint,5,opt,name=ignore_client_bandwidth,json=ignoreClientBandwidth,proto3" json:"ignore_client_bandwidth,omitempty"`
-	UseUdpExtension       bool        `protobuf:"varint,6,opt,name=use_udp_extension,json=useUdpExtension,proto3" json:"use_udp_extension,omitempty"`
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Password              string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	Congestion            *Congestion            `protobuf:"bytes,4,opt,name=congestion,proto3" json:"congestion,omitempty"`
+	IgnoreClientBandwidth bool                   `protobuf:"varint,5,opt,name=ignore_client_bandwidth,json=ignoreClientBandwidth,proto3" json:"ignore_client_bandwidth,omitempty"`
+	UseUdpExtension       bool                   `protobuf:"varint,6,opt,name=use_udp_extension,json=useUdpExtension,proto3" json:"use_udp_extension,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_hysteria2_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_hysteria2_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -106,7 +100,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_hysteria2_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -223,32 +217,6 @@ func init() { file_transport_internet_hysteria2_config_proto_init() }
 func file_transport_internet_hysteria2_config_proto_init() {
 	if File_transport_internet_hysteria2_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_hysteria2_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Congestion); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_hysteria2_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"io"
 	"os"
 	"os/exec"
@@ -14,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/net/proxy"
 	"google.golang.org/protobuf/proto"
 
 	core "github.com/v2fly/v2ray-core/v5"

@@ -20,10 +20,7 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state                 protoimpl.MessageState    `protogen:"open.v1"`
 	Name                  string                    `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Mtu                   uint32                    `protobuf:"varint,2,opt,name=mtu,proto3" json:"mtu,omitempty"`
 	UserLevel             uint32                    `protobuf:"varint,3,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
@@ -35,15 +32,15 @@ type Config struct {
 	EnableSpoofing        bool                      `protobuf:"varint,9,opt,name=enable_spoofing,json=enableSpoofing,proto3" json:"enable_spoofing,omitempty"`
 	SocketSettings        *internet.SocketConfig    `protobuf:"bytes,10,opt,name=socket_settings,json=socketSettings,proto3" json:"socket_settings,omitempty"`
 	SniffingSettings      *proxyman.SniffingConfig  `protobuf:"bytes,11,opt,name=sniffing_settings,json=sniffingSettings,proto3" json:"sniffing_settings,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_tun_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_tun_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -54,7 +51,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_tun_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -221,7 +218,7 @@ func file_app_tun_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_tun_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_app_tun_config_proto_goTypes = []interface{}{
+var file_app_tun_config_proto_goTypes = []any{
 	(*Config)(nil),                  // 0: v2ray.core.app.tun.Config
 	(packetaddr.PacketAddrType)(0),  // 1: v2ray.core.net.packetaddr.PacketAddrType
 	(*routercommon.CIDR)(nil),       // 2: v2ray.core.app.router.routercommon.CIDR
@@ -245,20 +242,6 @@ func init() { file_app_tun_config_proto_init() }
 func file_app_tun_config_proto_init() {
 	if File_app_tun_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_tun_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -18,20 +18,17 @@ const (
 
 // Maximum Transmission Unit, in bytes.
 type MTU struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MTU) Reset() {
 	*x = MTU{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *MTU) String() string {
@@ -42,7 +39,7 @@ func (*MTU) ProtoMessage() {}
 
 func (x *MTU) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -66,20 +63,17 @@ func (x *MTU) GetValue() uint32 {
 
 // Transmission Time Interview, in milli-sec.
 type TTI struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TTI) Reset() {
 	*x = TTI{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *TTI) String() string {
@@ -90,7 +84,7 @@ func (*TTI) ProtoMessage() {}
 
 func (x *TTI) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -114,20 +108,17 @@ func (x *TTI) GetValue() uint32 {
 
 // Uplink capacity, in MB.
 type UplinkCapacity struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UplinkCapacity) Reset() {
 	*x = UplinkCapacity{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UplinkCapacity) String() string {
@@ -138,7 +129,7 @@ func (*UplinkCapacity) ProtoMessage() {}
 
 func (x *UplinkCapacity) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -162,20 +153,17 @@ func (x *UplinkCapacity) GetValue() uint32 {
 
 // Downlink capacity, in MB.
 type DownlinkCapacity struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DownlinkCapacity) Reset() {
 	*x = DownlinkCapacity{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *DownlinkCapacity) String() string {
@@ -186,7 +174,7 @@ func (*DownlinkCapacity) ProtoMessage() {}
 
 func (x *DownlinkCapacity) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -209,21 +197,18 @@ func (x *DownlinkCapacity) GetValue() uint32 {
 }
 
 type WriteBuffer struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Buffer size in bytes.
-	Size uint32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	Size          uint32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WriteBuffer) Reset() {
 	*x = WriteBuffer{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *WriteBuffer) String() string {
@@ -234,7 +219,7 @@ func (*WriteBuffer) ProtoMessage() {}
 
 func (x *WriteBuffer) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -257,21 +242,18 @@ func (x *WriteBuffer) GetSize() uint32 {
 }
 
 type ReadBuffer struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Buffer size in bytes.
-	Size uint32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	Size          uint32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReadBuffer) Reset() {
 	*x = ReadBuffer{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ReadBuffer) String() string {
@@ -282,7 +264,7 @@ func (*ReadBuffer) ProtoMessage() {}
 
 func (x *ReadBuffer) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -305,20 +287,17 @@ func (x *ReadBuffer) GetSize() uint32 {
 }
 
 type ConnectionReuse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enable        bool                   `protobuf:"varint,1,opt,name=enable,proto3" json:"enable,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Enable bool `protobuf:"varint,1,opt,name=enable,proto3" json:"enable,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConnectionReuse) Reset() {
 	*x = ConnectionReuse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ConnectionReuse) String() string {
@@ -329,7 +308,7 @@ func (*ConnectionReuse) ProtoMessage() {}
 
 func (x *ConnectionReuse) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -353,20 +332,17 @@ func (x *ConnectionReuse) GetEnable() bool {
 
 // Maximum Transmission Unit, in bytes.
 type EncryptionSeed struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Seed          string                 `protobuf:"bytes,1,opt,name=seed,proto3" json:"seed,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Seed string `protobuf:"bytes,1,opt,name=seed,proto3" json:"seed,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EncryptionSeed) Reset() {
 	*x = EncryptionSeed{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *EncryptionSeed) String() string {
@@ -377,7 +353,7 @@ func (*EncryptionSeed) ProtoMessage() {}
 
 func (x *EncryptionSeed) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -400,28 +376,25 @@ func (x *EncryptionSeed) GetSeed() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Mtu              *MTU              `protobuf:"bytes,1,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	Tti              *TTI              `protobuf:"bytes,2,opt,name=tti,proto3" json:"tti,omitempty"`
-	UplinkCapacity   *UplinkCapacity   `protobuf:"bytes,3,opt,name=uplink_capacity,json=uplinkCapacity,proto3" json:"uplink_capacity,omitempty"`
-	DownlinkCapacity *DownlinkCapacity `protobuf:"bytes,4,opt,name=downlink_capacity,json=downlinkCapacity,proto3" json:"downlink_capacity,omitempty"`
-	Congestion       bool              `protobuf:"varint,5,opt,name=congestion,proto3" json:"congestion,omitempty"`
-	WriteBuffer      *WriteBuffer      `protobuf:"bytes,6,opt,name=write_buffer,json=writeBuffer,proto3" json:"write_buffer,omitempty"`
-	ReadBuffer       *ReadBuffer       `protobuf:"bytes,7,opt,name=read_buffer,json=readBuffer,proto3" json:"read_buffer,omitempty"`
-	HeaderConfig     *anypb.Any        `protobuf:"bytes,8,opt,name=header_config,json=headerConfig,proto3" json:"header_config,omitempty"`
-	Seed             *EncryptionSeed   `protobuf:"bytes,10,opt,name=seed,proto3" json:"seed,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Mtu              *MTU                   `protobuf:"bytes,1,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	Tti              *TTI                   `protobuf:"bytes,2,opt,name=tti,proto3" json:"tti,omitempty"`
+	UplinkCapacity   *UplinkCapacity        `protobuf:"bytes,3,opt,name=uplink_capacity,json=uplinkCapacity,proto3" json:"uplink_capacity,omitempty"`
+	DownlinkCapacity *DownlinkCapacity      `protobuf:"bytes,4,opt,name=downlink_capacity,json=downlinkCapacity,proto3" json:"downlink_capacity,omitempty"`
+	Congestion       bool                   `protobuf:"varint,5,opt,name=congestion,proto3" json:"congestion,omitempty"`
+	WriteBuffer      *WriteBuffer           `protobuf:"bytes,6,opt,name=write_buffer,json=writeBuffer,proto3" json:"write_buffer,omitempty"`
+	ReadBuffer       *ReadBuffer            `protobuf:"bytes,7,opt,name=read_buffer,json=readBuffer,proto3" json:"read_buffer,omitempty"`
+	HeaderConfig     *anypb.Any             `protobuf:"bytes,8,opt,name=header_config,json=headerConfig,proto3" json:"header_config,omitempty"`
+	Seed             *EncryptionSeed        `protobuf:"bytes,10,opt,name=seed,proto3" json:"seed,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_kcp_config_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_kcp_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -432,7 +405,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_kcp_config_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -606,7 +579,7 @@ func file_transport_internet_kcp_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_kcp_config_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_transport_internet_kcp_config_proto_goTypes = []interface{}{
+var file_transport_internet_kcp_config_proto_goTypes = []any{
 	(*MTU)(nil),              // 0: v2ray.core.transport.internet.kcp.MTU
 	(*TTI)(nil),              // 1: v2ray.core.transport.internet.kcp.TTI
 	(*UplinkCapacity)(nil),   // 2: v2ray.core.transport.internet.kcp.UplinkCapacity
@@ -638,116 +611,6 @@ func init() { file_transport_internet_kcp_config_proto_init() }
 func file_transport_internet_kcp_config_proto_init() {
 	if File_transport_internet_kcp_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_kcp_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MTU); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TTI); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UplinkCapacity); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DownlinkCapacity); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WriteBuffer); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReadBuffer); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConnectionReuse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EncryptionSeed); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_kcp_config_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

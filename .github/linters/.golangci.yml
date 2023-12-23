@@ -1,11 +1,11 @@
 run:
   timeout: 5m
-  skip-files:
-    - generated.*
-    - .pb.go
 
 issues:
   new: true
+  exclude-files:
+    - generated.*
+    - .pb.go
   exclude-rules:
     - linters:
         - staticcheck
@@ -32,17 +32,15 @@ linters:
     - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
-    - varcheck
+    - unused
     - whitespace
   disable:
     - deadcode
     - errcheck
-    - unused
 
 linters-settings:
   goimports:

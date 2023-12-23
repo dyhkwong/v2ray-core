@@ -17,12 +17,9 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Address *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port    uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// List of networks that the Dokodemo accepts.
 	// Deprecated. Use networks.
 	//
@@ -34,15 +31,15 @@ type Config struct {
 	Timeout        uint32 `protobuf:"varint,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	FollowRedirect bool   `protobuf:"varint,5,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
 	UserLevel      uint32 `protobuf:"varint,6,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_dokodemo_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_dokodemo_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -53,7 +50,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_dokodemo_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -120,23 +117,20 @@ func (x *Config) GetUserLevel() uint32 {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address        *net.IPOrDomain  `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port           uint32           `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Networks       *net.NetworkList `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
-	FollowRedirect bool             `protobuf:"varint,4,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Address        *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port           uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Networks       *net.NetworkList       `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
+	FollowRedirect bool                   `protobuf:"varint,4,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {
 	*x = SimplifiedConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_dokodemo_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_dokodemo_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SimplifiedConfig) String() string {
@@ -147,7 +141,7 @@ func (*SimplifiedConfig) ProtoMessage() {}
 
 func (x *SimplifiedConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_dokodemo_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -260,7 +254,7 @@ func file_proxy_dokodemo_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_dokodemo_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proxy_dokodemo_config_proto_goTypes = []interface{}{
+var file_proxy_dokodemo_config_proto_goTypes = []any{
 	(*Config)(nil),           // 0: v2ray.core.proxy.dokodemo.Config
 	(*SimplifiedConfig)(nil), // 1: v2ray.core.proxy.dokodemo.SimplifiedConfig
 	(*net.IPOrDomain)(nil),   // 2: v2ray.core.common.net.IPOrDomain
@@ -284,32 +278,6 @@ func init() { file_proxy_dokodemo_config_proto_init() }
 func file_proxy_dokodemo_config_proto_init() {
 	if File_proxy_dokodemo_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_dokodemo_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_dokodemo_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SimplifiedConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

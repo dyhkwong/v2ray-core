@@ -16,21 +16,18 @@ const (
 )
 
 type FakeDnsPool struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IpPool        string                 `protobuf:"bytes,1,opt,name=ip_pool,json=ipPool,proto3" json:"ip_pool,omitempty"` //CIDR of IP pool used as fake DNS IP
+	LruSize       int64                  `protobuf:"varint,2,opt,name=lruSize,proto3" json:"lruSize,omitempty"`            //Size of Pool for remembering relationship between domain name and IP address
 	unknownFields protoimpl.UnknownFields
-
-	IpPool  string `protobuf:"bytes,1,opt,name=ip_pool,json=ipPool,proto3" json:"ip_pool,omitempty"` //CIDR of IP pool used as fake DNS IP
-	LruSize int64  `protobuf:"varint,2,opt,name=lruSize,proto3" json:"lruSize,omitempty"`            //Size of Pool for remembering relationship between domain name and IP address
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FakeDnsPool) Reset() {
 	*x = FakeDnsPool{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FakeDnsPool) String() string {
@@ -41,7 +38,7 @@ func (*FakeDnsPool) ProtoMessage() {}
 
 func (x *FakeDnsPool) ProtoReflect() protoreflect.Message {
 	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -71,20 +68,17 @@ func (x *FakeDnsPool) GetLruSize() int64 {
 }
 
 type FakeDnsPoolMulti struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pools         []*FakeDnsPool         `protobuf:"bytes,1,rep,name=pools,proto3" json:"pools,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Pools []*FakeDnsPool `protobuf:"bytes,1,rep,name=pools,proto3" json:"pools,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FakeDnsPoolMulti) Reset() {
 	*x = FakeDnsPoolMulti{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *FakeDnsPoolMulti) String() string {
@@ -95,7 +89,7 @@ func (*FakeDnsPoolMulti) ProtoMessage() {}
 
 func (x *FakeDnsPoolMulti) ProtoReflect() protoreflect.Message {
 	mi := &file_app_dns_fakedns_fakedns_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -161,7 +155,7 @@ func file_app_dns_fakedns_fakedns_proto_rawDescGZIP() []byte {
 }
 
 var file_app_dns_fakedns_fakedns_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_dns_fakedns_fakedns_proto_goTypes = []interface{}{
+var file_app_dns_fakedns_fakedns_proto_goTypes = []any{
 	(*FakeDnsPool)(nil),      // 0: v2ray.core.app.dns.fakedns.FakeDnsPool
 	(*FakeDnsPoolMulti)(nil), // 1: v2ray.core.app.dns.fakedns.FakeDnsPoolMulti
 }
@@ -178,32 +172,6 @@ func init() { file_app_dns_fakedns_fakedns_proto_init() }
 func file_app_dns_fakedns_fakedns_proto_init() {
 	if File_app_dns_fakedns_fakedns_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_dns_fakedns_fakedns_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FakeDnsPool); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_dns_fakedns_fakedns_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FakeDnsPoolMulti); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

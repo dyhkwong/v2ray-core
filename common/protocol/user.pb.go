@@ -17,24 +17,21 @@ const (
 
 // User is a generic user for all procotols.
 type User struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Level uint32 `protobuf:"varint,1,opt,name=level,proto3" json:"level,omitempty"`
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Level uint32                 `protobuf:"varint,1,opt,name=level,proto3" json:"level,omitempty"`
+	Email string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	// Protocol specific account information. Must be the account proto in one of
 	// the proxies.
-	Account *anypb.Any `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty"`
+	Account       *anypb.Any `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
 	*x = User{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_protocol_user_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_protocol_user_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *User) String() string {
@@ -45,7 +42,7 @@ func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
 	mi := &file_common_protocol_user_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -118,7 +115,7 @@ func file_common_protocol_user_proto_rawDescGZIP() []byte {
 }
 
 var file_common_protocol_user_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_common_protocol_user_proto_goTypes = []interface{}{
+var file_common_protocol_user_proto_goTypes = []any{
 	(*User)(nil),      // 0: v2ray.core.common.protocol.User
 	(*anypb.Any)(nil), // 1: google.protobuf.Any
 }
@@ -135,20 +132,6 @@ func init() { file_common_protocol_user_proto_init() }
 func file_common_protocol_user_proto_init() {
 	if File_common_protocol_user_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_user_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*User); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

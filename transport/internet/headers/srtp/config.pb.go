@@ -15,25 +15,22 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       uint32                 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Padding       bool                   `protobuf:"varint,2,opt,name=padding,proto3" json:"padding,omitempty"`
+	Extension     bool                   `protobuf:"varint,3,opt,name=extension,proto3" json:"extension,omitempty"`
+	CsrcCount     uint32                 `protobuf:"varint,4,opt,name=csrc_count,json=csrcCount,proto3" json:"csrc_count,omitempty"`
+	Marker        bool                   `protobuf:"varint,5,opt,name=marker,proto3" json:"marker,omitempty"`
+	PayloadType   uint32                 `protobuf:"varint,6,opt,name=payload_type,json=payloadType,proto3" json:"payload_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Version     uint32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Padding     bool   `protobuf:"varint,2,opt,name=padding,proto3" json:"padding,omitempty"`
-	Extension   bool   `protobuf:"varint,3,opt,name=extension,proto3" json:"extension,omitempty"`
-	CsrcCount   uint32 `protobuf:"varint,4,opt,name=csrc_count,json=csrcCount,proto3" json:"csrc_count,omitempty"`
-	Marker      bool   `protobuf:"varint,5,opt,name=marker,proto3" json:"marker,omitempty"`
-	PayloadType uint32 `protobuf:"varint,6,opt,name=payload_type,json=payloadType,proto3" json:"payload_type,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_headers_srtp_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_headers_srtp_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -44,7 +41,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_headers_srtp_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -147,7 +144,7 @@ func file_transport_internet_headers_srtp_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_headers_srtp_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_internet_headers_srtp_config_proto_goTypes = []interface{}{
+var file_transport_internet_headers_srtp_config_proto_goTypes = []any{
 	(*Config)(nil), // 0: v2ray.core.transport.internet.headers.srtp.Config
 }
 var file_transport_internet_headers_srtp_config_proto_depIdxs = []int32{
@@ -162,20 +159,6 @@ func init() { file_transport_internet_headers_srtp_config_proto_init() }
 func file_transport_internet_headers_srtp_config_proto_init() {
 	if File_transport_internet_headers_srtp_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_headers_srtp_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

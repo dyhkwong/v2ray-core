@@ -66,23 +66,20 @@ func (ForcedALPN) EnumDescriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TlsConfig     *tls.Config            `protobuf:"bytes,1,opt,name=tls_config,json=tlsConfig,proto3" json:"tls_config,omitempty"`
+	Imitate       string                 `protobuf:"bytes,2,opt,name=imitate,proto3" json:"imitate,omitempty"`
+	NoSNI         bool                   `protobuf:"varint,3,opt,name=noSNI,proto3" json:"noSNI,omitempty"`
+	ForceAlpn     ForcedALPN             `protobuf:"varint,4,opt,name=force_alpn,json=forceAlpn,proto3,enum=v2ray.core.transport.internet.tls.utls.ForcedALPN" json:"force_alpn,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	TlsConfig *tls.Config `protobuf:"bytes,1,opt,name=tls_config,json=tlsConfig,proto3" json:"tls_config,omitempty"`
-	Imitate   string      `protobuf:"bytes,2,opt,name=imitate,proto3" json:"imitate,omitempty"`
-	NoSNI     bool        `protobuf:"varint,3,opt,name=noSNI,proto3" json:"noSNI,omitempty"`
-	ForceAlpn ForcedALPN  `protobuf:"varint,4,opt,name=force_alpn,json=forceAlpn,proto3,enum=v2ray.core.transport.internet.tls.utls.ForcedALPN" json:"force_alpn,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_tls_utls_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_tls_utls_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -93,7 +90,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_tls_utls_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -195,7 +192,7 @@ func file_transport_internet_tls_utls_config_proto_rawDescGZIP() []byte {
 
 var file_transport_internet_tls_utls_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_transport_internet_tls_utls_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_internet_tls_utls_config_proto_goTypes = []interface{}{
+var file_transport_internet_tls_utls_config_proto_goTypes = []any{
 	(ForcedALPN)(0),    // 0: v2ray.core.transport.internet.tls.utls.ForcedALPN
 	(*Config)(nil),     // 1: v2ray.core.transport.internet.tls.utls.Config
 	(*tls.Config)(nil), // 2: v2ray.core.transport.internet.tls.Config
@@ -214,20 +211,6 @@ func init() { file_transport_internet_tls_utls_config_proto_init() }
 func file_transport_internet_tls_utls_config_proto_init() {
 	if File_transport_internet_tls_utls_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_tls_utls_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

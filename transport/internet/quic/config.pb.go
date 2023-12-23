@@ -18,22 +18,19 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Key           string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Security      *protocol.SecurityConfig `protobuf:"bytes,2,opt,name=security,proto3" json:"security,omitempty"`
+	Header        *anypb.Any               `protobuf:"bytes,3,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Key      string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Security *protocol.SecurityConfig `protobuf:"bytes,2,opt,name=security,proto3" json:"security,omitempty"`
-	Header   *anypb.Any               `protobuf:"bytes,3,opt,name=header,proto3" json:"header,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_quic_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_quic_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -44,7 +41,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_quic_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -129,7 +126,7 @@ func file_transport_internet_quic_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_quic_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_transport_internet_quic_config_proto_goTypes = []interface{}{
+var file_transport_internet_quic_config_proto_goTypes = []any{
 	(*Config)(nil),                  // 0: v2ray.core.transport.internet.quic.Config
 	(*protocol.SecurityConfig)(nil), // 1: v2ray.core.common.protocol.SecurityConfig
 	(*anypb.Any)(nil),               // 2: google.protobuf.Any
@@ -148,20 +145,6 @@ func init() { file_transport_internet_quic_config_proto_init() }
 func file_transport_internet_quic_config_proto_init() {
 	if File_transport_internet_quic_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_quic_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

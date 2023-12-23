@@ -17,24 +17,21 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Psk           []byte                 `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
+	Ipsk          [][]byte               `protobuf:"bytes,4,rep,name=ipsk,proto3" json:"ipsk,omitempty"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Method  string          `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Psk     []byte          `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
-	Ipsk    [][]byte        `protobuf:"bytes,4,rep,name=ipsk,proto3" json:"ipsk,omitempty"`
-	Address *net.IPOrDomain `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks2022_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks2022_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -45,7 +42,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks2022_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -143,7 +140,7 @@ func file_proxy_shadowsocks2022_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_shadowsocks2022_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proxy_shadowsocks2022_config_proto_goTypes = []interface{}{
+var file_proxy_shadowsocks2022_config_proto_goTypes = []any{
 	(*ClientConfig)(nil),   // 0: v2ray.core.proxy.shadowsocks2022.ClientConfig
 	(*net.IPOrDomain)(nil), // 1: v2ray.core.common.net.IPOrDomain
 }
@@ -160,20 +157,6 @@ func init() { file_proxy_shadowsocks2022_config_proto_init() }
 func file_proxy_shadowsocks2022_config_proto_init() {
 	if File_proxy_shadowsocks2022_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_shadowsocks2022_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

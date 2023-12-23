@@ -69,22 +69,19 @@ func (LogType) EnumDescriptor() ([]byte, []int) {
 }
 
 type LogSpecification struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          LogType                `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.log.LogType" json:"type,omitempty"`
+	Level         log.Severity           `protobuf:"varint,2,opt,name=level,proto3,enum=v2ray.core.common.log.Severity" json:"level,omitempty"`
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type  LogType      `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.log.LogType" json:"type,omitempty"`
-	Level log.Severity `protobuf:"varint,2,opt,name=level,proto3,enum=v2ray.core.common.log.Severity" json:"level,omitempty"`
-	Path  string       `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogSpecification) Reset() {
 	*x = LogSpecification{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *LogSpecification) String() string {
@@ -95,7 +92,7 @@ func (*LogSpecification) ProtoMessage() {}
 
 func (x *LogSpecification) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -132,21 +129,18 @@ func (x *LogSpecification) GetPath() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *LogSpecification      `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Access        *LogSpecification      `protobuf:"bytes,7,opt,name=access,proto3" json:"access,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Error  *LogSpecification `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	Access *LogSpecification `protobuf:"bytes,7,opt,name=access,proto3" json:"access,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_log_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_log_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -157,7 +151,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_log_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -242,7 +236,7 @@ func file_app_log_config_proto_rawDescGZIP() []byte {
 
 var file_app_log_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_app_log_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_log_config_proto_goTypes = []interface{}{
+var file_app_log_config_proto_goTypes = []any{
 	(LogType)(0),             // 0: v2ray.core.app.log.LogType
 	(*LogSpecification)(nil), // 1: v2ray.core.app.log.LogSpecification
 	(*Config)(nil),           // 2: v2ray.core.app.log.Config
@@ -264,32 +258,6 @@ func init() { file_app_log_config_proto_init() }
 func file_app_log_config_proto_init() {
 	if File_app_log_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_log_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LogSpecification); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_log_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -17,20 +17,17 @@ const (
 )
 
 type Account struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Password string `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Account) Reset() {
 	*x = Account{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_trojan_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_trojan_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Account) String() string {
@@ -41,7 +38,7 @@ func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_trojan_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -64,24 +61,21 @@ func (x *Account) GetPassword() string {
 }
 
 type Fallback struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Alpn          string                 `protobuf:"bytes,1,opt,name=alpn,proto3" json:"alpn,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Dest          string                 `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
+	Xver          uint64                 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Alpn string `protobuf:"bytes,1,opt,name=alpn,proto3" json:"alpn,omitempty"`
-	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Type string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Dest string `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
-	Xver uint64 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Fallback) Reset() {
 	*x = Fallback{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_trojan_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_trojan_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Fallback) String() string {
@@ -92,7 +86,7 @@ func (*Fallback) ProtoMessage() {}
 
 func (x *Fallback) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_trojan_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -143,20 +137,17 @@ func (x *Fallback) GetXver() uint64 {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Server        []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Server []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_trojan_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_trojan_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -167,7 +158,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_trojan_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -190,22 +181,19 @@ func (x *ClientConfig) GetServer() []*protocol.ServerEndpoint {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState    `protogen:"open.v1"`
 	Users          []*protocol.User          `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	Fallbacks      []*Fallback               `protobuf:"bytes,3,rep,name=fallbacks,proto3" json:"fallbacks,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_trojan_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_trojan_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -216,7 +204,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_trojan_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -315,7 +303,7 @@ func file_proxy_trojan_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_trojan_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_proxy_trojan_config_proto_goTypes = []interface{}{
+var file_proxy_trojan_config_proto_goTypes = []any{
 	(*Account)(nil),                 // 0: v2ray.core.proxy.trojan.Account
 	(*Fallback)(nil),                // 1: v2ray.core.proxy.trojan.Fallback
 	(*ClientConfig)(nil),            // 2: v2ray.core.proxy.trojan.ClientConfig
@@ -340,56 +328,6 @@ func init() { file_proxy_trojan_config_proto_init() }
 func file_proxy_trojan_config_proto_init() {
 	if File_proxy_trojan_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_trojan_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Account); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_trojan_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Fallback); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_trojan_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_trojan_config_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

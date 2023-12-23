@@ -17,24 +17,21 @@ const (
 )
 
 type Fallback struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Alpn          string                 `protobuf:"bytes,1,opt,name=alpn,proto3" json:"alpn,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Dest          string                 `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
+	Xver          uint64                 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Alpn string `protobuf:"bytes,1,opt,name=alpn,proto3" json:"alpn,omitempty"`
-	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Type string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Dest string `protobuf:"bytes,4,opt,name=dest,proto3" json:"dest,omitempty"`
-	Xver uint64 `protobuf:"varint,5,opt,name=xver,proto3" json:"xver,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Fallback) Reset() {
 	*x = Fallback{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_vless_inbound_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_vless_inbound_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Fallback) String() string {
@@ -45,7 +42,7 @@ func (*Fallback) ProtoMessage() {}
 
 func (x *Fallback) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_vless_inbound_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -96,24 +93,21 @@ func (x *Fallback) GetXver() uint64 {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Clients []*protocol.User `protobuf:"bytes,1,rep,name=clients,proto3" json:"clients,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Clients []*protocol.User       `protobuf:"bytes,1,rep,name=clients,proto3" json:"clients,omitempty"`
 	// Decryption settings. Only applies to server side, and only accepts "none"
 	// for now.
-	Decryption string      `protobuf:"bytes,2,opt,name=decryption,proto3" json:"decryption,omitempty"`
-	Fallbacks  []*Fallback `protobuf:"bytes,3,rep,name=fallbacks,proto3" json:"fallbacks,omitempty"`
+	Decryption    string      `protobuf:"bytes,2,opt,name=decryption,proto3" json:"decryption,omitempty"`
+	Fallbacks     []*Fallback `protobuf:"bytes,3,rep,name=fallbacks,proto3" json:"fallbacks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_vless_inbound_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_vless_inbound_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -124,7 +118,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_vless_inbound_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -161,20 +155,17 @@ func (x *Config) GetFallbacks() []*Fallback {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Users []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {
 	*x = SimplifiedConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_vless_inbound_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_vless_inbound_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SimplifiedConfig) String() string {
@@ -185,7 +176,7 @@ func (*SimplifiedConfig) ProtoMessage() {}
 
 func (x *SimplifiedConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_vless_inbound_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -264,7 +255,7 @@ func file_proxy_vless_inbound_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_vless_inbound_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proxy_vless_inbound_config_proto_goTypes = []interface{}{
+var file_proxy_vless_inbound_config_proto_goTypes = []any{
 	(*Fallback)(nil),         // 0: v2ray.core.proxy.vless.inbound.Fallback
 	(*Config)(nil),           // 1: v2ray.core.proxy.vless.inbound.Config
 	(*SimplifiedConfig)(nil), // 2: v2ray.core.proxy.vless.inbound.SimplifiedConfig
@@ -284,44 +275,6 @@ func init() { file_proxy_vless_inbound_config_proto_init() }
 func file_proxy_vless_inbound_config_proto_init() {
 	if File_proxy_vless_inbound_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_vless_inbound_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Fallback); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_vless_inbound_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_vless_inbound_config_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SimplifiedConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

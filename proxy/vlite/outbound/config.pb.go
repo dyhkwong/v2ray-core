@@ -17,27 +17,24 @@ const (
 )
 
 type UDPProtocolConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address                     *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port                        uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Password                    string          `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	ScramblePacket              bool            `protobuf:"varint,4,opt,name=scramble_packet,json=scramblePacket,proto3" json:"scramble_packet,omitempty"`
-	EnableFec                   bool            `protobuf:"varint,5,opt,name=enable_fec,json=enableFec,proto3" json:"enable_fec,omitempty"`
-	EnableStabilization         bool            `protobuf:"varint,6,opt,name=enable_stabilization,json=enableStabilization,proto3" json:"enable_stabilization,omitempty"`
-	EnableRenegotiation         bool            `protobuf:"varint,7,opt,name=enable_renegotiation,json=enableRenegotiation,proto3" json:"enable_renegotiation,omitempty"`
-	HandshakeMaskingPaddingSize uint32          `protobuf:"varint,8,opt,name=handshake_masking_padding_size,json=handshakeMaskingPaddingSize,proto3" json:"handshake_masking_padding_size,omitempty"`
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	Address                     *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port                        uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Password                    string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	ScramblePacket              bool                   `protobuf:"varint,4,opt,name=scramble_packet,json=scramblePacket,proto3" json:"scramble_packet,omitempty"`
+	EnableFec                   bool                   `protobuf:"varint,5,opt,name=enable_fec,json=enableFec,proto3" json:"enable_fec,omitempty"`
+	EnableStabilization         bool                   `protobuf:"varint,6,opt,name=enable_stabilization,json=enableStabilization,proto3" json:"enable_stabilization,omitempty"`
+	EnableRenegotiation         bool                   `protobuf:"varint,7,opt,name=enable_renegotiation,json=enableRenegotiation,proto3" json:"enable_renegotiation,omitempty"`
+	HandshakeMaskingPaddingSize uint32                 `protobuf:"varint,8,opt,name=handshake_masking_padding_size,json=handshakeMaskingPaddingSize,proto3" json:"handshake_masking_padding_size,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *UDPProtocolConfig) Reset() {
 	*x = UDPProtocolConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_vlite_outbound_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_vlite_outbound_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *UDPProtocolConfig) String() string {
@@ -48,7 +45,7 @@ func (*UDPProtocolConfig) ProtoMessage() {}
 
 func (x *UDPProtocolConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_vlite_outbound_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -179,7 +176,7 @@ func file_proxy_vlite_outbound_config_proto_rawDescGZIP() []byte {
 }
 
 var file_proxy_vlite_outbound_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proxy_vlite_outbound_config_proto_goTypes = []interface{}{
+var file_proxy_vlite_outbound_config_proto_goTypes = []any{
 	(*UDPProtocolConfig)(nil), // 0: v2ray.core.proxy.vlite.outbound.UDPProtocolConfig
 	(*net.IPOrDomain)(nil),    // 1: v2ray.core.common.net.IPOrDomain
 }
@@ -196,20 +193,6 @@ func init() { file_proxy_vlite_outbound_config_proto_init() }
 func file_proxy_vlite_outbound_config_proto_init() {
 	if File_proxy_vlite_outbound_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_vlite_outbound_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UDPProtocolConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
