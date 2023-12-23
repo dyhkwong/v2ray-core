@@ -3,11 +3,11 @@ package command
 import (
 	"context"
 
+	"google.golang.org/grpc"
+
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/subscription"
 	"github.com/v2fly/v2ray-core/v5/common"
-
-	"google.golang.org/grpc"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
