@@ -5,10 +5,9 @@ import (
 	"io"
 
 	"github.com/v2fly/struc"
+	"lukechampine.com/blake3"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-
-	"lukechampine.com/blake3"
 )
 
 func newAESEIH(size int) *aesEIH {

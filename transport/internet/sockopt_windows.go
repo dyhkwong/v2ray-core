@@ -27,7 +27,7 @@ func setTFO(fd syscall.Handle, settings SocketConfig_TCPFastOpenState) error {
 	return nil
 }
 
-func applyOutboundSocketOptions(network string, address string, fd uintptr, config *SocketConfig) error {
+func applyOutboundSocketOptions(network string, _ string, fd uintptr, config *SocketConfig) error {
 	if isTCPSocket(network) {
 		if err := setTFO(syscall.Handle(fd), config.Tfo); err != nil {
 			return err
@@ -94,14 +94,14 @@ func applyInboundSocketOptions(network string, fd uintptr, config *SocketConfig)
 	return nil
 }
 
-func bindAddr(fd uintptr, ip []byte, port uint32) error {
+func bindAddr(_ uintptr, _ []byte, _ uint32) error {
 	return nil
 }
 
-func setReuseAddr(fd uintptr) error {
+func setReuseAddr(_ uintptr) error {
 	return nil
 }
 
-func setReusePort(fd uintptr) error {
+func setReusePort(_ uintptr) error {
 	return nil
 }
