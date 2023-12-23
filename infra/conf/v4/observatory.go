@@ -16,10 +16,10 @@ import (
 )
 
 type ObservatoryConfig struct {
-	SubjectSelector      []string          `json:"subjectSelector"`
-	ProbeURL             string            `json:"probeURL"`
-	ProbeInterval        duration.Duration `json:"probeInterval"`
-	PersistentProbeResult bool             `json:"persistentProbeResult"`
+	SubjectSelector       []string          `json:"subjectSelector"`
+	ProbeURL              string            `json:"probeURL"`
+	ProbeInterval         duration.Duration `json:"probeInterval"`
+	PersistentProbeResult bool              `json:"persistentProbeResult"`
 }
 
 func (o *ObservatoryConfig) Build() (proto.Message, error) {
