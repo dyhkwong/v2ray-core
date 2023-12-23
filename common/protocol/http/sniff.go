@@ -9,8 +9,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
-type version byte
-
 type SniffHeader struct {
 	host string
 }
