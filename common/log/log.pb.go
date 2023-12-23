@@ -101,7 +101,7 @@ func file_common_log_log_proto_rawDescGZIP() []byte {
 }
 
 var file_common_log_log_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_common_log_log_proto_goTypes = []interface{}{
+var file_common_log_log_proto_goTypes = []any{
 	(Severity)(0), // 0: v2ray.core.common.log.Severity
 }
 var file_common_log_log_proto_depIdxs = []int32{
