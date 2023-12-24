@@ -1,5 +1,5 @@
-//go:build !windows && !wasm && !confonly
-// +build !windows,!wasm,!confonly
+//go:build !wasm && !confonly
+// +build !wasm,!confonly
 
 package domainsocket
 
