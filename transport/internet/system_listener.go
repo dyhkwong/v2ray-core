@@ -39,7 +39,7 @@ func (l *combinedListener) Close() error {
 func getRawControlFunc(network, address string, ctx context.Context, sockopt *SocketConfig, controllers []controller) func(fd uintptr) {
 	return func(fd uintptr) {
 		if sockopt != nil {
-			if err := applyInboundSocketOptions(network, fd, sockopt); err != nil {
+			if err := applyInboundSocketOptions(network, address, fd, sockopt); err != nil {
 				newError("failed to apply socket options to incoming connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
 			}
 		}
