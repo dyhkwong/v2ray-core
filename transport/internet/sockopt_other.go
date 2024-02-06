@@ -6,7 +6,7 @@ func applyOutboundSocketOptions(_ string, _ string, _ uintptr, _ *SocketConfig) 
 	return nil
 }
 
-func applyInboundSocketOptions(_ string, _ uintptr, _ *SocketConfig) error {
+func applyInboundSocketOptions(_ string, _ string, _ uintptr, _ *SocketConfig) error {
 	return nil
 }
 
