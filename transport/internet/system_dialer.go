@@ -59,6 +59,15 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 		if err != nil {
 			return nil, err
 		}
+		if sockopt != nil {
+			if rawConn, err := packetConn.(*net.UDPConn).SyscallConn(); err == nil {
+				rawConn.Control(func(fd uintptr) {
+					if err := applyOutboundSocketOptions(srcAddr.Network(), srcAddr.String(), fd, sockopt); err != nil {
+						newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
+					}
+				})
+			}
+		}
 		return &PacketConnWrapper{
 			Conn: packetConn,
 			Dest: destAddr,
