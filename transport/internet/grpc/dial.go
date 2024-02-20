@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/grpc/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
 )
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
@@ -78,10 +79,18 @@ func getGrpcClient(ctx context.Context, dest net.Destination, streamSettings *in
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	state, err := transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
 	grpcSettings := streamSettings.ProtocolSettings.(*Config)
-	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
 	transportCredentials := insecure.NewCredentials()
-	if tlsConfig != nil {
-		transportCredentials = credentials.NewTLS(tlsConfig.GetTLSConfig(tls.WithDestination(dest)))
+	switch streamSettings.SecuritySettings.(type) {
+	case *tls.Config:
+		if tlsConfig := tls.ConfigFromStreamSettings(streamSettings); tlsConfig != nil {
+			transportCredentials = credentials.NewTLS(tlsConfig.GetTLSConfig(tls.WithDestination(dest)))
+		}
+	case *utls.Config:
+		if creds, err := newSecurityEngineCreds(ctx, dest, streamSettings); err == nil {
+			transportCredentials = creds
+		} else {
+			newError("failed to create utls grpc credentials").Base(err).WriteToLog(session.ExportIDToError(ctx))
+		}
 	}
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(transportCredentials),
