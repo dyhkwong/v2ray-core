@@ -23,11 +23,10 @@ import (
 
 // Client is a Socks5 client.
 type Client struct {
-	serverPicker   protocol.ServerPicker
-	policyManager  policy.Manager
-	version        Version
-	dns            dns.Client
-	delayAuthWrite bool
+	serverPicker  protocol.ServerPicker
+	policyManager policy.Manager
+	version       Version
+	dns           dns.Client
 }
 
 // NewClient create a new Socks5 client based on the given config.
@@ -46,10 +45,9 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 
 	v := core.MustFromContext(ctx)
 	c := &Client{
-		serverPicker:   protocol.NewRoundRobinServerPicker(serverList),
-		policyManager:  v.GetFeature(policy.ManagerType()).(policy.Manager),
-		version:        config.Version,
-		delayAuthWrite: config.DelayAuthWrite,
+		serverPicker:  protocol.NewRoundRobinServerPicker(serverList),
+		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
+		version:       config.Version,
 	}
 	if config.Version == Version_SOCKS4 {
 		c.dns = v.GetFeature(dns.ClientType()).(dns.Client)
@@ -147,7 +145,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			return newError("failed to establish connection to server").AtWarning().Base(err)
 		}
 	} else {
-		udpRequest, err = ClientHandshake(request, conn, conn, c.delayAuthWrite)
+		udpRequest, err = ClientHandshake(request, conn, conn)
 		if err != nil {
 			return newError("failed to establish connection to server").AtWarning().Base(err)
 		}
