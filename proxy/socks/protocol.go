@@ -457,16 +457,6 @@ func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer i
 	defer b.Release()
 
 	common.Must2(b.Write([]byte{socks5Version, 0x01, authByte}))
-	if !delayAuthWrite {
-		if authByte == authPassword {
-			account := request.User.Account.(*Account)
-			common.Must(b.WriteByte(0x01))
-			common.Must(b.WriteByte(byte(len(account.Username))))
-			common.Must2(b.WriteString(account.Username))
-			common.Must(b.WriteByte(byte(len(account.Password))))
-			common.Must2(b.WriteString(account.Password))
-		}
-	}
 
 	if err := buf.WriteAllBytes(writer, b.Bytes()); err != nil {
 		return nil, err
@@ -486,18 +476,16 @@ func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer i
 
 	if authByte == authPassword {
 		b.Clear()
-		if delayAuthWrite {
-			account := request.User.Account.(*Account)
-			common.Must(b.WriteByte(0x01))
-			common.Must(b.WriteByte(byte(len(account.Username))))
-			common.Must2(b.WriteString(account.Username))
-			common.Must(b.WriteByte(byte(len(account.Password))))
-			common.Must2(b.WriteString(account.Password))
-			if err := buf.WriteAllBytes(writer, b.Bytes()); err != nil {
-				return nil, err
-			}
-			b.Clear()
+		account := request.User.Account.(*Account)
+		common.Must(b.WriteByte(0x01))
+		common.Must(b.WriteByte(byte(len(account.Username))))
+		common.Must2(b.WriteString(account.Username))
+		common.Must(b.WriteByte(byte(len(account.Password))))
+		common.Must2(b.WriteString(account.Password))
+		if err := buf.WriteAllBytes(writer, b.Bytes()); err != nil {
+			return nil, err
 		}
+		b.Clear()
 		if _, err := b.ReadFullFrom(reader, 2); err != nil {
 			return nil, err
 		}
@@ -513,7 +501,17 @@ func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer i
 		command = byte(cmdUDPAssociate)
 	}
 	common.Must2(b.Write([]byte{socks5Version, command, 0x00 /* reserved */}))
-	if err := addrParser.WriteAddressPort(b, request.Address, request.Port); err != nil {
+
+	var err error
+	switch request.Command {
+	case protocol.RequestCommandUDP:
+		err = addrParser.WriteAddressPort(b, net.AnyIP, net.Port(0))
+	case protocol.RequestCommandTCP:
+		fallthrough
+	default:
+		err = addrParser.WriteAddressPort(b, request.Address, request.Port)
+	}
+	if err != nil {
 		return nil, err
 	}
 
