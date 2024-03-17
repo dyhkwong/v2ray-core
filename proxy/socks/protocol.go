@@ -501,7 +501,17 @@ func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer i
 		command = byte(cmdUDPAssociate)
 	}
 	common.Must2(b.Write([]byte{socks5Version, command, 0x00 /* reserved */}))
-	if err := addrParser.WriteAddressPort(b, request.Address, request.Port); err != nil {
+
+	var err error
+	switch request.Command {
+	case protocol.RequestCommandUDP:
+		err = addrParser.WriteAddressPort(b, net.AnyIP, net.Port(0))
+	case protocol.RequestCommandTCP:
+		fallthrough
+	default:
+		err = addrParser.WriteAddressPort(b, request.Address, request.Port)
+	}
+	if err != nil {
 		return nil, err
 	}
 
