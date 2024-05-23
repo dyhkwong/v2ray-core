@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/rangelist"
 )
 
 type SniffHeader struct {
@@ -31,7 +32,7 @@ func IsValidTLSVersion(major, minor byte) bool {
 
 // ReadClientHello returns server name (if any) from TLS client hello message.
 // https://github.com/golang/go/blob/master/src/crypto/tls/handshake_messages.go#L300
-func ReadClientHello(data []byte, h *SniffHeader) error {
+func ReadClientHello(data []byte, h *SniffHeader, validRange *rangelist.RangeList) error {
 	if len(data) < 42 {
 		return common.ErrNoClue
 	}
@@ -66,12 +67,15 @@ func ReadClientHello(data []byte, h *SniffHeader) error {
 		return errNotClientHello
 	}
 
-	extensionsLength := int(data[0])<<8 | int(data[1])
+	// extensionsLength := int(data[0])<<8 | int(data[1])
 	data = data[2:]
-	if extensionsLength != len(data) {
-		return errNotClientHello
-	}
+	/*
+		if extensionsLength != len(data) {
+			return errNotClientHello
+		}
+	*/
 
+	offset := 44 + sessionIDLen + cipherSuiteLen + compressionMethodsLen
 	for len(data) != 0 {
 		if len(data) < 4 {
 			return errNotClientHello
@@ -79,6 +83,7 @@ func ReadClientHello(data []byte, h *SniffHeader) error {
 		extension := uint16(data[0])<<8 | uint16(data[1])
 		length := int(data[2])<<8 | int(data[3])
 		data = data[4:]
+		offset += 4
 		if len(data) < length {
 			return errNotClientHello
 		}
@@ -104,6 +109,9 @@ func ReadClientHello(data []byte, h *SniffHeader) error {
 					return errNotClientHello
 				}
 				if nameType == 0 {
+					if validRange != nil && !validRange.In(offset+5, offset+5+nameLen) {
+						return errNotClientHello
+					}
 					serverName := string(d[:nameLen])
 					// An SNI value may not include a
 					// trailing dot. See
@@ -118,6 +126,7 @@ func ReadClientHello(data []byte, h *SniffHeader) error {
 			}
 		}
 		data = data[length:]
+		offset += length
 	}
 
 	return errNotTLS
@@ -140,7 +149,7 @@ func SniffTLS(b []byte) (*SniffHeader, error) {
 	}
 
 	h := &SniffHeader{}
-	err := ReadClientHello(b[5:5+headerLen], h)
+	err := ReadClientHello(b[5:5+headerLen], h, nil)
 	if err == nil {
 		return h, nil
 	}
