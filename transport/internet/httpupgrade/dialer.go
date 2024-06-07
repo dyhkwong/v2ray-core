@@ -25,6 +25,10 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 		return nil, err
 	}
 
+	req.Header = make(http.Header)
+	for key, value := range transportConfiguration.Headers {
+		req.Header.Set(key, value)
+	}
 	req.Header.Set("Connection", "upgrade")
 	req.Header.Set("Upgrade", "websocket")
 	req.Host = transportConfiguration.Host
