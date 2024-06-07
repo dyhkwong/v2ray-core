@@ -236,15 +236,17 @@ func (c *HTTPConfig) Build() (proto.Message, error) {
 }
 
 type HTTPUpgradeConfig struct {
-	Host string `json:"host"`
-	Path string `json:"path"`
+	Host    string            `json:"host"`
+	Path    string            `json:"path"`
+	Headers map[string]string `json:"headers"`
 }
 
 // Build implements Buildable.
 func (c *HTTPUpgradeConfig) Build() (proto.Message, error) {
 	return &httpupgrade.Config{
-		Host: c.Host,
-		Path: c.Path,
+		Host:    c.Host,
+		Path:    c.Path,
+		Headers: c.Headers,
 	}, nil
 }
 
