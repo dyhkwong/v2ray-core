@@ -22,11 +22,11 @@ var (
 	LookupIP        = net.LookupIP
 	ParseCIDR       = net.ParseCIDR
 	ParseIP         = net.ParseIP
+	ResolveTCPAddr  = net.ResolveTCPAddr
 	ResolveUDPAddr  = net.ResolveUDPAddr
 	ResolveUnixAddr = net.ResolveUnixAddr
 	JoinHostPort    = net.JoinHostPort
 	SplitHostPort   = net.SplitHostPort
-	JoinHostPort    = net.JoinHostPort
 )
 
 type (
