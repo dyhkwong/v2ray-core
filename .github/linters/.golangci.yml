@@ -8,6 +8,7 @@ run:
     - proxy/vless/inbound/inbound.go
     - proxy/vless/outbound/outbound.go
     - transport/internet/reality/*.*
+    - transport/internet/splithttp/*.*
 
 issues:
   new: true
