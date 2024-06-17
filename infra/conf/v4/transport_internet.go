@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/quic"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/meek"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/mekya"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/splithttp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
@@ -394,6 +395,266 @@ func (c *MekyaConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type SplitHTTPConfig struct {
+	Host                 string               `json:"host"`
+	Path                 string               `json:"path"`
+	Mode                 string               `json:"mode"`
+	Headers              map[string]string    `json:"headers"`
+	XPaddingBytes        string               `json:"xPaddingBytes"`
+	XPaddingObfsMode     bool                 `json:"xPaddingObfsMode"`
+	XPaddingKey          string               `json:"xPaddingKey"`
+	XPaddingHeader       string               `json:"xPaddingHeader"`
+	XPaddingPlacement    string               `json:"xPaddingPlacement"`
+	XPaddingMethod       string               `json:"xPaddingMethod"`
+	UplinkHTTPMethod     string               `json:"uplinkHTTPMethod"`
+	SessionPlacement     string               `json:"sessionPlacement"`
+	SessionKey           string               `json:"sessionKey"`
+	SeqPlacement         string               `json:"seqPlacement"`
+	SeqKey               string               `json:"seqKey"`
+	UplinkDataPlacement  string               `json:"uplinkDataPlacement"`
+	UplinkDataKey        string               `json:"uplinkDataKey"`
+	UplinkChunkSize      string               `json:"uplinkChunkSize"`
+	NoGRPCHeader         bool                 `json:"noGRPCHeader"`
+	ScMaxEachPostBytes   string               `json:"scMaxEachPostBytes"`
+	ScMinPostsIntervalMs string               `json:"scMinPostsIntervalMs"`
+	ScMaxBufferedPosts   int64                `json:"scMaxConcurrentPosts"`
+	Xmux                 *XmuxConfig          `json:"xmux"`
+	DownloadSettings     *XHTTPDownloadConfig `json:"downloadSettings"`
+	UseBrowserForwarding bool                 `json:"useBrowserForwarding"`
+}
+
+type XmuxConfig struct {
+	MaxConcurrency   string `json:"maxConcurrency"`
+	MaxConnections   string `json:"maxConnections"`
+	CMaxReuseTimes   string `json:"cMaxReuseTimes"`
+	HMaxRequestTimes string `json:"hMaxRequestTimes"`
+	HMaxReusableSecs string `json:"hMaxReusableSecs"`
+}
+
+type XHTTPDownloadConfig struct {
+	Address           *cfgcommon.Address    `json:"address"`
+	Port              uint16                `json:"port"`
+	Network           string                `json:"network"`
+	Security          string                `json:"security"`
+	TLSSettings       *tlscfg.TLSConfig     `json:"tlsSettings"`
+	UTLSSettings      *tlscfg.UTLSConfig    `json:"utlsSettings"`
+	REALITYSettings   *tlscfg.REALITYConfig `json:"realitySettings"`
+	SplitHTTPSettings *SplitHTTPConfig      `json:"splithttpSettings"`
+	XHTTPSettings     *SplitHTTPConfig      `json:"xhttpSettings"`
+}
+
+// Build implements Buildable.
+func (c *XHTTPDownloadConfig) Build() (*splithttp.DownloadConfig, error) {
+	if !strings.EqualFold(c.Network, "splithttp") && !strings.EqualFold(c.Network, "xhttp") {
+		return nil, newError("unknown network: ", c.Network)
+	}
+	if c.Address == nil {
+		return nil, newError("server address is not set.")
+	}
+	config := &splithttp.DownloadConfig{
+		Address: c.Address.Build(),
+		Port:    uint32(c.Port),
+	}
+	switch {
+	case strings.EqualFold(c.Security, "tls"):
+		tlsSettings := c.TLSSettings
+		if tlsSettings == nil {
+			tlsSettings = &tlscfg.TLSConfig{}
+		}
+		if tlsSettings.Fingerprint != "" {
+			imitate := strings.ToLower(tlsSettings.Fingerprint)
+			imitate = strings.TrimPrefix(imitate, "hello")
+			switch imitate {
+			case "chrome", "firefox", "safari", "ios", "edge", "360", "qq":
+				imitate += "_auto"
+			}
+			utlsSettings := &tlscfg.UTLSConfig{
+				TLSConfig: tlsSettings,
+				Imitate:   imitate,
+			}
+			us, err := utlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build UTLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(us)
+			config.SecuritySettings = tm
+			config.SecurityType = serial.V2Type(tm)
+		} else {
+			ts, err := tlsSettings.Build()
+			if err != nil {
+				return nil, newError("Failed to build TLS config.").Base(err)
+			}
+			tm := serial.ToTypedMessage(ts)
+			config.SecuritySettings = tm
+			config.SecurityType = serial.V2Type(tm)
+		}
+	case strings.EqualFold(c.Security, "utls"):
+		utlsSettings := c.UTLSSettings
+		if utlsSettings == nil {
+			utlsSettings = &tlscfg.UTLSConfig{}
+		}
+		us, err := utlsSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build UTLS config.").Base(err)
+		}
+		tm := serial.ToTypedMessage(us)
+		config.SecuritySettings = tm
+		config.SecurityType = serial.V2Type(tm)
+	case strings.EqualFold(c.Security, "reality"):
+		if c.REALITYSettings == nil {
+			return nil, newError(`REALITY: Empty "realitySettings".`)
+		}
+		rs, err := c.REALITYSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build REALITY config.").Base(err)
+		}
+		tm := serial.ToTypedMessage(rs)
+		config.SecuritySettings = tm
+		config.SecurityType = serial.V2Type(tm)
+	}
+	splithttpSettings := c.SplitHTTPSettings
+	if splithttpSettings == nil {
+		splithttpSettings = c.XHTTPSettings
+	}
+	if splithttpSettings != nil {
+		hs, err := c.SplitHTTPSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build SplitHTTP config.").Base(err)
+		}
+		config.TransportSettings = serial.ToTypedMessage(hs)
+	}
+	return config, nil
+}
+
+// Build implements Buildable.
+func (c *SplitHTTPConfig) Build() (proto.Message, error) {
+	switch c.Mode {
+	case "":
+		c.Mode = "auto"
+	case "auto", "packet-up", "stream-up", "stream-one":
+	default:
+		return nil, newError("unsupported mode: " + c.Mode)
+	}
+	config := &splithttp.Config{
+		Path:                 c.Path,
+		Host:                 c.Host,
+		Mode:                 c.Mode,
+		Headers:              c.Headers,
+		XPaddingBytes:        c.XPaddingBytes,
+		XPaddingObfsMode:     c.XPaddingObfsMode,
+		XPaddingKey:          c.XPaddingKey,
+		XPaddingHeader:       c.XPaddingHeader,
+		XPaddingPlacement:    c.XPaddingPlacement,
+		XPaddingMethod:       c.XPaddingMethod,
+		UplinkHTTPMethod:     c.UplinkHTTPMethod,
+		SessionPlacement:     c.SessionPlacement,
+		SeqPlacement:         c.SeqPlacement,
+		SessionKey:           c.SessionKey,
+		SeqKey:               c.SeqKey,
+		UplinkDataPlacement:  c.UplinkDataPlacement,
+		UplinkDataKey:        c.UplinkDataKey,
+		UplinkChunkSize:      c.UplinkChunkSize,
+		NoGRPCHeader:         c.NoGRPCHeader,
+		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
+		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
+		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
+		UseBrowserForwarding: c.UseBrowserForwarding,
+	}
+	if config.XPaddingKey == "" {
+		config.XPaddingKey = "x_padding"
+	}
+	if config.XPaddingHeader == "" {
+		config.XPaddingHeader = "X-Padding"
+	}
+	switch config.XPaddingPlacement {
+	case "":
+		config.XPaddingPlacement = "queryInHeader"
+	case "cookie", "header", "query", "queryInHeader":
+	default:
+		return nil, newError("unsupported padding placement: " + config.XPaddingPlacement)
+	}
+	switch config.XPaddingMethod {
+	case "":
+		config.XPaddingMethod = "repeat-x"
+	case "repeat-x", "tokenish":
+	default:
+		return nil, newError("unsupported padding method: " + config.XPaddingMethod)
+	}
+	switch config.UplinkDataPlacement {
+	case "":
+		config.UplinkDataPlacement = splithttp.PlacementAuto
+	case splithttp.PlacementAuto, splithttp.PlacementBody:
+	case splithttp.PlacementCookie, splithttp.PlacementHeader:
+		if c.Mode != "packet-up" {
+			return nil, newError("UplinkDataPlacement can be " + config.UplinkDataPlacement + " only in packet-up mode")
+		}
+	default:
+		return nil, newError("unsupported uplink data placement: " + config.UplinkDataPlacement)
+	}
+	if config.UplinkHTTPMethod == "" {
+		config.UplinkHTTPMethod = "POST"
+	}
+	config.UplinkHTTPMethod = strings.ToUpper(config.UplinkHTTPMethod)
+	if config.UplinkHTTPMethod == "GET" && config.Mode != "packet-up" {
+		return nil, newError("uplinkHTTPMethod can be GET only in packet-up mode")
+	}
+	switch config.SessionPlacement {
+	case "":
+		config.SessionPlacement = "path"
+	case "path", "cookie", "header", "query":
+	default:
+		return nil, newError("unsupported session placement: " + config.SessionPlacement)
+	}
+	switch config.SeqPlacement {
+	case "":
+		config.SeqPlacement = "path"
+	case "path", "cookie", "header", "query":
+	default:
+		return nil, newError("unsupported seq placement: " + config.SeqPlacement)
+	}
+	if config.SessionPlacement != "path" && config.SessionKey == "" {
+		switch config.SessionPlacement {
+		case "cookie", "query":
+			config.SessionKey = "x_session"
+		case "header":
+			config.SessionKey = "X-Session"
+		}
+	}
+	if config.SeqPlacement != "path" && config.SeqKey == "" {
+		switch config.SeqPlacement {
+		case "cookie", "query":
+			config.SeqKey = "x_seq"
+		case "header":
+			config.SeqKey = "X-Seq"
+		}
+	}
+	if config.UplinkDataPlacement != splithttp.PlacementBody && config.UplinkDataKey == "" {
+		switch config.UplinkDataPlacement {
+		case splithttp.PlacementCookie:
+			config.UplinkDataKey = "x_data"
+		case splithttp.PlacementAuto, splithttp.PlacementHeader:
+			config.UplinkDataKey = "X-Data"
+		}
+	}
+	if c.Xmux != nil {
+		config.Xmux = &splithttp.XmuxConfig{
+			MaxConcurrency:   c.Xmux.MaxConcurrency,
+			MaxConnections:   c.Xmux.MaxConnections,
+			CMaxReuseTimes:   c.Xmux.CMaxReuseTimes,
+			HMaxRequestTimes: c.Xmux.HMaxRequestTimes,
+			HMaxReusableSecs: c.Xmux.HMaxReusableSecs,
+		}
+	}
+	if c.DownloadSettings != nil {
+		downloadSettings, err := c.DownloadSettings.Build()
+		if err != nil {
+			return nil, newError(`Failed to build "downloadSettings".`).Base(err)
+		}
+		config.DownloadSettings = downloadSettings
+	}
+	return config, nil
+}
+
 type TransportProtocol string
 
 // Build implements Buildable.
@@ -421,6 +682,8 @@ func (p TransportProtocol) Build() (string, error) {
 		return "httpupgrade", nil
 	case "mekya":
 		return "mekya", nil
+	case "xhttp", "splithttp":
+		return "splithttp", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
 	}
@@ -444,6 +707,8 @@ type StreamConfig struct {
 	MeekSettings        *MeekConfig             `json:"meekSettings"`
 	HTTPUpgradeSettings *HTTPUpgradeConfig      `json:"httpupgradeSettings"`
 	MekyaSettings       *MekyaConfig            `json:"mekyaSettings"`
+	SplitHTTPSettings   *SplitHTTPConfig        `json:"splithttpSettings"`
+	XHTTPSettings       *SplitHTTPConfig        `json:"xhttpSettings"`
 	SocketSettings      *socketcfg.SocketConfig `json:"sockopt"`
 }
 
@@ -506,7 +771,7 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 	}
 	if strings.EqualFold(c.Security, "reality") {
 		switch config.ProtocolName {
-		case "tcp", "http", "gun", "domainsocket", "websocket", "httpupgrade":
+		case "tcp", "http", "gun", "splithttp", "domainsocket", "websocket", "httpupgrade":
 		default:
 			return nil, newError("REALITY does not support ", config.ProtocolName, " for now.")
 		}
@@ -640,6 +905,19 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			return nil, newError("Failed to build sockopt.").Base(err)
 		}
 		config.SocketSettings = ss
+	}
+	if c.SplitHTTPSettings == nil {
+		c.SplitHTTPSettings = c.XHTTPSettings
+	}
+	if c.SplitHTTPSettings != nil {
+		hs, err := c.SplitHTTPSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build SplitHTTP config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "splithttp",
+			Settings:     serial.ToTypedMessage(hs),
+		})
 	}
 	return config, nil
 }

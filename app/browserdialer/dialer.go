@@ -1,0 +1,273 @@
+package browserdialer
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
+
+	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	"github.com/v2fly/v2ray-core/v5/features/extension"
+	"github.com/v2fly/v2ray-core/v5/transport/internet"
+)
+
+//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
+
+func init() {
+	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
+		return NewDialer(ctx, config.(*Config)), nil
+	}))
+}
+
+type Dialer struct {
+	ctx        context.Context
+	config     *Config
+	httpserver *http.Server
+	csrfToken  string
+	webpage    []byte
+	conns      chan *websocket.Conn
+	closeMu    sync.Mutex
+	closed     bool
+}
+
+func NewDialer(ctx context.Context, config *Config) *Dialer {
+	token := uuid.New()
+	csrfToken := token.String()
+	return &Dialer{
+		ctx:       ctx,
+		config:    config,
+		csrfToken: csrfToken,
+		webpage:   bytes.ReplaceAll(webpage, []byte("csrfToken"), []byte(csrfToken)),
+		conns:     make(chan *websocket.Conn, 256),
+	}
+}
+
+//go:embed dialer.html
+var webpage []byte
+
+type task struct {
+	Method         string `json:"method"`
+	URL            string `json:"url"`
+	Extra          any    `json:"extra,omitempty"`
+	StreamResponse bool   `json:"streamResponse"`
+}
+
+var upgrader = &websocket.Upgrader{
+	ReadBufferSize:   0,
+	WriteBufferSize:  0,
+	HandshakeTimeout: time.Second * 4,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func (d *Dialer) Type() interface{} {
+	return extension.BrowserDialerType()
+}
+
+func (d *Dialer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if request.URL.Path == "/websocket" {
+		if request.URL.Query().Get("token") == d.csrfToken {
+			if conn, err := upgrader.Upgrade(writer, request, nil); err == nil {
+				d.closeMu.Lock()
+				if d.closed {
+					conn.Close()
+					d.closeMu.Unlock()
+					return
+				}
+				d.conns <- conn
+				d.closeMu.Unlock()
+			} else {
+				newError("browser dialer http upgrade unexpected error").AtError().WriteToLog()
+			}
+		}
+	} else {
+		writer.Header().Set("Access-Control-Allow-Origin", "*")
+		writer.Write(d.webpage)
+	}
+}
+
+func (d *Dialer) Start() error {
+	if d.config.ListenAddr != "" {
+		d.httpserver = &http.Server{Handler: d}
+
+		var listener net.Listener
+		var err error
+		address := net.ParseAddress(d.config.ListenAddr)
+		switch {
+		case address.Family().IsIP():
+			listener, err = internet.ListenSystem(d.ctx, &net.TCPAddr{IP: address.IP(), Port: int(d.config.ListenPort)}, nil)
+		case strings.EqualFold(address.Domain(), "localhost"):
+			listener, err = internet.ListenSystem(d.ctx, &net.TCPAddr{IP: net.IP{127, 0, 0, 1}, Port: int(d.config.ListenPort)}, nil)
+		default:
+			return newError("browser dialer cannot listen on address: ", address)
+		}
+		if err != nil {
+			return newError("browser dialer cannot listen on port ", d.config.ListenPort).Base(err)
+		}
+
+		go func() {
+			if err := d.httpserver.Serve(listener); err != nil {
+				newError("cannot serve http browser dialer server").Base(err).AtError().WriteToLog()
+			}
+		}()
+	}
+	return nil
+}
+
+func (d *Dialer) Close() error {
+	d.closeMu.Lock()
+	d.closed = true
+	close(d.conns)
+	d.closeMu.Unlock()
+	if d.httpserver != nil {
+		return d.httpserver.Close()
+	}
+	for conn := range d.conns {
+		conn.Close()
+	}
+	return nil
+}
+
+type webSocketExtra struct {
+	Protocol string `json:"protocol,omitempty"`
+}
+
+func (d *Dialer) DialWS(uri string, ed []byte) (*websocket.Conn, error) {
+	task := task{
+		Method:         "WS",
+		URL:            uri,
+		StreamResponse: true,
+		Extra: webSocketExtra{
+			Protocol: base64.RawURLEncoding.EncodeToString(ed),
+		},
+	}
+	return d.dialTask(task)
+}
+
+type httpExtra struct {
+	Referrer string            `json:"referrer,omitempty"`
+	Headers  map[string]string `json:"headers,omitempty"`
+	Cookies  map[string]string `json:"cookies,omitempty"`
+}
+
+func httpExtraFromHeadersAndCookies(headers http.Header, cookies []*http.Cookie) *httpExtra {
+	if len(headers) == 0 {
+		return nil
+	}
+
+	extra := httpExtra{}
+	if referrer := headers.Get("Referer"); referrer != "" {
+		extra.Referrer = referrer
+		headers.Del("Referer")
+	}
+
+	if len(headers) > 0 {
+		extra.Headers = make(map[string]string)
+		for header := range headers {
+			extra.Headers[header] = headers.Get(header)
+		}
+	}
+
+	if len(cookies) > 0 {
+		extra.Cookies = make(map[string]string)
+		for _, cookie := range cookies {
+			extra.Cookies[cookie.Name] = cookie.Value
+		}
+	}
+
+	return &extra
+}
+
+func (d *Dialer) DialGet(uri string, headers http.Header, cookies []*http.Cookie) (*websocket.Conn, error) {
+	task := task{
+		Method:         "GET",
+		URL:            uri,
+		Extra:          httpExtraFromHeadersAndCookies(headers, cookies),
+		StreamResponse: true,
+	}
+
+	return d.dialTask(task)
+}
+
+func (d *Dialer) DialPacket(method string, uri string, headers http.Header, cookies []*http.Cookie, payload []byte) error {
+	return d.dialWithBody(method, uri, headers, cookies, payload)
+}
+
+func (d *Dialer) dialWithBody(method string, uri string, headers http.Header, cookies []*http.Cookie, payload []byte) error {
+	task := task{
+		Method:         method,
+		URL:            uri,
+		Extra:          httpExtraFromHeadersAndCookies(headers, cookies),
+		StreamResponse: false,
+	}
+
+	conn, err := d.dialTask(task)
+	if err != nil {
+		return err
+	}
+	err = conn.WriteMessage(websocket.BinaryMessage, payload)
+	if err != nil {
+		return err
+	}
+	err = d.checkOK(conn)
+	if err != nil {
+		return err
+	}
+
+	conn.Close()
+	return nil
+}
+
+func (d *Dialer) dialTask(task task) (*websocket.Conn, error) {
+	data, err := json.Marshal(task)
+	if err != nil {
+		return nil, err
+	}
+	var conn *websocket.Conn
+	var ok bool
+	for {
+		d.closeMu.Lock()
+		if d.closed {
+			d.closeMu.Unlock()
+			return nil, newError("closed")
+		}
+		d.closeMu.Unlock()
+		conn, ok = <-d.conns
+		if !ok {
+			return nil, newError("closed")
+		}
+		if conn.WriteMessage(websocket.TextMessage, data) != nil {
+			conn.Close()
+		} else {
+			break
+		}
+	}
+	err = d.checkOK(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func (d *Dialer) checkOK(conn *websocket.Conn) error {
+	if _, p, err := conn.ReadMessage(); err != nil {
+		conn.Close()
+		return err
+	} else if s := string(p); s != "ok" {
+		conn.Close()
+		return newError(s)
+	}
+
+	return nil
+}
