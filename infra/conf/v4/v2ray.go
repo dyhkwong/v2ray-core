@@ -351,6 +351,7 @@ type Config struct {
 	Reverse           *ReverseConfig           `json:"reverse"`
 	FakeDNS           *dns.FakeDNSConfig       `json:"fakeDns"`
 	BrowserForwarder  *BrowserForwarderConfig  `json:"browserForwarder"`
+	BrowserDialer     *BrowserDialerConfig     `json:"browserDialer"`
 	Observatory       *ObservatoryConfig       `json:"observatory"`
 	BurstObservatory  *BurstObservatoryConfig  `json:"burstObservatory"`
 	MultiObservatory  *MultiObservatoryConfig  `json:"multiObservatory"`
@@ -484,6 +485,14 @@ func (c *Config) Build() (*core.Config, error) {
 
 	if c.BrowserForwarder != nil {
 		r, err := c.BrowserForwarder.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.App = append(config.App, serial.ToTypedMessage(r))
+	}
+
+	if c.BrowserDialer != nil {
+		r, err := c.BrowserDialer.Build()
 		if err != nil {
 			return nil, err
 		}
