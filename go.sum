@@ -296,6 +296,8 @@ github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248 h1:C1JR/QGoOd2e
 github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248/go.mod h1:vy1vK6wD6j7xX6O6hXe621WabdtNkou2h7uRtTfRMyg=
 github.com/xtaci/smux v1.5.15 h1:6hMiXswcleXj5oNfcJc+DXS8Vj36XX2LaX98udog6Kc=
 github.com/xtaci/smux v1.5.15/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
+github.com/xtls/quic-go v0.0.0-20241220091641-6f5777d1c087 h1:kKPg/cJPSKnE50VXVBskDYYSBkl4X3sMCIbTy+XKNGk=
+github.com/xtls/quic-go v0.0.0-20241220091641-6f5777d1c087/go.mod h1:mN9lAuc8Vt7eHvnQkDIH5+uHh+DcLmTBma9rLqk/rPY=
 github.com/xtls/reality v0.0.0-20240909153216-d468813b2352 h1:k41IAOyGc9bHWdyRy5qOd+ByjRixi5udADzZYG/9av4=
 github.com/xtls/reality v0.0.0-20240909153216-d468813b2352/go.mod h1:dm4y/1QwzjGaK17ofi0Vs6NpKAHegZky8qk6J2JJZAE=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
