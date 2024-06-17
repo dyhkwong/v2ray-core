@@ -23,6 +23,7 @@ var (
 	LookupIP        = net.LookupIP
 	ParseCIDR       = net.ParseCIDR
 	ParseIP         = net.ParseIP
+	ResolveTCPAddr  = net.ResolveTCPAddr
 	ResolveUDPAddr  = net.ResolveUDPAddr
 	ResolveUnixAddr = net.ResolveUnixAddr
 	SplitHostPort   = net.SplitHostPort
