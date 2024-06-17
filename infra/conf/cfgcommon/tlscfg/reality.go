@@ -92,6 +92,9 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		}
 		config.ShortIds = make([][]byte, len(c.ShortIds))
 		for i, s := range c.ShortIds {
+			if len(s) > 16 {
+				return nil, newError(`too long "shortIds[`, i, `]": `, s)
+			}
 			config.ShortIds[i] = make([]byte, 8)
 			if _, err = hex.Decode(config.ShortIds[i], []byte(s)); err != nil {
 				return nil, newError(`invalid "shortIds[`, i, `]": `, s)
