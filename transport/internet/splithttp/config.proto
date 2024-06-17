@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package v2ray.transport.internet.splithttp;
+option csharp_namespace = "V2Ray.Transport.Internet.SplitHttp";
+option go_package = "github.com/v2fly/v2ray-core/v5/transport/internet/splithttp";
+option java_package = "com.v2ray.transport.internet.splithttp";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/protoext/extensions.proto";
+import "google/protobuf/any.proto";
+import "transport/internet/config.proto";
+
+message XmuxConfig {
+  string maxConcurrency = 1;
+  string maxConnections = 2;
+  string cMaxReuseTimes = 3;
+  string hMaxRequestTimes = 4;
+  string hMaxReusableSecs = 5;
+}
+
+message DownloadConfig {
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  google.protobuf.Any transport_settings = 3;
+  string security_type = 4;
+  google.protobuf.Any security_settings = 5;
+  v2ray.core.transport.internet.SocketConfig socket_settings = 6;
+}
+
+message Config {
+  option (v2ray.core.common.protoext.message_opt).type = "transport";
+  option (v2ray.core.common.protoext.message_opt).short_name = "splithttp";
+
+  string host = 1;
+  string path = 2;
+  string mode = 3;
+  map<string, string> headers = 4;
+  string xPaddingBytes = 5;
+  bool noGRPCHeader = 6;
+  string scMaxEachPostBytes = 7;
+  string scMinPostsIntervalMs = 8;
+  int64 scMaxBufferedPosts = 9;
+  optional XmuxConfig xmux = 10;
+  optional DownloadConfig downloadSettings = 11;
+  bool use_browser_forwarding = 99;
+}
