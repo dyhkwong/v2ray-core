@@ -23,6 +23,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/quic"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/meek"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/mekya"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/splithttp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
@@ -385,6 +386,40 @@ func (c *DTLSConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type SplitHTTPConfig struct {
+	Host                 string            `json:"host"`
+	Path                 string            `json:"path"`
+	Mode                 string            `json:"mode"`
+	Headers              map[string]string `json:"headers"`
+	XPaddingBytes        string            `json:"xPaddingBytes"`
+	NoGRPCHeader         bool              `json:"noGRPCHeader"`
+	ScMaxEachPostBytes   string            `json:"scMaxEachPostBytes"`
+	ScMinPostsIntervalMs string            `json:"scMinPostsIntervalMs"`
+	ScMaxBufferedPosts   int64             `json:"scMaxConcurrentPosts"`
+}
+
+// Build implements Buildable.
+func (c *SplitHTTPConfig) Build() (proto.Message, error) {
+	switch c.Mode {
+	case "":
+		c.Mode = "auto"
+	case "auto", "packet-up", "stream-up", "stream-one":
+	default:
+		return nil, newError("unsupported mode: " + c.Mode)
+	}
+	return &splithttp.Config{
+		Path:                 c.Path,
+		Host:                 c.Host,
+		Mode:                 c.Mode,
+		Headers:              c.Headers,
+		XPaddingBytes:        c.XPaddingBytes,
+		NoGRPCHeader:         c.NoGRPCHeader,
+		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
+		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
+		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
+	}, nil
+}
+
 type TransportProtocol string
 
 // Build implements Buildable.
@@ -416,6 +451,8 @@ func (p TransportProtocol) Build() (string, error) {
 		return "dtls", nil
 	case "request":
 		return "request", nil
+	case "splithttp":
+		return "splithttp", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
 	}
@@ -441,6 +478,7 @@ type StreamConfig struct {
 	MekyaSettings       *MekyaConfig            `json:"mekyaSettings"`
 	DTLSSettings        *DTLSConfig             `json:"dtlsSettings"`
 	RequestSettings     *RequestConfig          `json:"requestSettings"`
+	SplitHTTPSettings   *SplitHTTPConfig        `json:"splithttpSettings"`
 	SocketSettings      *socketcfg.SocketConfig `json:"sockopt"`
 }
 
@@ -503,9 +541,9 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 	}
 	if strings.EqualFold(c.Security, "reality") {
 		switch config.ProtocolName {
-		case "tcp", "http", "gun", "domainsocket":
+		case "tcp", "http", "gun", "splithttp", "domainsocket":
 		default:
-			return nil, newError("REALITY only supports TCP, H2, gRPC and DomainSocket for now.")
+			return nil, newError("REALITY only supports TCP, H2, gRPC, SplitHTTP and DomainSocket for now.")
 		}
 		if c.REALITYSettings == nil {
 			return nil, newError(`REALITY: Empty "realitySettings".`)
@@ -656,6 +694,16 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "request",
 			Settings:     serial.ToTypedMessage(rs),
+		})
+	}
+	if c.SplitHTTPSettings != nil {
+		hs, err := c.SplitHTTPSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build SplitHTTP config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "splithttp",
+			Settings:     serial.ToTypedMessage(hs),
 		})
 	}
 	return config, nil
