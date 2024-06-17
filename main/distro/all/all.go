@@ -19,6 +19,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/app/observatory/command"
 
 	// Other optional features.
+	_ "github.com/v2fly/v2ray-core/v5/app/browserdialer"
 	_ "github.com/v2fly/v2ray-core/v5/app/browserforwarder"
 	_ "github.com/v2fly/v2ray-core/v5/app/dns"
 	_ "github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
@@ -93,6 +94,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2"
+	_ "github.com/v2fly/v2ray-core/v5/transport/internet/splithttp"
 
 	// Transport headers
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/headers/http"
