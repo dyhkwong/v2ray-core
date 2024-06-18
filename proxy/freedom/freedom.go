@@ -17,6 +17,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/transport"
@@ -354,6 +355,17 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			if ip != nil {
 				dest.Address = ip
 			}
+		}
+		if dest.Address.Family().IsDomain() {
+			// SagerNet private
+			ips, err := localdns.New().LookupIP(dest.Address.Domain())
+			if err != nil {
+				return err
+			}
+			if len(ips) == 0 {
+				return dns.ErrEmptyResponse
+			}
+			dest.Address = net.IPAddress(ips[0])
 		}
 		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if destAddr == nil {
