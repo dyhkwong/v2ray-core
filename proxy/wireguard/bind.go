@@ -10,6 +10,8 @@ import (
 	"golang.zx2c4.com/wireguard/conn"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -52,11 +54,15 @@ func (n *netBind) ParseEndpoint(s string) (conn.Endpoint, error) {
 		Network: net.Network_UDP,
 	}
 	if dest.Address.Family().IsDomain() {
-		destAddr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
+		// SagerNet private
+		ips, err := localdns.New().LookupIP(dest.Address.Domain())
 		if err != nil {
 			return nil, err
 		}
-		dest.Address = net.IPAddress(destAddr.IP)
+		if len(ips) == 0 {
+			return nil, dns.ErrEmptyResponse
+		}
+		dest.Address = net.IPAddress(ips[0])
 	}
 	return &netEndpoint{
 		dest: dest,
