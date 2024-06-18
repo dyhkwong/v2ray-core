@@ -8,6 +8,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 )
 
 var effectiveSystemDialer SystemDialer = &DefaultSystemDialer{}
@@ -54,6 +56,17 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 		packetConn, err := ListenSystemPacket(ctx, srcAddr, sockopt)
 		if err != nil {
 			return nil, err
+		}
+		if dest.Address.Family().IsDomain() {
+			// SagerNet private
+			ips, err := localdns.New().LookupIP(dest.Address.Domain())
+			if err != nil {
+				return nil, err
+			}
+			if len(ips) == 0 {
+				return nil, dns.ErrEmptyResponse
+			}
+			dest.Address = net.IPAddress(ips[0])
 		}
 		destAddr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if err != nil {
