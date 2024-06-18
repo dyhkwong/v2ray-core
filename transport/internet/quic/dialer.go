@@ -15,6 +15,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
@@ -134,6 +136,15 @@ func (c *clientConnections) openConnection(ctx context.Context, dest net.Destina
 			Port: int(dest.Port),
 		}
 	default:
+		// SagerNet private
+		ips, err := localdns.New().LookupIP(dest.Address.Domain())
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, dns.ErrEmptyResponse
+		}
+		dest.Address = net.IPAddress(ips[0])
 		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if err != nil {
 			return nil, err
