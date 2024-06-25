@@ -13,7 +13,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet/security"
 )
 
-func DialWithSecuritySettings(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
+func DialWithSecuritySettings(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, options ...security.Option) (internet.Connection, error) {
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	dialer := transportEnvironment.Dialer()
 	conn, err := dialer.Dial(ctx, nil, dest, streamSettings.SocketSettings)
@@ -26,7 +26,10 @@ func DialWithSecuritySettings(ctx context.Context, dest net.Destination, streamS
 	}
 
 	if securityEngine != nil {
-		conn, err = securityEngine.Client(conn, security.OptionWithDestination{Dest: dest})
+		if len(options) == 0 {
+			options = []security.Option{security.OptionWithDestination{Dest: dest}}
+		}
+		conn, err = securityEngine.Client(conn, options...)
 		if err != nil {
 			return nil, newError("unable to create security protocol client from security engine").Base(err)
 		}
