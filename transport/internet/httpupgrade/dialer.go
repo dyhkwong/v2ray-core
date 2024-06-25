@@ -12,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/transportcommon"
 )
 
@@ -19,7 +20,10 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 
 	dialer := func(earlyData []byte) (net.Conn, io.Reader, error) {
-		conn, err := transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings)
+		conn, err := transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings,
+			security.OptionWithDestination{Dest: dest},
+			security.OptionWithALPN{ALPNs: []string{"http/1.1"}},
+		)
 		if err != nil {
 			return nil, nil, newError("failed to dial request to ", dest).Base(err)
 		}
