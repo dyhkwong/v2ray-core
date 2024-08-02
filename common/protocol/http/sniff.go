@@ -18,7 +18,10 @@ func (h *SniffHeader) Protocol() string {
 }
 
 func (h *SniffHeader) Domain() string {
-	return h.host
+	if addr := net.ParseAddress(h.host); addr.Family().IsDomain() {
+		return h.host
+	}
+	return ""
 }
 
 var (
