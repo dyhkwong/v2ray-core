@@ -3,8 +3,6 @@ package bittorrent
 import (
 	"encoding/binary"
 	"errors"
-	"math"
-	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
@@ -49,22 +47,17 @@ func SniffUTP(b []byte) (*SniffHeader, error) {
 		return nil, errNotBittorrent
 	}
 
-	var extension uint8
+	extension := b[1]
 
-	if binary.Read(buffer, binary.BigEndian, &extension) != nil {
-		return nil, common.ErrNoClue
-	} else if extension != 0 && extension != 1 {
-		return nil, errNotBittorrent
-	}
+	buffer = buf.FromBytes(b[20:])
 
 	for extension != 0 {
-		if extension != 1 {
-			return nil, errNotBittorrent
-		}
 		if binary.Read(buffer, binary.BigEndian, &extension) != nil {
 			return nil, common.ErrNoClue
 		}
-
+		if extension > 0x04 {
+			return nil, common.ErrNoClue
+		}
 		var length uint8
 		if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
 			return nil, common.ErrNoClue
@@ -74,17 +67,18 @@ func SniffUTP(b []byte) (*SniffHeader, error) {
 		}
 	}
 
-	if common.Error2(buffer.ReadBytes(2)) != nil {
+	return &SniffHeader{}, nil
+}
+
+func SniffUDPTracker(b []byte) (*SniffHeader, error) {
+	if len(b) < 16 {
 		return nil, common.ErrNoClue
 	}
-
-	var timestamp uint32
-	if err := binary.Read(buffer, binary.BigEndian, &timestamp); err != nil {
+	if binary.BigEndian.Uint64(b[:8]) != 0x41727101980 {
 		return nil, common.ErrNoClue
 	}
-	if math.Abs(float64(time.Now().UnixMicro()-int64(timestamp))) > float64(24*time.Hour) {
-		return nil, errNotBittorrent
+	if binary.BigEndian.Uint32(b[8:12]) != 0 {
+		return nil, common.ErrNoClue
 	}
-
 	return &SniffHeader{}, nil
 }
