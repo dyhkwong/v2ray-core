@@ -322,6 +322,13 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 		enablePacketAddrCapture = false
 	}
 
+	if h.streamSettings != nil && h.streamSettings.SocketSettings != nil && len(h.streamSettings.SocketSettings.DialerProxy) > 0 {
+		tag := h.streamSettings.SocketSettings.DialerProxy
+		newError("transport layer proxying to ", tag, " for dest ", dest).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+		ctx = session.SetTransportLayerProxyTagToContext(ctx, tag)
+		enablePacketAddrCapture = false
+	}
+
 	if isStream, err := packetaddr.GetDestinationSubsetOf(dest); err == nil && enablePacketAddrCapture {
 		packetConn, err := internet.ListenSystemPacket(ctx, &net.UDPAddr{IP: net.AnyIP.IP(), Port: 0}, h.streamSettings.SocketSettings)
 		if err != nil {
