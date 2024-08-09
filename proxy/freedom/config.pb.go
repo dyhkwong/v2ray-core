@@ -3,6 +3,7 @@ package freedom
 import (
 	protocol "github.com/v2fly/v2ray-core/v5/common/protocol"
 	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
+	internet "github.com/v2fly/v2ray-core/v5/transport/internet"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -172,10 +173,13 @@ type Config struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	DomainStrategy Config_DomainStrategy  `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.freedom.Config_DomainStrategy" json:"domain_strategy,omitempty"`
 	// Deprecated: Marked as deprecated in proxy/freedom/config.proto.
-	Timeout             uint32               `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	DestinationOverride *DestinationOverride `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
-	UserLevel           uint32               `protobuf:"varint,4,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
-	ProtocolReplacement ProtocolReplacement  `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
+	Timeout             uint32                          `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	DestinationOverride *DestinationOverride            `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
+	UserLevel           uint32                          `protobuf:"varint,4,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
+	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
+	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive      uint64                          `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -246,10 +250,34 @@ func (x *Config) GetProtocolReplacement() ProtocolReplacement {
 	return ProtocolReplacement_IDENTITY
 }
 
+func (x *Config) GetFragment() *internet.SocketConfig_Fragment {
+	if x != nil {
+		return x.Fragment
+	}
+	return nil
+}
+
+func (x *Config) GetNoises() []*internet.SocketConfig_Noise {
+	if x != nil {
+		return x.Noises
+	}
+	return nil
+}
+
+func (x *Config) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
 type SimplifiedConfig struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	DestinationOverride *DestinationOverride   `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
-	ProtocolReplacement ProtocolReplacement    `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
+	state               protoimpl.MessageState          `protogen:"open.v1"`
+	DestinationOverride *DestinationOverride            `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
+	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
+	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
+	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive      uint64                          `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -298,20 +326,44 @@ func (x *SimplifiedConfig) GetProtocolReplacement() ProtocolReplacement {
 	return ProtocolReplacement_IDENTITY
 }
 
+func (x *SimplifiedConfig) GetFragment() *internet.SocketConfig_Fragment {
+	if x != nil {
+		return x.Fragment
+	}
+	return nil
+}
+
+func (x *SimplifiedConfig) GetNoises() []*internet.SocketConfig_Noise {
+	if x != nil {
+		return x.Noises
+	}
+	return nil
+}
+
+func (x *SimplifiedConfig) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
 var File_proxy_freedom_config_proto protoreflect.FileDescriptor
 
 const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\"Y\n" +
+	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\x1a\x1ftransport/internet/config.proto\"Y\n" +
 	"\x13DestinationOverride\x12B\n" +
-	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xc6\x03\n" +
+	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\x8d\x05\n" +
 	"\x06Config\x12X\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2/.v2ray.core.proxy.freedom.Config.DomainStrategyR\x0edomainStrategy\x12\x1c\n" +
 	"\atimeout\x18\x02 \x01(\rB\x02\x18\x01R\atimeout\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12\x1d\n" +
 	"\n" +
 	"user_level\x18\x04 \x01(\rR\tuserLevel\x12`\n" +
-	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\"a\n" +
+	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\x12P\n" +
+	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -321,10 +373,13 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"PREFER_IP4\x10\x04\x12\x0e\n" +
 	"\n" +
-	"PREFER_IP6\x10\x05\"\xef\x01\n" +
+	"PREFER_IP6\x10\x05\"\xb6\x03\n" +
 	"\x10SimplifiedConfig\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12`\n" +
-	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement:\x17\x82\xb5\x18\x13\n" +
+	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\x12P\n" +
+	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive:\x17\x82\xb5\x18\x13\n" +
 	"\boutbound\x12\afreedom*A\n" +
 	"\x13ProtocolReplacement\x12\f\n" +
 	"\bIDENTITY\x10\x00\x12\r\n" +
@@ -347,25 +402,31 @@ func file_proxy_freedom_config_proto_rawDescGZIP() []byte {
 var file_proxy_freedom_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_proxy_freedom_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proxy_freedom_config_proto_goTypes = []any{
-	(ProtocolReplacement)(0),        // 0: v2ray.core.proxy.freedom.ProtocolReplacement
-	(Config_DomainStrategy)(0),      // 1: v2ray.core.proxy.freedom.Config.DomainStrategy
-	(*DestinationOverride)(nil),     // 2: v2ray.core.proxy.freedom.DestinationOverride
-	(*Config)(nil),                  // 3: v2ray.core.proxy.freedom.Config
-	(*SimplifiedConfig)(nil),        // 4: v2ray.core.proxy.freedom.SimplifiedConfig
-	(*protocol.ServerEndpoint)(nil), // 5: v2ray.core.common.protocol.ServerEndpoint
+	(ProtocolReplacement)(0),               // 0: v2ray.core.proxy.freedom.ProtocolReplacement
+	(Config_DomainStrategy)(0),             // 1: v2ray.core.proxy.freedom.Config.DomainStrategy
+	(*DestinationOverride)(nil),            // 2: v2ray.core.proxy.freedom.DestinationOverride
+	(*Config)(nil),                         // 3: v2ray.core.proxy.freedom.Config
+	(*SimplifiedConfig)(nil),               // 4: v2ray.core.proxy.freedom.SimplifiedConfig
+	(*protocol.ServerEndpoint)(nil),        // 5: v2ray.core.common.protocol.ServerEndpoint
+	(*internet.SocketConfig_Fragment)(nil), // 6: v2ray.core.transport.internet.SocketConfig.Fragment
+	(*internet.SocketConfig_Noise)(nil),    // 7: v2ray.core.transport.internet.SocketConfig.Noise
 }
 var file_proxy_freedom_config_proto_depIdxs = []int32{
-	5, // 0: v2ray.core.proxy.freedom.DestinationOverride.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
-	1, // 1: v2ray.core.proxy.freedom.Config.domain_strategy:type_name -> v2ray.core.proxy.freedom.Config.DomainStrategy
-	2, // 2: v2ray.core.proxy.freedom.Config.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
-	0, // 3: v2ray.core.proxy.freedom.Config.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
-	2, // 4: v2ray.core.proxy.freedom.SimplifiedConfig.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
-	0, // 5: v2ray.core.proxy.freedom.SimplifiedConfig.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	5,  // 0: v2ray.core.proxy.freedom.DestinationOverride.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
+	1,  // 1: v2ray.core.proxy.freedom.Config.domain_strategy:type_name -> v2ray.core.proxy.freedom.Config.DomainStrategy
+	2,  // 2: v2ray.core.proxy.freedom.Config.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
+	0,  // 3: v2ray.core.proxy.freedom.Config.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
+	6,  // 4: v2ray.core.proxy.freedom.Config.fragment:type_name -> v2ray.core.transport.internet.SocketConfig.Fragment
+	7,  // 5: v2ray.core.proxy.freedom.Config.noises:type_name -> v2ray.core.transport.internet.SocketConfig.Noise
+	2,  // 6: v2ray.core.proxy.freedom.SimplifiedConfig.destination_override:type_name -> v2ray.core.proxy.freedom.DestinationOverride
+	0,  // 7: v2ray.core.proxy.freedom.SimplifiedConfig.protocol_replacement:type_name -> v2ray.core.proxy.freedom.ProtocolReplacement
+	6,  // 8: v2ray.core.proxy.freedom.SimplifiedConfig.fragment:type_name -> v2ray.core.transport.internet.SocketConfig.Fragment
+	7,  // 9: v2ray.core.proxy.freedom.SimplifiedConfig.noises:type_name -> v2ray.core.transport.internet.SocketConfig.Noise
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_proxy_freedom_config_proto_init() }
