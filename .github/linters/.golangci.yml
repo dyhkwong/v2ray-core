@@ -18,6 +18,8 @@ issues:
     - proxy/vless/inbound/inbound.go
     - proxy/vless/outbound/outbound.go
     - proxy/wireguard/*.*
+    - transport/internet/fragment.go
+    - transport/internet/noise.go
     - transport/internet/reality/*.*
     - transport/internet/splithttp/*.*
 
