@@ -117,4 +117,27 @@ message SocketConfig {
 
 
   MPTCPState mptcp = 15;
+
+  string dialer_proxy = 97;
+
+  message Fragment {
+    string packets = 1;
+    string length = 2;
+    string interval = 3;
+    string host1_header = 4;
+    string host1_domain = 5;
+    string host2_header = 6;
+    string host2_domain = 7;
+  }
+
+  message Noise {
+    string type = 1;
+    string packet = 2;
+    string delay = 3;
+    string count = 4;
+  }
+
+  Fragment fragment = 98;
+  repeated Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }
