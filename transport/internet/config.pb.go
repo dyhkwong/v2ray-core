@@ -453,18 +453,22 @@ type SocketConfig struct {
 	Tproxy SocketConfig_TProxyMode `protobuf:"varint,3,opt,name=tproxy,proto3,enum=v2ray.core.transport.internet.SocketConfig_TProxyMode" json:"tproxy,omitempty"`
 	// ReceiveOriginalDestAddress is for enabling IP_RECVORIGDSTADDR socket
 	// option. This option is for UDP only.
-	ReceiveOriginalDestAddress bool       `protobuf:"varint,4,opt,name=receive_original_dest_address,json=receiveOriginalDestAddress,proto3" json:"receive_original_dest_address,omitempty"`
-	BindAddress                []byte     `protobuf:"bytes,5,opt,name=bind_address,json=bindAddress,proto3" json:"bind_address,omitempty"`
-	BindPort                   uint32     `protobuf:"varint,6,opt,name=bind_port,json=bindPort,proto3" json:"bind_port,omitempty"`
-	AcceptProxyProtocol        bool       `protobuf:"varint,7,opt,name=accept_proxy_protocol,json=acceptProxyProtocol,proto3" json:"accept_proxy_protocol,omitempty"`
-	TcpKeepAliveInterval       int32      `protobuf:"varint,8,opt,name=tcp_keep_alive_interval,json=tcpKeepAliveInterval,proto3" json:"tcp_keep_alive_interval,omitempty"`
-	TfoQueueLength             uint32     `protobuf:"varint,9,opt,name=tfo_queue_length,json=tfoQueueLength,proto3" json:"tfo_queue_length,omitempty"`
-	TcpKeepAliveIdle           int32      `protobuf:"varint,10,opt,name=tcp_keep_alive_idle,json=tcpKeepAliveIdle,proto3" json:"tcp_keep_alive_idle,omitempty"`
-	BindToDevice               string     `protobuf:"bytes,11,opt,name=bind_to_device,json=bindToDevice,proto3" json:"bind_to_device,omitempty"`
-	RxBufSize                  int64      `protobuf:"varint,12,opt,name=rx_buf_size,json=rxBufSize,proto3" json:"rx_buf_size,omitempty"`
-	TxBufSize                  int64      `protobuf:"varint,13,opt,name=tx_buf_size,json=txBufSize,proto3" json:"tx_buf_size,omitempty"`
-	ForceBufSize               bool       `protobuf:"varint,14,opt,name=force_buf_size,json=forceBufSize,proto3" json:"force_buf_size,omitempty"`
-	Mptcp                      MPTCPState `protobuf:"varint,15,opt,name=mptcp,proto3,enum=v2ray.core.transport.internet.MPTCPState" json:"mptcp,omitempty"`
+	ReceiveOriginalDestAddress bool                   `protobuf:"varint,4,opt,name=receive_original_dest_address,json=receiveOriginalDestAddress,proto3" json:"receive_original_dest_address,omitempty"`
+	BindAddress                []byte                 `protobuf:"bytes,5,opt,name=bind_address,json=bindAddress,proto3" json:"bind_address,omitempty"`
+	BindPort                   uint32                 `protobuf:"varint,6,opt,name=bind_port,json=bindPort,proto3" json:"bind_port,omitempty"`
+	AcceptProxyProtocol        bool                   `protobuf:"varint,7,opt,name=accept_proxy_protocol,json=acceptProxyProtocol,proto3" json:"accept_proxy_protocol,omitempty"`
+	TcpKeepAliveInterval       int32                  `protobuf:"varint,8,opt,name=tcp_keep_alive_interval,json=tcpKeepAliveInterval,proto3" json:"tcp_keep_alive_interval,omitempty"`
+	TfoQueueLength             uint32                 `protobuf:"varint,9,opt,name=tfo_queue_length,json=tfoQueueLength,proto3" json:"tfo_queue_length,omitempty"`
+	TcpKeepAliveIdle           int32                  `protobuf:"varint,10,opt,name=tcp_keep_alive_idle,json=tcpKeepAliveIdle,proto3" json:"tcp_keep_alive_idle,omitempty"`
+	BindToDevice               string                 `protobuf:"bytes,11,opt,name=bind_to_device,json=bindToDevice,proto3" json:"bind_to_device,omitempty"`
+	RxBufSize                  int64                  `protobuf:"varint,12,opt,name=rx_buf_size,json=rxBufSize,proto3" json:"rx_buf_size,omitempty"`
+	TxBufSize                  int64                  `protobuf:"varint,13,opt,name=tx_buf_size,json=txBufSize,proto3" json:"tx_buf_size,omitempty"`
+	ForceBufSize               bool                   `protobuf:"varint,14,opt,name=force_buf_size,json=forceBufSize,proto3" json:"force_buf_size,omitempty"`
+	Mptcp                      MPTCPState             `protobuf:"varint,15,opt,name=mptcp,proto3,enum=v2ray.core.transport.internet.MPTCPState" json:"mptcp,omitempty"`
+	DialerProxy                string                 `protobuf:"bytes,97,opt,name=dialer_proxy,json=dialerProxy,proto3" json:"dialer_proxy,omitempty"`
+	Fragment                   *SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
+	Noises                     []*SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive             uint64                 `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -604,6 +608,194 @@ func (x *SocketConfig) GetMptcp() MPTCPState {
 	return MPTCPState_AsIs
 }
 
+func (x *SocketConfig) GetDialerProxy() string {
+	if x != nil {
+		return x.DialerProxy
+	}
+	return ""
+}
+
+func (x *SocketConfig) GetFragment() *SocketConfig_Fragment {
+	if x != nil {
+		return x.Fragment
+	}
+	return nil
+}
+
+func (x *SocketConfig) GetNoises() []*SocketConfig_Noise {
+	if x != nil {
+		return x.Noises
+	}
+	return nil
+}
+
+func (x *SocketConfig) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
+type SocketConfig_Fragment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Packets       string                 `protobuf:"bytes,1,opt,name=packets,proto3" json:"packets,omitempty"`
+	Length        string                 `protobuf:"bytes,2,opt,name=length,proto3" json:"length,omitempty"`
+	Interval      string                 `protobuf:"bytes,3,opt,name=interval,proto3" json:"interval,omitempty"`
+	Host1Header   string                 `protobuf:"bytes,4,opt,name=host1_header,json=host1Header,proto3" json:"host1_header,omitempty"`
+	Host1Domain   string                 `protobuf:"bytes,5,opt,name=host1_domain,json=host1Domain,proto3" json:"host1_domain,omitempty"`
+	Host2Header   string                 `protobuf:"bytes,6,opt,name=host2_header,json=host2Header,proto3" json:"host2_header,omitempty"`
+	Host2Domain   string                 `protobuf:"bytes,7,opt,name=host2_domain,json=host2Domain,proto3" json:"host2_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SocketConfig_Fragment) Reset() {
+	*x = SocketConfig_Fragment{}
+	mi := &file_transport_internet_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SocketConfig_Fragment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SocketConfig_Fragment) ProtoMessage() {}
+
+func (x *SocketConfig_Fragment) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_internet_config_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SocketConfig_Fragment.ProtoReflect.Descriptor instead.
+func (*SocketConfig_Fragment) Descriptor() ([]byte, []int) {
+	return file_transport_internet_config_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *SocketConfig_Fragment) GetPackets() string {
+	if x != nil {
+		return x.Packets
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetLength() string {
+	if x != nil {
+		return x.Length
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetInterval() string {
+	if x != nil {
+		return x.Interval
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetHost1Header() string {
+	if x != nil {
+		return x.Host1Header
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetHost1Domain() string {
+	if x != nil {
+		return x.Host1Domain
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetHost2Header() string {
+	if x != nil {
+		return x.Host2Header
+	}
+	return ""
+}
+
+func (x *SocketConfig_Fragment) GetHost2Domain() string {
+	if x != nil {
+		return x.Host2Domain
+	}
+	return ""
+}
+
+type SocketConfig_Noise struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Packet        string                 `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
+	Delay         string                 `protobuf:"bytes,3,opt,name=delay,proto3" json:"delay,omitempty"`
+	Count         string                 `protobuf:"bytes,4,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SocketConfig_Noise) Reset() {
+	*x = SocketConfig_Noise{}
+	mi := &file_transport_internet_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SocketConfig_Noise) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SocketConfig_Noise) ProtoMessage() {}
+
+func (x *SocketConfig_Noise) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_internet_config_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SocketConfig_Noise.ProtoReflect.Descriptor instead.
+func (*SocketConfig_Noise) Descriptor() ([]byte, []int) {
+	return file_transport_internet_config_proto_rawDescGZIP(), []int{3, 1}
+}
+
+func (x *SocketConfig_Noise) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *SocketConfig_Noise) GetPacket() string {
+	if x != nil {
+		return x.Packet
+	}
+	return ""
+}
+
+func (x *SocketConfig_Noise) GetDelay() string {
+	if x != nil {
+		return x.Delay
+	}
+	return ""
+}
+
+func (x *SocketConfig_Noise) GetCount() string {
+	if x != nil {
+		return x.Count
+	}
+	return ""
+}
+
 var File_transport_internet_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_config_proto_rawDesc = "" +
@@ -622,7 +814,8 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\x0fsocket_settings\x18\x06 \x01(\v2+.v2ray.core.transport.internet.SocketConfigR\x0esocketSettings\"Q\n" +
 	"\vProxyConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x120\n" +
-	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\xbe\x06\n" +
+	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\xf0\n" +
+	"\n" +
 	"\fSocketConfig\x12\x12\n" +
 	"\x04mark\x18\x01 \x01(\rR\x04mark\x12N\n" +
 	"\x03tfo\x18\x02 \x01(\x0e2<.v2ray.core.transport.internet.SocketConfig.TCPFastOpenStateR\x03tfo\x12N\n" +
@@ -639,7 +832,24 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\vrx_buf_size\x18\f \x01(\x03R\trxBufSize\x12\x1e\n" +
 	"\vtx_buf_size\x18\r \x01(\x03R\ttxBufSize\x12$\n" +
 	"\x0eforce_buf_size\x18\x0e \x01(\bR\fforceBufSize\x12?\n" +
-	"\x05mptcp\x18\x0f \x01(\x0e2).v2ray.core.transport.internet.MPTCPStateR\x05mptcp\"5\n" +
+	"\x05mptcp\x18\x0f \x01(\x0e2).v2ray.core.transport.internet.MPTCPStateR\x05mptcp\x12!\n" +
+	"\fdialer_proxy\x18a \x01(\tR\vdialerProxy\x12P\n" +
+	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive\x1a\xe4\x01\n" +
+	"\bFragment\x12\x18\n" +
+	"\apackets\x18\x01 \x01(\tR\apackets\x12\x16\n" +
+	"\x06length\x18\x02 \x01(\tR\x06length\x12\x1a\n" +
+	"\binterval\x18\x03 \x01(\tR\binterval\x12!\n" +
+	"\fhost1_header\x18\x04 \x01(\tR\vhost1Header\x12!\n" +
+	"\fhost1_domain\x18\x05 \x01(\tR\vhost1Domain\x12!\n" +
+	"\fhost2_header\x18\x06 \x01(\tR\vhost2Header\x12!\n" +
+	"\fhost2_domain\x18\a \x01(\tR\vhost2Domain\x1a_\n" +
+	"\x05Noise\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
+	"\x06packet\x18\x02 \x01(\tR\x06packet\x12\x14\n" +
+	"\x05delay\x18\x03 \x01(\tR\x05delay\x12\x14\n" +
+	"\x05count\x18\x04 \x01(\tR\x05count\"5\n" +
 	"\x10TCPFastOpenState\x12\b\n" +
 	"\x04AsIs\x10\x00\x12\n" +
 	"\n" +
@@ -679,7 +889,7 @@ func file_transport_internet_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_config_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_transport_internet_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_transport_internet_config_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_transport_internet_config_proto_goTypes = []any{
 	(TransportProtocol)(0),             // 0: v2ray.core.transport.internet.TransportProtocol
 	(MPTCPState)(0),                    // 1: v2ray.core.transport.internet.MPTCPState
@@ -689,23 +899,27 @@ var file_transport_internet_config_proto_goTypes = []any{
 	(*StreamConfig)(nil),               // 5: v2ray.core.transport.internet.StreamConfig
 	(*ProxyConfig)(nil),                // 6: v2ray.core.transport.internet.ProxyConfig
 	(*SocketConfig)(nil),               // 7: v2ray.core.transport.internet.SocketConfig
-	(*anypb.Any)(nil),                  // 8: google.protobuf.Any
+	(*SocketConfig_Fragment)(nil),      // 8: v2ray.core.transport.internet.SocketConfig.Fragment
+	(*SocketConfig_Noise)(nil),         // 9: v2ray.core.transport.internet.SocketConfig.Noise
+	(*anypb.Any)(nil),                  // 10: google.protobuf.Any
 }
 var file_transport_internet_config_proto_depIdxs = []int32{
-	0, // 0: v2ray.core.transport.internet.TransportConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
-	8, // 1: v2ray.core.transport.internet.TransportConfig.settings:type_name -> google.protobuf.Any
-	0, // 2: v2ray.core.transport.internet.StreamConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
-	4, // 3: v2ray.core.transport.internet.StreamConfig.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
-	8, // 4: v2ray.core.transport.internet.StreamConfig.security_settings:type_name -> google.protobuf.Any
-	7, // 5: v2ray.core.transport.internet.StreamConfig.socket_settings:type_name -> v2ray.core.transport.internet.SocketConfig
-	2, // 6: v2ray.core.transport.internet.SocketConfig.tfo:type_name -> v2ray.core.transport.internet.SocketConfig.TCPFastOpenState
-	3, // 7: v2ray.core.transport.internet.SocketConfig.tproxy:type_name -> v2ray.core.transport.internet.SocketConfig.TProxyMode
-	1, // 8: v2ray.core.transport.internet.SocketConfig.mptcp:type_name -> v2ray.core.transport.internet.MPTCPState
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	0,  // 0: v2ray.core.transport.internet.TransportConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
+	10, // 1: v2ray.core.transport.internet.TransportConfig.settings:type_name -> google.protobuf.Any
+	0,  // 2: v2ray.core.transport.internet.StreamConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
+	4,  // 3: v2ray.core.transport.internet.StreamConfig.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
+	10, // 4: v2ray.core.transport.internet.StreamConfig.security_settings:type_name -> google.protobuf.Any
+	7,  // 5: v2ray.core.transport.internet.StreamConfig.socket_settings:type_name -> v2ray.core.transport.internet.SocketConfig
+	2,  // 6: v2ray.core.transport.internet.SocketConfig.tfo:type_name -> v2ray.core.transport.internet.SocketConfig.TCPFastOpenState
+	3,  // 7: v2ray.core.transport.internet.SocketConfig.tproxy:type_name -> v2ray.core.transport.internet.SocketConfig.TProxyMode
+	1,  // 8: v2ray.core.transport.internet.SocketConfig.mptcp:type_name -> v2ray.core.transport.internet.MPTCPState
+	8,  // 9: v2ray.core.transport.internet.SocketConfig.fragment:type_name -> v2ray.core.transport.internet.SocketConfig.Fragment
+	9,  // 10: v2ray.core.transport.internet.SocketConfig.noises:type_name -> v2ray.core.transport.internet.SocketConfig.Noise
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_transport_internet_config_proto_init() }
@@ -719,7 +933,7 @@ func file_transport_internet_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_internet_config_proto_rawDesc), len(file_transport_internet_config_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
