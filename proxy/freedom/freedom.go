@@ -40,6 +40,8 @@ func init() {
 		fullConfig := &Config{
 			DestinationOverride: simplifiedServer.DestinationOverride,
 			ProtocolReplacement: simplifiedServer.ProtocolReplacement,
+			Fragment:            simplifiedServer.Fragment,
+			Noises:              simplifiedServer.Noises,
 		}
 		return common.CreateObject(ctx, fullConfig)
 	}))
@@ -152,6 +154,40 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		return newError("failed to open connection to ", destination).Base(err)
 	}
 	defer conn.Close()
+
+	if destination.Network == net.Network_TCP && h.config.Fragment != nil {
+		fragmentConn, err := internet.NewFragmentConn(conn, h.config.Fragment)
+		if err != nil {
+			return err
+		}
+		conn = fragmentConn
+	}
+	if destination.Network == net.Network_UDP && h.config.Noises != nil {
+		switch c := conn.(type) {
+		case *internet.PacketConnWrapper:
+			noisePacketConn, err := internet.NewNoisePacketConn(c.Conn, h.config.Noises)
+			if err != nil {
+				return err
+			}
+			c.Conn = noisePacketConn
+			conn = c
+		case net.PacketConn:
+			noisePacketConn, err := internet.NewNoisePacketConn(c, h.config.Noises)
+			if err != nil {
+				return err
+			}
+			conn = &internet.PacketConnWrapper{
+				Conn: noisePacketConn,
+				Dest: conn.RemoteAddr(),
+			}
+		default:
+			noiseConn, err := internet.NewNoiseConn(conn, h.config.Noises)
+			if err != nil {
+				return err
+			}
+			conn = noiseConn
+		}
+	}
 
 	plcy := h.policy()
 	ctx, cancel := context.WithCancel(ctx)
