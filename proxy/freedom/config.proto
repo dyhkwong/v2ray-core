@@ -8,6 +8,7 @@ option java_multiple_files = true;
 
 import "common/protocol/server_spec.proto";
 import "common/protoext/extensions.proto";
+import "transport/internet/config.proto";
 
 message DestinationOverride {
   v2ray.core.common.protocol.ServerEndpoint server = 1;
@@ -33,6 +34,10 @@ message Config {
   DestinationOverride destination_override = 3;
   uint32 user_level = 4;
   ProtocolReplacement protocol_replacement = 5;
+
+  v2ray.core.transport.internet.SocketConfig.Fragment fragment = 98;
+  repeated v2ray.core.transport.internet.SocketConfig.Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }
 
 message SimplifiedConfig {
@@ -41,4 +46,8 @@ message SimplifiedConfig {
 
   DestinationOverride destination_override = 3;
   ProtocolReplacement protocol_replacement = 5;
+
+  v2ray.core.transport.internet.SocketConfig.Fragment fragment = 98;
+  repeated v2ray.core.transport.internet.SocketConfig.Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }
