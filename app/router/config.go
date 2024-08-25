@@ -84,12 +84,14 @@ func (rr *RoutingRule) BuildCondition() (Condition, error) {
 		if err != nil {
 			return nil, err
 		}
+		cond.skipDomain = rr.SkipDomain
 		conds.Add(cond)
 	} else if len(rr.Cidr) > 0 {
 		cond, err := NewMultiGeoIPMatcher([]*routercommon.GeoIP{{Cidr: rr.Cidr}}, false)
 		if err != nil {
 			return nil, err
 		}
+		cond.skipDomain = rr.SkipDomain
 		conds.Add(cond)
 	}
 
