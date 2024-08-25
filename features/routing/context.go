@@ -46,3 +46,8 @@ type Context interface {
 	GetWifiSsid() string
 	GetNetworkType() string
 }
+
+type ContextWithSkipDomain interface {
+	Context
+	GetTargetIPsSkipDomain() []net.IP
+}
