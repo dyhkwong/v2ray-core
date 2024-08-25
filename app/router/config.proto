@@ -71,6 +71,8 @@ message RoutingRule {
   repeated string wifi_ssid_list = 19;
   string network_type = 20;
 
+  bool skip_domain = 21;
+
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
 }
@@ -191,6 +193,8 @@ message SimplifiedRoutingRule {
   v2ray.core.common.net.UidList uid_list = 18;
   repeated string wifi_ssid_list = 19;
   string network_type = 20;
+
+  bool skip_domain = 21;
 
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
