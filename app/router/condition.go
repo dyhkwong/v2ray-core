@@ -101,8 +101,9 @@ func (m *DomainMatcher) Apply(ctx routing.Context) bool {
 }
 
 type MultiGeoIPMatcher struct {
-	matchers []*GeoIPMatcher
-	onSource bool
+	matchers   []*GeoIPMatcher
+	onSource   bool
+	skipDomain bool
 }
 
 func NewMultiGeoIPMatcher(geoips []*routercommon.GeoIP, onSource bool) (*MultiGeoIPMatcher, error) {
@@ -126,9 +127,16 @@ func NewMultiGeoIPMatcher(geoips []*routercommon.GeoIP, onSource bool) (*MultiGe
 // Apply implements Condition.
 func (m *MultiGeoIPMatcher) Apply(ctx routing.Context) bool {
 	var ips []net.IP
-	if m.onSource {
+	switch {
+	case m.onSource:
 		ips = ctx.GetSourceIPs()
-	} else {
+	case m.skipDomain:
+		if ctxWithSkipDomain, ok := ctx.(routing.ContextWithSkipDomain); ok {
+			ips = ctxWithSkipDomain.GetTargetIPsSkipDomain()
+		} else {
+			ips = ctx.GetTargetIPs()
+		}
+	default:
 		ips = ctx.GetTargetIPs()
 	}
 	for _, ip := range ips {
