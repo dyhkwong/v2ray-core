@@ -37,6 +37,13 @@ func (ctx *ResolvableContext) GetTargetIPs() []net.IP {
 	return nil
 }
 
+func (ctx *ResolvableContext) GetTargetIPsSkipDomain() []net.IP {
+	if ips := ctx.Context.GetTargetIPs(); len(ips) != 0 {
+		return ips
+	}
+	return nil
+}
+
 // ContextWithDNSClient creates a new routing context with domain resolving capability.
 // Resolved domain IPs can be retrieved by GetTargetIPs().
 func ContextWithDNSClient(ctx routing.Context, client dns.Client) routing.Context {
