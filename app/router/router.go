@@ -250,6 +250,8 @@ func init() {
 			rule.WifiSsidList = v.WifiSsidList
 			rule.NetworkType = v.NetworkType
 
+			rule.SkipDomain = v.SkipDomain
+
 			switch s := v.TargetTag.(type) {
 			case *SimplifiedRoutingRule_Tag:
 				rule.TargetTag = &RoutingRule_Tag{s.Tag}
