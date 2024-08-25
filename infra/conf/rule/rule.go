@@ -218,6 +218,7 @@ func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRu
 		UID         []uint32               `json:"uid"`
 		SSID        []string               `json:"ssid"`
 		NetworkType []string               `json:"networkType"`
+		SkipDomain  bool                   `json:"skipDomain"`
 	}
 	rawFieldRule := new(RawFieldRule)
 	err := json.Unmarshal(msg, rawFieldRule)
@@ -324,6 +325,8 @@ func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRu
 	if len(rawFieldRule.NetworkType) > 0 {
 		rule.NetworkType = rawFieldRule.NetworkType
 	}
+
+	rule.SkipDomain = rawFieldRule.SkipDomain
 
 	return rule, nil
 }

@@ -124,6 +124,7 @@ type RoutingRule struct {
 	Uid            []uint32      `protobuf:"varint,18,rep,packed,name=uid,proto3" json:"uid,omitempty"`
 	Ssid           []string      `protobuf:"bytes,19,rep,name=ssid,proto3" json:"ssid,omitempty"`
 	NetworkType    []string      `protobuf:"bytes,20,rep,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
+	SkipDomain     bool          `protobuf:"varint,21,opt,name=skip_domain,json=skipDomain,proto3" json:"skip_domain,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -313,6 +314,13 @@ func (x *RoutingRule) GetNetworkType() []string {
 		return x.NetworkType
 	}
 	return nil
+}
+
+func (x *RoutingRule) GetSkipDomain() bool {
+	if x != nil {
+		return x.SkipDomain
+	}
+	return false
 }
 
 func (x *RoutingRule) GetGeoDomain() []*routercommon.GeoSite {
@@ -796,6 +804,7 @@ type SimplifiedRoutingRule struct {
 	Uid            []uint32 `protobuf:"varint,18,rep,packed,name=uid,proto3" json:"uid,omitempty"`
 	Ssid           []string `protobuf:"bytes,19,rep,name=ssid,proto3" json:"ssid,omitempty"`
 	NetworkType    []string `protobuf:"bytes,20,rep,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
+	SkipDomain     bool     `protobuf:"varint,21,opt,name=skip_domain,json=skipDomain,proto3" json:"skip_domain,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
 	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -955,6 +964,13 @@ func (x *SimplifiedRoutingRule) GetNetworkType() []string {
 	return nil
 }
 
+func (x *SimplifiedRoutingRule) GetSkipDomain() bool {
+	if x != nil {
+		return x.SkipDomain
+	}
+	return false
+}
+
 func (x *SimplifiedRoutingRule) GetGeoDomain() []*routercommon.GeoSite {
 	if x != nil {
 		return x.GeoDomain
@@ -1044,7 +1060,7 @@ var File_app_router_config_proto protoreflect.FileDescriptor
 
 const file_app_router_config_proto_rawDesc = "" +
 	"\n" +
-	"\x17app/router/config.proto\x12\x15v2ray.core.app.router\x1a\x19google/protobuf/any.proto\x1a\x15common/net/port.proto\x1a\x18common/net/network.proto\x1a common/protoext/extensions.proto\x1a$app/router/routercommon/common.proto\"\xc9\b\n" +
+	"\x17app/router/config.proto\x12\x15v2ray.core.app.router\x1a\x19google/protobuf/any.proto\x1a\x15common/net/port.proto\x1a\x18common/net/network.proto\x1a common/protoext/extensions.proto\x1a$app/router/routercommon/common.proto\"\xea\b\n" +
 	"\vRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1072,7 +1088,9 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12\x10\n" +
 	"\x03uid\x18\x12 \x03(\rR\x03uid\x12\x12\n" +
 	"\x04ssid\x18\x13 \x03(\tR\x04ssid\x12!\n" +
-	"\fnetwork_type\x18\x14 \x03(\tR\vnetworkType\x12L\n" +
+	"\fnetwork_type\x18\x14 \x03(\tR\vnetworkType\x12\x1f\n" +
+	"\vskip_domain\x18\x15 \x01(\bR\n" +
+	"skipDomain\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
@@ -1109,7 +1127,7 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x06Config\x12N\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2%.v2ray.core.app.router.DomainStrategyR\x0edomainStrategy\x126\n" +
 	"\x04rule\x18\x02 \x03(\v2\".v2ray.core.app.router.RoutingRuleR\x04rule\x12K\n" +
-	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\xf4\x05\n" +
+	"\x0ebalancing_rule\x18\x03 \x03(\v2$.v2ray.core.app.router.BalancingRuleR\rbalancingRule\"\x95\x06\n" +
 	"\x15SimplifiedRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x12B\n" +
@@ -1131,7 +1149,9 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12\x10\n" +
 	"\x03uid\x18\x12 \x03(\rR\x03uid\x12\x12\n" +
 	"\x04ssid\x18\x13 \x03(\tR\x04ssid\x12!\n" +
-	"\fnetwork_type\x18\x14 \x03(\tR\vnetworkType\x12L\n" +
+	"\fnetwork_type\x18\x14 \x03(\tR\vnetworkType\x12\x1f\n" +
+	"\vskip_domain\x18\x15 \x01(\bR\n" +
+	"skipDomain\x12L\n" +
 	"\n" +
 	"geo_domain\x18\xa1\x93\x04 \x03(\v2+.v2ray.core.app.router.routercommon.GeoSiteR\tgeoDomainB\f\n" +
 	"\n" +
