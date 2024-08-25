@@ -76,6 +76,8 @@ message RoutingRule {
   repeated string ssid = 20;
   repeated string network_type = 21;
 
+  bool skip_domain = 22;
+
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
 }
@@ -200,6 +202,8 @@ message SimplifiedRoutingRule {
   repeated int32 uid = 19;
   repeated string ssid = 20;
   repeated string network_type = 21;
+
+  bool skip_domain = 22;
 
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
