@@ -545,13 +545,14 @@ func (*OutboundConfig) Descriptor() ([]byte, []int) {
 type SenderConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Send traffic through the given IP. Only IP is allowed.
-	Via               *net.IPOrDomain             `protobuf:"bytes,1,opt,name=via,proto3" json:"via,omitempty"`
-	StreamSettings    *internet.StreamConfig      `protobuf:"bytes,2,opt,name=stream_settings,json=streamSettings,proto3" json:"stream_settings,omitempty"`
-	ProxySettings     *internet.ProxyConfig       `protobuf:"bytes,3,opt,name=proxy_settings,json=proxySettings,proto3" json:"proxy_settings,omitempty"`
-	MultiplexSettings *MultiplexingConfig         `protobuf:"bytes,4,opt,name=multiplex_settings,json=multiplexSettings,proto3" json:"multiplex_settings,omitempty"`
-	DomainStrategy    SenderConfig_DomainStrategy `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"domain_strategy,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	Via                *net.IPOrDomain             `protobuf:"bytes,1,opt,name=via,proto3" json:"via,omitempty"`
+	StreamSettings     *internet.StreamConfig      `protobuf:"bytes,2,opt,name=stream_settings,json=streamSettings,proto3" json:"stream_settings,omitempty"`
+	ProxySettings      *internet.ProxyConfig       `protobuf:"bytes,3,opt,name=proxy_settings,json=proxySettings,proto3" json:"proxy_settings,omitempty"`
+	MultiplexSettings  *MultiplexingConfig         `protobuf:"bytes,4,opt,name=multiplex_settings,json=multiplexSettings,proto3" json:"multiplex_settings,omitempty"`
+	DomainStrategy     SenderConfig_DomainStrategy `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"domain_strategy,omitempty"`
+	DialDomainStrategy SenderConfig_DomainStrategy `protobuf:"varint,6,opt,name=dial_domain_strategy,json=dialDomainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"dial_domain_strategy,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SenderConfig) Reset() {
@@ -615,6 +616,13 @@ func (x *SenderConfig) GetMultiplexSettings() *MultiplexingConfig {
 func (x *SenderConfig) GetDomainStrategy() SenderConfig_DomainStrategy {
 	if x != nil {
 		return x.DomainStrategy
+	}
+	return SenderConfig_AS_IS
+}
+
+func (x *SenderConfig) GetDialDomainStrategy() SenderConfig_DomainStrategy {
+	if x != nil {
+		return x.DialDomainStrategy
 	}
 	return SenderConfig_AS_IS
 }
@@ -800,13 +808,14 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12A\n" +
 	"\x11receiver_settings\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x10receiverSettings\x12;\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\rproxySettings\"\x10\n" +
-	"\x0eOutboundConfig\"\x8a\x04\n" +
+	"\x0eOutboundConfig\"\xf2\x04\n" +
 	"\fSenderConfig\x123\n" +
 	"\x03via\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\x03via\x12T\n" +
 	"\x0fstream_settings\x18\x02 \x01(\v2+.v2ray.core.transport.internet.StreamConfigR\x0estreamSettings\x12Q\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2*.v2ray.core.transport.internet.ProxyConfigR\rproxySettings\x12Z\n" +
 	"\x12multiplex_settings\x18\x04 \x01(\v2+.v2ray.core.app.proxyman.MultiplexingConfigR\x11multiplexSettings\x12]\n" +
-	"\x0fdomain_strategy\x18\x05 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x0edomainStrategy\"a\n" +
+	"\x0fdomain_strategy\x18\x05 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x0edomainStrategy\x12f\n" +
+	"\x14dial_domain_strategy\x18\x06 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x12dialDomainStrategy\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -876,11 +885,12 @@ var file_app_proxyman_config_proto_depIdxs = []int32{
 	17, // 13: v2ray.core.app.proxyman.SenderConfig.proxy_settings:type_name -> v2ray.core.transport.internet.ProxyConfig
 	10, // 14: v2ray.core.app.proxyman.SenderConfig.multiplex_settings:type_name -> v2ray.core.app.proxyman.MultiplexingConfig
 	2,  // 15: v2ray.core.app.proxyman.SenderConfig.domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	2,  // 16: v2ray.core.app.proxyman.SenderConfig.dial_domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_app_proxyman_config_proto_init() }
