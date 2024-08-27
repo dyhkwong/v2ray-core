@@ -238,7 +238,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 			outbound.Gateway = h.senderSettings.Via.AsAddress()
 		}
 
-		if h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+		if h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS {
 			outbound := session.OutboundFromContext(ctx)
 			if outbound == nil {
 				outbound = new(session.Outbound)
