@@ -130,7 +130,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		}
 	}
 
-	if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+	if h.senderSettings != nil && (h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS || h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS) {
 		err := core.RequireFeatures(ctx, func(d dns.Client) error {
 			h.dns = d
 			return nil
@@ -158,7 +158,7 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			ctx = session.ContextWithOutbound(ctx, outbound)
 		}
 		if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
-			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address()); addr != nil {
+			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
 				outbound.Target.Address = addr
 			}
 		}
@@ -238,14 +238,14 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 			outbound.Gateway = h.senderSettings.Via.AsAddress()
 		}
 
-		if h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+		if h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS {
 			outbound := session.OutboundFromContext(ctx)
 			if outbound == nil {
 				outbound = new(session.Outbound)
 				ctx = session.ContextWithOutbound(ctx, outbound)
 			}
 			outbound.Resolver = func(ctx context.Context, domain string) net.Address {
-				return h.resolveIP(ctx, domain, h.Address())
+				return h.resolveIP(ctx, domain, h.Address(), h.senderSettings.DialDomainStrategy)
 			}
 		}
 	}
@@ -277,8 +277,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 	return h.getStatCouterConnection(conn), err
 }
 
-func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address) net.Address {
-	strategy := h.senderSettings.DomainStrategy
+func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address, strategy proxyman.SenderConfig_DomainStrategy) net.Address {
 	ips, err := dns.LookupIPWithOption(h.dns, domain, dns.IPOption{
 		IPv4Enable: strategy != proxyman.SenderConfig_USE_IP6 || (localAddr != nil && localAddr.Family().IsIPv4()),
 		IPv6Enable: strategy != proxyman.SenderConfig_USE_IP4 || (localAddr != nil && localAddr.Family().IsIPv6()),
