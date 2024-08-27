@@ -59,6 +59,25 @@ func (c OutboundConfig) BuildV5(ctx context.Context) (proto.Message, error) {
 		return nil, newError("unknown domain strategy: ", c.DomainStrategy)
 	}
 
+	switch c.DialDomainStrategy {
+	case "UseIP":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP
+	case "UseIP4":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP4
+	case "UseIP6":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP6
+	case "PreferIP4":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_PREFER_IP4
+	case "PreferIP6":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_PREFER_IP6
+	case "AsIs":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_AS_IS
+	case "":
+		senderSettings.DialDomainStrategy = senderSettings.DomainStrategy
+	default:
+		return nil, newError("unknown domain strategy: ", c.DomainStrategy)
+	}
+
 	if c.Settings == nil {
 		c.Settings = []byte("{}")
 	}
