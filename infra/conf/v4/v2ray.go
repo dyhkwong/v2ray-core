@@ -218,14 +218,15 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 }
 
 type OutboundDetourConfig struct {
-	Protocol       string                `json:"protocol"`
-	SendThrough    *cfgcommon.Address    `json:"sendThrough"`
-	Tag            string                `json:"tag"`
-	Settings       *json.RawMessage      `json:"settings"`
-	StreamSetting  *StreamConfig         `json:"streamSettings"`
-	ProxySettings  *proxycfg.ProxyConfig `json:"proxySettings"`
-	MuxSettings    *muxcfg.MuxConfig     `json:"mux"`
-	DomainStrategy string                `json:"domainStrategy"`
+	Protocol           string                `json:"protocol"`
+	SendThrough        *cfgcommon.Address    `json:"sendThrough"`
+	Tag                string                `json:"tag"`
+	Settings           *json.RawMessage      `json:"settings"`
+	StreamSetting      *StreamConfig         `json:"streamSettings"`
+	ProxySettings      *proxycfg.ProxyConfig `json:"proxySettings"`
+	MuxSettings        *muxcfg.MuxConfig     `json:"mux"`
+	DomainStrategy     string                `json:"domainStrategy"`
+	DialDomainStrategy string                `json:"dialDomainStrategy"`
 }
 
 // Build implements Buildable.
@@ -272,6 +273,23 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 		senderSettings.DomainStrategy = proxyman.SenderConfig_PREFER_IP4
 	case "preferip6", "preferipv6", "prefer_ip6", "prefer_ipv6", "prefer_ip_v6", "prefer-ip6", "prefer-ipv6", "prefer-ip-v6":
 		senderSettings.DomainStrategy = proxyman.SenderConfig_PREFER_IP6
+	}
+
+	switch strings.ToLower(c.DialDomainStrategy) {
+	case "":
+		senderSettings.DialDomainStrategy = senderSettings.DomainStrategy
+	case "asis", "as_is", "as-is":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_AS_IS
+	case "useip", "use_ip", "use-ip":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP
+	case "useip4", "useipv4", "use_ip4", "use_ipv4", "use_ip_v4", "use-ip4", "use-ipv4", "use-ip-v4":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP4
+	case "useip6", "useipv6", "use_ip6", "use_ipv6", "use_ip_v6", "use-ip6", "use-ipv6", "use-ip-v6":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_USE_IP6
+	case "preferip4", "preferipv4", "prefer_ip4", "prefer_ipv4", "prefer_ip_v4", "prefer-ip4", "prefer-ipv4", "prefer-ip-v4":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_PREFER_IP4
+	case "preferip6", "preferipv6", "prefer_ip6", "prefer_ipv6", "prefer_ip_v6", "prefer-ip6", "prefer-ipv6", "prefer-ip-v6":
+		senderSettings.DialDomainStrategy = proxyman.SenderConfig_PREFER_IP6
 	}
 
 	settings := []byte("{}")
