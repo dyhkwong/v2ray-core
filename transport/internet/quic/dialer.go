@@ -157,29 +157,37 @@ func (s *clientConnections) openConnection(ctx context.Context, destAddr net.Add
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	var udpConn *net.UDPConn
-	if conn, ok := rawConn.(*net.UDPConn); ok {
-		udpConn = conn
-	}
-	if conn, ok := rawConn.(*internet.PacketConnWrapper); ok {
+	var packetConn net.PacketConn
+	switch conn := rawConn.(type) {
+	case *net.UDPConn:
+		packetConn = conn
+	case *internet.PacketConnWrapper:
 		if c, ok := conn.Conn.(*net.UDPConn); ok {
-			udpConn = c
+			packetConn = c
+		} else {
+			packetConn = conn.Conn
 		}
-	}
-	if udpConn == nil {
+	case net.PacketConn:
+		packetConn = conn
+	default:
 		rawConn.Close()
-		return nil, newError("not a *net.UDPConn").AtWarning()
+		return nil, newError("neither a *net.UDPConn nor a net.PacketConn").AtWarning()
 	}
 
-	sysConn, err := wrapSysConn(udpConn, streamSettings.ProtocolSettings.(*Config))
+	sysConn, err := wrapSysConn(packetConn, streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
 	}
 
 	tr := quic.Transport{
-		Conn:               sysConn,
 		ConnectionIDLength: 12,
+	}
+
+	if _, ok := packetConn.(*net.UDPConn); ok {
+		tr.Conn = wrapSysUDPConn(sysConn)
+	} else {
+		tr.Conn = sysConn
 	}
 
 	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
