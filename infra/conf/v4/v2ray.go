@@ -491,8 +491,8 @@ func (c *Config) Build() (*core.Config, error) {
 	}
 
 	if c.RestfulAPI != nil {
-		r, err := c.RestfulAPI.Build()
-		if err != nil {
+		r, err := c.RestfulAPI.Build() // nolint:staticcheck
+		if err != nil {                // nolint:staticcheck
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(r))
