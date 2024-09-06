@@ -1,3 +1,5 @@
+//go:build restfulapi
+
 package v4
 
 import (
