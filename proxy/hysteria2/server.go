@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
+	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	hyTransport "github.com/v2fly/v2ray-core/v4/transport/internet/hysteria2"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/udp"
@@ -58,9 +59,12 @@ func (s *Server) Network() []net.Network {
 func (s *Server) Process(ctx context.Context, network net.Network, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	sid := session.ExportIDToError(ctx)
 
+	var readCounter, writeCounter stats.Counter
 	iConn := conn
 	if statConn, ok := conn.(*internet.StatCouterConnection); ok {
-		iConn = statConn.Connection // will not count the UDP traffic.
+		iConn = statConn.Connection
+		readCounter = statConn.ReadCounter
+		writeCounter = statConn.WriteCounter
 	}
 	hyConn, IsHy2Transport := iConn.(*hyTransport.HyConn)
 
@@ -88,8 +92,8 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 	if network == net.Network_UDP { // handle udp request
 		return s.handleUDPPayload(ctx,
-			&PacketReader{Reader: clientReader, HyConn: hyConn},
-			&PacketWriter{Writer: conn, HyConn: hyConn}, dispatcher)
+			&PacketReader{Reader: clientReader, HyConn: hyConn, counter: readCounter},
+			&PacketWriter{Writer: conn, HyConn: hyConn, counter: writeCounter}, dispatcher)
 	}
 
 	var reqAddr string

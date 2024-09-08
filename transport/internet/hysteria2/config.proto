@@ -13,9 +13,16 @@ message Congestion{
   uint64 down_mbps = 3;
 }
 
+message OBFS {
+  string type = 1;
+  string password = 2;
+}
+
 message Config {
   string password = 3;
   Congestion congestion = 4;
   bool ignore_client_bandwidth = 5;
   bool use_udp_extension = 6;
+  OBFS obfs = 7;
+  repeated string passwords = 8;
 }
