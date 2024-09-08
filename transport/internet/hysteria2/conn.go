@@ -6,10 +6,10 @@ package hysteria2
 import (
 	"time"
 
-	"github.com/apernet/quic-go"
-	hyClient "github.com/v2fly/hysteria/core/v2/client"
-	"github.com/v2fly/hysteria/core/v2/international/protocol"
-	hyServer "github.com/v2fly/hysteria/core/v2/server"
+	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
+	"github.com/dyhkwong/hysteria/core/v2/international/protocol"
+	"github.com/dyhkwong/hysteria/core/v2/international/utils"
+	hyServer "github.com/dyhkwong/hysteria/core/v2/server"
 
 	"github.com/v2fly/v2ray-core/v4/common/net"
 )
@@ -25,7 +25,7 @@ type HyConn struct {
 	ClientUDPSession hyClient.HyUDPConn
 	ServerUDPSession *hyServer.UdpSessionEntry
 
-	stream quic.Stream
+	stream *utils.QStream
 	local  net.Addr
 	remote net.Addr
 }
