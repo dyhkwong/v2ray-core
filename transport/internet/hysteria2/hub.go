@@ -2,7 +2,9 @@ package hysteria2
 
 import (
 	"context"
+	"strings"
 
+	"github.com/apernet/hysteria/extras/v2/obfs"
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/http3"
 	hyServer "github.com/v2fly/hysteria/core/v2/server"
@@ -83,16 +85,37 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		addConn: handler,
 	}
 
-	hyServer, err := hyServer.NewServer(&hyServer.Config{
+	hyConfig := &hyServer.Config{
 		Conn:                  rawConn,
 		TLSConfig:             *tlsConfig,
 		DisableUDP:            !config.GetUseUdpExtension(),
-		Authenticator:         &Authenticator{Password: config.GetPassword()},
 		StreamHijacker:        listener.StreamHijacker, // acceptStreams
 		BandwidthConfig:       hyServer.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
 		UdpSessionHijacker:    listener.UDPHijacker, // acceptUDPSession
 		IgnoreClientBandwidth: config.GetIgnoreClientBandwidth(),
-	})
+	}
+	if len(config.GetPasswords()) > 0 {
+		authenticator := &MultiUserAuthenticator{
+			Passwords: make(map[string]any),
+		}
+		for _, password := range config.GetPasswords() {
+			if index := strings.Index(password, ":"); index >= 0 {
+				password = strings.ToLower(password[:index]) + ":" + password[index:]
+			}
+			authenticator.Passwords[password] = nil
+		}
+		hyConfig.Authenticator = authenticator
+	} else {
+		hyConfig.Authenticator = &Authenticator{Password: config.GetPassword()}
+	}
+	if config.Obfs != nil && config.Obfs.Type == "salamander" {
+		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.Conn = obfs.WrapPacketConn(rawConn, ob)
+	}
+	hyServer, err := hyServer.NewServer(hyConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +130,7 @@ func GetServerTLSConfig(streamSettings *internet.MemoryStreamConfig) (*hyServer.
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	tlsConfig := config.GetTLSConfig()
+	tlsConfig := config.GetTLSConfig(tls.WithNextProto("h3"))
 
 	return &hyServer.TLSConfig{Certificates: tlsConfig.Certificates, GetCertificate: tlsConfig.GetCertificate}, nil
 }
@@ -117,8 +140,24 @@ type Authenticator struct {
 }
 
 func (a *Authenticator) Authenticate(addr net.Addr, auth string, tx uint64) (ok bool, id string) {
-	if auth == a.Password || a.Password == "" {
+	if auth == a.Password {
 		return true, "user"
+	}
+	return false, ""
+}
+
+type MultiUserAuthenticator struct {
+	Passwords map[string]any
+}
+
+func (a *MultiUserAuthenticator) Authenticate(addr net.Addr, auth string, tx uint64) (ok bool, id string) {
+	username := "user"
+	if index := strings.Index(auth, ":"); index >= 0 {
+		username = strings.ToLower(auth[:index])
+		auth = username + ":" + auth[index:]
+	}
+	if _, exist := a.Passwords[auth]; exist {
+		return true, username
 	}
 	return false, ""
 }
