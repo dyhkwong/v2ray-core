@@ -6,7 +6,7 @@ package hysteria2
 import (
 	"context"
 
-	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
@@ -19,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
+	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/proxy"
 	"github.com/v2fly/v2ray-core/v4/transport"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
@@ -83,9 +84,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	defer conn.Close()
 
+	var readCounter, writeCounter stats.Counter
 	iConn := conn
 	if statConn, ok := conn.(*internet.StatCouterConnection); ok {
-		iConn = statConn.Connection // will not count the UDP traffic.
+		iConn = statConn.Connection
+		readCounter = statConn.ReadCounter
+		writeCounter = statConn.WriteCounter
 	}
 	hyConn, IsHy2Transport := iConn.(*hyTransport.HyConn)
 
@@ -116,7 +120,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 			bufferWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
 			connWriter := &ConnWriter{Writer: bufferWriter, Target: dest}
-			packetWriter := &PacketWriter{Writer: connWriter, Target: dest, HyConn: hyConn}
+			packetWriter := &PacketWriter{Writer: connWriter, Target: dest, HyConn: hyConn, counter: writeCounter}
 
 			// write some request payload to buffer
 			if _, err := packetWriter.WriteTo(buffer[:n], addr); err != nil {
@@ -134,7 +138,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		getResponse := func() error {
 			defer timer.SetTimeout(sessionPolicy.Timeouts.UplinkOnly)
 
-			packetReader := &PacketReader{Reader: conn, HyConn: hyConn}
+			packetReader := &PacketReader{Reader: conn, HyConn: hyConn, counter: readCounter}
 			packetConnectionReader := &PacketConnectionReader{reader: packetReader}
 
 			return udp.CopyPacketConn(packetConn, packetConnectionReader, udp.UpdateActivity(timer))
@@ -157,7 +161,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		bodyWriter = connWriter
 
 		if network == net.Network_UDP {
-			bodyWriter = &PacketWriter{Writer: connWriter, Target: destination, HyConn: hyConn}
+			bodyWriter = &PacketWriter{Writer: connWriter, Target: destination, HyConn: hyConn, counter: writeCounter}
 		} else {
 			// write some request payload to buffer
 			err = buf.CopyOnceTimeout(link.Reader, bodyWriter, proxy.FirstPayloadTimeout)
@@ -189,7 +193,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		var reader buf.Reader
 		if network == net.Network_UDP {
 			reader = &PacketReader{
-				Reader: conn, HyConn: hyConn,
+				Reader: conn, HyConn: hyConn, counter: readCounter,
 			}
 		} else {
 			ok, msg, err := hyProtocol.ReadTCPResponse(conn)
