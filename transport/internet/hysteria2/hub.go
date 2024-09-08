@@ -83,7 +83,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		addConn: handler,
 	}
 
-	hyServer, err := hyServer.NewServer(&hyServer.Config{
+	hyConfig := &hyServer.Config{
 		Conn:                  rawConn,
 		TLSConfig:             *tlsConfig,
 		DisableUDP:            !config.GetUseUdpExtension(),
@@ -92,7 +92,15 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		BandwidthConfig:       hyServer.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
 		UdpSessionHijacker:    listener.UdpHijacker, // acceptUDPSession
 		IgnoreClientBandwidth: config.GetIgnoreClientBandwidth(),
-	})
+	}
+	if config.Obfs != nil && config.Obfs.Type == "salamander" {
+		ob, err := NewSalamanderObfuscator([]byte(config.Obfs.Password))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.Conn = WrapPacketConn(rawConn, ob)
+	}
+	hyServer, err := hyServer.NewServer(hyConfig)
 	if err != nil {
 		return nil, err
 	}
