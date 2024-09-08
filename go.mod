@@ -4,7 +4,9 @@ go 1.24.0
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0
+	github.com/apernet/quic-go v0.54.1-0.20250907230547-eb32f8aec5e2
+	github.com/dyhkwong/hysteria/core/v2 v2.6.4-1
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.4-1
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.28.0
@@ -30,7 +32,6 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
 	github.com/v2fly/VSign v0.0.0-20201108000810-e2adc24bf848
-	github.com/v2fly/hysteria/core/v2 v2.0.0-20250113081444-b0a0747ac7ab
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/vincent-petithory/dataurl v1.0.0
@@ -64,9 +65,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
@@ -74,7 +73,6 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mustafaturan/monoton v1.0.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/sctp v1.7.6 // indirect
@@ -85,7 +83,6 @@ require (
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.28.0 // indirect
