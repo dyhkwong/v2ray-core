@@ -5,6 +5,8 @@ go 1.25.0
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/apernet/quic-go v0.59.1-0.20260217092621-db4786c77a22
+	github.com/dyhkwong/hysteria/core/v2 v2.7.0-2
+	github.com/dyhkwong/hysteria/extras/v2 v2.7.0-2
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
@@ -25,7 +27,6 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
 	github.com/v2fly/VSign v0.0.0-20201108000810-e2adc24bf848
-	github.com/v2fly/hysteria/core/v2 v2.0.0-20260220231229-39018a43855e
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
@@ -67,7 +68,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.32.0 // indirect
