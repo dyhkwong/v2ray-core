@@ -142,29 +142,43 @@ func (c *TCPConfig) Build() (proto.Message, error) {
 }
 
 type Hy2ConfigCongestion struct {
+	Type       string `json:"type"`
+	UpMbps     uint64 `json:"up_mbps"`
+	DownMbps   uint64 `json:"down_mbps"`
+	BBRProfile string `json:"bbrProfile"`
+}
+
+type Hyteria2ConfigOBFS struct {
 	Type     string `json:"type"`
-	UpMbps   uint64 `json:"up_mbps"`
-	DownMbps uint64 `json:"down_mbps"`
+	Password string `json:"password"`
 }
 
 type Hy2Config struct {
 	Password              string              `json:"password"`
+	Passwords             []string            `json:"passwords"`
 	Congestion            Hy2ConfigCongestion `json:"congestion"`
 	UseUDPExtension       bool                `json:"use_udp_extension"`
 	IgnoreClientBandwidth bool                `json:"ignore_client_bandwidth"`
+	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
 }
 
 // Build implements Buildable.
 func (c *Hy2Config) Build() (proto.Message, error) {
 	return &hysteria2.Config{
-		Password: c.Password,
+		Password:  c.Password,
+		Passwords: c.Passwords,
 		Congestion: &hysteria2.Congestion{
-			Type:     c.Congestion.Type,
-			DownMbps: c.Congestion.DownMbps,
-			UpMbps:   c.Congestion.UpMbps,
+			Type:       c.Congestion.Type,
+			DownMbps:   c.Congestion.DownMbps,
+			UpMbps:     c.Congestion.UpMbps,
+			BbrProfile: c.Congestion.BBRProfile,
 		},
 		UseUdpExtension:       c.UseUDPExtension,
 		IgnoreClientBandwidth: c.IgnoreClientBandwidth,
+		Obfs: &hysteria2.OBFS{
+			Type:     c.OBFS.Type,
+			Password: c.OBFS.Password,
+		},
 	}, nil
 }
 

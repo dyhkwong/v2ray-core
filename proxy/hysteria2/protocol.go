@@ -5,10 +5,11 @@ import (
 	"math/rand"
 
 	"github.com/apernet/quic-go/quicvarint"
-	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/features/stats"
 	hyTransport "github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2"
 )
 
@@ -90,8 +91,9 @@ func (c *ConnWriter) writeTCPHeader() error {
 // PacketWriter UDP Connection Writer Wrapper
 type PacketWriter struct {
 	io.Writer
-	HyConn *hyTransport.HyConn
-	Target net.Destination
+	HyConn  *hyTransport.HyConn
+	Target  net.Destination
+	counter stats.Counter
 }
 
 // WriteMultiBuffer implements buf.Writer
@@ -135,7 +137,14 @@ func (w *PacketWriter) WriteTo(payload []byte, addr net.Addr) (int, error) {
 }
 
 func (w *PacketWriter) writePacket(payload []byte, dest net.Destination) (int, error) {
-	return w.HyConn.WritePacket(payload, dest)
+	n, err := w.HyConn.WritePacket(payload, dest)
+	if err != nil {
+		return 0, err
+	}
+	if w.counter != nil {
+		w.counter.Add(int64(n))
+	}
+	return n, nil
 }
 
 // ConnReader is TCP Connection Reader Wrapper
@@ -169,7 +178,8 @@ type PacketPayload struct {
 // PacketReader is UDP Connection Reader Wrapper
 type PacketReader struct {
 	io.Reader
-	HyConn *hyTransport.HyConn
+	HyConn  *hyTransport.HyConn
+	counter stats.Counter
 }
 
 // ReadMultiBuffer implements buf.Reader
@@ -183,9 +193,12 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 // ReadMultiBufferWithMetadata reads udp packet with destination
 func (r *PacketReader) ReadMultiBufferWithMetadata() (*PacketPayload, error) {
-	_, data, dest, err := r.HyConn.ReadPacket()
+	n, data, dest, err := r.HyConn.ReadPacket()
 	if err != nil {
 		return nil, err
+	}
+	if r.counter != nil {
+		r.counter.Add(int64(n))
 	}
 	b := buf.FromBytes(data)
 	b.Endpoint = dest
