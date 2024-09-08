@@ -3,6 +3,7 @@ package hysteria2
 import (
 	"context"
 
+	"github.com/apernet/hysteria/extras/v2/obfs"
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/http3"
 	hyServer "github.com/v2fly/hysteria/core/v2/server"
@@ -83,7 +84,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		addConn: handler,
 	}
 
-	hyServer, err := hyServer.NewServer(&hyServer.Config{
+	hyConfig := &hyServer.Config{
 		Conn:                  rawConn,
 		TLSConfig:             *tlsConfig,
 		DisableUDP:            !config.GetUseUdpExtension(),
@@ -92,7 +93,15 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		BandwidthConfig:       hyServer.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
 		UdpSessionHijacker:    listener.UDPHijacker, // acceptUDPSession
 		IgnoreClientBandwidth: config.GetIgnoreClientBandwidth(),
-	})
+	}
+	if config.Obfs != nil && config.Obfs.Type == "salamander" {
+		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.Conn = obfs.WrapPacketConn(rawConn, ob)
+	}
+	hyServer, err := hyServer.NewServer(hyConfig)
 	if err != nil {
 		return nil, err
 	}
