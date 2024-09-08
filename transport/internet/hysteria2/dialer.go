@@ -2,11 +2,13 @@ package hysteria2
 
 import (
 	"context"
+	gotls "crypto/tls"
 	"sync"
 
 	"github.com/apernet/quic-go/quicvarint"
-	hyClient "github.com/v2fly/hysteria/core/v2/client"
-	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
+	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
+	"github.com/dyhkwong/hysteria/extras/v2/obfs"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -27,19 +29,13 @@ var (
 	MBps          uint64 = 1000000 / 8 // MByte
 )
 
-func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*hyClient.TLSConfig, error) {
+func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	tlsConfig := config.GetTLSConfig(tls.WithDestination(dest))
 
-	return &hyClient.TLSConfig{
-		RootCAs:               tlsConfig.RootCAs,
-		ServerName:            tlsConfig.ServerName,
-		InsecureSkipVerify:    tlsConfig.InsecureSkipVerify,
-		VerifyPeerCertificate: tlsConfig.VerifyPeerCertificate,
-	}, nil
+	return config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
 func ResolveAddress(dest net.Destination) (net.Addr, error) {
@@ -65,14 +61,22 @@ func ResolveAddress(dest net.Destination) (net.Addr, error) {
 type connFactory struct {
 	hyClient.ConnFactory
 
-	NewFunc func(addr net.Addr) (net.PacketConn, error)
+	NewFunc    func(addr net.Addr) (net.PacketConn, error)
+	Obfuscator obfs.Obfuscator
 }
 
 func (f *connFactory) New(addr net.Addr) (net.PacketConn, error) {
-	return f.NewFunc(addr)
+	conn, err := f.NewFunc(addr)
+	if err != nil {
+		return nil, err
+	}
+	if f.Obfuscator == nil {
+		return conn, nil
+	}
+	return obfs.WrapPacketConn(conn, f.Obfuscator), nil
 }
 
-func NewHyClient(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
+func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
 	tlsConfig, err := GetClientTLSConfig(dest, streamSettings)
 	if err != nil {
 		return nil, err
@@ -84,24 +88,42 @@ func NewHyClient(dest net.Destination, streamSettings *internet.MemoryStreamConf
 	}
 
 	config := streamSettings.ProtocolSettings.(*Config)
-	client, _, err := hyClient.NewClient(&hyClient.Config{
-		Auth:       config.GetPassword(),
-		TLSConfig:  *tlsConfig,
-		ServerAddr: serverAddr,
-		ConnFactory: &connFactory{
-			NewFunc: func(addr net.Addr) (net.PacketConn, error) {
-				rawConn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
-					IP:   []byte{0, 0, 0, 0},
-					Port: 0,
-				}, streamSettings.SocketSettings)
-				if err != nil {
-					return nil, err
-				}
-				return rawConn.(*net.UDPConn), nil
-			},
-		},
+	hyConfig := &hyClient.Config{
+		Auth:            config.GetPassword(),
+		TLSConfig:       tlsConfig,
+		ServerAddr:      serverAddr,
 		BandwidthConfig: hyClient.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
-	})
+		FastOpen:        true,
+	}
+
+	connFactory := &connFactory{
+		NewFunc: func(addr net.Addr) (net.PacketConn, error) {
+			rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
+			if err != nil {
+				return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
+			}
+			var packetConn net.PacketConn
+			switch rawConn := rawConn.(type) {
+			case *internet.PacketConnWrapper:
+				packetConn = rawConn.Conn
+			case net.PacketConn:
+				packetConn = rawConn
+			default:
+				packetConn = internet.NewConnWrapper(rawConn)
+			}
+			return packetConn, nil
+		},
+	}
+	if config.Obfs != nil && config.Obfs.Type == "salamander" {
+		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
+		if err != nil {
+			return nil, err
+		}
+		connFactory.Obfuscator = ob
+	}
+	hyConfig.ConnFactory = connFactory
+
+	client, _, err := hyClient.NewClient(hyConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +143,7 @@ func CloseHyClient(dest net.Destination, streamSettings *internet.MemoryStreamCo
 	return nil
 }
 
-func GetHyClient(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
+func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
 	var err error
 	var client hyClient.Client
 
@@ -133,7 +155,7 @@ func GetHyClient(dest net.Destination, streamSettings *internet.MemoryStreamConf
 			// retry
 			CloseHyClient(dest, streamSettings)
 		}
-		client, err = NewHyClient(dest, streamSettings)
+		client, err = NewHyClient(ctx, dest, streamSettings)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +182,7 @@ func CheckHyClientHealthy(client hyClient.Client) bool {
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	config := streamSettings.ProtocolSettings.(*Config)
 
-	client, err := GetHyClient(dest, streamSettings)
+	client, err := GetHyClient(ctx, dest, streamSettings)
 	if err != nil {
 		CloseHyClient(dest, streamSettings)
 		return nil, err
