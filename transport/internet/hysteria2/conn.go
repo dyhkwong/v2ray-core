@@ -5,10 +5,10 @@ package hysteria2
 import (
 	"time"
 
-	hyClient "github.com/v2fly/hysteria/core/v2/client"
-	"github.com/v2fly/hysteria/core/v2/international/protocol"
-	"github.com/v2fly/hysteria/core/v2/international/utils"
-	hyServer "github.com/v2fly/hysteria/core/v2/server"
+	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
+	"github.com/dyhkwong/hysteria/core/v2/international/protocol"
+	"github.com/dyhkwong/hysteria/core/v2/international/utils"
+	hyServer "github.com/dyhkwong/hysteria/core/v2/server"
 
 	"github.com/v2fly/v2ray-core/v4/common/net"
 )
