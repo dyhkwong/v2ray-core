@@ -3,6 +3,7 @@ package dns
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,7 +50,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 30 * time.Second,
 		ForceAttemptHTTP2:   true,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			dispatcherCtx := context.Background()
 
 			dest, err := net.ParseDestination(network + ":" + addr)
@@ -73,11 +74,23 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 			if cr, ok := link.Reader.(common.Closable); ok {
 				cc = append(cc, cr)
 			}
-			return cnc.NewConnection(
+			conn := cnc.NewConnection(
 				cnc.ConnectionInputMulti(link.Writer),
 				cnc.ConnectionOutputMulti(link.Reader),
 				cnc.ConnectionOnClose(cc),
-			), nil
+			)
+			return tls.Client(conn, &tls.Config{
+				ServerName: func() string {
+					switch dest.Address.Family() {
+					case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
+						return dest.Address.IP().String()
+					case net.AddressFamilyDomain:
+						return dest.Address.Domain()
+					default:
+						panic("unknown address family")
+					}
+				}(),
+			}), nil
 		},
 	}
 	dispatchedClient := &http.Client{
