@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"net/url"
 	"strings"
 	"sync"
@@ -30,17 +31,21 @@ import (
 // ClassicNameServer implemented traditional UDP DNS.
 type ClassicNameServer struct {
 	sync.RWMutex
-	name      string
-	address   net.Destination
-	ips       map[string]record
-	requests  map[uint16]dnsRequest
-	pub       *pubsub.Service
-	udpServer udp.DispatcherI
-	cleanup   *task.Periodic
-	reqID     uint32
-	tcpServer *TCPNameServer
+	name       string
+	address    net.Destination
+	ips        map[string]record
+	requests   map[uint16]dnsRequest
+	pub        *pubsub.Service
+	dispatcher routing.Dispatcher
+	udpServer  udp.DispatcherI
+	cleanup    *task.Periodic
+	reqID      uint32
+	tcpServer  *TCPNameServer
 
-	channel map[uint16]chan []byte
+	channel      map[uint16]chan []byte
+	newUDPServer func() udp.DispatcherI
+	resetAccess  sync.Mutex
+	resetAt      time.Time
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -100,11 +105,12 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
-		address:  address,
-		ips:      make(map[string]record),
-		requests: make(map[uint16]dnsRequest),
-		pub:      pubsub.NewService(),
-		name:     name,
+		address:    address,
+		ips:        make(map[string]record),
+		requests:   make(map[uint16]dnsRequest),
+		pub:        pubsub.NewService(),
+		name:       name,
+		dispatcher: dispatcher,
 
 		channel: make(map[uint16]chan []byte),
 	}
@@ -112,7 +118,10 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	s.newUDPServer = func() udp.DispatcherI {
+		return udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	}
+	s.udpServer = s.newUDPServer()
 	return s
 }
 
@@ -338,12 +347,22 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	var cancel context.CancelFunc
 	udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
 	defer cancel()
+	startAt := time.Now()
 	s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, buf.FromBytes(request))
 
 	select {
 	case <-udpCtx.Done():
 		s.Lock()
 		delete(s.channel, id)
+		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
+			s.resetAccess.Lock()
+			if s.resetAt.After(startAt) {
+				return nil, ctx.Err()
+			}
+			s.udpServer = s.newUDPServer()
+			s.resetAt = time.Now()
+			s.resetAccess.Unlock()
+		}
 		s.Unlock()
 		return nil, udpCtx.Err()
 	case response := <-ch:
@@ -452,11 +471,22 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				s.resetAccess.Lock()
+				if s.resetAt.After(startAt) {
+					s.resetAccess.Unlock()
+					return nil, time.Time{}, ctx.Err()
+				}
+				s.udpServer = s.newUDPServer()
+				s.resetAt = time.Now()
+				s.resetAccess.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
