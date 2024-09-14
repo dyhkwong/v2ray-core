@@ -28,14 +28,15 @@ import (
 // ClassicNameServer implemented traditional UDP DNS.
 type ClassicNameServer struct {
 	sync.RWMutex
-	name      string
-	address   net.Destination
-	ips       map[string]record
-	requests  map[uint16]dnsRequest
-	pub       *pubsub.Service
-	udpServer udp.DispatcherI
-	cleanup   *task.Periodic
-	reqID     uint32
+	name       string
+	address    net.Destination
+	ips        map[string]record
+	requests   map[uint16]dnsRequest
+	pub        *pubsub.Service
+	dispatcher routing.Dispatcher
+	udpServer  udp.DispatcherI
+	cleanup    *task.Periodic
+	reqID      uint32
 
 	channel map[uint16]chan *dnsmessage.Message
 }
@@ -76,11 +77,12 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
-		address:  address,
-		ips:      make(map[string]record),
-		requests: make(map[uint16]dnsRequest),
-		pub:      pubsub.NewService(),
-		name:     name,
+		address:    address,
+		ips:        make(map[string]record),
+		requests:   make(map[uint16]dnsRequest),
+		pub:        pubsub.NewService(),
+		name:       name,
+		dispatcher: dispatcher,
 
 		channel: make(map[uint16]chan *dnsmessage.Message),
 	}
@@ -284,6 +286,8 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	case <-dnsCtx.Done():
 		s.Lock()
 		delete(s.channel, id)
+		// can't fix without refactoring routing.Dispatcher
+		s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
 		s.Unlock()
 		return nil, dnsCtx.Err()
 	case responseMsg := <-ch:
@@ -399,6 +403,10 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 
 		select {
 		case <-ctx.Done():
+			s.Lock()
+			// can't fix without refactoring routing.Dispatcher
+			s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
+			s.Unlock()
 			return nil, ttl, expireAt, ctx.Err()
 		case <-done:
 		}
