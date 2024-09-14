@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"net/url"
 	"strings"
 	"sync"
@@ -29,15 +30,16 @@ import (
 // ClassicNameServer implemented traditional UDP DNS.
 type ClassicNameServer struct {
 	sync.RWMutex
-	name      string
-	address   net.Destination
-	ips       map[string]record
-	requests  map[uint16]dnsRequest
-	pub       *pubsub.Service
-	udpServer udp.DispatcherI
-	cleanup   *task.Periodic
-	reqID     uint32
-	tcpServer *TCPNameServer
+	name       string
+	address    net.Destination
+	ips        map[string]record
+	requests   map[uint16]dnsRequest
+	pub        *pubsub.Service
+	dispatcher routing.Dispatcher
+	udpServer  udp.DispatcherI
+	cleanup    *task.Periodic
+	reqID      uint32
+	tcpServer  *TCPNameServer
 
 	channel map[uint16]chan []byte
 }
@@ -99,11 +101,12 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
-		address:  address,
-		ips:      make(map[string]record),
-		requests: make(map[uint16]dnsRequest),
-		pub:      pubsub.NewService(),
-		name:     name,
+		address:    address,
+		ips:        make(map[string]record),
+		requests:   make(map[uint16]dnsRequest),
+		pub:        pubsub.NewService(),
+		name:       name,
+		dispatcher: dispatcher,
 
 		channel: make(map[uint16]chan []byte),
 	}
@@ -343,6 +346,10 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	case <-udpCtx.Done():
 		s.Lock()
 		delete(s.channel, id)
+		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
+			// can't fix without refactoring routing.Dispatcher
+			s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
+		}
 		s.Unlock()
 		return nil, udpCtx.Err()
 	case response := <-ch:
@@ -456,6 +463,12 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 	for {
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				// can't fix without refactoring routing.Dispatcher
+				s.Lock()
+				s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
+				s.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
