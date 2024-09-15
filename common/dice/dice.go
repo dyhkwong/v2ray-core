@@ -19,6 +19,14 @@ func Roll(n int) int {
 	return rand.Intn(n)
 }
 
+// RollInt63n returns a non-negative number between 0 (inclusive) and n (exclusive).
+func RollInt63n(n int64) int64 {
+	if n == 1 {
+		return 0
+	}
+	return rand.Int63n(n)
+}
+
 // RollWith returns a non-negative number between 0 (inclusive) and n (exclusive).
 // Use random as the random source, if read fails, it panics.
 func RollWith(n int, random io.Reader) int {
