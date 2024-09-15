@@ -146,7 +146,7 @@ func (h *HealthPing) doCheck(tags []string, duration time.Duration, rounds int) 
 		for i := 0; i < rounds; i++ {
 			delay := time.Duration(0)
 			if duration > 0 {
-				delay = time.Duration(dice.Roll(int(duration)))
+				delay = time.Duration(dice.RollInt63n(int64(duration)))
 			}
 			time.AfterFunc(delay, func() {
 				newError("checking ", handler).AtDebug().WriteToLog()
