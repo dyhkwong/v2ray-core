@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 	goreality "github.com/xtls/reality"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -24,10 +26,11 @@ import (
 )
 
 type Listener struct {
-	server  *http.Server
-	handler internet.ConnHandler
-	local   net.Addr
-	config  *Config
+	server   *http.Server
+	h3server *http3.Server
+	handler  internet.ConnHandler
+	local    net.Addr
+	config   *Config
 }
 
 func (l *Listener) Addr() net.Addr {
@@ -35,6 +38,9 @@ func (l *Listener) Addr() net.Addr {
 }
 
 func (l *Listener) Close() error {
+	if l.h3server != nil {
+		return l.h3server.Close()
+	}
 	return l.server.Close()
 }
 
@@ -112,6 +118,9 @@ func (l *Listener) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 }
 
 func Listen(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, handler internet.ConnHandler) (internet.Listener, error) {
+	config := tls.ConfigFromStreamSettings(streamSettings)
+	isH3 := config != nil && len(config.NextProtocol) == 1 && config.NextProtocol[0] == "h3"
+
 	httpSettings := streamSettings.ProtocolSettings.(*Config)
 	var listener *Listener
 	if port == net.Port(0) { // unix
@@ -120,6 +129,15 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 			local: &net.UnixAddr{
 				Name: address.Domain(),
 				Net:  "unix",
+			},
+			config: httpSettings,
+		}
+	} else if isH3 {
+		listener = &Listener{
+			handler: handler,
+			local: &net.UDPAddr{
+				IP:   address.IP(),
+				Port: int(port),
 			},
 			config: httpSettings,
 		}
@@ -134,8 +152,27 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		}
 	}
 
+	if isH3 {
+		conn, err := internet.ListenSystemPacket(context.Background(), listener.local, streamSettings.SocketSettings)
+		if err != nil {
+			return nil, newError("failed to listen UDP (for H3) on ", address, ":", port).Base(err)
+		}
+		h3listener, err := quic.ListenEarly(conn, config.GetTLSConfig(), nil)
+		if err != nil {
+			return nil, newError("failed to listen QUIC (for H3) on ", address, ":", port).Base(err)
+		}
+		listener.h3server = &http3.Server{
+			Handler: listener,
+		}
+		go func() {
+			if err := listener.h3server.ServeListener(h3listener); err != nil {
+				newError("failed to serve http3").Base(err)
+			}
+		}()
+		return listener, nil
+	}
+
 	var server *http.Server
-	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		h2s := &http2.Server{}
 
