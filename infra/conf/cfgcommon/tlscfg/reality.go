@@ -200,7 +200,7 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		} else {
 			config.Version[0] = 24 // Version_x
 			config.Version[1] = 9  // Version_y
-			config.Version[2] = 16 // Version_z
+			config.Version[2] = 19 // Version_z
 		}
 	}
 	return config, nil

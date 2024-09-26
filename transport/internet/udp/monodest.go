@@ -33,7 +33,7 @@ type MonoDestUDPConn struct {
 
 func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	buffer := buf.New()
-	buffer.Extend(8192)
+	buffer.Extend(buf.Size)
 	nBytes, addr, err := m.AbstractPacketConn.ReadFrom(buffer.Bytes())
 	if err != nil {
 		buffer.Release()

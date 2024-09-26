@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -51,19 +52,20 @@ var (
 func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
 	grpcSettings := streamSettings.ProtocolSettings.(*Config)
 
-	var dialOption grpc.DialOption
+	transportCredentials := insecure.NewCredentials()
 	switch streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-			dialOption = grpc.WithTransportCredentials(credentials.NewTLS(config.GetTLSConfig()))
+			transportCredentials = credentials.NewTLS(config.GetTLSConfig())
 		}
 	case *utls.Config:
 		if creds, err := newSecurityEngineCreds(ctx, streamSettings); err == nil {
-			dialOption = grpc.WithTransportCredentials(creds)
+			transportCredentials = creds
 		} else {
 			newError("failed to create utls grpc credentials").Base(err).WriteToLog(session.ExportIDToError(ctx))
 		}
 	}
+	dialOption := grpc.WithTransportCredentials(transportCredentials)
 
 	conn, canceller, err := getGrpcClient(ctx, dest, dialOption, streamSettings)
 	if err != nil {
