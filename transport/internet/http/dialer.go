@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 	"golang.org/x/net/http2"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -18,6 +21,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
 	"github.com/v2fly/v2ray-core/v5/transport/pipe"
 )
 
@@ -51,7 +56,17 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 		return client, canceller
 	}
 
-	transport := &http2.Transport{
+	var tlsConfig *tls.Config
+	switch cfg := streamSettings.SecuritySettings.(type) {
+	case *tls.Config:
+		tlsConfig = cfg
+	case *utls.Config:
+		tlsConfig = cfg.GetTlsConfig()
+	}
+	isH3 := tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
+
+	var transport http.RoundTripper
+	transport = &http2.Transport{
 		DialTLSContext: func(_ context.Context, network, addr string, tlsConfig *gotls.Config) (gonet.Conn, error) {
 			rawHost, rawPort, err := net.SplitHostPort(addr)
 			if err != nil {
@@ -98,6 +113,42 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 		},
 	}
 
+	if isH3 {
+		transport = &http3.Transport{
+			QUICConfig: &quic.Config{
+				MaxIdleTimeout:     300 * time.Second,
+				MaxIncomingStreams: -1,
+				KeepAlivePeriod:    10 * time.Second,
+			},
+			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
+			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+				detachedContext := core.ToBackgroundDetachedContext(ctx)
+				rawConn, err := internet.DialSystem(detachedContext, dest, streamSettings.SocketSettings)
+				if err != nil {
+					return nil, err
+				}
+				var packetConn net.PacketConn
+				switch conn := rawConn.(type) {
+				case *internet.PacketConnWrapper:
+					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
+					}
+				case net.PacketConn:
+					if udpConn, ok := conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn)
+					}
+				default:
+					packetConn = internet.NewQUICConnWrapper(rawConn)
+				}
+				return quic.DialEarly(detachedContext, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+			},
+		}
+	}
+
 	client := &http.Client{
 		Transport: transport,
 	}
@@ -109,6 +160,19 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 // Dial dials a new TCP connection to the given destination.
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	httpSettings := streamSettings.ProtocolSettings.(*Config)
+
+	var tlsConfig *tls.Config
+	switch cfg := streamSettings.SecuritySettings.(type) {
+	case *tls.Config:
+		tlsConfig = cfg
+	case *utls.Config:
+		tlsConfig = cfg.GetTlsConfig()
+	}
+	isH3 := tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
+	if isH3 {
+		dest.Network = net.Network_UDP
+	}
+
 	securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings)
 	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
 	if securityEngine == nil && realityConfig == nil {
@@ -142,11 +206,15 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			Host:   dest.NetAddr(),
 			Path:   httpSettings.getNormalizedPath(),
 		},
-		Proto:      "HTTP/2",
-		ProtoMajor: 2,
-		ProtoMinor: 0,
-		Header:     httpHeaders,
+		Header: httpHeaders,
 	}
+
+	if !isH3 {
+		request.Proto = "HTTP/2"
+		request.ProtoMajor = 2
+		request.ProtoMinor = 0
+	}
+
 	// Disable any compression method from server.
 	request.Header.Set("Accept-Encoding", "identity")
 
