@@ -411,6 +411,7 @@ type SplitHTTPConfig struct {
 	ScMaxEachPostBytes   string            `json:"scMaxEachPostBytes"`
 	ScMinPostsIntervalMs string            `json:"scMinPostsIntervalMs"`
 	ScMaxBufferedPosts   int64             `json:"scMaxConcurrentPosts"`
+	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
 // Build implements Buildable.
@@ -432,6 +433,7 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
 		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
 		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
+		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
@@ -53,6 +54,22 @@ var (
 )
 
 func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
+	shSettings := streamSettings.ProtocolSettings.(*Config)
+	if reality.ConfigFromStreamSettings(streamSettings) == nil && shSettings.UseBrowserForwarding {
+		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
+		var dialer extension.BrowserDialer
+		err := core.RequireFeatures(ctx, func(d extension.BrowserDialer) { dialer = d })
+		if err != nil {
+			return nil, err
+		}
+		if dialer == nil {
+			return nil, newError("get browser dialer failed")
+		}
+		return &BrowserDialerClient{
+			dialer: dialer,
+		}, nil
+	}
+
 	globalDialerAccess.Lock()
 	defer globalDialerAccess.Unlock()
 

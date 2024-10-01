@@ -21,4 +21,5 @@ message Config {
   string scMaxEachPostBytes = 7;
   string scMinPostsIntervalMs = 8;
   int64 scMaxBufferedPosts = 9;
+  bool use_browser_forwarding = 99;
 }
