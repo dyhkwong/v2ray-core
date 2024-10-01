@@ -16,4 +16,5 @@ message Config {
   string path = 2;
   map<string, string> header = 3;
   string mode = 4;
+  bool use_browser_forwarding = 99;
 }
