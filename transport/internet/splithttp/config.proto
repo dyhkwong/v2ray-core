@@ -21,4 +21,5 @@ message Config {
   string scMinPostsIntervalMs = 7;
   string xPaddingBytes = 8;
   bool noGRPCHeader = 9;
+  bool use_browser_forwarding = 99;
 }

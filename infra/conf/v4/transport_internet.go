@@ -426,6 +426,7 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
 		XPaddingBytes:        c.XPaddingBytes,
 		NoGRPCHeader:         c.NoGRPCHeader,
+		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }
 
