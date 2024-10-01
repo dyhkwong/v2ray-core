@@ -28,7 +28,7 @@ func ApplyECH(c *Config, config *tls.Config) error {
 		if config.ServerName == "" {
 			return newError("Using DOH for ECH needs serverName")
 		}
-		ECHConfig, err = QueryRecord(c.ServerName, c.Ech_DOHserver)
+		ECHConfig, err = QueryRecord(config.ServerName, c.Ech_DOHserver)
 		if err != nil {
 			return err
 		}
