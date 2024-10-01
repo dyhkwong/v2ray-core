@@ -383,11 +383,12 @@ func (c *DTLSConfig) Build() (proto.Message, error) {
 }
 
 type SplitHTTPConfig struct {
-	Host        string            `json:"host"`
-	Path        string            `json:"path"`
-	Headers     map[string]string `json:"headers"`
-	NoSSEHeader bool              `json:"noSSEHeader"`
-	Mode        string            `json:"mode"`
+	Host                 string            `json:"host"`
+	Path                 string            `json:"path"`
+	Headers              map[string]string `json:"headers"`
+	NoSSEHeader          bool              `json:"noSSEHeader"`
+	Mode                 string            `json:"mode"`
+	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
 // Build implements Buildable.
@@ -408,11 +409,12 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		return nil, newError("unsupported mode: " + c.Mode)
 	}
 	return &splithttp.Config{
-		Path:        c.Path,
-		Host:        c.Host,
-		Header:      c.Headers,
-		NoSSEHeader: c.NoSSEHeader,
-		Mode:        c.Mode,
+		Path:                 c.Path,
+		Host:                 c.Host,
+		Header:               c.Headers,
+		NoSSEHeader:          c.NoSSEHeader,
+		Mode:                 c.Mode,
+		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }
 

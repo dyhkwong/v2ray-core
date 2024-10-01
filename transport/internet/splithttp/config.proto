@@ -17,4 +17,5 @@ message Config {
   map<string, string> header = 3;
   bool noSSEHeader = 4;
   string mode = 5;
+  bool use_browser_forwarding = 99;
 }
