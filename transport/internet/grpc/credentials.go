@@ -18,23 +18,29 @@ type securityEngineCreds struct {
 
 	streamSettings *internet.MemoryStreamConfig
 	ctx            context.Context
+	dest           net.Destination
 }
 
-func newSecurityEngineCreds(ctx context.Context, streamSettings *internet.MemoryStreamConfig) (credentials.TransportCredentials, error) {
+func newSecurityEngineCreds(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (credentials.TransportCredentials, error) {
 	securityEngine, err := security.CreateSecurityEngineFromSettings(ctx, streamSettings)
 	if err != nil {
 		return nil, newError("unable to create security engine").Base(err)
 	}
 	var serverAddress net.Address
+	if dest.Address.Family().IsDomain() {
+		serverAddress = dest.Address
+	}
 	if engine, ok := securityEngine.(*utls.Engine); ok {
-		serverAddress = net.DomainAddress(engine.GetServerName())
+		if len(engine.GetServerName()) > 0 {
+			serverAddress = net.DomainAddress(engine.GetServerName())
+		}
 	}
 	return &securityEngineCreds{
 		securityEngine: securityEngine,
 		serverAddress:  serverAddress,
-
 		streamSettings: streamSettings,
 		ctx:            ctx,
+		dest:           dest,
 	}, nil
 }
 
@@ -97,7 +103,7 @@ func (c *securityEngineCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 
 // Clone implements credentials.TransportCredentials.
 func (c *securityEngineCreds) Clone() credentials.TransportCredentials {
-	creds, err := newSecurityEngineCreds(c.ctx, c.streamSettings)
+	creds, err := newSecurityEngineCreds(c.ctx, c.dest, c.streamSettings)
 	if err != nil {
 		panic(err)
 	}
