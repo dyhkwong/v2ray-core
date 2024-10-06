@@ -355,6 +355,9 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 
 // Addr implements net.Listener.Addr().
 func (ln *Listener) Addr() net.Addr {
+	if ln.h3listener != nil {
+		return ln.h3listener.Addr()
+	}
 	return ln.listener.Addr()
 }
 

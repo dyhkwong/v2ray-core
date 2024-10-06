@@ -349,10 +349,11 @@ func (c *DTLSConfig) Build() (proto.Message, error) {
 }
 
 type SplitHTTPConfig struct {
-	Host        string            `json:"host"`
-	Path        string            `json:"path"`
-	Headers     map[string]string `json:"headers"`
-	NoSSEHeader bool              `json:"noSSEHeader"`
+	Host                 string            `json:"host"`
+	Path                 string            `json:"path"`
+	Headers              map[string]string `json:"headers"`
+	NoSSEHeader          bool              `json:"noSSEHeader"`
+	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
 // Build implements Buildable.
@@ -366,10 +367,11 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		c.Host = c.Headers["Host"]
 	}
 	return &splithttp.Config{
-		Path:        c.Path,
-		Host:        c.Host,
-		Header:      c.Headers,
-		NoSSEHeader: c.NoSSEHeader,
+		Path:                 c.Path,
+		Host:                 c.Host,
+		Header:               c.Headers,
+		NoSSEHeader:          c.NoSSEHeader,
+		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }
 
@@ -384,7 +386,7 @@ func (p TransportProtocol) Build() (string, error) {
 		return "mkcp", nil
 	case "ws", "websocket":
 		return "websocket", nil
-	case "h2", "http":
+	case "h2", "http", "h3":
 		return "http", nil
 	case "ds", "domainsocket":
 		return "domainsocket", nil

@@ -20,6 +20,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/semaphore"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
+	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
@@ -48,7 +49,23 @@ var (
 	globalDialerAccess sync.Mutex
 )
 
-func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
+func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
+	shSettings := streamSettings.ProtocolSettings.(*Config)
+	if shSettings.UseBrowserForwarding {
+		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
+		var dialer extension.BrowserDialer
+		err := core.RequireFeatures(ctx, func(d extension.BrowserDialer) { dialer = d })
+		if err != nil {
+			return nil, err
+		}
+		if dialer == nil {
+			return nil, newError("get browser dialer failed")
+		}
+		return &browserDialerClient{
+			dialer: dialer,
+		}, nil
+	}
+
 	globalDialerAccess.Lock()
 	defer globalDialerAccess.Unlock()
 
@@ -65,7 +82,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 		globalDialerMap[key] = client
 	}
 
-	return client
+	return client, nil
 }
 
 func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
@@ -220,7 +237,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
 	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
 
-	httpClient := getHTTPClient(ctx, dest, streamSettings)
+	httpClient, err := getHTTPClient(ctx, dest, streamSettings)
+	if err != nil {
+		return nil, err
+	}
 
 	// WithSizeLimit(0) will still allow single bytes to pass, and a lot of
 	// code relies on this behavior. Subtract 1 so that together with

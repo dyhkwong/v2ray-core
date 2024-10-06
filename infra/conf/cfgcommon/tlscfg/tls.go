@@ -22,6 +22,8 @@ type TLSConfig struct {
 	DisableSystemRoot                    bool                  `json:"disableSystemRoot"`
 	PinnedPeerCertificateChainSha256     *[]string             `json:"pinnedPeerCertificateChainSha256"`
 	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
+	ECHConfig                            string                `json:"echConfig"`
+	ECHDOHServer                         string                `json:"echDohServer"`
 	MinVersion                           string                `json:"minVersion"`
 	MaxVersion                           string                `json:"maxVersion"`
 	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
@@ -61,6 +63,16 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 			config.PinnedPeerCertificateChainSha256 = append(config.PinnedPeerCertificateChainSha256, hashValue)
 		}
 	}
+
+	if c.ECHConfig != "" {
+		ECHConfig, err := base64.StdEncoding.DecodeString(c.ECHConfig)
+		if err != nil {
+			return nil, newError("invalid ECH Config", c.ECHConfig)
+		}
+		config.EchConfig = ECHConfig
+	}
+
+	config.Ech_DOHserver = c.ECHDOHServer
 
 	switch strings.ToLower(c.MinVersion) {
 	case "tls1_0", "tls1.0":

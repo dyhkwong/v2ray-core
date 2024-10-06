@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/net/dns/dnsmessage"
 
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
@@ -58,6 +59,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 
 			dispatcherCtx = session.ContextWithContent(dispatcherCtx, session.ContentFromContext(ctx))
 			dispatcherCtx = session.ContextWithInbound(dispatcherCtx, session.InboundFromContext(ctx))
+			dispatcherCtx = core.WithContext(dispatcherCtx, core.FromContext(ctx))
 
 			link, err := dispatcher.Dispatch(dispatcherCtx, dest)
 			if err != nil {

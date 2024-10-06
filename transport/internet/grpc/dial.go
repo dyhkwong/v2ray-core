@@ -56,10 +56,10 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	switch streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-			transportCredentials = credentials.NewTLS(config.GetTLSConfig())
+			transportCredentials = credentials.NewTLS(config.GetTLSConfig(tls.WithDestination(dest)))
 		}
 	case *utls.Config:
-		if creds, err := newSecurityEngineCreds(ctx, streamSettings); err == nil {
+		if creds, err := newSecurityEngineCreds(ctx, dest, streamSettings); err == nil {
 			transportCredentials = creds
 		} else {
 			newError("failed to create utls grpc credentials").Base(err).WriteToLog(session.ExportIDToError(ctx))
