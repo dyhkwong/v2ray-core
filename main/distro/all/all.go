@@ -76,6 +76,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/request/assembler/packetconn"
 
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/request/stereotype/meek"
+	_ "github.com/v2fly/v2ray-core/v4/transport/internet/request/stereotype/mekya"
 
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/dtls"
 
