@@ -20,6 +20,7 @@ import (
 type REALITYConfig struct {
 	Show         bool            `json:"show"`
 	Dest         json.RawMessage `json:"dest"`
+	Target       json.RawMessage `json:"target"`
 	Type         string          `json:"type"`
 	Xver         uint64          `json:"xver"`
 	ServerNames  []string        `json:"serverNames"`
@@ -43,6 +44,9 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 	config := new(reality.Config)
 	config.Show = c.Show
 	var err error
+	if c.Dest == nil {
+		c.Dest = c.Target
+	}
 	if c.Dest != nil {
 		var i uint16
 		var s string

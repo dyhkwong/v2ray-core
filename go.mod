@@ -4,8 +4,8 @@ go 1.22.0
 
 require (
 	github.com/adrg/xdg v0.5.0
-	github.com/apernet/hysteria/core/v2 v2.5.1
-	github.com/apernet/quic-go v0.46.1-0.20240816230517-268ed2476167
+	github.com/apernet/hysteria/core/v2 v2.5.2
+	github.com/apernet/quic-go v0.47.1-0.20241004180137-a80d14e2080d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
@@ -29,10 +29,10 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-d468813b2352
 	go.uber.org/mock v0.4.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.27.0
-	golang.org/x/net v0.29.0
+	golang.org/x/crypto v0.28.0
+	golang.org/x/net v0.30.0
 	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.25.0
+	golang.org/x/sys v0.26.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.34.2
@@ -70,7 +70,7 @@ require (
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
@@ -80,4 +80,4 @@ require (
 
 replace github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
 
-replace github.com/apernet/hysteria/core/v2 v2.5.1 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d
+replace github.com/apernet/hysteria/core/v2 v2.5.2 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d
