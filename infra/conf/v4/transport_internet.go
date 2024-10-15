@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/kcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/quic"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/meek"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/mekya"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/splithttp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
@@ -325,6 +326,39 @@ func (c *MeekConfig) Build() (proto.Message, error) {
 	return &meek.Config{Url: c.URL}, nil
 }
 
+type MekyaConfig struct {
+	KCP                            KCPConfig `json:"kcp"`
+	MaxWriteDelay                  int32     `json:"maxWriteDelay"`
+	MaxRequestSize                 int32     `json:"maxRequestSize"`
+	PollingIntervalInitial         int32     `json:"pollingIntervalInitial"`
+	MaxWriteSize                   int32     `json:"maxWriteSize"`
+	MaxWriteDurationMs             int32     `json:"maxWriteDurationMs"`
+	MaxSimultaneousWriteConnection int32     `json:"maxSimultaneousWriteConnection"`
+	PacketWritingBuffer            int32     `json:"packetWritingBuffer"`
+	URL                            string    `json:"url"`
+	H2PoolSize                     int32     `json:"h2PoolSize"`
+}
+
+// Build implements Buildable.
+func (c *MekyaConfig) Build() (proto.Message, error) {
+	kcpConfig, err := c.KCP.Build()
+	if err != nil {
+		return nil, err
+	}
+	return &mekya.Config{
+		Kcp:                            kcpConfig.(*kcp.Config),
+		MaxWriteDelay:                  c.MaxWriteDelay,
+		MaxRequestSize:                 c.MaxRequestSize,
+		PollingIntervalInitial:         c.PollingIntervalInitial,
+		MaxWriteSize:                   c.MaxWriteSize,
+		MaxWriteDurationMs:             c.MaxWriteDurationMs,
+		MaxSimultaneousWriteConnection: c.MaxSimultaneousWriteConnection,
+		PacketWritingBuffer:            c.PacketWritingBuffer,
+		Url:                            c.URL,
+		H2PoolSize:                     c.H2PoolSize,
+	}, nil
+}
+
 type DTLSConfig struct {
 	Mode                   string `json:"mode"`
 	PSK                    []byte `json:"psk"`
@@ -400,6 +434,8 @@ func (p TransportProtocol) Build() (string, error) {
 		return "meek", nil
 	case "httpupgrade":
 		return "httpupgrade", nil
+	case "mekya":
+		return "mekya", nil
 	case "dtls":
 		return "dtls", nil
 	case "request":
@@ -428,6 +464,7 @@ type StreamConfig struct {
 	Hy2Settings         *Hy2Config              `json:"hy2Settings"`
 	MeekSettings        *MeekConfig             `json:"meekSettings"`
 	HTTPUpgradeSettings *HTTPUpgradeConfig      `json:"httpupgradeSettings"`
+	MekyaSettings       *MekyaConfig            `json:"mekyaSettings"`
 	DTLSSettings        *DTLSConfig             `json:"dtlsSettings"`
 	RequestSettings     *RequestConfig          `json:"requestSettings"`
 	SplitHTTPSettings   *SplitHTTPConfig        `json:"splithttpSettings"`
@@ -609,6 +646,16 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			Settings:     serial.ToTypedMessage(hs),
 		})
 	}
+	if c.MekyaSettings != nil {
+		ms, err := c.MekyaSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build Mekya config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "mekya",
+			Settings:     serial.ToTypedMessage(ms),
+		})
+	}
 	if c.SocketSettings != nil {
 		ss, err := c.SocketSettings.Build()
 		if err != nil {
@@ -645,13 +692,6 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			ProtocolName: "splithttp",
 			Settings:     serial.ToTypedMessage(hs),
 		})
-	}
-	if c.SocketSettings != nil {
-		ss, err := c.SocketSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build sockopt.").Base(err)
-		}
-		config.SocketSettings = ss
 	}
 	return config, nil
 }

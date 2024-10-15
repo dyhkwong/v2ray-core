@@ -25,10 +25,11 @@ func ApplyECH(c *Config, config *tls.Config) error {
 	if len(c.EchConfig) > 0 {
 		ECHConfig = c.EchConfig
 	} else { // ECH config > DOH lookup
-		if config.ServerName == "" {
-			return newError("Using DOH for ECH needs serverName")
+		addr := net.ParseAddress(config.ServerName)
+		if !addr.Family().IsDomain() {
+			return newError("Using DOH for ECH needs SNI")
 		}
-		ECHConfig, err = QueryRecord(config.ServerName, c.Ech_DOHserver)
+		ECHConfig, err = QueryRecord(addr.Domain(), c.Ech_DOHserver)
 		if err != nil {
 			return err
 		}

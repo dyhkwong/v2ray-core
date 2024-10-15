@@ -14,11 +14,10 @@ import (
 
 type securityEngineCreds struct {
 	securityEngine security.Engine
-	serverAddress  net.Address
-
-	streamSettings *internet.MemoryStreamConfig
+	serverName     string
 	ctx            context.Context
 	dest           net.Destination
+	streamSettings *internet.MemoryStreamConfig
 }
 
 func newSecurityEngineCreds(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (credentials.TransportCredentials, error) {
@@ -26,21 +25,22 @@ func newSecurityEngineCreds(ctx context.Context, dest net.Destination, streamSet
 	if err != nil {
 		return nil, newError("unable to create security engine").Base(err)
 	}
-	var serverAddress net.Address
-	if dest.Address.Family().IsDomain() {
-		serverAddress = dest.Address
+	var serverName string
+	switch dest.Address.Family() {
+	case net.AddressFamilyDomain:
+		serverName = dest.Address.Domain()
+	case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
+		serverName = dest.Address.IP().String()
 	}
-	if engine, ok := securityEngine.(*utls.Engine); ok {
-		if len(engine.GetServerName()) > 0 {
-			serverAddress = net.DomainAddress(engine.GetServerName())
-		}
+	if engine, ok := securityEngine.(*utls.Engine); ok && len(engine.GetServerName()) > 0 {
+		serverName = engine.GetServerName()
 	}
 	return &securityEngineCreds{
 		securityEngine: securityEngine,
-		serverAddress:  serverAddress,
-		streamSettings: streamSettings,
+		serverName:     serverName,
 		ctx:            ctx,
 		dest:           dest,
+		streamSettings: streamSettings,
 	}, nil
 }
 
@@ -49,27 +49,17 @@ func (c securityEngineCreds) Info() credentials.ProtocolInfo {
 	return credentials.ProtocolInfo{
 		SecurityProtocol: "tls",
 		SecurityVersion:  "1.2",
-		ServerName:       c.serverAddress.Domain(),
+		ServerName:       c.serverName,
 	}
 }
 
 // ClientHandshake implements credentials.TransportCredentials.
 func (c *securityEngineCreds) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (_ net.Conn, _ credentials.AuthInfo, err error) {
-	serverName, serverPort, err := net.SplitHostPort(authority)
-	if err != nil {
-		// If the authority had no host port or if the authority cannot be parsed, use it as-is.
-		serverName = authority
-	}
-	// ServerName set by user in TLS config takes priority
-	if c.serverAddress.Family().IsDomain() && c.serverAddress.Domain() != "" {
-		serverName = c.serverAddress.Domain()
-	}
-	port, _ := net.PortFromString(serverPort)
 	var conn security.Conn
 	errChannel := make(chan error, 1)
 	go func() {
 		var e error
-		conn, e = c.securityEngine.Client(rawConn, security.OptionWithDestination{Dest: net.TCPDestination(net.DomainAddress(serverName), port)})
+		conn, e = c.securityEngine.Client(rawConn, security.OptionWithDestination{Dest: c.dest})
 		errChannel <- e
 		close(errChannel)
 	}()
@@ -112,7 +102,6 @@ func (c *securityEngineCreds) Clone() credentials.TransportCredentials {
 
 // OverrideServerName implements credentials.TransportCredentials.
 func (c *securityEngineCreds) OverrideServerName(serverNameOverride string) error {
-	c.serverAddress = net.ParseAddress(serverNameOverride)
 	return nil
 }
 

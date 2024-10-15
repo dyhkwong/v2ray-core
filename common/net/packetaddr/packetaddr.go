@@ -5,6 +5,7 @@ import (
 	gonet "net"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 )
@@ -46,6 +47,9 @@ func ExtractAddressFromPacket(data *buf.Buffer) (*buf.Buffer, gonet.Addr, error)
 	address, port, err := addrParser.ReadAddressPort(&packetBuf, bytes.NewReader(data.Bytes()))
 	if err != nil {
 		return nil, nil, err
+	}
+	if address.Family().IsDomain() {
+		return nil, nil, errors.New("invalid address type")
 	}
 	addr := &gonet.UDPAddr{
 		IP:   address.IP(),
