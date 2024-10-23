@@ -12,6 +12,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/app/commander"
 	_ "github.com/v2fly/v2ray-core/v5/app/log/command"
 	_ "github.com/v2fly/v2ray-core/v5/app/proxyman/command"
+	_ "github.com/v2fly/v2ray-core/v5/app/router/command"
 	_ "github.com/v2fly/v2ray-core/v5/app/stats/command"
 
 	// Developer preview services
@@ -19,6 +20,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/app/observatory/command"
 
 	// Other optional features.
+	_ "github.com/v2fly/v2ray-core/v5/app/browserforwarder"
 	_ "github.com/v2fly/v2ray-core/v5/app/dns"
 	_ "github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
 	_ "github.com/v2fly/v2ray-core/v5/app/log"
@@ -33,6 +35,8 @@ import (
 	// Developer preview features
 	_ "github.com/v2fly/v2ray-core/v5/app/instman"
 	_ "github.com/v2fly/v2ray-core/v5/app/observatory"
+	_ "github.com/v2fly/v2ray-core/v5/app/observatory/burst"
+	_ "github.com/v2fly/v2ray-core/v5/app/observatory/multiobservatory"
 	_ "github.com/v2fly/v2ray-core/v5/app/tun"
 
 	// Inbound and outbound proxies.
@@ -41,6 +45,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/proxy/dokodemo"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/freedom"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/http"
+	_ "github.com/v2fly/v2ray-core/v5/proxy/loopback"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/socks"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/trojan"
