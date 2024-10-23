@@ -12,12 +12,14 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/app/commander"
 	_ "github.com/v2fly/v2ray-core/v4/app/log/command"
 	_ "github.com/v2fly/v2ray-core/v4/app/proxyman/command"
+	_ "github.com/v2fly/v2ray-core/v4/app/router/command"
 	_ "github.com/v2fly/v2ray-core/v4/app/stats/command"
 
 	// Developer preview services
 	_ "github.com/v2fly/v2ray-core/v4/app/observatory/command"
 
 	// Other optional features.
+	_ "github.com/v2fly/v2ray-core/v4/app/browserforwarder"
 	_ "github.com/v2fly/v2ray-core/v4/app/dns"
 	_ "github.com/v2fly/v2ray-core/v4/app/dns/fakedns"
 	_ "github.com/v2fly/v2ray-core/v4/app/log"
@@ -31,6 +33,8 @@ import (
 
 	// Developer preview features
 	_ "github.com/v2fly/v2ray-core/v4/app/observatory"
+	_ "github.com/v2fly/v2ray-core/v4/app/observatory/burst"
+	_ "github.com/v2fly/v2ray-core/v4/app/observatory/multiobservatory"
 	_ "github.com/v2fly/v2ray-core/v4/app/persistentstorage/filesystemstorage"
 	_ "github.com/v2fly/v2ray-core/v4/app/tun"
 
@@ -40,6 +44,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/proxy/dokodemo"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/freedom"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/http"
+	_ "github.com/v2fly/v2ray-core/v4/proxy/loopback"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/mtproto"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/shadowsocks"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/socks"
