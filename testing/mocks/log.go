@@ -20,6 +20,7 @@ import (
 type LogHandler struct {
 	ctrl     *gomock.Controller
 	recorder *LogHandlerMockRecorder
+	isgomock struct{}
 }
 
 // LogHandlerMockRecorder is the mock recorder for LogHandler.
@@ -40,13 +41,13 @@ func (m *LogHandler) EXPECT() *LogHandlerMockRecorder {
 }
 
 // Handle mocks base method.
-func (m *LogHandler) Handle(arg0 log.Message) {
+func (m *LogHandler) Handle(msg log.Message) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Handle", arg0)
+	m.ctrl.Call(m, "Handle", msg)
 }
 
 // Handle indicates an expected call of Handle.
-func (mr *LogHandlerMockRecorder) Handle(arg0 any) *gomock.Call {
+func (mr *LogHandlerMockRecorder) Handle(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*LogHandler)(nil).Handle), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Handle", reflect.TypeOf((*LogHandler)(nil).Handle), msg)
 }

@@ -16,7 +16,7 @@ type Chacha20Poly1305UDPClientPacketProcessor struct {
 	Cipher cipher.AEAD
 }
 
-func NewChacha2020Poly1305UDPClientPacketProcessor(c cipher.AEAD) *Chacha20Poly1305UDPClientPacketProcessor {
+func NewChacha20Poly1305UDPClientPacketProcessor(c cipher.AEAD) *Chacha20Poly1305UDPClientPacketProcessor {
 	return &Chacha20Poly1305UDPClientPacketProcessor{Cipher: c}
 }
 

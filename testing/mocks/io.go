@@ -19,6 +19,7 @@ import (
 type Reader struct {
 	ctrl     *gomock.Controller
 	recorder *ReaderMockRecorder
+	isgomock struct{}
 }
 
 // ReaderMockRecorder is the mock recorder for Reader.
@@ -39,24 +40,25 @@ func (m *Reader) EXPECT() *ReaderMockRecorder {
 }
 
 // Read mocks base method.
-func (m *Reader) Read(arg0 []byte) (int, error) {
+func (m *Reader) Read(p []byte) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Read", arg0)
+	ret := m.ctrl.Call(m, "Read", p)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Read indicates an expected call of Read.
-func (mr *ReaderMockRecorder) Read(arg0 any) *gomock.Call {
+func (mr *ReaderMockRecorder) Read(p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*Reader)(nil).Read), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*Reader)(nil).Read), p)
 }
 
 // Writer is a mock of Writer interface.
 type Writer struct {
 	ctrl     *gomock.Controller
 	recorder *WriterMockRecorder
+	isgomock struct{}
 }
 
 // WriterMockRecorder is the mock recorder for Writer.
@@ -77,16 +79,16 @@ func (m *Writer) EXPECT() *WriterMockRecorder {
 }
 
 // Write mocks base method.
-func (m *Writer) Write(arg0 []byte) (int, error) {
+func (m *Writer) Write(p []byte) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Write", arg0)
+	ret := m.ctrl.Call(m, "Write", p)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Write indicates an expected call of Write.
-func (mr *WriterMockRecorder) Write(arg0 any) *gomock.Call {
+func (mr *WriterMockRecorder) Write(p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*Writer)(nil).Write), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*Writer)(nil).Write), p)
 }

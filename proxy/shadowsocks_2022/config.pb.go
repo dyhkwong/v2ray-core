@@ -33,11 +33,9 @@ type ServerConfig struct {
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerConfig) String() string {
@@ -48,7 +46,7 @@ func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -135,11 +133,9 @@ type MultiUserServerConfig struct {
 
 func (x *MultiUserServerConfig) Reset() {
 	*x = MultiUserServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *MultiUserServerConfig) String() string {
@@ -150,7 +146,7 @@ func (*MultiUserServerConfig) ProtoMessage() {}
 
 func (x *MultiUserServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -228,11 +224,9 @@ type RelayDestination struct {
 
 func (x *RelayDestination) Reset() {
 	*x = RelayDestination{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RelayDestination) String() string {
@@ -243,7 +237,7 @@ func (*RelayDestination) ProtoMessage() {}
 
 func (x *RelayDestination) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -309,11 +303,9 @@ type RelayServerConfig struct {
 
 func (x *RelayServerConfig) Reset() {
 	*x = RelayServerConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RelayServerConfig) String() string {
@@ -324,7 +316,7 @@ func (*RelayServerConfig) ProtoMessage() {}
 
 func (x *RelayServerConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -400,11 +392,9 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *User) String() string {
@@ -415,7 +405,7 @@ func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -467,11 +457,9 @@ type ClientConfig struct {
 
 func (x *ClientConfig) Reset() {
 	*x = ClientConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ClientConfig) String() string {
@@ -482,7 +470,7 @@ func (*ClientConfig) ProtoMessage() {}
 
 func (x *ClientConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_shadowsocks_2022_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -702,80 +690,6 @@ func init() { file_proxy_shadowsocks_2022_config_proto_init() }
 func file_proxy_shadowsocks_2022_config_proto_init() {
 	if File_proxy_shadowsocks_2022_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*ServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*MultiUserServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*RelayDestination); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*RelayServerConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*User); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proxy_shadowsocks_2022_config_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*ClientConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

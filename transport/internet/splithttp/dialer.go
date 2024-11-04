@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
@@ -51,7 +52,7 @@ var (
 
 func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
 	shSettings := streamSettings.ProtocolSettings.(*Config)
-	if shSettings.UseBrowserForwarding {
+	if reality.ConfigFromStreamSettings(streamSettings) == nil && shSettings.UseBrowserForwarding {
 		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
 		var dialer extension.BrowserDialer
 		err := core.RequireFeatures(ctx, func(d extension.BrowserDialer) { dialer = d })
@@ -87,24 +88,42 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 
 func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
 	var tlsConfig *tls.Config
+	var realityConfig *reality.Config
 	switch cfg := streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		tlsConfig = cfg
 	case *utls.Config:
 		tlsConfig = cfg.GetTlsConfig()
+	case *reality.Config:
+		realityConfig = cfg
 	}
 
-	isH3 := tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
-	isH2 := !isH3 && tlsConfig != nil && !(len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "http/1.1")
+	isH2 := false
+	isH3 := false
+	if realityConfig != nil {
+		isH2 = true
+		isH3 = false
+	} else if tlsConfig != nil {
+		isH3 = len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
+		isH2 = !isH3 && !(len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "http/1.1")
+	}
 
 	dialContext := func(_ context.Context) (net.Conn, error) {
-		return transportcommon.DialWithSecuritySettings(core.ToBackgroundDetachedContext(ctx), dest, streamSettings)
+		ctx = core.ToBackgroundDetachedContext(ctx)
+		if realityConfig != nil {
+			conn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
+			if err != nil {
+				return nil, err
+			}
+			return reality.UClient(conn, realityConfig, ctx, dest)
+		}
+		return transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings)
 	}
 
 	var transport http.RoundTripper
 
 	if isH3 {
-		transport = &http3.RoundTripper{
+		transport = &http3.Transport{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout: connIdleTimeout,
 				// these two are defaults of quic-go/http3. the default of quic-go (no
@@ -116,23 +135,28 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
 			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 				ctx = core.ToBackgroundDetachedContext(ctx)
-				conn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
+				rawConn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
 				if err != nil {
 					return nil, err
 				}
 				var packetConn net.PacketConn
-				switch c := conn.(type) {
+				switch conn := rawConn.(type) {
 				case *internet.PacketConnWrapper:
-					packetConn = c.Conn
+					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
+					}
 				case net.PacketConn:
-					packetConn = c
+					if udpConn, ok := conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn)
+					}
 				default:
-					packetConn = NewConnWrapper(conn)
+					packetConn = internet.NewQUICConnWrapper(conn)
 				}
-				tr := quic.Transport{
-					Conn: packetConn,
-				}
-				return tr.DialEarly(ctx, conn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	} else if isH2 {
@@ -172,48 +196,23 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 	return client
 }
 
-type connWrapper struct {
-	net.Conn
-	localAddr net.Addr
-}
-
-func (c *connWrapper) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = c.Read(p)
-	return n, c.RemoteAddr(), err
-}
-
-func (c *connWrapper) WriteTo(p []byte, _ net.Addr) (n int, err error) {
-	return c.Write(p)
-}
-
-func (c *connWrapper) LocalAddr() net.Addr {
-	return c.localAddr
-}
-
-func NewConnWrapper(conn net.Conn) net.PacketConn {
-	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
-	uuid := uuid.New()
-	return &connWrapper{
-		Conn:      conn,
-		localAddr: &net.UnixAddr{Name: uuid.String()},
-	}
-}
-
 func init() {
 	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
 }
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	var tlsConfig *tls.Config
+	var realityConfig *reality.Config
 	switch cfg := streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		tlsConfig = cfg
 	case *utls.Config:
 		tlsConfig = cfg.GetTlsConfig()
+	case *reality.Config:
+		realityConfig = cfg
 	}
 
-	isH3 := tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
-	if isH3 {
+	if realityConfig == nil && tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3" {
 		dest.Network = net.Network_UDP
 	}
 
@@ -223,7 +222,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 
-	if securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings); securityEngine != nil {
+	if securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings); securityEngine != nil || realityConfig != nil {
 		requestURL.Scheme = "https"
 	} else {
 		requestURL.Scheme = "http"

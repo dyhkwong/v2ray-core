@@ -33,5 +33,5 @@ func (a Chacha20Poly1305Method) GetUDPClientProcessor(_ [][]byte, psk []byte, de
 	if err != nil {
 		return nil, newError("failed to create XChacha20-Poly1305").Base(err)
 	}
-	return NewChacha2020Poly1305UDPClientPacketProcessor(aead), nil
+	return NewChacha20Poly1305UDPClientPacketProcessor(aead), nil
 }

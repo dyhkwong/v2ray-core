@@ -230,8 +230,7 @@ L:
 		}
 	}
 
-	// SOA record TTL for NXDomain
-	if h.RCode == dnsmessage.RCodeNameError {
+	if len(ipRecord.IP) == 0 && h.RCode == dnsmessage.RCodeSuccess || h.RCode == dnsmessage.RCodeNameError {
 		if ah, err := parser.AuthorityHeader(); err == nil && ah.Type == dnsmessage.TypeSOA {
 			if ans, err := parser.SOAResource(); err == nil {
 				ipRecord.TTL = min(ah.TTL, ans.MinTTL)

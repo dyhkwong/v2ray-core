@@ -88,11 +88,9 @@ type Domain struct {
 
 func (x *Domain) Reset() {
 	*x = Domain{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Domain) String() string {
@@ -103,7 +101,7 @@ func (*Domain) ProtoMessage() {}
 
 func (x *Domain) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -154,11 +152,9 @@ type CIDR struct {
 
 func (x *CIDR) Reset() {
 	*x = CIDR{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *CIDR) String() string {
@@ -169,7 +165,7 @@ func (*CIDR) ProtoMessage() {}
 
 func (x *CIDR) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -221,11 +217,9 @@ type GeoIP struct {
 
 func (x *GeoIP) Reset() {
 	*x = GeoIP{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GeoIP) String() string {
@@ -236,7 +230,7 @@ func (*GeoIP) ProtoMessage() {}
 
 func (x *GeoIP) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -303,11 +297,9 @@ type GeoIPList struct {
 
 func (x *GeoIPList) Reset() {
 	*x = GeoIPList{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GeoIPList) String() string {
@@ -318,7 +310,7 @@ func (*GeoIPList) ProtoMessage() {}
 
 func (x *GeoIPList) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -355,11 +347,9 @@ type GeoSite struct {
 
 func (x *GeoSite) Reset() {
 	*x = GeoSite{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GeoSite) String() string {
@@ -370,7 +360,7 @@ func (*GeoSite) ProtoMessage() {}
 
 func (x *GeoSite) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -430,11 +420,9 @@ type GeoSiteList struct {
 
 func (x *GeoSiteList) Reset() {
 	*x = GeoSiteList{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *GeoSiteList) String() string {
@@ -445,7 +433,7 @@ func (*GeoSiteList) ProtoMessage() {}
 
 func (x *GeoSiteList) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -482,11 +470,9 @@ type Domain_Attribute struct {
 
 func (x *Domain_Attribute) Reset() {
 	*x = Domain_Attribute{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_routercommon_common_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_routercommon_common_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Domain_Attribute) String() string {
@@ -497,7 +483,7 @@ func (*Domain_Attribute) ProtoMessage() {}
 
 func (x *Domain_Attribute) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_routercommon_common_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -686,92 +672,6 @@ func init() { file_app_router_routercommon_common_proto_init() }
 func file_app_router_routercommon_common_proto_init() {
 	if File_app_router_routercommon_common_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_router_routercommon_common_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Domain); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*CIDR); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*GeoIP); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*GeoIPList); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*GeoSite); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*GeoSiteList); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_routercommon_common_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*Domain_Attribute); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_app_router_routercommon_common_proto_msgTypes[6].OneofWrappers = []any{
 		(*Domain_Attribute_BoolValue)(nil),

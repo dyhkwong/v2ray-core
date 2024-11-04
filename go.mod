@@ -3,7 +3,7 @@ module github.com/v2fly/v2ray-core/v5
 go 1.22.0
 
 require (
-	github.com/adrg/xdg v0.5.0
+	github.com/adrg/xdg v0.5.2
 	github.com/apernet/hysteria/core/v2 v2.5.2
 	github.com/apernet/quic-go v0.47.1-0.20241004180137-a80d14e2080d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
@@ -16,7 +16,7 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
-	github.com/quic-go/quic-go v0.47.0
+	github.com/quic-go/quic-go v0.48.1
 	github.com/refraction-networking/utls v1.6.7
 	github.com/sagernet/sing v0.4.3
 	github.com/sagernet/sing-shadowsocks v0.2.7
@@ -27,7 +27,7 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
 	github.com/xtls/reality v0.0.0-20240909153216-d468813b2352
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.28.0
 	golang.org/x/net v0.30.0

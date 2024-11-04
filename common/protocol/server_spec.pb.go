@@ -27,11 +27,9 @@ type ServerEndpoint struct {
 
 func (x *ServerEndpoint) Reset() {
 	*x = ServerEndpoint{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_protocol_server_spec_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_protocol_server_spec_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ServerEndpoint) String() string {
@@ -42,7 +40,7 @@ func (*ServerEndpoint) ProtoMessage() {}
 
 func (x *ServerEndpoint) ProtoReflect() protoreflect.Message {
 	mi := &file_common_protocol_server_spec_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -142,20 +140,6 @@ func file_common_protocol_server_spec_proto_init() {
 		return
 	}
 	file_common_protocol_user_proto_init()
-	if !protoimpl.UnsafeEnabled {
-		file_common_protocol_server_spec_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*ServerEndpoint); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

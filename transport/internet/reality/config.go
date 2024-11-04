@@ -2,7 +2,6 @@ package reality
 
 import (
 	"net"
-	"time"
 
 	"github.com/xtls/reality"
 
@@ -19,10 +18,7 @@ func (c *Config) GetREALITYConfig() *reality.Config {
 		Dest: c.Dest,
 		Xver: byte(c.Xver),
 
-		PrivateKey:   c.PrivateKey,
-		MinClientVer: c.MinClientVer,
-		MaxClientVer: c.MaxClientVer,
-		MaxTimeDiff:  time.Duration(c.MaxTimeDiff) * time.Millisecond,
+		PrivateKey: c.PrivateKey,
 
 		NextProtos:             nil, // should be nil
 		SessionTicketsDisabled: true,

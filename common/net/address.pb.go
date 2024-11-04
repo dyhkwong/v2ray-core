@@ -30,11 +30,9 @@ type IPOrDomain struct {
 
 func (x *IPOrDomain) Reset() {
 	*x = IPOrDomain{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_address_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_address_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *IPOrDomain) String() string {
@@ -45,7 +43,7 @@ func (*IPOrDomain) ProtoMessage() {}
 
 func (x *IPOrDomain) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_address_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -146,20 +144,6 @@ func init() { file_common_net_address_proto_init() }
 func file_common_net_address_proto_init() {
 	if File_common_net_address_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_address_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*IPOrDomain); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_common_net_address_proto_msgTypes[0].OneofWrappers = []any{
 		(*IPOrDomain_Ip)(nil),

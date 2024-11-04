@@ -18,7 +18,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
@@ -38,33 +37,6 @@ var (
 )
 
 type dialerCanceller func()
-
-type connWrapper struct {
-	net.Conn
-	localAddr net.Addr
-}
-
-func (c *connWrapper) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = c.Read(p)
-	return n, c.RemoteAddr(), err
-}
-
-func (c *connWrapper) WriteTo(p []byte, _ net.Addr) (n int, err error) {
-	return c.Write(p)
-}
-
-func (c *connWrapper) LocalAddr() net.Addr {
-	return c.localAddr
-}
-
-func NewConnWrapper(conn net.Conn) net.PacketConn {
-	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
-	uuid := uuid.New()
-	return &connWrapper{
-		Conn:      conn,
-		localAddr: &net.UnixAddr{Name: uuid.String()},
-	}
-}
 
 func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *security.Engine, streamSettings *internet.MemoryStreamConfig) (*http.Client, dialerCanceller) {
 	globalDialerAccess.Lock()
@@ -142,7 +114,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 	}
 
 	if isH3 {
-		transport = &http3.RoundTripper{
+		transport = &http3.Transport{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout:     300 * time.Second,
 				MaxIncomingStreams: -1,
@@ -151,23 +123,28 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
 			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 				detachedContext := core.ToBackgroundDetachedContext(ctx)
-				conn, err := internet.DialSystem(detachedContext, dest, streamSettings.SocketSettings)
+				rawConn, err := internet.DialSystem(detachedContext, dest, streamSettings.SocketSettings)
 				if err != nil {
 					return nil, err
 				}
 				var packetConn net.PacketConn
-				switch c := conn.(type) {
+				switch conn := rawConn.(type) {
 				case *internet.PacketConnWrapper:
-					packetConn = c.Conn
+					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
+					}
 				case net.PacketConn:
-					packetConn = c
+					if udpConn, ok := conn.(*net.UDPConn); ok {
+						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+					} else {
+						packetConn = internet.NewQUICPacketConnWrapper(conn)
+					}
 				default:
-					packetConn = NewConnWrapper(conn)
+					packetConn = internet.NewQUICConnWrapper(rawConn)
 				}
-				tr := quic.Transport{
-					Conn: packetConn,
-				}
-				return tr.DialEarly(detachedContext, conn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(detachedContext, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	}

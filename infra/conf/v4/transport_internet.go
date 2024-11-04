@@ -529,8 +529,10 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.SecurityType = serial.V2Type(tm)
 	}
 	if strings.EqualFold(c.Security, "reality") {
-		if config.ProtocolName != "tcp" && config.ProtocolName != "http" && config.ProtocolName != "gun" && config.ProtocolName != "domainsocket" {
-			return nil, newError("REALITY only supports TCP, H2, gRPC and DomainSocket for now.")
+		switch config.ProtocolName {
+		case "tcp", "http", "gun", "splithttp", "domainsocket":
+		default:
+			return nil, newError("REALITY only supports TCP, H2, gRPC, SplitHTTP and DomainSocket for now.")
 		}
 		if c.REALITYSettings == nil {
 			return nil, newError(`REALITY: Empty "realitySettings".`)

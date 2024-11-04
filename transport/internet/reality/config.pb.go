@@ -20,32 +20,27 @@ type Config struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Show         bool     `protobuf:"varint,1,opt,name=show,proto3" json:"show,omitempty"`
-	Dest         string   `protobuf:"bytes,2,opt,name=dest,proto3" json:"dest,omitempty"`
-	Type         string   `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Xver         uint64   `protobuf:"varint,4,opt,name=xver,proto3" json:"xver,omitempty"`
-	ServerNames  []string `protobuf:"bytes,5,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
-	PrivateKey   []byte   `protobuf:"bytes,6,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
-	MinClientVer []byte   `protobuf:"bytes,7,opt,name=min_client_ver,json=minClientVer,proto3" json:"min_client_ver,omitempty"`
-	MaxClientVer []byte   `protobuf:"bytes,8,opt,name=max_client_ver,json=maxClientVer,proto3" json:"max_client_ver,omitempty"`
-	MaxTimeDiff  uint64   `protobuf:"varint,9,opt,name=max_time_diff,json=maxTimeDiff,proto3" json:"max_time_diff,omitempty"`
-	ShortIds     [][]byte `protobuf:"bytes,10,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
-	Fingerprint  string   `protobuf:"bytes,21,opt,name=Fingerprint,proto3" json:"Fingerprint,omitempty"`
-	ServerName   string   `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
-	PublicKey    []byte   `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	ShortId      []byte   `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
-	SpiderX      string   `protobuf:"bytes,25,opt,name=spider_x,json=spiderX,proto3" json:"spider_x,omitempty"`
-	SpiderY      []int64  `protobuf:"varint,26,rep,packed,name=spider_y,json=spiderY,proto3" json:"spider_y,omitempty"`
-	Version      []byte   `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
+	Show        bool     `protobuf:"varint,1,opt,name=show,proto3" json:"show,omitempty"`
+	Dest        string   `protobuf:"bytes,2,opt,name=dest,proto3" json:"dest,omitempty"`
+	Type        string   `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Xver        uint64   `protobuf:"varint,4,opt,name=xver,proto3" json:"xver,omitempty"`
+	ServerNames []string `protobuf:"bytes,5,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
+	PrivateKey  []byte   `protobuf:"bytes,6,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	ShortIds    [][]byte `protobuf:"bytes,7,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
+	Fingerprint string   `protobuf:"bytes,21,opt,name=Fingerprint,proto3" json:"Fingerprint,omitempty"`
+	ServerName  string   `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	PublicKey   []byte   `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	ShortId     []byte   `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
+	SpiderX     string   `protobuf:"bytes,25,opt,name=spider_x,json=spiderX,proto3" json:"spider_x,omitempty"`
+	SpiderY     []int64  `protobuf:"varint,26,rep,packed,name=spider_y,json=spiderY,proto3" json:"spider_y,omitempty"`
+	Version     []byte   `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_reality_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_reality_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -56,7 +51,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_reality_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -111,27 +106,6 @@ func (x *Config) GetPrivateKey() []byte {
 		return x.PrivateKey
 	}
 	return nil
-}
-
-func (x *Config) GetMinClientVer() []byte {
-	if x != nil {
-		return x.MinClientVer
-	}
-	return nil
-}
-
-func (x *Config) GetMaxClientVer() []byte {
-	if x != nil {
-		return x.MaxClientVer
-	}
-	return nil
-}
-
-func (x *Config) GetMaxTimeDiff() uint64 {
-	if x != nil {
-		return x.MaxTimeDiff
-	}
-	return 0
 }
 
 func (x *Config) GetShortIds() [][]byte {
@@ -200,7 +174,7 @@ var file_transport_internet_reality_config_proto_rawDesc = []byte{
 	0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65, 0x74, 0x2e, 0x72, 0x65, 0x61, 0x6c, 0x69, 0x74, 0x79,
 	0x1a, 0x20, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x65, 0x78,
 	0x74, 0x2f, 0x65, 0x78, 0x74, 0x65, 0x6e, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x22, 0x8f, 0x04, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x12, 0x0a,
+	0x74, 0x6f, 0x22, 0x9f, 0x03, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x12, 0x0a,
 	0x04, 0x73, 0x68, 0x6f, 0x77, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x04, 0x73, 0x68, 0x6f,
 	0x77, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x04, 0x64, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20,
@@ -210,14 +184,7 @@ var file_transport_internet_reality_config_proto_rawDesc = []byte{
 	0x03, 0x28, 0x09, 0x52, 0x0b, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x4e, 0x61, 0x6d, 0x65, 0x73,
 	0x12, 0x1f, 0x0a, 0x0b, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x5f, 0x6b, 0x65, 0x79, 0x18,
 	0x06, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0a, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x4b, 0x65,
-	0x79, 0x12, 0x24, 0x0a, 0x0e, 0x6d, 0x69, 0x6e, 0x5f, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f,
-	0x76, 0x65, 0x72, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0c, 0x6d, 0x69, 0x6e, 0x43, 0x6c,
-	0x69, 0x65, 0x6e, 0x74, 0x56, 0x65, 0x72, 0x12, 0x24, 0x0a, 0x0e, 0x6d, 0x61, 0x78, 0x5f, 0x63,
-	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x76, 0x65, 0x72, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x0c, 0x6d, 0x61, 0x78, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x56, 0x65, 0x72, 0x12, 0x22, 0x0a,
-	0x0d, 0x6d, 0x61, 0x78, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x64, 0x69, 0x66, 0x66, 0x18, 0x09,
-	0x20, 0x01, 0x28, 0x04, 0x52, 0x0b, 0x6d, 0x61, 0x78, 0x54, 0x69, 0x6d, 0x65, 0x44, 0x69, 0x66,
-	0x66, 0x12, 0x1b, 0x0a, 0x09, 0x73, 0x68, 0x6f, 0x72, 0x74, 0x5f, 0x69, 0x64, 0x73, 0x18, 0x0a,
+	0x79, 0x12, 0x1b, 0x0a, 0x09, 0x73, 0x68, 0x6f, 0x72, 0x74, 0x5f, 0x69, 0x64, 0x73, 0x18, 0x07,
 	0x20, 0x03, 0x28, 0x0c, 0x52, 0x08, 0x73, 0x68, 0x6f, 0x72, 0x74, 0x49, 0x64, 0x73, 0x12, 0x20,
 	0x0a, 0x0b, 0x46, 0x69, 0x6e, 0x67, 0x65, 0x72, 0x70, 0x72, 0x69, 0x6e, 0x74, 0x18, 0x15, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x0b, 0x46, 0x69, 0x6e, 0x67, 0x65, 0x72, 0x70, 0x72, 0x69, 0x6e, 0x74,
@@ -273,20 +240,6 @@ func init() { file_transport_internet_reality_config_proto_init() }
 func file_transport_internet_reality_config_proto_init() {
 	if File_transport_internet_reality_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_reality_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

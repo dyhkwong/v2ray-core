@@ -28,11 +28,9 @@ type PortRange struct {
 
 func (x *PortRange) Reset() {
 	*x = PortRange{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_port_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_port_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PortRange) String() string {
@@ -43,7 +41,7 @@ func (*PortRange) ProtoMessage() {}
 
 func (x *PortRange) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_port_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -83,11 +81,9 @@ type PortList struct {
 
 func (x *PortList) Reset() {
 	*x = PortList{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_common_net_port_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_common_net_port_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *PortList) String() string {
@@ -98,7 +94,7 @@ func (*PortList) ProtoMessage() {}
 
 func (x *PortList) ProtoReflect() protoreflect.Message {
 	mi := &file_common_net_port_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -172,32 +168,6 @@ func init() { file_common_net_port_proto_init() }
 func file_common_net_port_proto_init() {
 	if File_common_net_port_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_common_net_port_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*PortRange); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_common_net_port_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*PortList); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

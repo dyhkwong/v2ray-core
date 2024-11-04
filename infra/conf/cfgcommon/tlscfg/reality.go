@@ -18,17 +18,14 @@ import (
 )
 
 type REALITYConfig struct {
-	Show         bool            `json:"show"`
-	Dest         json.RawMessage `json:"dest"`
-	Target       json.RawMessage `json:"target"`
-	Type         string          `json:"type"`
-	Xver         uint64          `json:"xver"`
-	ServerNames  []string        `json:"serverNames"`
-	PrivateKey   string          `json:"privateKey"`
-	MinClientVer string          `json:"minClientVer"`
-	MaxClientVer string          `json:"maxClientVer"`
-	MaxTimeDiff  uint64          `json:"maxTimeDiff"`
-	ShortIds     []string        `json:"shortIds"`
+	Show        bool            `json:"show"`
+	Dest        json.RawMessage `json:"dest"`
+	Target      json.RawMessage `json:"target"`
+	Type        string          `json:"type"`
+	Xver        uint64          `json:"xver"`
+	ServerNames []string        `json:"serverNames"`
+	PrivateKey  string          `json:"privateKey"`
+	ShortIds    []string        `json:"shortIds"`
 
 	Fingerprint string `json:"fingerprint"`
 	ServerName  string `json:"serverName"`
@@ -88,34 +85,6 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		if config.PrivateKey, err = base64.RawURLEncoding.DecodeString(c.PrivateKey); err != nil || len(config.PrivateKey) != 32 {
 			return nil, newError(`invalid "privateKey": `, c.PrivateKey)
 		}
-		if c.MinClientVer != "" {
-			config.MinClientVer = make([]byte, 3)
-			var u uint64
-			for i, s := range strings.Split(c.MinClientVer, ".") {
-				if i == 3 {
-					return nil, newError(`invalid "minClientVer": `, c.MinClientVer)
-				}
-				if u, err = strconv.ParseUint(s, 10, 8); err != nil {
-					return nil, newError(`"minClientVer[`, i, `]" should be lesser than 256`)
-				} else {
-					config.MinClientVer[i] = byte(u)
-				}
-			}
-		}
-		if c.MaxClientVer != "" {
-			config.MaxClientVer = make([]byte, 3)
-			var u uint64
-			for i, s := range strings.Split(c.MaxClientVer, ".") {
-				if i == 3 {
-					return nil, newError(`invalid "maxClientVer": `, c.MaxClientVer)
-				}
-				if u, err = strconv.ParseUint(s, 10, 8); err != nil {
-					return nil, newError(`"maxClientVer[`, i, `]" should be lesser than 256`)
-				} else {
-					config.MaxClientVer[i] = byte(u)
-				}
-			}
-		}
 		if len(c.ShortIds) == 0 {
 			c.ShortIds = []string{""}
 		}
@@ -130,7 +99,6 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		config.Type = c.Type
 		config.Xver = c.Xver
 		config.ServerNames = c.ServerNames
-		config.MaxTimeDiff = c.MaxTimeDiff
 	} else {
 		if c.Fingerprint == "" {
 			c.Fingerprint = "chrome"
@@ -203,8 +171,8 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 			}
 		} else {
 			config.Version[0] = 24 // Version_x
-			config.Version[1] = 9  // Version_y
-			config.Version[2] = 30 // Version_z
+			config.Version[1] = 10 // Version_y
+			config.Version[2] = 31 // Version_z
 		}
 	}
 	return config, nil

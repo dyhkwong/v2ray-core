@@ -21,6 +21,7 @@ import (
 type OutboundManager struct {
 	ctrl     *gomock.Controller
 	recorder *OutboundManagerMockRecorder
+	isgomock struct{}
 }
 
 // OutboundManagerMockRecorder is the mock recorder for OutboundManager.
@@ -41,17 +42,17 @@ func (m *OutboundManager) EXPECT() *OutboundManagerMockRecorder {
 }
 
 // AddHandler mocks base method.
-func (m *OutboundManager) AddHandler(arg0 context.Context, arg1 outbound.Handler) error {
+func (m *OutboundManager) AddHandler(ctx context.Context, handler outbound.Handler) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddHandler", arg0, arg1)
+	ret := m.ctrl.Call(m, "AddHandler", ctx, handler)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddHandler indicates an expected call of AddHandler.
-func (mr *OutboundManagerMockRecorder) AddHandler(arg0, arg1 any) *gomock.Call {
+func (mr *OutboundManagerMockRecorder) AddHandler(ctx, handler any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHandler", reflect.TypeOf((*OutboundManager)(nil).AddHandler), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHandler", reflect.TypeOf((*OutboundManager)(nil).AddHandler), ctx, handler)
 }
 
 // Close mocks base method.
@@ -83,31 +84,31 @@ func (mr *OutboundManagerMockRecorder) GetDefaultHandler() *gomock.Call {
 }
 
 // GetHandler mocks base method.
-func (m *OutboundManager) GetHandler(arg0 string) outbound.Handler {
+func (m *OutboundManager) GetHandler(tag string) outbound.Handler {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHandler", arg0)
+	ret := m.ctrl.Call(m, "GetHandler", tag)
 	ret0, _ := ret[0].(outbound.Handler)
 	return ret0
 }
 
 // GetHandler indicates an expected call of GetHandler.
-func (mr *OutboundManagerMockRecorder) GetHandler(arg0 any) *gomock.Call {
+func (mr *OutboundManagerMockRecorder) GetHandler(tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHandler", reflect.TypeOf((*OutboundManager)(nil).GetHandler), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHandler", reflect.TypeOf((*OutboundManager)(nil).GetHandler), tag)
 }
 
 // RemoveHandler mocks base method.
-func (m *OutboundManager) RemoveHandler(arg0 context.Context, arg1 string) error {
+func (m *OutboundManager) RemoveHandler(ctx context.Context, tag string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveHandler", arg0, arg1)
+	ret := m.ctrl.Call(m, "RemoveHandler", ctx, tag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RemoveHandler indicates an expected call of RemoveHandler.
-func (mr *OutboundManagerMockRecorder) RemoveHandler(arg0, arg1 any) *gomock.Call {
+func (mr *OutboundManagerMockRecorder) RemoveHandler(ctx, tag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveHandler", reflect.TypeOf((*OutboundManager)(nil).RemoveHandler), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveHandler", reflect.TypeOf((*OutboundManager)(nil).RemoveHandler), ctx, tag)
 }
 
 // Start mocks base method.
@@ -142,6 +143,7 @@ func (mr *OutboundManagerMockRecorder) Type() *gomock.Call {
 type OutboundHandlerSelector struct {
 	ctrl     *gomock.Controller
 	recorder *OutboundHandlerSelectorMockRecorder
+	isgomock struct{}
 }
 
 // OutboundHandlerSelectorMockRecorder is the mock recorder for OutboundHandlerSelector.

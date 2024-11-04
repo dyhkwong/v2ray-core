@@ -12,6 +12,7 @@ import (
 
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
+	goreality "github.com/xtls/reality"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
@@ -259,7 +261,6 @@ type Listener struct {
 	h3listener *quic.EarlyListener
 	config     *Config
 	addConn    internet.ConnHandler
-	isH3       bool
 }
 
 func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, addConn internet.ConnHandler) (internet.Listener, error) {
@@ -268,11 +269,6 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	}
 	shSettings := streamSettings.ProtocolSettings.(*Config)
 	l.config = shSettings
-	if l.config != nil {
-		if streamSettings.SocketSettings == nil {
-			streamSettings.SocketSettings = &internet.SocketConfig{}
-		}
-	}
 	var listener net.Listener
 	var err error
 	handler := &requestHandler{
@@ -285,18 +281,9 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	}
 
 	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
-	l.isH3 = tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
+	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
 
-	if port == net.Port(0) { // unix
-		listener, err = internet.ListenSystem(ctx, &net.UnixAddr{
-			Name: address.Domain(),
-			Net:  "unix",
-		}, streamSettings.SocketSettings)
-		if err != nil {
-			return nil, newError("failed to listen unix domain socket (for SH) on ", address).Base(err)
-		}
-		newError("listening unix domain socket (for SH) on ", address).WriteToLog(session.ExportIDToError(ctx))
-	} else if l.isH3 { // quic
+	if tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3" { // quic
 		conn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
 			IP:   address.IP(),
 			Port: int(port),
@@ -318,6 +305,17 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		}()
 		newError("listening QUIC (for SH3) on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
 		return l, err
+	}
+
+	if port == net.Port(0) { // unix
+		listener, err = internet.ListenSystem(ctx, &net.UnixAddr{
+			Name: address.Domain(),
+			Net:  "unix",
+		}, streamSettings.SocketSettings)
+		if err != nil {
+			return nil, newError("failed to listen unix domain socket (for SH) on ", address).Base(err)
+		}
+		newError("listening unix domain socket (for SH) on ", address).WriteToLog(session.ExportIDToError(ctx))
 	} else { // tcp
 		listener, err = internet.ListenSystem(ctx, &net.TCPAddr{
 			IP:   address.IP(),
@@ -332,12 +330,13 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	if tlsConfig != nil {
 		listener = gotls.NewListener(listener, tlsConfig.GetTLSConfig())
 	}
+	if realityConfig != nil {
+		listener = goreality.NewListener(listener, realityConfig.GetREALITYConfig())
+	}
 
 	// h2cHandler can handle both plaintext HTTP/1.1 and h2c
 	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
-
 	l.listener = listener
-
 	l.server = http.Server{
 		Handler:           h2cHandler,
 		ReadHeaderTimeout: time.Second * 4,

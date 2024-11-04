@@ -22,7 +22,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/crypto"
 	"github.com/v2fly/v2ray-core/v5/common/crypto/camellia"
 	"github.com/v2fly/v2ray-core/v5/common/crypto/cfb8"
-	"github.com/v2fly/v2ray-core/v5/common/crypto/idea"
 	"github.com/v2fly/v2ray-core/v5/common/crypto/rc2"
 	"github.com/v2fly/v2ray-core/v5/common/crypto/seed"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
@@ -232,13 +231,6 @@ func (a *Account) getCipher() (ss_common.Cipher, error) {
 			IVBytes:        des.BlockSize,
 			EncryptCreator: blockStream(des.NewCipher, cipher.NewCFBEncrypter),
 			DecryptCreator: blockStream(des.NewCipher, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_IDEA_CFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        8,
-			EncryptCreator: blockStream(idea.NewCipher, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(idea.NewCipher, cipher.NewCFBDecrypter),
 		}, nil
 	case CipherType_RC2_CFB:
 		return &StreamCipher{
@@ -585,8 +577,6 @@ func CipherFromString(c string) CipherType {
 		return CipherType_CAST5_CFB
 	case "des-cfb":
 		return CipherType_DES_CFB
-	case "idea-cfb":
-		return CipherType_IDEA_CFB
 	case "rc2-cfb":
 		return CipherType_RC2_CFB
 	case "seed-cfb":

@@ -133,11 +133,9 @@ type RoutingRule struct {
 
 func (x *RoutingRule) Reset() {
 	*x = RoutingRule{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *RoutingRule) String() string {
@@ -148,7 +146,7 @@ func (*RoutingRule) ProtoMessage() {}
 
 func (x *RoutingRule) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -360,11 +358,9 @@ type BalancingRule struct {
 
 func (x *BalancingRule) Reset() {
 	*x = BalancingRule{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *BalancingRule) String() string {
@@ -375,7 +371,7 @@ func (*BalancingRule) ProtoMessage() {}
 
 func (x *BalancingRule) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -437,11 +433,9 @@ type StrategyWeight struct {
 
 func (x *StrategyWeight) Reset() {
 	*x = StrategyWeight{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StrategyWeight) String() string {
@@ -452,7 +446,7 @@ func (*StrategyWeight) ProtoMessage() {}
 
 func (x *StrategyWeight) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -499,11 +493,9 @@ type StrategyRandomConfig struct {
 
 func (x *StrategyRandomConfig) Reset() {
 	*x = StrategyRandomConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StrategyRandomConfig) String() string {
@@ -514,7 +506,7 @@ func (*StrategyRandomConfig) ProtoMessage() {}
 
 func (x *StrategyRandomConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -553,11 +545,9 @@ type StrategyLeastPingConfig struct {
 
 func (x *StrategyLeastPingConfig) Reset() {
 	*x = StrategyLeastPingConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StrategyLeastPingConfig) String() string {
@@ -568,7 +558,7 @@ func (*StrategyLeastPingConfig) ProtoMessage() {}
 
 func (x *StrategyLeastPingConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -600,11 +590,9 @@ type StrategyFallbackConfig struct {
 
 func (x *StrategyFallbackConfig) Reset() {
 	*x = StrategyFallbackConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StrategyFallbackConfig) String() string {
@@ -615,7 +603,7 @@ func (*StrategyFallbackConfig) ProtoMessage() {}
 
 func (x *StrategyFallbackConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -657,11 +645,9 @@ type StrategyLeastLoadConfig struct {
 
 func (x *StrategyLeastLoadConfig) Reset() {
 	*x = StrategyLeastLoadConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StrategyLeastLoadConfig) String() string {
@@ -672,7 +658,7 @@ func (*StrategyLeastLoadConfig) ProtoMessage() {}
 
 func (x *StrategyLeastLoadConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -741,11 +727,9 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -756,7 +740,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -833,11 +817,9 @@ type SimplifiedRoutingRule struct {
 
 func (x *SimplifiedRoutingRule) Reset() {
 	*x = SimplifiedRoutingRule{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SimplifiedRoutingRule) String() string {
@@ -848,7 +830,7 @@ func (*SimplifiedRoutingRule) ProtoMessage() {}
 
 func (x *SimplifiedRoutingRule) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1026,11 +1008,9 @@ type SimplifiedConfig struct {
 
 func (x *SimplifiedConfig) Reset() {
 	*x = SimplifiedConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_router_config_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_router_config_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SimplifiedConfig) String() string {
@@ -1041,7 +1021,7 @@ func (*SimplifiedConfig) ProtoMessage() {}
 
 func (x *SimplifiedConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_router_config_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1394,128 +1374,6 @@ func init() { file_app_router_config_proto_init() }
 func file_app_router_config_proto_init() {
 	if File_app_router_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_router_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*RoutingRule); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*BalancingRule); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*StrategyWeight); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*StrategyRandomConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*StrategyLeastPingConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*StrategyFallbackConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[6].Exporter = func(v any, i int) any {
-			switch v := v.(*StrategyLeastLoadConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[7].Exporter = func(v any, i int) any {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[8].Exporter = func(v any, i int) any {
-			switch v := v.(*SimplifiedRoutingRule); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_router_config_proto_msgTypes[9].Exporter = func(v any, i int) any {
-			switch v := v.(*SimplifiedConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_app_router_config_proto_msgTypes[0].OneofWrappers = []any{
 		(*RoutingRule_Tag)(nil),

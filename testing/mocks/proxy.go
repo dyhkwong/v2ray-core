@@ -24,6 +24,7 @@ import (
 type ProxyInbound struct {
 	ctrl     *gomock.Controller
 	recorder *ProxyInboundMockRecorder
+	isgomock struct{}
 }
 
 // ProxyInboundMockRecorder is the mock recorder for ProxyInbound.
@@ -75,6 +76,7 @@ func (mr *ProxyInboundMockRecorder) Process(arg0, arg1, arg2, arg3 any) *gomock.
 type ProxyOutbound struct {
 	ctrl     *gomock.Controller
 	recorder *ProxyOutboundMockRecorder
+	isgomock struct{}
 }
 
 // ProxyOutboundMockRecorder is the mock recorder for ProxyOutbound.

@@ -161,19 +161,21 @@ func (s *clientConnections) openConnection(ctx context.Context, destAddr net.Add
 
 	var packetConn net.PacketConn
 	switch conn := rawConn.(type) {
-	case *net.UDPConn:
-		packetConn = conn
 	case *internet.PacketConnWrapper:
-		if c, ok := conn.Conn.(*net.UDPConn); ok {
-			packetConn = c
+		if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+			packetConn = udpConn
 		} else {
 			packetConn = conn.Conn
 		}
 	case net.PacketConn:
-		packetConn = conn
+		if udpConn, ok := conn.(*net.UDPConn); ok {
+			packetConn = udpConn
+		} else {
+			packetConn = conn
+		}
 	default:
 		rawConn.Close()
-		return nil, newError("neither a *net.UDPConn nor a net.PacketConn").AtWarning()
+		return nil, errNotUDPConn
 	}
 
 	sysConn, err := wrapSysConn(packetConn, streamSettings.ProtocolSettings.(*Config))

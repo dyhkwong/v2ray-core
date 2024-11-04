@@ -447,33 +447,41 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnecti
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout: handshakeIdleTimeout,
 	}
-	var rawConn net.Conn
-	var err error
+
 	if s.dispatcher != nil {
 		link, err := s.dispatcher.Dispatch(ctx, s.destination)
 		if err != nil {
 			return nil, err
 		}
-		rawConn = cnc.NewConnection(
+		rawConn := cnc.NewConnection(
 			cnc.ConnectionInputMulti(link.Writer),
 			cnc.ConnectionOutputMultiUDP(link.Reader),
 		)
-	} else {
-		rawConn, err = internet.DialSystem(ctx, s.destination, nil)
-		if err != nil {
-			return nil, err
-		}
+		return quic.DialEarly(ctx, internet.NewQUICConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 	}
-	tr := quic.Transport{}
+
+	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
+	if err != nil {
+		return nil, err
+	}
+	var packetConn net.PacketConn
 	switch conn := rawConn.(type) {
 	case *internet.PacketConnWrapper:
-		tr.Conn = conn.Conn
+		if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+			packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+		} else {
+			packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
+		}
 	case net.PacketConn:
-		tr.Conn = conn
+		if udpConn, ok := conn.(*net.UDPConn); ok {
+			packetConn = internet.NewQUICUDPConnWrapper(udpConn)
+		} else {
+			packetConn = internet.NewQUICPacketConnWrapper(conn)
+		}
 	default:
-		tr.Conn = NewConnWrapper(conn)
+		packetConn = internet.NewQUICConnWrapper(conn)
 	}
-	return tr.DialEarly(ctx, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (quic.Stream, error) {

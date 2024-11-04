@@ -20,6 +20,7 @@ import (
 type DNSClient struct {
 	ctrl     *gomock.Controller
 	recorder *DNSClientMockRecorder
+	isgomock struct{}
 }
 
 // DNSClientMockRecorder is the mock recorder for DNSClient.
@@ -54,18 +55,18 @@ func (mr *DNSClientMockRecorder) Close() *gomock.Call {
 }
 
 // LookupIP mocks base method.
-func (m *DNSClient) LookupIP(arg0 string) ([]net.IP, error) {
+func (m *DNSClient) LookupIP(domain string) ([]net.IP, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LookupIP", arg0)
+	ret := m.ctrl.Call(m, "LookupIP", domain)
 	ret0, _ := ret[0].([]net.IP)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LookupIP indicates an expected call of LookupIP.
-func (mr *DNSClientMockRecorder) LookupIP(arg0 any) *gomock.Call {
+func (mr *DNSClientMockRecorder) LookupIP(domain any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupIP", reflect.TypeOf((*DNSClient)(nil).LookupIP), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupIP", reflect.TypeOf((*DNSClient)(nil).LookupIP), domain)
 }
 
 // Start mocks base method.

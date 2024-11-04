@@ -20,6 +20,7 @@ import (
 type MuxClientWorkerFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MuxClientWorkerFactoryMockRecorder
+	isgomock struct{}
 }
 
 // MuxClientWorkerFactoryMockRecorder is the mock recorder for MuxClientWorkerFactory.

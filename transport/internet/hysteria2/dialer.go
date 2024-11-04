@@ -11,7 +11,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
-	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -86,33 +85,6 @@ func (f *connFactory) New(addr net.Addr) (net.PacketConn, error) {
 	return WrapPacketConn(conn, f.Obfuscator), nil
 }
 
-type connWrapper struct {
-	net.Conn
-	localAddr net.Addr
-}
-
-func (c *connWrapper) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = c.Read(p)
-	return n, c.RemoteAddr(), err
-}
-
-func (c *connWrapper) WriteTo(p []byte, _ net.Addr) (n int, err error) {
-	return c.Write(p)
-}
-
-func (c *connWrapper) LocalAddr() net.Addr {
-	return c.localAddr
-}
-
-func NewConnWrapper(conn net.Conn) net.PacketConn {
-	// https://github.com/quic-go/quic-go/commit/8189e75be6121fdc31dc1d6085f17015e9154667#diff-4c6aaadced390f3ce9bec0a9c9bb5203d5fa85df79023e3e0eec423dc9baa946R48-R62
-	uuid := uuid.New()
-	return &connWrapper{
-		Conn:      conn,
-		localAddr: &net.UnixAddr{Name: uuid.String()},
-	}
-}
-
 func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
 	tlsConfig, err := GetClientTLSConfig(dest, streamSettings)
 	if err != nil {
@@ -140,11 +112,19 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 			}
 			switch conn := rawConn.(type) {
 			case *internet.PacketConnWrapper:
-				return conn.Conn, nil
+				if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
+					return internet.NewQUICUDPConnWrapper(udpConn), nil
+				} else {
+					return internet.NewQUICPacketConnWrapper(conn.Conn), nil
+				}
 			case net.PacketConn:
-				return conn, nil
+				if udpConn, ok := conn.(*net.UDPConn); ok {
+					return internet.NewQUICUDPConnWrapper(udpConn), nil
+				} else {
+					return internet.NewQUICPacketConnWrapper(conn), nil
+				}
 			default:
-				return NewConnWrapper(conn), nil
+				return internet.NewQUICConnWrapper(conn), nil
 			}
 		},
 	}

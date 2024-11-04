@@ -249,11 +249,9 @@ type TransportConfig struct {
 
 func (x *TransportConfig) Reset() {
 	*x = TransportConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *TransportConfig) String() string {
@@ -264,7 +262,7 @@ func (*TransportConfig) ProtoMessage() {}
 
 func (x *TransportConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -322,11 +320,9 @@ type StreamConfig struct {
 
 func (x *StreamConfig) Reset() {
 	*x = StreamConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *StreamConfig) String() string {
@@ -337,7 +333,7 @@ func (*StreamConfig) ProtoMessage() {}
 
 func (x *StreamConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -406,11 +402,9 @@ type ProxyConfig struct {
 
 func (x *ProxyConfig) Reset() {
 	*x = ProxyConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ProxyConfig) String() string {
@@ -421,7 +415,7 @@ func (*ProxyConfig) ProtoMessage() {}
 
 func (x *ProxyConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -483,11 +477,9 @@ type SocketConfig struct {
 
 func (x *SocketConfig) Reset() {
 	*x = SocketConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SocketConfig) String() string {
@@ -498,7 +490,7 @@ func (*SocketConfig) ProtoMessage() {}
 
 func (x *SocketConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -655,11 +647,9 @@ type SocketConfig_Fragment struct {
 
 func (x *SocketConfig_Fragment) Reset() {
 	*x = SocketConfig_Fragment{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SocketConfig_Fragment) String() string {
@@ -670,7 +660,7 @@ func (*SocketConfig_Fragment) ProtoMessage() {}
 
 func (x *SocketConfig_Fragment) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -746,11 +736,9 @@ type SocketConfig_Noise struct {
 
 func (x *SocketConfig_Noise) Reset() {
 	*x = SocketConfig_Noise{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_transport_internet_config_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_transport_internet_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *SocketConfig_Noise) String() string {
@@ -761,7 +749,7 @@ func (*SocketConfig_Noise) ProtoMessage() {}
 
 func (x *SocketConfig_Noise) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_internet_config_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -1002,80 +990,6 @@ func init() { file_transport_internet_config_proto_init() }
 func file_transport_internet_config_proto_init() {
 	if File_transport_internet_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_transport_internet_config_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*TransportConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_config_proto_msgTypes[1].Exporter = func(v any, i int) any {
-			switch v := v.(*StreamConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_config_proto_msgTypes[2].Exporter = func(v any, i int) any {
-			switch v := v.(*ProxyConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_config_proto_msgTypes[3].Exporter = func(v any, i int) any {
-			switch v := v.(*SocketConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_config_proto_msgTypes[4].Exporter = func(v any, i int) any {
-			switch v := v.(*SocketConfig_Fragment); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_transport_internet_config_proto_msgTypes[5].Exporter = func(v any, i int) any {
-			switch v := v.(*SocketConfig_Noise); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
