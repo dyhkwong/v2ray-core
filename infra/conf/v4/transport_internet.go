@@ -387,6 +387,7 @@ type SplitHTTPConfig struct {
 	Path                 string            `json:"path"`
 	Headers              map[string]string `json:"headers"`
 	NoSSEHeader          bool              `json:"noSSEHeader"`
+	Mode                 string            `json:"mode"`
 	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
@@ -400,11 +401,19 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	} else if c.Host == "" && c.Headers["Host"] != "" {
 		c.Host = c.Headers["Host"]
 	}
+	switch c.Mode {
+	case "":
+		c.Mode = "auto"
+	case "auto", "packet-up", "stream-up":
+	default:
+		return nil, newError("unsupported mode: " + c.Mode)
+	}
 	return &splithttp.Config{
 		Path:                 c.Path,
 		Host:                 c.Host,
 		Header:               c.Headers,
 		NoSSEHeader:          c.NoSSEHeader,
+		Mode:                 c.Mode,
 		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }

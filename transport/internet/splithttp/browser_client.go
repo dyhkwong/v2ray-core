@@ -12,6 +12,10 @@ type browserDialerClient struct {
 	dialer extension.BrowserDialer
 }
 
+func (c *browserDialerClient) OpenUpload(ctx context.Context, baseURL string) io.WriteCloser {
+	panic("not implemented yet")
+}
+
 func (c *browserDialerClient) OpenDownload(ctx context.Context, baseURL string) (io.ReadCloser, net.Addr, net.Addr, error) {
 	conn, err := c.dialer.DialGet(baseURL)
 	if err != nil {

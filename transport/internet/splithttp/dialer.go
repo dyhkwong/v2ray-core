@@ -241,10 +241,44 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		return nil, err
 	}
 
+	reader, remoteAddr, localAddr, err := httpClient.OpenDownload(context.WithoutCancel(ctx), requestURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	closed := false
+
+	conn := splitConn{
+		writer:     nil,
+		reader:     reader,
+		remoteAddr: remoteAddr,
+		localAddr:  localAddr,
+		onClose: func() {
+			if closed {
+				return
+			}
+			closed = true
+		},
+	}
+
+	mode := transportConfiguration.Mode
+	if mode == "" || mode == "auto" && realityConfig != nil {
+		mode = "stream-up"
+	}
+	if mode == "stream-up" {
+		conn.writer = httpClient.OpenUpload(ctx, requestURL.String())
+		return internet.Connection(&conn), nil
+	}
+
 	// WithSizeLimit(0) will still allow single bytes to pass, and a lot of
 	// code relies on this behavior. Subtract 1 so that together with
 	// uploadWriter wrapper, exact size limits can be enforced
 	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(scMaxEachPostBytes - 1))
+
+	conn.writer = uploadWriter{
+		uploadPipeWriter,
+		scMaxEachPostBytes,
+	}
 
 	go func() {
 		requestsLimiter := semaphore.New(scMaxConcurrentPosts)
@@ -296,26 +330,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		}
 	}()
 
-	lazyRawDownload, remoteAddr, localAddr, err := httpClient.OpenDownload(context.WithoutCancel(ctx), requestURL.String())
-	if err != nil {
-		return nil, err
-	}
-
-	reader := &stripOkReader{ReadCloser: lazyRawDownload}
-
-	writer := uploadWriter{
-		uploadPipeWriter,
-		scMaxEachPostBytes,
-	}
-
-	conn := &splitConn{
-		writer:     writer,
-		reader:     reader,
-		remoteAddr: remoteAddr,
-		localAddr:  localAddr,
-	}
-
-	return internet.Connection(conn), nil
+	return internet.Connection(&conn), nil
 }
 
 // A wrapper around pipe that ensures the size limit is exactly honored.

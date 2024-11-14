@@ -1,16 +1,16 @@
 module github.com/v2fly/v2ray-core/v5
 
-go 1.22.0
+go 1.22.7
 
 require (
-	github.com/adrg/xdg v0.5.2
+	github.com/adrg/xdg v0.5.3
 	github.com/apernet/hysteria/core/v2 v2.5.2
-	github.com/apernet/quic-go v0.47.1-0.20241004180137-a80d14e2080d
+	github.com/apernet/quic-go v0.48.2-0.20241104191913-cb103fcecfe7
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40
+	github.com/lunixbochs/struc v0.0.0-20241101090106-8d528fa2c543
 	github.com/miekg/dns v1.1.62
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
@@ -18,7 +18,7 @@ require (
 	github.com/pires/go-proxyproto v0.8.0
 	github.com/quic-go/quic-go v0.48.1
 	github.com/refraction-networking/utls v1.6.7
-	github.com/sagernet/sing v0.4.3
+	github.com/sagernet/sing v0.5.0
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
@@ -29,12 +29,12 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-d468813b2352
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.28.0
-	golang.org/x/net v0.30.0
-	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.26.0
+	golang.org/x/crypto v0.29.0
+	golang.org/x/net v0.31.0
+	golang.org/x/sync v0.9.0
+	golang.org/x/sys v0.27.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
-	google.golang.org/grpc v1.67.1
+	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.1
 	gvisor.dev/gvisor v0.0.0-20240916094835-a174eb65023f
 	h12.io/socks v1.0.3
@@ -70,14 +70,14 @@ require (
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
+replace github.com/lunixbochs/struc v0.0.0-20241101090106-8d528fa2c543 => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
 
 replace github.com/apernet/hysteria/core/v2 v2.5.2 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d

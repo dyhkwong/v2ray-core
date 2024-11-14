@@ -6,15 +6,18 @@ package splithttp
 import (
 	"container/heap"
 	"io"
+	"runtime"
 	"sync"
 )
 
 type Packet struct {
+	Reader  io.ReadCloser
 	Payload []byte
 	Seq     uint64
 }
 
 type uploadQueue struct {
+	reader          io.ReadCloser
 	pushedPackets   chan Packet
 	writeCloseMutex sync.Mutex
 	heap            uploadHeap
@@ -37,7 +40,16 @@ func (h *uploadQueue) Push(p Packet) error {
 	h.writeCloseMutex.Lock()
 	defer h.writeCloseMutex.Unlock()
 
+	runtime.Gosched()
+	if h.reader != nil && p.Reader != nil {
+		p.Reader.Close()
+		return newError("h.reader already exists")
+	}
+
 	if h.closed {
+		if p.Reader != nil {
+			p.Reader.Close()
+		}
 		return newError("splithttp packet queue closed")
 	}
 
@@ -53,10 +65,18 @@ func (h *uploadQueue) Close() error {
 		h.closed = true
 		close(h.pushedPackets)
 	}
+	runtime.Gosched()
+	if h.reader != nil {
+		return h.reader.Close()
+	}
 	return nil
 }
 
 func (h *uploadQueue) Read(b []byte) (int, error) {
+	if h.reader != nil {
+		return h.reader.Read(b)
+	}
+
 	if h.closed {
 		return 0, io.EOF
 	}
@@ -65,6 +85,10 @@ func (h *uploadQueue) Read(b []byte) (int, error) {
 		packet, more := <-h.pushedPackets
 		if !more {
 			return 0, io.EOF
+		}
+		if packet.Reader != nil {
+			h.reader = packet.Reader
+			return h.reader.Read(b)
 		}
 		heap.Push(&h.heap, packet)
 	}

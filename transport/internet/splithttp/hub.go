@@ -98,6 +98,8 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
+	h.config.WriteResponseHeader(writer)
+
 	sessionId := ""
 	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
 	if len(subpath) > 0 {
@@ -131,22 +133,45 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		if seq == "" {
-			newError("no seq on request:", request.URL.Path).WriteToLog()
-			writer.WriteHeader(http.StatusBadRequest)
+			/*
+				if h.config.Mode == "packet-up" {
+					newError("stream-up mode is not allowed").AtInfo().WriteToLog()
+					writer.WriteHeader(http.StatusBadRequest)
+					return
+				}
+			*/
+			err = currentSession.uploadQueue.Push(Packet{
+				Reader: request.Body,
+			})
+			if err != nil {
+				newError("failed to upload (PushReader)").Base(err).AtInfo().WriteToLog()
+				writer.WriteHeader(http.StatusConflict)
+			} else {
+				writer.WriteHeader(http.StatusOK)
+				<-request.Context().Done()
+			}
 			return
 		}
+
+		/*
+			if h.config.Mode == "stream-up" {
+				newError("packet-up mode is not allowed").AtInfo().WriteToLog()
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		*/
 
 		payload, err := io.ReadAll(request.Body)
 
 		if err != nil {
-			newError("failed to upload").Base(err).WriteToLog()
+			newError("failed to upload (ReadAll)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		seqInt, err := strconv.ParseUint(seq, 10, 64)
 		if err != nil {
-			newError("failed to upload").Base(err).WriteToLog()
+			newError("failed to upload (ParseUint)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -157,12 +182,11 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		})
 
 		if err != nil {
-			newError("failed to upload").Base(err).WriteToLog()
+			newError("failed to upload (PushPayload)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		h.config.WriteResponseHeader(writer)
 		writer.WriteHeader(http.StatusOK)
 	} else if request.Method == "GET" {
 		responseFlusher, ok := writer.(http.Flusher)
@@ -186,17 +210,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			writer.Header().Set("Content-Type", "text/event-stream")
 		}
 
-		h.config.WriteResponseHeader(writer)
-
 		writer.WriteHeader(http.StatusOK)
-		if _, ok := request.URL.Query()["x_padding"]; !ok {
-			// in earlier versions, this initial body data was used to immediately
-			// start a 200 OK on all CDN. but xray client since 1.8.16 does not
-			// actually require an immediate 200 OK, but now requires these
-			// additional bytes "ok". xray client 1.8.24+ doesn't require "ok"
-			// anymore, and so this line should be removed in later versions.
-			writer.Write([]byte("ok"))
-		}
 
 		responseFlusher.Flush()
 
@@ -222,6 +236,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		conn.Close()
 	} else {
+		newError("unsupported method: ", request.Method).AtInfo().WriteToLog()
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
