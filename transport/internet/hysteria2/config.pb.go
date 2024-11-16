@@ -144,6 +144,10 @@ type Config struct {
 	UseUdpExtension          bool                   `protobuf:"varint,6,opt,name=use_udp_extension,json=useUdpExtension,proto3" json:"use_udp_extension,omitempty"`
 	Obfs                     *OBFS                  `protobuf:"bytes,7,opt,name=obfs,proto3" json:"obfs,omitempty"`
 	Passwords                []string               `protobuf:"bytes,8,rep,name=passwords,proto3" json:"passwords,omitempty"`
+	HopPorts                 string                 `protobuf:"bytes,9,opt,name=hop_ports,json=hopPorts,proto3" json:"hop_ports,omitempty"`
+	HopInterval              uint64                 `protobuf:"varint,10,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
+	HopIntervalMin           uint64                 `protobuf:"varint,11,opt,name=hop_interval_min,json=hopIntervalMin,proto3" json:"hop_interval_min,omitempty"`
+	HopIntervalMax           uint64                 `protobuf:"varint,12,opt,name=hop_interval_max,json=hopIntervalMax,proto3" json:"hop_interval_max,omitempty"`
 	OmitMaxDatagramFrameSize bool                   `protobuf:"varint,1000,opt,name=omit_max_datagram_frame_size,json=omitMaxDatagramFrameSize,proto3" json:"omit_max_datagram_frame_size,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -221,6 +225,34 @@ func (x *Config) GetPasswords() []string {
 	return nil
 }
 
+func (x *Config) GetHopPorts() string {
+	if x != nil {
+		return x.HopPorts
+	}
+	return ""
+}
+
+func (x *Config) GetHopInterval() uint64 {
+	if x != nil {
+		return x.HopInterval
+	}
+	return 0
+}
+
+func (x *Config) GetHopIntervalMin() uint64 {
+	if x != nil {
+		return x.HopIntervalMin
+	}
+	return 0
+}
+
+func (x *Config) GetHopIntervalMax() uint64 {
+	if x != nil {
+		return x.HopIntervalMax
+	}
+	return 0
+}
+
 func (x *Config) GetOmitMaxDatagramFrameSize() bool {
 	if x != nil {
 		return x.OmitMaxDatagramFrameSize
@@ -243,7 +275,7 @@ const file_transport_internet_hysteria2_config_proto_rawDesc = "" +
 	"bbrProfile\"6\n" +
 	"\x04OBFS\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x9b\x03\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xaf\x04\n" +
 	"\x06Config\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12S\n" +
 	"\n" +
@@ -252,7 +284,12 @@ const file_transport_internet_hysteria2_config_proto_rawDesc = "" +
 	"\x17ignore_client_bandwidth\x18\x05 \x01(\bR\x15ignoreClientBandwidth\x12*\n" +
 	"\x11use_udp_extension\x18\x06 \x01(\bR\x0fuseUdpExtension\x12A\n" +
 	"\x04obfs\x18\a \x01(\v2-.v2ray.core.transport.internet.hysteria2.OBFSR\x04obfs\x12\x1c\n" +
-	"\tpasswords\x18\b \x03(\tR\tpasswords\x12?\n" +
+	"\tpasswords\x18\b \x03(\tR\tpasswords\x12\x1b\n" +
+	"\thop_ports\x18\t \x01(\tR\bhopPorts\x12!\n" +
+	"\fhop_interval\x18\n" +
+	" \x01(\x04R\vhopInterval\x12(\n" +
+	"\x10hop_interval_min\x18\v \x01(\x04R\x0ehopIntervalMin\x12(\n" +
+	"\x10hop_interval_max\x18\f \x01(\x04R\x0ehopIntervalMax\x12?\n" +
 	"\x1comit_max_datagram_frame_size\x18\xe8\a \x01(\bR\x18omitMaxDatagramFrameSize:\x1a\x82\xb5\x18\x16\n" +
 	"\ttransport\x12\thysteria2B\x96\x01\n" +
 	"+com.v2ray.core.transport.internet.hysteria2P\x01Z;github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2\xaa\x02'V2Ray.Core.Transport.Internet.Hysteria2b\x06proto3"
