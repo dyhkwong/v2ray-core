@@ -159,6 +159,8 @@ type Hy2Config struct {
 	UseUDPExtension       bool                `json:"use_udp_extension"`
 	IgnoreClientBandwidth bool                `json:"ignore_client_bandwidth"`
 	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
+	HopPorts              string              `json:"hopPorts"`
+	HopInterval           uint32              `json:"hopInterval"`
 }
 
 // Build implements Buildable.
@@ -176,6 +178,8 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 			Type:     c.OBFS.Type,
 			Password: c.OBFS.Password,
 		},
+		HopPorts:    c.HopPorts,
+		HopInterval: c.HopInterval,
 	}, nil
 }
 
