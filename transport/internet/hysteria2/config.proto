@@ -30,4 +30,6 @@ message Config {
   bool use_udp_extension = 6;
   OBFS obfs = 7;
   repeated string passwords = 8;
+  string hop_ports = 9;
+  uint32 hop_interval = 10;
 }
