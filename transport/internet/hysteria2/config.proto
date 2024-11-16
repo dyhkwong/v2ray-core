@@ -29,4 +29,6 @@ message Config {
   bool ignore_client_bandwidth = 5;
   bool use_udp_extension = 6;
   OBFS obfs = 7;
+  string hop_ports = 8;
+  uint32 hop_interval = 9;
 }
