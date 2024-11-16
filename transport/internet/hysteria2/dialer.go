@@ -4,11 +4,13 @@ import (
 	"context"
 	gotls "crypto/tls"
 	"sync"
+	"time"
 
 	"github.com/apernet/quic-go/quicvarint"
 	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
 	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 	"github.com/dyhkwong/hysteria/extras/v2/obfs"
+	"github.com/dyhkwong/hysteria/extras/v2/transport/udphop"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -92,8 +94,40 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		FastOpen:        true,
 	}
 
+	if len(config.HopPorts) > 0 {
+		host, _, err := net.SplitHostPort(serverAddr.String())
+		if err != nil {
+			return nil, err
+		}
+		udpHopAddr, err := udphop.ResolveUDPHopAddr(net.JoinHostPort(host, config.HopPorts))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.ServerAddr = udpHopAddr
+	}
+
 	connFactory := &connFactory{
 		NewFunc: func(addr net.Addr) (net.PacketConn, error) {
+			if len(config.HopPorts) > 0 {
+				return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr), time.Duration(config.HopInterval)*time.Second,
+					func() (net.PacketConn, error) {
+						rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(serverAddr), streamSettings.SocketSettings)
+						if err != nil {
+							return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
+						}
+						var pc net.PacketConn
+						switch rc := rawConn.(type) {
+						case *internet.PacketConnWrapper:
+							pc = rc.Conn
+						case net.PacketConn:
+							pc = rc
+						default:
+							return nil, newError("port hopping does not work with chain proxy")
+						}
+						return pc, nil
+					},
+				)
+			}
 			rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
 			if err != nil {
 				return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
