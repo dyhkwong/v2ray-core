@@ -4,11 +4,13 @@ import (
 	"context"
 	gotls "crypto/tls"
 	"sync"
+	"time"
 
 	"github.com/apernet/quic-go/quicvarint"
 	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
 	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 	"github.com/dyhkwong/hysteria/extras/v2/obfs"
+	"github.com/dyhkwong/hysteria/extras/v2/transport/udphop"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
@@ -119,23 +121,50 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		FastOpen:        true,
 	}
 
-	connFactory := &connFactory{
-		NewFunc: func(addr net.Addr) (net.PacketConn, error) {
-			rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
-			if err != nil {
-				return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
-			}
-			var pc net.PacketConn
-			switch rc := rawConn.(type) {
-			case *internet.PacketConnWrapper:
-				pc = rc.Conn
-			case net.PacketConn:
-				pc = rc
-			default:
-				pc = internet.NewConnWrapper(rc)
-			}
-			return pc, nil
-		},
+	if len(config.HopPorts) > 0 {
+		if config.HopPorts == "all" || config.HopPorts == "*" {
+			return nil, newError("invalid hopPorts")
+		}
+		host, _, err := net.SplitHostPort(serverAddr.String())
+		if err != nil {
+			return nil, err
+		}
+		udpHopAddr, err := udphop.ResolveUDPHopAddr(net.JoinHostPort(host, config.HopPorts))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.ServerAddr = udpHopAddr
+	}
+
+	dialFunc := func(ctx context.Context, dest net.Destination, sockopt *internet.SocketConfig) (net.PacketConn, error) {
+		rawConn, err := internet.DialSystem(ctx, dest, sockopt)
+		if err != nil {
+			return nil, newError("failed to dial to dest: ", dest).AtWarning().Base(err)
+		}
+		switch rc := rawConn.(type) {
+		case *internet.PacketConnWrapper:
+			return rc.Conn, nil
+		case net.PacketConn:
+			return rc, nil
+		default:
+			return internet.NewConnWrapper(rawConn), nil
+		}
+	}
+
+	connFactory := &connFactory{}
+	if len(config.HopPorts) > 0 {
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
+			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr), time.Duration(config.HopInterval)*time.Second,
+				func(currentHopAddr net.Addr) (net.PacketConn, error) {
+					newError("hopping to ", net.DestinationFromAddr(currentHopAddr)).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+					return dialFunc(ctx, net.DestinationFromAddr(currentHopAddr), streamSettings.SocketSettings)
+				},
+			)
+		}
+	} else {
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
+			return dialFunc(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
+		}
 	}
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
 		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
