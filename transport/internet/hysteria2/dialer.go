@@ -4,6 +4,7 @@ import (
 	"context"
 	gotls "crypto/tls"
 	"sync"
+	"time"
 
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/quicvarint"
@@ -11,6 +12,7 @@ import (
 	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
 	"github.com/dyhkwong/hysteria/core/v2/international/utils"
 	"github.com/dyhkwong/hysteria/extras/v2/obfs"
+	"github.com/dyhkwong/hysteria/extras/v2/transport/udphop"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
@@ -236,6 +238,21 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 	}
 	hyConfig.CongestionConfig = congestionConfig
 
+	if len(config.HopPorts) > 0 {
+		if config.HopPorts == "all" || config.HopPorts == "*" {
+			return nil, newError("invalid hopPorts")
+		}
+		host, _, err := net.SplitHostPort(serverAddr.String())
+		if err != nil {
+			return nil, err
+		}
+		udpHopAddr, err := udphop.ResolveUDPHopAddr(net.JoinHostPort(host, config.HopPorts))
+		if err != nil {
+			return nil, err
+		}
+		hyConfig.ServerAddr = udpHopAddr
+	}
+
 	dialFunc := func(ctx context.Context, dest net.Destination, sockopt *internet.SocketConfig) (net.PacketConn, error) {
 		rawConn, err := internet.DialSystem(ctx, dest, sockopt)
 		if err != nil {
@@ -251,10 +268,35 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		}
 	}
 
-	connFactory := &connFactory{
-		NewFunc: func(addr net.Addr) (net.PacketConn, error) {
+	connFactory := &connFactory{}
+	if len(config.HopPorts) > 0 {
+		var hopIntervalMin, hopIntervalMax time.Duration
+		if config.HopInterval > 0 {
+			if config.HopIntervalMin > 0 || config.HopIntervalMax > 0 {
+				return nil, newError("hopInterval conflicts with hopIntervalMin or hopIntervalMax")
+			}
+			hopIntervalMin = time.Duration(config.HopIntervalMin) * time.Second
+			hopIntervalMax = time.Duration(config.HopIntervalMax) * time.Second
+		} else {
+			hopIntervalMin = time.Duration(config.HopInterval) * time.Second
+			hopIntervalMax = time.Duration(config.HopInterval) * time.Second
+		}
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
+			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr),
+				udphop.HopIntervalConfig{
+					Min: hopIntervalMin,
+					Max: hopIntervalMax,
+				},
+				func(currentHopAddr net.Addr) (net.PacketConn, error) {
+					newError("hopping to ", net.DestinationFromAddr(currentHopAddr)).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+					return dialFunc(ctx, net.DestinationFromAddr(currentHopAddr), streamSettings.SocketSettings)
+				},
+			)
+		}
+	} else {
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
 			return dialFunc(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
-		},
+		}
 	}
 
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
