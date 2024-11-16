@@ -26,6 +26,7 @@ var (
 	ResolveUnixAddr = net.ResolveUnixAddr
 	JoinHostPort    = net.JoinHostPort
 	SplitHostPort   = net.SplitHostPort
+	JoinHostPort    = net.JoinHostPort
 )
 
 type (
