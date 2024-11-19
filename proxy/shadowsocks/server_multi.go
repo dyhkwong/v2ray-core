@@ -2,7 +2,6 @@ package shadowsocks
 
 import (
 	"context"
-	"crypto/rand"
 	"io"
 	"strconv"
 	"time"
@@ -30,9 +29,9 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
 
-type Server struct {
+type MultiUserServer struct {
 	config        *ServerConfig
-	user          *protocol.MemoryUser
+	validator     *Validator
 	policyManager policy.Manager
 
 	tag            string
@@ -41,40 +40,39 @@ type Server struct {
 	pluginOverride net.Destination
 	receiverPort   int
 
-	streamPlugin   sip003.StreamPlugin
-	protocolPlugin sip003.ProtocolPlugin
+	streamPlugin sip003.StreamPlugin
 }
 
-func (s *Server) Initialize(self inbound.Handler) {
+func (s *MultiUserServer) Initialize(self inbound.Handler) {
 	s.tag = self.Tag()
 }
 
-func (s *Server) Close() error {
+func (s *MultiUserServer) Close() error {
 	if s.plugin != nil {
 		return s.plugin.Close()
 	}
 	return nil
 }
 
-// NewServer create a new Shadowsocks server.
-func NewServer(ctx context.Context, config *ServerConfig) (proxy.Inbound, error) {
-	if len(config.GetUsers()) > 0 {
-		return NewMultiUserServer(ctx, config)
+// NewMultiUserServer create a new Shadowsocks multi-user server.
+func NewMultiUserServer(ctx context.Context, config *ServerConfig) (proxy.Inbound, error) {
+	if len(config.GetUsers()) == 0 {
+		return nil, newError("users are not specified")
 	}
-
-	if config.GetUser() == nil {
-		return nil, newError("user is not specified")
+	validator := new(Validator)
+	for _, user := range config.Users {
+		mUser, err := user.ToMemoryUser()
+		if err != nil {
+			return nil, newError("failed to parse user account").Base(err)
+		}
+		if err := validator.Add(mUser); err != nil {
+			return nil, newError("failed to add user").Base(err)
+		}
 	}
-
-	mUser, err := config.User.ToMemoryUser()
-	if err != nil {
-		return nil, newError("failed to parse user account").Base(err)
-	}
-
 	v := core.MustFromContext(ctx)
-	s := &Server{
+	s := &MultiUserServer{
 		config:        config,
-		user:          mUser,
+		validator:     validator,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 	}
 
@@ -90,15 +88,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (proxy.Inbound, error)
 
 		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
 			s.streamPlugin = streamPlugin
-			var err error
-			if protocolPlugin, ok := plugin.(sip003.ProtocolPlugin); ok {
-				s.protocolPlugin = protocolPlugin
-				account := s.user.Account.(*MemoryAccount)
-				err = protocolPlugin.InitProtocolPlugin("", "", config.PluginArgs, account.Key, int(account.Cipher.IVSize()))
-			} else {
-				err = streamPlugin.InitStreamPlugin("", config.PluginOpts)
-			}
-			if err != nil {
+			if err := streamPlugin.InitStreamPlugin("", config.PluginOpts); err != nil {
 				return nil, newError("failed to start plugin").Base(err)
 			}
 			return s, nil
@@ -140,7 +130,17 @@ func NewServer(ctx context.Context, config *ServerConfig) (proxy.Inbound, error)
 	return s, nil
 }
 
-func (s *Server) Network() []net.Network {
+// AddUser implements proxy.UserManager.AddUser().
+func (s *MultiUserServer) AddUser(ctx context.Context, u *protocol.MemoryUser) error {
+	return s.validator.Add(u)
+}
+
+// RemoveUser implements proxy.UserManager.RemoveUser().
+func (s *MultiUserServer) RemoveUser(ctx context.Context, e string) error {
+	return s.validator.Del(e)
+}
+
+func (s *MultiUserServer) Network() []net.Network {
 	list := s.config.Network
 	if len(list) == 0 {
 		list = append(list, net.Network_TCP)
@@ -151,7 +151,7 @@ func (s *Server) Network() []net.Network {
 	return list
 }
 
-func (s *Server) Process(ctx context.Context, network net.Network, conn internet.Connection, dispatcher routing.Dispatcher) error {
+func (s *MultiUserServer) Process(ctx context.Context, network net.Network, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	switch network {
 	case net.Network_TCP:
 		return s.handleConnection(ctx, conn, dispatcher)
@@ -162,7 +162,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 	}
 }
 
-func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
+func (s *MultiUserServer) handlerUDPPayload(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	udpDispatcherConstructor := udp.NewSplitDispatcher
 	switch s.config.PacketEncoding {
 	case packetaddr.PacketAddrType_None:
@@ -177,7 +177,6 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		request = protocol.RequestHeaderFromContext(ctx)
 		if request == nil {
 			request = &protocol.RequestHeader{}
-			request.User = s.user
 		}
 		if packet.Source.IsValid() {
 			request.Port = packet.Source.Port
@@ -185,7 +184,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		payload := packet.Payload
-		data, err := EncodeUDPPacket(request, payload.Bytes(), s.protocolPlugin)
+		data, err := EncodeUDPPacket(request, payload.Bytes(), nil)
 		payload.Release()
 
 		if err != nil {
@@ -201,7 +200,6 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 	if inbound == nil {
 		panic("no inbound metadata")
 	}
-	inbound.User = s.user
 
 	reader := buf.NewPacketReader(conn)
 	for {
@@ -211,7 +209,19 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		}
 
 		for _, payload := range mpayload {
-			request, data, err := DecodeUDPPacket(s.user, payload, s.protocolPlugin)
+			var request *protocol.RequestHeader
+			var data *buf.Buffer
+			var err error
+			if inbound.User != nil {
+				validator := new(Validator)
+				validator.Add(inbound.User)
+				request, data, err = DecodeUDPPacketMultiUser(validator, payload)
+			} else {
+				request, data, err = DecodeUDPPacketMultiUser(s.validator, payload)
+				if err == nil {
+					inbound.User = request.User
+				}
+			}
 			if err != nil {
 				if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Source.IsValid() {
 					newError("dropping invalid UDP packet from: ", inbound.Source).Base(err).WriteToLog(session.ExportIDToError(ctx))
@@ -247,7 +257,7 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 	return nil
 }
 
-func (s *Server) handleConnection(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
+func (s *MultiUserServer) handleConnection(ctx context.Context, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 	if inbound == nil {
 		panic("no inbound metadata")
@@ -275,26 +285,16 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 		conn = s.streamPlugin.StreamConn(conn)
 	}
 
-	sessionPolicy := s.policyManager.ForLevel(s.user.Level)
+	sessionPolicy := s.policyManager.ForLevel(0)
+
 	conn.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake))
 
-	var protocolConn *sip003.ProtocolConn
-	var iv []byte
-	account := s.user.Account.(*MemoryAccount)
-	if account.Cipher.IVSize() > 0 {
-		iv = make([]byte, account.Cipher.IVSize())
-		common.Must2(rand.Read(iv))
-		if ivError := account.CheckIV(iv); ivError != nil {
-			return newError("failed to mark outgoing iv").Base(ivError)
-		}
-	}
-	if s.protocolPlugin != nil {
-		protocolConn = &sip003.ProtocolConn{}
-		s.protocolPlugin.ProtocolConn(protocolConn, iv)
-	}
-
 	bufferedReader := buf.BufferedReader{Reader: buf.NewReader(conn)}
-	request, bodyReader, err := ReadTCPSession(s.user, &bufferedReader, protocolConn)
+
+	request, bodyReader, err := ReadTCPSessionMultiUser(s.validator, &bufferedReader)
+	sessionPolicy = s.policyManager.ForLevel(request.User.Level)
+	inbound.User = request.User
+
 	if err != nil {
 		log.Record(&log.AccessMessage{
 			From:   conn.RemoteAddr(),
@@ -305,8 +305,6 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 		return newError("failed to create request from: ", conn.RemoteAddr()).Base(err)
 	}
 	conn.SetReadDeadline(time.Time{})
-
-	inbound.User = s.user
 
 	dest := request.Destination()
 	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
@@ -331,7 +329,7 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 		defer timer.SetTimeout(sessionPolicy.Timeouts.UplinkOnly)
 
 		bufferedWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
-		responseWriter, err := WriteTCPResponse(request, bufferedWriter, iv, protocolConn)
+		responseWriter, err := WriteTCPResponseMultiUser(request, bufferedWriter)
 		if err != nil {
 			return newError("failed to write response").Base(err)
 		}
@@ -375,10 +373,4 @@ func (s *Server) handleConnection(ctx context.Context, conn internet.Connection,
 	}
 
 	return nil
-}
-
-func init() {
-	common.Must(common.RegisterConfig((*ServerConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		return NewServer(ctx, config.(*ServerConfig))
-	}))
 }

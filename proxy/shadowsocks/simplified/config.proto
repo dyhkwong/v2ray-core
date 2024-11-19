@@ -12,6 +12,11 @@ import "common/net/network.proto";
 import "common/net/packetaddr/config.proto";
 import "proxy/shadowsocks/config.proto";
 
+message User {
+  CipherTypeWrapper method = 1;
+  string password = 2;
+}
+
 message ServerConfig{
   option (v2ray.core.common.protoext.message_opt).type = "inbound";
   option (v2ray.core.common.protoext.message_opt).short_name = "shadowsocks";
@@ -23,6 +28,7 @@ message ServerConfig{
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  repeated User users = 8;
 }
 
 message ClientConfig {
