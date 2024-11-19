@@ -49,6 +49,15 @@ func init() {
 			PluginArgs:     simplifiedServer.PluginArgs,
 		}
 
+		for _, user := range simplifiedServer.Users {
+			fullServer.Users = append(fullServer.Users, &protocol.User{
+				Account: serial.ToTypedMessage(&shadowsocks.Account{
+					Password:   user.Password,
+					CipherType: user.Method.Value,
+				}),
+			})
+		}
+
 		return common.CreateObject(ctx, fullServer)
 	}))
 
