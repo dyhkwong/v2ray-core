@@ -19,10 +19,6 @@ func (w *Writer) Close() error {
 	return w.pipe.Close()
 }
 
-func (w *Writer) Len() int32 {
-	return w.pipe.Len()
-}
-
 // Interrupt implements common.Interruptible.
 func (w *Writer) Interrupt() {
 	w.pipe.Interrupt()

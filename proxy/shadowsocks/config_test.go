@@ -9,7 +9,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/proxy/shadowsocks"
-	ss_common "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/common"
 )
 
 func TestAEADCipherUDP(t *testing.T) {
@@ -20,7 +19,7 @@ func TestAEADCipherUDP(t *testing.T) {
 	account, err := rawAccount.AsAccount()
 	common.Must(err)
 
-	cipher := account.(*ss_common.MemoryAccount).Cipher
+	cipher := account.(*shadowsocks.MemoryAccount).Cipher
 
 	key := make([]byte, cipher.KeySize())
 	common.Must2(rand.Read(key))

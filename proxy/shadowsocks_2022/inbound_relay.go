@@ -47,7 +47,8 @@ type RelayInbound struct {
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
 	receiverPort   int
-	streamPlugin   sip003.StreamPlugin
+
+	streamPlugin sip003.StreamPlugin
 }
 
 func (i *RelayInbound) Initialize(self features_inbound.Handler) {
@@ -72,9 +73,6 @@ func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbou
 	inbound := &RelayInbound{
 		networks:     networks,
 		destinations: config.Destinations,
-	}
-	if !C.Contains(shadowaead_2022.List, config.Method) {
-		return nil, newError("unsupported method: ", config.Method)
 	}
 	service, err := shadowaead_2022.NewRelayServiceWithPassword[int](config.Method, config.Key, udpTimeout, inbound)
 	if err != nil {
@@ -111,45 +109,47 @@ func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbou
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
 		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
 			inbound.streamPlugin = streamPlugin
-			if err := plugin.Init("", "", "", "", config.PluginOpts, config.PluginArgs, nil); err != nil {
+			if err := streamPlugin.InitStreamPlugin("", config.PluginOpts); err != nil {
 				return nil, newError("failed to start plugin").Base(err)
 			}
-		} else {
-			port, err := net.GetFreePort()
-			if err != nil {
-				return nil, newError("failed to get free port for sip003 plugin").Base(err)
-			}
-			inbound.receiverPort, err = net.GetFreePort()
-			if err != nil {
-				return nil, newError("failed to get free port for sip003 plugin receiver").Base(err)
-			}
-			u := uuid.New()
-			tag := "v2ray.system.shadowsocks-inbound-plugin-receiver." + u.String()
-			inbound.pluginTag = tag
-			handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
-				Listen:    net.NewIPOrDomain(net.LocalHostIP),
-				PortRange: net.SinglePortRange(net.Port(inbound.receiverPort)),
-			}, inbound, true)
-			if err != nil {
-				return nil, newError("failed to create sip003 plugin inbound").Base(err)
-			}
-			v := core.MustFromContext(ctx)
-			inboundManager := v.GetFeature(features_inbound.ManagerType()).(features_inbound.Manager)
-			if err := inboundManager.AddHandler(ctx, handler); err != nil {
-				return nil, newError("failed to add sip003 plugin inbound").Base(err)
-			}
-			inbound.pluginOverride = net.Destination{
-				Network: net.Network_TCP,
-				Address: net.LocalHostIP,
-				Port:    net.Port(port),
-			}
-			if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(inbound.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs, nil); err != nil {
-				return nil, newError("failed to start plugin").Base(err)
-			}
-			inbound.plugin = plugin
+			return inbound, nil
 		}
+
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		inbound.receiverPort, err = net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin receiver").Base(err)
+		}
+		u := uuid.New()
+		tag := "v2ray.system.shadowsocks-inbound-plugin-receiver." + u.String()
+		inbound.pluginTag = tag
+		handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
+			Listen:    net.NewIPOrDomain(net.LocalHostIP),
+			PortRange: net.SinglePortRange(net.Port(inbound.receiverPort)),
+		}, inbound, true)
+		if err != nil {
+			return nil, newError("failed to create sip003 plugin inbound").Base(err)
+		}
+		v := core.MustFromContext(ctx)
+		inboundManager := v.GetFeature(features_inbound.ManagerType()).(features_inbound.Manager)
+		if err := inboundManager.AddHandler(ctx, handler); err != nil {
+			return nil, newError("failed to add sip003 plugin inbound").Base(err)
+		}
+		inbound.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(inbound.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		inbound.plugin = plugin
 	}
 
 	return inbound, nil

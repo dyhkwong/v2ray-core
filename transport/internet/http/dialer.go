@@ -127,24 +127,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 				if err != nil {
 					return nil, err
 				}
-				var packetConn net.PacketConn
-				switch conn := rawConn.(type) {
-				case *internet.PacketConnWrapper:
-					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
-					}
-				case net.PacketConn:
-					if udpConn, ok := conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn)
-					}
-				default:
-					packetConn = internet.NewQUICConnWrapper(rawConn)
-				}
-				return quic.DialEarly(detachedContext, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(detachedContext, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	}

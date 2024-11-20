@@ -14,7 +14,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/drain"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	ss_common "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/common"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 )
 
@@ -32,8 +31,8 @@ var addrParser = protocol.NewAddressParser(
 )
 
 // ReadTCPSession reads a Shadowsocks TCP session from the given reader, returns its header and remaining parts.
-func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, conn *sip003.ProtocolConn) (*protocol.RequestHeader, buf.Reader, error) {
-	account := user.Account.(*ss_common.MemoryAccount)
+func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, protocolConn *sip003.ProtocolConn) (*protocol.RequestHeader, buf.Reader, error) {
+	account := user.Account.(*MemoryAccount)
 
 	hashkdf := hmac.New(sha256.New, []byte("SSBSKDF"))
 	hashkdf.Write(account.Key)
@@ -65,9 +64,9 @@ func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, conn *sip003.Pr
 		return nil, nil, drain.WithError(drainer, reader, newError("failed to initialize decoding stream").Base(err).AtError())
 	}
 
-	if conn != nil {
-		conn.Reader = r
-		r = conn.ProtocolReader
+	if protocolConn != nil {
+		protocolConn.Reader = r
+		r = protocolConn.ProtocolReader
 	}
 
 	br := &buf.BufferedReader{Reader: r}
@@ -104,9 +103,9 @@ func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, conn *sip003.Pr
 }
 
 // WriteTCPRequest writes Shadowsocks request into the given writer, and returns a writer for body.
-func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer, iv []byte, conn *sip003.ProtocolConn) (buf.Writer, error) {
+func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer, iv []byte, protocolConn *sip003.ProtocolConn) (buf.Writer, error) {
 	user := request.User
-	account := user.Account.(*ss_common.MemoryAccount)
+	account := user.Account.(*MemoryAccount)
 
 	if len(iv) > 0 {
 		if err := buf.WriteAllBytes(writer, iv); err != nil {
@@ -119,9 +118,9 @@ func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer, iv []byt
 		return nil, newError("failed to create encoding stream").Base(err).AtError()
 	}
 
-	if conn != nil {
-		conn.Writer = w
-		w = conn.ProtocolWriter
+	if protocolConn != nil {
+		protocolConn.Writer = w
+		w = protocolConn.ProtocolWriter
 	}
 
 	header := buf.New()
@@ -137,8 +136,8 @@ func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer, iv []byt
 	return w, nil
 }
 
-func ReadTCPResponse(user *protocol.MemoryUser, reader io.Reader, conn *sip003.ProtocolConn) (buf.Reader, error) {
-	account := user.Account.(*ss_common.MemoryAccount)
+func ReadTCPResponse(user *protocol.MemoryUser, reader io.Reader, protocolConn *sip003.ProtocolConn) (buf.Reader, error) {
+	account := user.Account.(*MemoryAccount)
 
 	hashkdf := hmac.New(sha256.New, []byte("SSBSKDF"))
 	hashkdf.Write(account.Key)
@@ -166,17 +165,17 @@ func ReadTCPResponse(user *protocol.MemoryUser, reader io.Reader, conn *sip003.P
 
 	r, err := account.Cipher.NewDecryptionReader(account.Key, iv, reader)
 
-	if conn != nil {
-		conn.Reader = r
-		r = conn.ProtocolReader
+	if protocolConn != nil {
+		protocolConn.Reader = r
+		r = protocolConn.ProtocolReader
 	}
 
 	return r, err
 }
 
-func WriteTCPResponse(request *protocol.RequestHeader, writer io.Writer, iv []byte, conn *sip003.ProtocolConn) (buf.Writer, error) {
+func WriteTCPResponse(request *protocol.RequestHeader, writer io.Writer, iv []byte, protocolConn *sip003.ProtocolConn) (buf.Writer, error) {
 	user := request.User
-	account := user.Account.(*ss_common.MemoryAccount)
+	account := user.Account.(*MemoryAccount)
 
 	if len(iv) > 0 {
 		if err := buf.WriteAllBytes(writer, iv); err != nil {
@@ -186,17 +185,17 @@ func WriteTCPResponse(request *protocol.RequestHeader, writer io.Writer, iv []by
 
 	w, err := account.Cipher.NewEncryptionWriter(account.Key, iv, writer)
 
-	if err == nil && conn != nil {
-		conn.Writer = w
-		w = conn.ProtocolWriter
+	if err == nil && protocolConn != nil {
+		protocolConn.Writer = w
+		w = protocolConn.ProtocolWriter
 	}
 
 	return w, err
 }
 
-func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, plugin sip003.ProtocolPlugin) (*buf.Buffer, error) {
+func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, protocolPlugin sip003.ProtocolPlugin) (*buf.Buffer, error) {
 	user := request.User
-	account := user.Account.(*ss_common.MemoryAccount)
+	account := user.Account.(*MemoryAccount)
 
 	buffer := buf.New()
 	ivLen := account.Cipher.IVSize()
@@ -211,8 +210,8 @@ func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, plugin sip
 
 	buffer.Write(payload)
 
-	if plugin != nil {
-		if newBuffer, err := plugin.EncodePacket(buffer, ivLen); err == nil {
+	if protocolPlugin != nil {
+		if newBuffer, err := protocolPlugin.EncodePacket(buffer, ivLen); err == nil {
 			buffer = newBuffer
 		} else {
 			return nil, newError("failed to encode UDP payload").Base(err)
@@ -227,8 +226,8 @@ func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, plugin sip
 	return buffer, nil
 }
 
-func DecodeUDPPacket(user *protocol.MemoryUser, payload *buf.Buffer, plugin sip003.ProtocolPlugin) (*protocol.RequestHeader, *buf.Buffer, error) {
-	account := user.Account.(*ss_common.MemoryAccount)
+func DecodeUDPPacket(user *protocol.MemoryUser, payload *buf.Buffer, protocolPlugin sip003.ProtocolPlugin) (*protocol.RequestHeader, *buf.Buffer, error) {
+	account := user.Account.(*MemoryAccount)
 
 	var iv []byte
 	if !account.Cipher.IsAEAD() && account.Cipher.IVSize() > 0 {
@@ -241,8 +240,8 @@ func DecodeUDPPacket(user *protocol.MemoryUser, payload *buf.Buffer, plugin sip0
 		return nil, nil, newError("failed to decrypt UDP payload").Base(err)
 	}
 
-	if plugin != nil {
-		if newBuffer, err := plugin.DecodePacket(payload); err == nil {
+	if protocolPlugin != nil {
+		if newBuffer, err := protocolPlugin.DecodePacket(payload); err == nil {
 			payload = newBuffer
 		} else {
 			return nil, nil, newError("failed to decode UDP payload").Base(err)

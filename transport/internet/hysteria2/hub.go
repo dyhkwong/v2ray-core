@@ -4,6 +4,7 @@ import (
 	"context"
 
 	hyServer "github.com/apernet/hysteria/core/v2/server"
+	"github.com/apernet/hysteria/extras/v2/obfs"
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/http3"
 
@@ -94,11 +95,11 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		IgnoreClientBandwidth: config.GetIgnoreClientBandwidth(),
 	}
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
-		ob, err := NewSalamanderObfuscator([]byte(config.Obfs.Password))
+		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
 		if err != nil {
 			return nil, err
 		}
-		hyConfig.Conn = WrapPacketConn(rawConn, ob)
+		hyConfig.Conn = obfs.WrapPacketConn(rawConn, ob)
 	}
 	hyServer, err := hyServer.NewServer(hyConfig)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	. "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks"
-	ss_common "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/common"
 )
 
 func toAccount(a *Account) protocol.Account {
@@ -121,7 +120,7 @@ func TestTCPRequest(t *testing.T) {
 		defer cache.Release()
 
 		var iv []byte
-		account := request.User.Account.(*ss_common.MemoryAccount)
+		account := request.User.Account.(*MemoryAccount)
 		if account.Cipher.IVSize() > 0 {
 			iv = make([]byte, account.Cipher.IVSize())
 			common.Must2(rand.Read(iv))

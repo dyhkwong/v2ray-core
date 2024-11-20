@@ -17,7 +17,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/proxy"
-	ss_common "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks/common"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -31,6 +30,7 @@ type Client struct {
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
+
 	streamPlugin   sip003.StreamPlugin
 	protocolPlugin sip003.ProtocolPlugin
 }
@@ -72,29 +72,36 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
 		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
 			client.streamPlugin = streamPlugin
-			if err := plugin.Init("", "", s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs, s.PickUser().Account.(*ss_common.MemoryAccount)); err != nil {
-				return nil, newError("failed to start plugin").Base(err)
-			}
+			var err error
 			if protocolPlugin, ok := plugin.(sip003.ProtocolPlugin); ok {
 				client.protocolPlugin = protocolPlugin
+				account := s.PickUser().Account.(*MemoryAccount)
+				err = protocolPlugin.InitProtocolPlugin(s.Destination().Address.String(), s.Destination().Port.String(), config.PluginArgs, account.Key, int(account.Cipher.IVSize()))
+			} else {
+				err = streamPlugin.InitStreamPlugin(s.Destination().Port.String(), config.PluginOpts)
 			}
-		} else {
-			port, err := net.GetFreePort()
 			if err != nil {
-				return nil, newError("failed to get free port for sip003 plugin").Base(err)
-			}
-			client.pluginOverride = net.Destination{
-				Network: net.Network_TCP,
-				Address: net.LocalHostIP,
-				Port:    net.Port(port),
-			}
-			if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs, s.PickUser().Account.(*ss_common.MemoryAccount)); err != nil {
 				return nil, newError("failed to start plugin").Base(err)
 			}
-			client.plugin = plugin
+			return client, nil
 		}
+
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		client.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		client.plugin = plugin
 	}
 
 	return client, nil
@@ -116,7 +123,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	err := retry.ExponentialBackoff(5, 100).On(func() error {
 		server = c.serverPicker.PickServer()
 		user = server.PickUser()
-		_, ok := user.Account.(*ss_common.MemoryAccount)
+		_, ok := user.Account.(*MemoryAccount)
 		if !ok {
 			return newError("user account is not valid")
 		}
@@ -168,7 +175,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	var protocolConn *sip003.ProtocolConn
 	var iv []byte
-	account := user.Account.(*ss_common.MemoryAccount)
+	account := user.Account.(*MemoryAccount)
 	if account.Cipher.IVSize() > 0 {
 		iv = make([]byte, account.Cipher.IVSize())
 		common.Must2(rand.Read(iv))

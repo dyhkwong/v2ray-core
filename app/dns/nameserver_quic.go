@@ -457,31 +457,14 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnecti
 			cnc.ConnectionInputMulti(link.Writer),
 			cnc.ConnectionOutputMultiUDP(link.Reader),
 		)
-		return quic.DialEarly(ctx, internet.NewQUICConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+		return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 	}
 
 	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
 	if err != nil {
 		return nil, err
 	}
-	var packetConn net.PacketConn
-	switch conn := rawConn.(type) {
-	case *internet.PacketConnWrapper:
-		if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
-			packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-		} else {
-			packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
-		}
-	case net.PacketConn:
-		if udpConn, ok := conn.(*net.UDPConn); ok {
-			packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-		} else {
-			packetConn = internet.NewQUICPacketConnWrapper(conn)
-		}
-	default:
-		packetConn = internet.NewQUICConnWrapper(conn)
-	}
-	return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (quic.Stream, error) {

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	shadowsocks "github.com/sagernet/sing-shadowsocks2"
+	"github.com/sagernet/sing-shadowsocks2/cipher"
+	"github.com/sagernet/sing-shadowsocks2/shadowaead_2022"
 	B "github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
 
@@ -28,11 +30,12 @@ func init() {
 type Outbound struct {
 	ctx    context.Context
 	server net.Destination
-	method shadowsocks.Method
+	method cipher.Method
 
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
-	streamPlugin   sip003.StreamPlugin
+
+	streamPlugin sip003.StreamPlugin
 }
 
 func (o *Outbound) Close() error {
@@ -51,6 +54,11 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Network: net.Network_TCP,
 		},
 	}
+	method, err := shadowaead_2022.NewMethod(ctx, config.Method, shadowsocks.MethodOptions{Password: config.Key})
+	if err != nil {
+		return nil, newError("create method").Base(err)
+	}
+	o.method = method
 
 	if config.Plugin != "" {
 		var plugin sip003.Plugin
@@ -61,33 +69,30 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
+
 		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
 			o.streamPlugin = streamPlugin
-			if err := plugin.Init("", "", config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs, nil); err != nil {
+			if err := streamPlugin.InitStreamPlugin(net.Port(config.Port).String(), config.PluginOpts); err != nil {
 				return nil, newError("failed to start plugin").Base(err)
 			}
-		} else {
-			port, err := net.GetFreePort()
-			if err != nil {
-				return nil, newError("failed to get free port for sip003 plugin").Base(err)
-			}
-			o.pluginOverride = net.Destination{
-				Network: net.Network_TCP,
-				Address: net.LocalHostIP,
-				Port:    net.Port(port),
-			}
-			if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs, nil); err != nil {
-				return nil, newError("failed to start plugin").Base(err)
-			}
-			o.plugin = plugin
+			return o, nil
 		}
+
+		port, err := net.GetFreePort()
+		if err != nil {
+			return nil, newError("failed to get free port for sip003 plugin").Base(err)
+		}
+		o.pluginOverride = net.Destination{
+			Network: net.Network_TCP,
+			Address: net.LocalHostIP,
+			Port:    net.Port(port),
+		}
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), config.Address.AsAddress().String(), net.Port(config.Port).String(), config.PluginOpts, config.PluginArgs); err != nil {
+			return nil, newError("failed to start plugin").Base(err)
+		}
+		o.plugin = plugin
 	}
 
-	method, err := shadowsocks.CreateMethod(ctx, config.Method, shadowsocks.MethodOptions{Password: config.Key})
-	if err != nil {
-		return nil, newError("create method").Base(err)
-	}
-	o.method = method
 	return o, nil
 }
 

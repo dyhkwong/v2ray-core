@@ -4,7 +4,8 @@ go 1.22.7
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/apernet/hysteria/core/v2 v2.5.2
+	github.com/apernet/hysteria/core/v2 v2.6.0
+	github.com/apernet/hysteria/extras/v2 v2.6.0
 	github.com/apernet/quic-go v0.48.2-0.20241104191913-cb103fcecfe7
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
@@ -18,7 +19,7 @@ require (
 	github.com/pires/go-proxyproto v0.8.0
 	github.com/quic-go/quic-go v0.48.1
 	github.com/refraction-networking/utls v1.6.7
-	github.com/sagernet/sing v0.5.0
+	github.com/sagernet/sing v0.5.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
@@ -35,7 +36,7 @@ require (
 	golang.org/x/sys v0.27.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.68.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 	gvisor.dev/gvisor v0.0.0-20240916094835-a174eb65023f
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0
@@ -43,15 +44,15 @@ require (
 
 require (
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
-	github.com/andybalholm/brotli v1.0.6 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
-	github.com/cloudflare/circl v1.3.7 // indirect
+	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
@@ -80,4 +81,4 @@ require (
 
 replace github.com/lunixbochs/struc v0.0.0-20241101090106-8d528fa2c543 => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
 
-replace github.com/apernet/hysteria/core/v2 v2.5.2 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d
+replace github.com/apernet/hysteria/core/v2 v2.6.0 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d

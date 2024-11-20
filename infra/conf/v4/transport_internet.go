@@ -160,6 +160,8 @@ type Hy2Config struct {
 	UseUdpExtension       bool                `json:"use_udp_extension"`
 	IgnoreClientBandwidth bool                `json:"ignore_client_bandwidth"`
 	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
+	HopPorts              string              `json:"hopPorts"`
+	HopInterval           uint32              `json:"hopInterval"`
 }
 
 // Build implements Buildable.
@@ -176,6 +178,8 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 			Type:     c.OBFS.Type,
 			Password: c.OBFS.Password,
 		},
+		HopPorts:    c.HopPorts,
+		HopInterval: c.HopInterval,
 	}, nil
 }
 
@@ -386,7 +390,6 @@ type SplitHTTPConfig struct {
 	Host                 string            `json:"host"`
 	Path                 string            `json:"path"`
 	Headers              map[string]string `json:"headers"`
-	NoSSEHeader          bool              `json:"noSSEHeader"`
 	Mode                 string            `json:"mode"`
 	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
@@ -412,7 +415,6 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		Path:                 c.Path,
 		Host:                 c.Host,
 		Header:               c.Headers,
-		NoSSEHeader:          c.NoSSEHeader,
 		Mode:                 c.Mode,
 		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil

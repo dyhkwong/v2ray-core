@@ -76,7 +76,7 @@ func (h *requestHandler) upsertSession(sessionId string) *httpSession {
 	}
 
 	s := &httpSession{
-		uploadQueue:      NewUploadQueue(scMaxConcurrentPosts),
+		uploadQueue:      NewUploadQueue(),
 		isFullyConnected: done.New(),
 	}
 
@@ -133,13 +133,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		if seq == "" {
-			/*
-				if h.config.Mode == "packet-up" {
-					newError("stream-up mode is not allowed").AtInfo().WriteToLog()
-					writer.WriteHeader(http.StatusBadRequest)
-					return
-				}
-			*/
 			err = currentSession.uploadQueue.Push(Packet{
 				Reader: request.Body,
 			})
@@ -152,14 +145,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			}
 			return
 		}
-
-		/*
-			if h.config.Mode == "stream-up" {
-				newError("packet-up mode is not allowed").AtInfo().WriteToLog()
-				writer.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		*/
 
 		payload, err := io.ReadAll(request.Body)
 
@@ -205,10 +190,8 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		// Should be able to prevent overloading the cache, or stop CDNs from
 		// teeing the response stream into their cache, causing slowdowns.
 		writer.Header().Set("Cache-Control", "no-store")
-		if !h.config.NoSSEHeader {
-			// magic header to make the HTTP middle box consider this as SSE to disable buffer
-			writer.Header().Set("Content-Type", "text/event-stream")
-		}
+		// magic header to make the HTTP middle box consider this as SSE to disable buffer
+		writer.Header().Set("Content-Type", "text/event-stream")
 
 		writer.WriteHeader(http.StatusOK)
 

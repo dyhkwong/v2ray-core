@@ -19,7 +19,7 @@ import (
 // NewH3NameServer creates DOH server object for remote resolving.
 func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3")
+	s := baseDOHNameServer(url, "H3", "quic")
 	s.httpClient = &http.Client{
 		Transport: &http3.Transport{
 			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
@@ -36,7 +36,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 					cnc.ConnectionInputMulti(link.Writer),
 					cnc.ConnectionOutputMultiUDP(link.Reader),
 				)
-				return quic.DialEarly(ctx, internet.NewQUICConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		},
 	}
@@ -47,7 +47,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 // NewH3LocalNameServer creates DOH client object for local resolving
 func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3L")
+	s := baseDOHNameServer(url, "H3L", "quic")
 	s.httpClient = &http.Client{
 		Transport: &http3.Transport{
 			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
@@ -59,24 +59,7 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 				if err != nil {
 					return nil, err
 				}
-				var packetConn net.PacketConn
-				switch conn := rawConn.(type) {
-				case *internet.PacketConnWrapper:
-					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
-					}
-				case net.PacketConn:
-					if udpConn, ok := conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn)
-					}
-				default:
-					packetConn = internet.NewQUICConnWrapper(conn)
-				}
-				return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		},
 	}

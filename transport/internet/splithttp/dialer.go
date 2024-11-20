@@ -139,24 +139,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				if err != nil {
 					return nil, err
 				}
-				var packetConn net.PacketConn
-				switch conn := rawConn.(type) {
-				case *internet.PacketConnWrapper:
-					if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn.Conn)
-					}
-				case net.PacketConn:
-					if udpConn, ok := conn.(*net.UDPConn); ok {
-						packetConn = internet.NewQUICUDPConnWrapper(udpConn)
-					} else {
-						packetConn = internet.NewQUICPacketConnWrapper(conn)
-					}
-				default:
-					packetConn = internet.NewQUICConnWrapper(conn)
-				}
-				return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	} else if isH2 {
@@ -270,10 +253,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		return internet.Connection(&conn), nil
 	}
 
-	// WithSizeLimit(0) will still allow single bytes to pass, and a lot of
-	// code relies on this behavior. Subtract 1 so that together with
-	// uploadWriter wrapper, exact size limits can be enforced
-	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(scMaxEachPostBytes - 1))
+	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(scMaxEachPostBytes - buf.Size))
 
 	conn.writer = uploadWriter{
 		uploadPipeWriter,
@@ -346,11 +326,6 @@ type uploadWriter struct {
 }
 
 func (w uploadWriter) Write(b []byte) (int, error) {
-	capacity := int(w.maxLen - w.Len())
-	if capacity > 0 && capacity < len(b) {
-		b = b[:capacity]
-	}
-
 	buffer := buf.New()
 	n, err := buffer.Write(b)
 	if err != nil {
