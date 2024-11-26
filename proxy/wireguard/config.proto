@@ -16,7 +16,7 @@ message PeerConfig {
   repeated string allowed_ips = 5;
 }
 
-message DeviceConfig {
+message ClientConfig {
   option (v2ray.core.common.protoext.message_opt).type = "outbound";
   option (v2ray.core.common.protoext.message_opt).short_name = "wireguard";
 
@@ -27,6 +27,7 @@ message DeviceConfig {
     PREFER_IP4 = 3;
     PREFER_IP6 = 4;
   }
+
   string secret_key = 1;
   repeated string endpoint = 2;
   repeated PeerConfig peers = 3;
@@ -34,4 +35,15 @@ message DeviceConfig {
   int32 num_workers = 5;
   bytes reserved = 6;
   DomainStrategy domain_strategy = 7;
+}
+
+message ServerConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "inbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "wireguard";
+
+  string secret_key = 1;
+  repeated string endpoint = 2;
+  repeated PeerConfig peers = 3;
+  int32 mtu = 4;
+  int32 num_workers = 5;
 }

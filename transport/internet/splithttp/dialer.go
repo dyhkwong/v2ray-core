@@ -245,8 +245,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	}
 
 	mode := transportConfiguration.Mode
-	if mode == "" || mode == "auto" && realityConfig != nil {
-		mode = "stream-up"
+	if mode == "" || mode == "auto" {
+		mode = "packet-up"
+		if (tlsConfig != nil && len(tlsConfig.NextProtocol) != 1) || realityConfig != nil {
+			mode = "stream-up"
+		}
 	}
 	if mode == "stream-up" {
 		conn.writer = httpClient.OpenUpload(ctx, requestURL.String())

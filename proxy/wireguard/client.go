@@ -2,9 +2,7 @@ package wireguard
 
 import (
 	"context"
-	"fmt"
 	"net/netip"
-	"strings"
 	"sync"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -22,9 +20,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
-// Handler is an outbound connection that silently swallow the entire payload.
-type Handler struct {
-	conf          *DeviceConfig
+type Client struct {
+	conf          *ClientConfig
 	net           Tunnel
 	bind          *netBindClient
 	policyManager policy.Manager
@@ -35,17 +32,16 @@ type Handler struct {
 	wgLock           sync.Mutex
 }
 
-// New creates a new wireguard handler.
-func New(ctx context.Context, conf *DeviceConfig) (*Handler, error) {
+func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 	v := core.MustFromContext(ctx)
 
-	endpoints, hasIPv4, hasIPv6, err := parseEndpoints(conf)
+	endpoints, hasIPv4, hasIPv6, err := parseEndpoints(conf.Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	d := v.GetFeature(dns.ClientType()).(dns.Client)
-	return &Handler{
+	return &Client{
 		conf:          conf,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 		dns:           d,
@@ -55,7 +51,7 @@ func New(ctx context.Context, conf *DeviceConfig) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) processWireGuard(ctx context.Context, dialer internet.Dialer) (err error) {
+func (h *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (err error) {
 	h.wgLock.Lock()
 	defer h.wgLock.Unlock()
 
@@ -105,7 +101,7 @@ func (h *Handler) processWireGuard(ctx context.Context, dialer internet.Dialer) 
 }
 
 // Process implements OutboundHandler.Dispatch().
-func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+func (h *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified")
@@ -126,17 +122,17 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	addr := destination.Address
 	if addr.Family().IsDomain() {
 		ips, err := dns.LookupIPWithOption(h.dns, addr.Domain(), dns.IPOption{
-			IPv4Enable: h.hasIPv4 && h.conf.DomainStrategy != DeviceConfig_USE_IP6,
-			IPv6Enable: h.hasIPv6 && h.conf.DomainStrategy != DeviceConfig_USE_IP4,
+			IPv4Enable: h.hasIPv4 && h.conf.DomainStrategy != ClientConfig_USE_IP6,
+			IPv6Enable: h.hasIPv6 && h.conf.DomainStrategy != ClientConfig_USE_IP4,
 		})
 		if err != nil {
 			return newError("failed to lookup DNS").Base(err)
 		} else if len(ips) == 0 {
 			return dns.ErrEmptyResponse
 		}
-		if h.conf.DomainStrategy == DeviceConfig_PREFER_IP4 || h.conf.DomainStrategy == DeviceConfig_PREFER_IP6 {
+		if h.conf.DomainStrategy == ClientConfig_PREFER_IP4 || h.conf.DomainStrategy == ClientConfig_PREFER_IP6 {
 			for _, ip := range ips {
-				if ip.To4() != nil == (h.conf.DomainStrategy == DeviceConfig_PREFER_IP4) {
+				if ip.To4() != nil == (h.conf.DomainStrategy == ClientConfig_PREFER_IP4) {
 					addr = net.IPAddress(ip)
 				}
 			}
@@ -197,8 +193,8 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 }
 
 // creates a tun interface on netstack given a configuration
-func (h *Handler) makeVirtualTun() (Tunnel, error) {
-	t, err := CreateTun(h.endpoints, int(h.conf.Mtu))
+func (h *Client) makeVirtualTun() (Tunnel, error) {
+	t, err := createTun(h.endpoints, int(h.conf.Mtu), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -206,108 +202,15 @@ func (h *Handler) makeVirtualTun() (Tunnel, error) {
 	h.bind.dnsOption.IPv4Enable = h.hasIPv4
 	h.bind.dnsOption.IPv6Enable = h.hasIPv6
 
-	if err = t.BuildDevice(h.createIPCRequest(), h.bind); err != nil {
+	if err = t.BuildDevice(createIPCRequest(h.conf.SecretKey, h.conf.Peers, false), h.bind); err != nil {
 		_ = t.Close()
 		return nil, err
 	}
 	return t, nil
 }
 
-// convert endpoint string to netip.Addr
-func parseEndpoints(conf *DeviceConfig) ([]netip.Addr, bool, bool, error) {
-	var hasIPv4, hasIPv6 bool
-
-	endpoints := make([]netip.Addr, len(conf.Endpoint))
-	for i, str := range conf.Endpoint {
-		var addr netip.Addr
-		if strings.Contains(str, "/") {
-			prefix, err := netip.ParsePrefix(str)
-			if err != nil {
-				return nil, false, false, err
-			}
-			addr = prefix.Addr()
-			if prefix.Bits() != addr.BitLen() {
-				return nil, false, false, newError("interface address subnet should be /32 for IPv4 and /128 for IPv6")
-			}
-		} else {
-			var err error
-			addr, err = netip.ParseAddr(str)
-			if err != nil {
-				return nil, false, false, err
-			}
-		}
-		endpoints[i] = addr
-
-		if addr.Is4() {
-			hasIPv4 = true
-		} else if addr.Is6() {
-			hasIPv6 = true
-		}
-	}
-
-	return endpoints, hasIPv4, hasIPv6, nil
-}
-
-// serialize the config into an IPC request
-func (h *Handler) createIPCRequest() string {
-	var request strings.Builder
-
-	request.WriteString(fmt.Sprintf("private_key=%s\n", h.conf.SecretKey))
-
-	for _, peer := range h.conf.Peers {
-		if peer.PublicKey != "" {
-			request.WriteString(fmt.Sprintf("public_key=%s\n", peer.PublicKey))
-		}
-
-		if peer.PreSharedKey != "" {
-			request.WriteString(fmt.Sprintf("preshared_key=%s\n", peer.PreSharedKey))
-		}
-
-		address, port, err := net.SplitHostPort(peer.Endpoint)
-		if err != nil {
-			newError("failed to split endpoint ", peer.Endpoint, " into address and port").AtError().WriteToLog()
-		}
-		addr := net.ParseAddress(address)
-		if addr.Family().IsDomain() {
-			ips, err := dns.LookupIPWithOption(h.dns, addr.Domain(), dns.IPOption{
-				IPv4Enable: h.hasIPv4 && h.conf.DomainStrategy != DeviceConfig_USE_IP6,
-				IPv6Enable: h.hasIPv6 && h.conf.DomainStrategy != DeviceConfig_USE_IP4,
-			})
-			if err != nil {
-				newError("failed to lookup DNS").Base(err)
-			} else if len(ips) == 0 {
-				newError(dns.ErrEmptyResponse)
-			} else {
-				if h.conf.DomainStrategy == DeviceConfig_PREFER_IP4 || h.conf.DomainStrategy == DeviceConfig_PREFER_IP6 {
-					for _, ip := range ips {
-						if ip.To4() != nil == (h.conf.DomainStrategy == DeviceConfig_PREFER_IP4) {
-							addr = net.IPAddress(ip)
-						}
-					}
-				} else {
-					addr = net.IPAddress(ips[0])
-				}
-			}
-		}
-
-		if peer.Endpoint != "" {
-			request.WriteString(fmt.Sprintf("endpoint=%s:%s\n", addr, port))
-		}
-
-		for _, ip := range peer.AllowedIps {
-			request.WriteString(fmt.Sprintf("allowed_ip=%s\n", ip))
-		}
-
-		if peer.KeepAlive != 0 {
-			request.WriteString(fmt.Sprintf("persistent_keepalive_interval=%d\n", peer.KeepAlive))
-		}
-	}
-
-	return request.String()[:request.Len()]
-}
-
 func init() {
-	common.Must(common.RegisterConfig((*DeviceConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		return New(ctx, config.(*DeviceConfig))
+	common.Must(common.RegisterConfig((*ClientConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
+		return NewClient(ctx, config.(*ClientConfig))
 	}))
 }

@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
-
-	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 const (
@@ -16,16 +14,6 @@ const (
 	scMinXPaddingBytes   = 100
 	scMaxXPaddingBytes   = 1000
 )
-
-func IsValidHTTPHost(request string, config string) bool {
-	r := strings.ToLower(request)
-	c := strings.ToLower(config)
-	if strings.Contains(r, ":") {
-		h, _, _ := net.SplitHostPort(r)
-		return h == c
-	}
-	return r == c
-}
 
 func (c *Config) GetNormalizedPath() string {
 	pathAndQuery := strings.SplitN(c.Path, "?", 2)

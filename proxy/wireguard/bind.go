@@ -188,6 +188,31 @@ func (bind *netBindClient) Send(buff [][]byte, endpoint conn.Endpoint) error {
 	return nil
 }
 
+type netBindServer struct {
+	netBind
+}
+
+func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
+	var err error
+
+	nend, ok := endpoint.(*netEndpoint)
+	if !ok {
+		return conn.ErrWrongEndpointType
+	}
+
+	if nend.conn == nil {
+		return errors.New("connection not open yet")
+	}
+
+	for _, buff := range buff {
+		if _, err = nend.conn.Write(buff); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
 type netEndpoint struct {
 	dst  net.Destination
 	conn net.Conn
@@ -220,18 +245,4 @@ func (e netEndpoint) DstToString() string {
 
 func (e netEndpoint) SrcToString() string {
 	return ""
-}
-
-func toNetIpAddr(addr net.Address) netip.Addr {
-	if addr.Family().IsIPv4() {
-		ip := addr.IP()
-		return netip.AddrFrom4([4]byte{ip[0], ip[1], ip[2], ip[3]})
-	} else {
-		ip := addr.IP()
-		arr := [16]byte{}
-		for i := 0; i < 16; i++ {
-			arr[i] = ip[i]
-		}
-		return netip.AddrFrom16(arr)
-	}
 }

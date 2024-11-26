@@ -59,7 +59,7 @@ type WireGuardClientConfig struct {
 }
 
 func (c *WireGuardClientConfig) Build() (proto.Message, error) {
-	config := new(wireguard.DeviceConfig)
+	config := new(wireguard.ClientConfig)
 
 	var err error
 	config.SecretKey, err = parseWireGuardKey(c.SecretKey)
@@ -101,18 +101,65 @@ func (c *WireGuardClientConfig) Build() (proto.Message, error) {
 
 	switch strings.ToLower(c.DomainStrategy) {
 	case "useip", "":
-		config.DomainStrategy = wireguard.DeviceConfig_USE_IP
+		config.DomainStrategy = wireguard.ClientConfig_USE_IP
 	case "useipv4":
-		config.DomainStrategy = wireguard.DeviceConfig_USE_IP4
+		config.DomainStrategy = wireguard.ClientConfig_USE_IP4
 	case "useipv6":
-		config.DomainStrategy = wireguard.DeviceConfig_USE_IP6
+		config.DomainStrategy = wireguard.ClientConfig_USE_IP6
 	case "preferipv4":
-		config.DomainStrategy = wireguard.DeviceConfig_PREFER_IP4
+		config.DomainStrategy = wireguard.ClientConfig_PREFER_IP4
 	case "preferipv6":
-		config.DomainStrategy = wireguard.DeviceConfig_PREFER_IP6
+		config.DomainStrategy = wireguard.ClientConfig_PREFER_IP6
 	default:
 		return nil, newError("unsupported domain strategy: ", c.DomainStrategy)
 	}
+
+	return config, nil
+}
+
+type WireGuardServerConfig struct {
+	SecretKey  string                 `json:"secretKey"`
+	Address    []string               `json:"address"`
+	Peers      []*WireGuardPeerConfig `json:"peers"`
+	MTU        int32                  `json:"mtu"`
+	NumWorkers int32                  `json:"workers"`
+}
+
+func (c *WireGuardServerConfig) Build() (proto.Message, error) {
+	config := new(wireguard.ServerConfig)
+
+	var err error
+	config.SecretKey, err = parseWireGuardKey(c.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Address == nil {
+		// bogon ips
+		config.Endpoint = []string{"10.0.0.1", "fd59:7153:2388:b5fd:0000:0000:0000:0001"}
+	} else {
+		config.Endpoint = c.Address
+	}
+
+	if c.Peers != nil {
+		config.Peers = make([]*wireguard.PeerConfig, len(c.Peers))
+		for i, p := range c.Peers {
+			msg, err := p.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.Peers[i] = msg.(*wireguard.PeerConfig)
+		}
+	}
+
+	if c.MTU == 0 {
+		config.Mtu = 1420
+	} else {
+		config.Mtu = c.MTU
+	}
+	// these a fallback code in wireguard-go code,
+	// we don't need to process fallback manually
+	config.NumWorkers = c.NumWorkers
 
 	return config, nil
 }
