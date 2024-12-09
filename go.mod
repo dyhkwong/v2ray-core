@@ -17,13 +17,13 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
-	github.com/quic-go/quic-go v0.48.1
+	github.com/quic-go/quic-go v0.48.2
 	github.com/refraction-networking/utls v1.6.7
 	github.com/sagernet/sing v0.5.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2

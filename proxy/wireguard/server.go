@@ -10,6 +10,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
@@ -20,6 +21,7 @@ import (
 
 type Server struct {
 	ctx           context.Context
+	inboundTag    *session.Inbound
 	bind          *netBindServer
 	dispatcher    routing.Dispatcher
 	policyManager policy.Manager
@@ -28,7 +30,7 @@ type Server struct {
 func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 	v := core.MustFromContext(ctx)
 
-	endpoints, hasIPv4, hasIPv6, err := parseEndpoints(conf.Endpoint)
+	addresses, hasIPv4, hasIPv6, err := parseEndpoints(conf.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +49,7 @@ func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 	}
 
-	tun, err := createTun(endpoints, int(conf.Mtu), server.forwardConnection)
+	tun, err := createTun(addresses, int(conf.Mtu), server.forwardConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +71,7 @@ func (*Server) Network() []net.Network {
 func (s *Server) Process(ctx context.Context, network net.Network, conn internet.Connection, dispatcher routing.Dispatcher) error {
 	s.ctx = ctx
 	s.dispatcher = dispatcher
+	s.inboundTag = session.InboundFromContext(ctx)
 
 	ep, err := s.bind.ParseEndpoint(conn.RemoteAddr().String())
 	if err != nil {
@@ -117,6 +120,10 @@ func (s *Server) forwardConnection(dest net.Destination, conn net.Conn) {
 		Status: log.AccessAccepted,
 		Reason: "",
 	})
+
+	if s.inboundTag != nil {
+		ctx = session.ContextWithInbound(ctx, s.inboundTag)
+	}
 
 	link, err := s.dispatcher.Dispatch(ctx, dest)
 	if err != nil {

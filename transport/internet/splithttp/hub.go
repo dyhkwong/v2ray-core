@@ -92,18 +92,15 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	h.config.WriteResponseHeader(writer)
+	if err := h.config.WriteResponseHeader(writer); err != nil {
+		newError(err).AtError().WriteToLog()
+		return
+	}
 
 	sessionId := ""
 	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
 	if len(subpath) > 0 {
 		sessionId = subpath[0]
-	}
-
-	if sessionId == "" {
-		newError("no sessionid on request:", request.URL.Path).WriteToLog()
-		writer.WriteHeader(http.StatusBadRequest)
-		return
 	}
 
 	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
@@ -118,9 +115,12 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 	}
 
-	currentSession := h.upsertSession(sessionId)
+	var currentSession *httpSession
+	if sessionId != "" {
+		currentSession = h.upsertSession(sessionId)
+	}
 
-	if request.Method == "POST" {
+	if request.Method == "POST" && sessionId != "" {
 		seq := ""
 		if len(subpath) > 1 {
 			seq = subpath[1]
@@ -167,16 +167,18 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		writer.WriteHeader(http.StatusOK)
-	} else if request.Method == "GET" {
+	} else if request.Method == "GET" || sessionId == "" {
 		responseFlusher, ok := writer.(http.Flusher)
 		if !ok {
 			panic("expected http.ResponseWriter to be an http.Flusher")
 		}
 
-		// after GET is done, the connection is finished. disable automatic
-		// session reaping, and handle it in defer
-		currentSession.isFullyConnected.Close()
-		defer h.sessions.Delete(sessionId)
+		if sessionId != "" {
+			// after GET is done, the connection is finished. disable automatic
+			// session reaping, and handle it in defer
+			currentSession.isFullyConnected.Close()
+			defer h.sessions.Delete(sessionId)
+		}
 
 		// magic header instructs nginx + apache to not buffer response body
 		writer.Header().Set("X-Accel-Buffering", "no")
@@ -199,8 +201,11 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				downloadDone:    downloadDone,
 				responseFlusher: responseFlusher,
 			},
-			reader:     currentSession.uploadQueue,
+			reader:     request.Body,
 			remoteAddr: remoteAddr,
+		}
+		if sessionId != "" {
+			conn.reader = currentSession.uploadQueue
 		}
 
 		h.ln.addConn(internet.Connection(&conn))

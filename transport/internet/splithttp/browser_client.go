@@ -8,15 +8,19 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 )
 
-type browserDialerClient struct {
+type BrowserDialerClient struct {
 	dialer extension.BrowserDialer
 }
 
-func (c *browserDialerClient) OpenUpload(ctx context.Context, baseURL string) io.WriteCloser {
+func (c *BrowserDialerClient) OpenUpload(ctx context.Context, baseURL string) io.WriteCloser {
 	panic("not implemented yet")
 }
 
-func (c *browserDialerClient) OpenDownload(ctx context.Context, baseURL string) (io.ReadCloser, net.Addr, net.Addr, error) {
+func (c *BrowserDialerClient) Open(ctx context.Context, pureURL string) (io.WriteCloser, io.ReadCloser) {
+	panic("not implemented yet")
+}
+
+func (c *BrowserDialerClient) OpenDownload(ctx context.Context, baseURL string) (io.ReadCloser, net.Addr, net.Addr, error) {
 	conn, err := c.dialer.DialGet(baseURL)
 	if err != nil {
 		return nil, nil, nil, err
@@ -24,7 +28,7 @@ func (c *browserDialerClient) OpenDownload(ctx context.Context, baseURL string) 
 	return newConnection(conn), conn.RemoteAddr(), conn.LocalAddr(), nil
 }
 
-func (c *browserDialerClient) SendUploadRequest(ctx context.Context, url string, payload io.ReadWriteCloser, contentLength int64) error {
+func (c *BrowserDialerClient) SendUploadRequest(ctx context.Context, url string, payload io.ReadWriteCloser, contentLength int64) error {
 	bytes, err := io.ReadAll(payload)
 	if err != nil {
 		return err

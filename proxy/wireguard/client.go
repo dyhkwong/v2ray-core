@@ -27,7 +27,7 @@ type Client struct {
 	policyManager policy.Manager
 	dns           dns.Client
 	// cached configuration
-	endpoints        []netip.Addr
+	addresses        []netip.Addr
 	hasIPv4, hasIPv6 bool
 	wgLock           sync.Mutex
 }
@@ -35,7 +35,7 @@ type Client struct {
 func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 	v := core.MustFromContext(ctx)
 
-	endpoints, hasIPv4, hasIPv6, err := parseEndpoints(conf.Endpoint)
+	addresses, hasIPv4, hasIPv6, err := parseEndpoints(conf.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 		conf:          conf,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 		dns:           d,
-		endpoints:     endpoints,
+		addresses:     addresses,
 		hasIPv4:       hasIPv4,
 		hasIPv6:       hasIPv6,
 	}, nil
@@ -194,7 +194,7 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 // creates a tun interface on netstack given a configuration
 func (h *Client) makeVirtualTun() (Tunnel, error) {
-	t, err := createTun(h.endpoints, int(h.conf.Mtu), nil)
+	t, err := createTun(h.addresses, int(h.conf.Mtu), nil)
 	if err != nil {
 		return nil, err
 	}

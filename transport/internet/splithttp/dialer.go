@@ -3,6 +3,7 @@ package splithttp
 import (
 	"context"
 	gotls "crypto/tls"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -62,7 +63,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 		if dialer == nil {
 			return nil, newError("get browser dialer failed")
 		}
-		return &browserDialerClient{
+		return &BrowserDialerClient{
 			dialer: dialer,
 		}, nil
 	}
@@ -205,6 +206,19 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 
+	scMaxConcurrentPosts, err := transportConfiguration.GetNormalizedScMaxConcurrentPosts()
+	if err != nil {
+		return nil, err
+	}
+	scMaxEachPostBytes, err := transportConfiguration.GetNormalizedScMaxEachPostBytes()
+	if err != nil {
+		return nil, err
+	}
+	scMinPostsIntervalMs, err := transportConfiguration.GetNormalizedScMinPostsIntervalMs()
+	if err != nil {
+		return nil, err
+	}
+
 	if securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings); securityEngine != nil || realityConfig != nil {
 		requestURL.Scheme = "https"
 	} else {
@@ -217,14 +231,43 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	sessionIdUuid := uuid.New()
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
-	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
+	requestURL.RawQuery, err = transportConfiguration.GetNormalizedQuery()
+	if err != nil {
+		return nil, err
+	}
 
 	httpClient, err := getHTTPClient(ctx, dest, streamSettings)
 	if err != nil {
 		return nil, err
 	}
 
-	reader, remoteAddr, localAddr, err := httpClient.OpenDownload(context.WithoutCancel(ctx), requestURL.String())
+	mode := transportConfiguration.Mode
+	if mode == "" || mode == "auto" {
+		mode = "packet-up"
+		if tlsConfig != nil && (len(tlsConfig.NextProtocol) != 1 || tlsConfig.NextProtocol[0] == "h2") {
+			mode = "stream-up"
+		}
+		if realityConfig != nil {
+			mode = "stream-one"
+		}
+	}
+	newError("XHTTP is using mode: ", mode).AtInfo().WriteToLog()
+
+	var writer io.WriteCloser
+	var reader io.ReadCloser
+	var remoteAddr, localAddr net.Addr
+
+	if mode == "stream-one" {
+		requestURL.Path = transportConfiguration.GetNormalizedPath()
+		writer, reader = httpClient.Open(context.WithoutCancel(ctx), requestURL.String())
+		remoteAddr = &net.TCPAddr{}
+		localAddr = &net.TCPAddr{}
+	} else {
+		reader, remoteAddr, localAddr, err = httpClient.OpenDownload(context.WithoutCancel(ctx), requestURL.String())
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +275,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	closed := false
 
 	conn := splitConn{
-		writer:     nil,
+		writer:     writer,
 		reader:     reader,
 		remoteAddr: remoteAddr,
 		localAddr:  localAddr,
@@ -244,27 +287,24 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		},
 	}
 
-	mode := transportConfiguration.Mode
-	if mode == "" || mode == "auto" {
-		mode = "packet-up"
-		if (tlsConfig != nil && len(tlsConfig.NextProtocol) != 1) || realityConfig != nil {
-			mode = "stream-up"
-		}
+	if mode == "stream-one" {
+		return internet.Connection(&conn), nil
 	}
 	if mode == "stream-up" {
 		conn.writer = httpClient.OpenUpload(ctx, requestURL.String())
 		return internet.Connection(&conn), nil
 	}
 
-	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(scMaxEachPostBytes - buf.Size))
+	maxUploadSize := int32(scMaxEachPostBytes.roll())
+	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - buf.Size))
 
 	conn.writer = uploadWriter{
 		uploadPipeWriter,
-		scMaxEachPostBytes,
+		maxUploadSize,
 	}
 
 	go func() {
-		requestsLimiter := semaphore.New(scMaxConcurrentPosts)
+		requestsLimiter := semaphore.New(scMaxConcurrentPosts.roll())
 		var requestCounter int64
 
 		lastWrite := time.Now()
@@ -291,7 +331,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 				url := requestURL
 				url.Path += "/" + strconv.FormatInt(seq, 10)
 				// reassign query to get different padding
-				url.RawQuery = transportConfiguration.GetNormalizedQuery()
+				url.RawQuery, err = transportConfiguration.GetNormalizedQuery()
+				if err != nil {
+					newError(err).AtError()
+					return
+				}
 
 				err := httpClient.SendUploadRequest(
 					context.WithoutCancel(ctx),
@@ -305,8 +349,13 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 				}
 			}()
 
-			if time.Since(lastWrite) < time.Duration(scMinPostsIntervalMs)*time.Millisecond {
-				time.Sleep(time.Duration(scMinPostsIntervalMs) * time.Millisecond)
+			if scMinPostsIntervalMs.From > 0 {
+				roll := time.Duration(scMinPostsIntervalMs.roll()) * time.Millisecond
+				if time.Since(lastWrite) < roll {
+					time.Sleep(roll)
+				}
+
+				lastWrite = time.Now()
 			}
 
 			lastWrite = time.Now()

@@ -391,6 +391,11 @@ type SplitHTTPConfig struct {
 	Path                 string            `json:"path"`
 	Headers              map[string]string `json:"headers"`
 	Mode                 string            `json:"mode"`
+	ScMaxConcurrentPosts string            `json:"scMaxConcurrentPosts"`
+	ScMaxEachPostBytes   string            `json:"scMaxEachPostBytes"`
+	ScMinPostsIntervalMs string            `json:"scMinPostsIntervalMs"`
+	XPaddingBytes        string            `json:"xPaddingBytes"`
+	NoGRPCHeader         bool              `json:"noGRPCHeader"`
 	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
@@ -407,7 +412,7 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	switch c.Mode {
 	case "":
 		c.Mode = "auto"
-	case "auto", "packet-up", "stream-up":
+	case "auto", "packet-up", "stream-up", "stream-one":
 	default:
 		return nil, newError("unsupported mode: " + c.Mode)
 	}
@@ -416,6 +421,11 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		Host:                 c.Host,
 		Header:               c.Headers,
 		Mode:                 c.Mode,
+		ScMaxConcurrentPosts: c.ScMaxConcurrentPosts,
+		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
+		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
+		XPaddingBytes:        c.XPaddingBytes,
+		NoGRPCHeader:         c.NoGRPCHeader,
 		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }

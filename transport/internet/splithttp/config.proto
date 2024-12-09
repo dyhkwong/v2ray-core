@@ -16,5 +16,10 @@ message Config {
   string path = 2;
   map<string, string> header = 3;
   string mode = 4;
+  string scMaxConcurrentPosts = 5;
+  string scMaxEachPostBytes = 6;
+  string scMinPostsIntervalMs = 7;
+  string xPaddingBytes = 8;
+  bool noGRPCHeader = 9;
   bool use_browser_forwarding = 99;
 }

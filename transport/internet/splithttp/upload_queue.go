@@ -27,7 +27,7 @@ type uploadQueue struct {
 
 func NewUploadQueue() *uploadQueue {
 	return &uploadQueue{
-		pushedPackets: make(chan Packet, scMaxConcurrentPosts),
+		pushedPackets: make(chan Packet, 100),
 		heap:          uploadHeap{},
 		nextSeq:       0,
 		closed:        false,

@@ -29,7 +29,7 @@ message ClientConfig {
   }
 
   string secret_key = 1;
-  repeated string endpoint = 2;
+  repeated string address = 2;
   repeated PeerConfig peers = 3;
   int32 mtu = 4;
   int32 num_workers = 5;
@@ -42,7 +42,7 @@ message ServerConfig {
   option (v2ray.core.common.protoext.message_opt).short_name = "wireguard";
 
   string secret_key = 1;
-  repeated string endpoint = 2;
+  repeated string address = 2;
   repeated PeerConfig peers = 3;
   int32 mtu = 4;
   int32 num_workers = 5;
