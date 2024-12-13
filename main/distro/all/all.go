@@ -66,6 +66,7 @@ import (
 
 	_ "github.com/v2fly/v2ray-core/v5/proxy/hysteria2"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks2022"
+	_ "github.com/v2fly/v2ray-core/v5/proxy/tuic"
 
 	// Transports
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/domainsocket"
