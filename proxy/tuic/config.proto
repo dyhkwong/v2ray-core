@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.tuic;
+option csharp_namespace = "V2Ray.Core.Proxy.Tuic";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/tuic";
+option java_package = "com.v2ray.core.proxy.Tuic";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+import "common/net/address.proto";
+import "transport/internet/tls/config.proto";
+
+message ClientConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "tuic";
+
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  string uuid = 3;
+  string password = 4;
+  string congestion_control = 5;
+  string udp_relay_mode = 6;
+  bool zero_rtt_handshake = 7;
+  v2ray.core.transport.internet.tls.Config tls_settings = 8;
+  bool disable_sni = 9;
+}
