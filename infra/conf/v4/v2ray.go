@@ -62,6 +62,7 @@ var (
 		"wireguard":        func() interface{} { return new(WireGuardClientConfig) },
 		"shadowtls":        func() interface{} { return new(ShadowTLSClientConfig) },
 		"anytls":           func() interface{} { return new(AnyTLSClientConfig) },
+		"tuic":             func() interface{} { return new(TuicClientConfig) },
 	}, "protocol", "settings")
 )
 
