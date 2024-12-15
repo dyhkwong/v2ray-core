@@ -195,14 +195,14 @@ func (s *DoHNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	common.Must(s.cleanup.Start())
 }
 
-func (s *DoHNameServer) newReqID() uint16 {
+func (s *DoHNameServer) NewReqID() uint16 {
 	return 0
 }
 
 func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
+	reqs := buildReqMsgs(domain, option, s.NewReqID, genEDNS0Options(clientIP))
 
 	var deadline time.Time
 	if d, ok := ctx.Deadline(); ok {
@@ -250,6 +250,39 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			s.updateIP(r, rec)
 		}(req)
 	}
+}
+
+func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
+
+	// generate new context for each req, using same context
+	// may cause reqs all aborted if any one encounter an error
+	dnsCtx := ctx
+
+	// reserve internal dns server requested Inbound
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
+		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
+	}
+
+	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
+		Protocol:       s.protocol,
+		SkipDNSResolve: true,
+	})
+
+	var cancel context.CancelFunc
+	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
+	defer cancel()
+
+	resp, err := s.dohHTTPSContext(dnsCtx, request)
+	if err != nil {
+		return nil, newError("failed to retrieve response").Base(err)
+	}
+	return resp, nil
 }
 
 func (s *DoHNameServer) dohHTTPSContext(ctx context.Context, b []byte) ([]byte, error) {
