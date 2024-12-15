@@ -179,14 +179,14 @@ func (s *QUICNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	common.Must(s.cleanup.Start())
 }
 
-func (s *QUICNameServer) newReqID() uint16 {
+func (s *QUICNameServer) NewReqID() uint16 {
 	return 0
 }
 
 func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
+	reqs := buildReqMsgs(domain, option, s.NewReqID, genEDNS0Options(clientIP))
 
 	var deadline time.Time
 	if d, ok := ctx.Deadline(); ok {
@@ -267,6 +267,71 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			}
 			s.updateIP(r, rec)
 		}(req)
+	}
+}
+
+func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
+	dnsCtx := ctx
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
+		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
+	}
+	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
+		Protocol:       "quic",
+		SkipDNSResolve: true,
+	})
+	var cancel context.CancelFunc
+	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
+	defer cancel()
+	requestBuf := buf.New()
+	defer requestBuf.Release()
+	binary.Write(requestBuf, binary.BigEndian, uint16(len(request)))
+	requestBuf.Write(request)
+	responseBuf := buf.New()
+	defer responseBuf.Release()
+	done := make(chan interface{})
+	var retErr error
+	go func() {
+		defer close(done)
+		conn, err := s.openStream(dnsCtx)
+		if err != nil {
+			retErr = newError("failed to open quic connection")
+			return
+		}
+		_, err = conn.Write(requestBuf.Bytes())
+		if err != nil {
+			retErr = newError("failed to send query")
+			return
+		}
+		_ = conn.Close()
+		n, err := responseBuf.ReadFullFrom(conn, 2)
+		if err != nil && n == 0 {
+			retErr = newError("failed to read response length").Base(err)
+			return
+		}
+		var length int16
+		err = binary.Read(bytes.NewReader(responseBuf.Bytes()), binary.BigEndian, &length)
+		if err != nil {
+			retErr = newError("failed to parse response length").Base(err)
+			return
+		}
+		responseBuf.Clear()
+		n, err = responseBuf.ReadFullFrom(conn, int32(length))
+		if err != nil && n == 0 {
+			retErr = newError("failed to read response length").Base(err)
+			return
+		}
+	}()
+	select {
+	case <-dnsCtx.Done():
+		return nil, dnsCtx.Err()
+	case <-done:
+		return responseBuf.Bytes(), retErr
 	}
 }
 
