@@ -1,7 +1,9 @@
 package dns
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"net/url"
 	"strings"
 	"sync"
@@ -13,6 +15,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
@@ -35,16 +38,35 @@ type ClassicNameServer struct {
 	udpServer udp.DispatcherI
 	cleanup   *task.Periodic
 	reqID     uint32
+	tcpServer *TCPNameServer
+
+	channel map[uint16]chan []byte
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
-func NewUDPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
-	return baseUDPNameServer(url, "UDP", dispatcher)
+func NewUDPNameServer(u *url.URL, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
+	s, err := baseUDPNameServer(u, "UDP", dispatcher)
+	if err != nil {
+		return nil, err
+	}
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp",
+		Host:   u.Host,
+	}, dispatcher)
+	return s, nil
 }
 
 // NewUDPLocalNameServer creates udp server object for local resolving.
-func NewUDPLocalNameServer(url *url.URL) (*ClassicNameServer, error) {
-	return baseUDPNameServer(url, "UDPL", dispatcher.SystemInstance)
+func NewUDPLocalNameServer(u *url.URL) (*ClassicNameServer, error) {
+	s, err := baseUDPNameServer(u, "UDPL", dispatcher.SystemInstance)
+	if err != nil {
+		return nil, err
+	}
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp+local",
+		Host:   u.Host,
+	}, dispatcher.SystemInstance)
+	return s, nil
 }
 
 func baseUDPNameServer(url *url.URL, prefix string, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
@@ -68,7 +90,12 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 		address.Port = net.Port(53)
 	}
 	newError("DNS: created UDP client initialized for ", address.NetAddr()).AtInfo().WriteToLog()
-	return newClassicNameServer(address, strings.ToUpper(address.String()), dispatcher)
+	s := newClassicNameServer(address, strings.ToUpper(address.String()), dispatcher)
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp",
+		Host:   address.NetAddr(),
+	}, dispatcher)
+	return s
 }
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
@@ -78,6 +105,8 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		requests: make(map[uint16]dnsRequest),
 		pub:      pubsub.NewService(),
 		name:     name,
+
+		channel: make(map[uint16]chan []byte),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -137,14 +166,27 @@ func (s *ClassicNameServer) Cleanup() error {
 // HandleResponse handles udp response packet from remote DNS server.
 func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_proto.Packet) {
 	defer packet.Payload.Release()
-	ipRec, err := parseResponse(packet.Payload.Bytes())
-	if err != nil {
+	payload := packet.Payload.Bytes()
+	if len(payload) < 2 {
+		return
+	}
+
+	id := binary.BigEndian.Uint16(payload[:2])
+	s.Lock()
+	if ch, found := s.channel[id]; found {
+		ch <- bytes.Clone(payload)
+		s.Unlock()
+		return
+	}
+	s.Unlock()
+
+	ipRec, err := parseResponse(payload)
+	if err != nil && err != errTruncated {
 		newError(s.name, " fail to parse responded DNS udp").AtError().WriteToLog()
 		return
 	}
 
 	s.Lock()
-	id := ipRec.ReqID
 	req, ok := s.requests[id]
 	if ok {
 		// remove the pending request
@@ -154,6 +196,27 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	if !ok {
 		newError(s.name, " cannot find the pending request").AtError().WriteToLog()
 		return
+	}
+
+	if err == errTruncated {
+		newError("truncated, retry over TCP").AtError().WriteToLog()
+		b, packErr := dns.PackMessage(req.msg)
+		if packErr != nil {
+			newError(packErr).AtError().WriteToLog()
+			return
+		}
+		defer b.Release()
+		response, tcpErr := s.tcpServer.QueryRaw(context.WithoutCancel(ctx), b.Bytes())
+		if tcpErr != nil {
+			newError("failed to send DNS query over TCP").Base(tcpErr).AtError().WriteToLog()
+			return
+		}
+		ipRec, err = parseResponse(response)
+		if err != nil {
+			newError(s.name, " fail to parse responded DNS tcp").AtError().WriteToLog()
+			return
+		}
+		ipRec.ReqID = id
 	}
 
 	var rec record
@@ -200,7 +263,7 @@ func (s *ClassicNameServer) updateIP(domain string, newRec record) {
 	common.Must(s.cleanup.Start())
 }
 
-func (s *ClassicNameServer) newReqID() uint16 {
+func (s *ClassicNameServer) NewReqID() uint16 {
 	return uint16(atomic.AddUint32(&s.reqID, 1))
 }
 
@@ -216,7 +279,14 @@ func (s *ClassicNameServer) addPendingRequest(req *dnsRequest) {
 func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying DNS for: ", domain).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
+	reqs := buildReqMsgs(domain, option, s.NewReqID, genEDNS0Options(clientIP))
+
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
@@ -225,7 +295,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 			newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 			return
 		}
-		udpCtx := core.ToBackgroundDetachedContext(ctx)
+		udpCtx := ctx
 		if inbound := session.InboundFromContext(ctx); inbound != nil {
 			udpCtx = session.ContextWithInbound(udpCtx, inbound)
 		}
@@ -233,7 +303,58 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 			Protocol:       "dns",
 			SkipDNSResolve: true,
 		})
-		s.udpServer.Dispatch(udpCtx, s.address, b)
+		var cancel context.CancelFunc
+		udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
+		defer cancel()
+		s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, b)
+	}
+}
+
+func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	if len(request) < 2 {
+		return nil, newError("too short")
+	}
+	id := binary.BigEndian.Uint16(request[:2])
+	ch := make(chan []byte)
+	s.Lock()
+	s.channel[id] = ch
+	s.Unlock()
+
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
+
+	udpCtx := ctx
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
+		udpCtx = session.ContextWithInbound(udpCtx, inbound)
+	}
+	udpCtx = session.ContextWithContent(udpCtx, &session.Content{
+		Protocol:       "dns",
+		SkipDNSResolve: true,
+	})
+	var cancel context.CancelFunc
+	udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
+	defer cancel()
+	s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, buf.FromBytes(request))
+
+	select {
+	case <-udpCtx.Done():
+		s.Lock()
+		delete(s.channel, id)
+		s.Unlock()
+		return nil, udpCtx.Err()
+	case response := <-ch:
+		s.Lock()
+		delete(s.channel, id)
+		s.Unlock()
+		if len(response) >= 4 && response[3]&0x02 >= 0x02 {
+			newError("truncated, retry over TCP").AtError().WriteToLog()
+			return s.tcpServer.QueryRaw(context.WithoutCancel(ctx), request)
+		}
+		return response, nil
 	}
 }
 
