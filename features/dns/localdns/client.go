@@ -8,6 +8,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
+//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
+
 var lookupFunc = func(network, host string) ([]net.IP, error) {
 	resolver := &net.Resolver{PreferGo: false}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -61,6 +63,11 @@ func (c *Client) LookupIPv4WithTTL(host string) ([]net.IP, time.Time, error) {
 func (c *Client) LookupIPv6WithTTL(host string) ([]net.IP, time.Time, error) {
 	ips, err := c.LookupIPv6(host)
 	return ips, time.Now().Add(time.Duration(600) * time.Second), err
+}
+
+// QueryRaw implements RawQuery.
+func (c *Client) QueryRaw(request []byte) ([]byte, error) {
+	return rawQueryFunc(request)
 }
 
 // New create a new dns.Client that queries localhost for DNS.

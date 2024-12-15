@@ -2,9 +2,12 @@ package dns
 
 import (
 	"context"
+	"encoding/binary"
 	"net/url"
 	"strings"
 	"time"
+
+	"golang.org/x/net/dns/dnsmessage"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
@@ -30,6 +33,12 @@ type ServerWithTTL interface {
 	Server
 	// QueryIPWithTTL sends IP queries to its configured server.
 	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, time.Time, error)
+}
+
+type ServerRaw interface {
+	ServerWithTTL
+	NewReqID() uint16
+	QueryRaw(ctx context.Context, b []byte) ([]byte, error)
 }
 
 // Client is the interface for DNS client.
@@ -237,6 +246,43 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 	}
 	ips, err = c.MatchExpectedIPs(domain, ips)
 	return ips, expireAt, err
+}
+
+func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	if serverRaw, ok := c.server.(ServerRaw); ok {
+		msg := new(dnsmessage.Message)
+		if err := msg.Unpack(request); err != nil {
+			return nil, newError("failed to parse dns request").Base(err)
+		}
+		for _, question := range msg.Questions {
+			newError(c.Name(), " querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+
+		id := binary.BigEndian.Uint16(request[:2])
+		binary.BigEndian.PutUint16(request[:2], serverRaw.NewReqID())
+
+		ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
+		ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+		response, err := serverRaw.QueryRaw(ctx, request)
+		cancel()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := msg.Unpack(response); err != nil {
+			return nil, err
+		}
+		for _, answer := range msg.Answers {
+			newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+		for _, authority := range msg.Authorities {
+			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+
+		binary.BigEndian.PutUint16(response[:2], id)
+		return response, nil
+	}
+	return nil, newError("not implemented")
 }
 
 // MatchExpectedIPs matches queried domain IPs with expected IPs and returns matched ones.
