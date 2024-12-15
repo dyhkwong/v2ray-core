@@ -96,25 +96,23 @@ func (h *Handler) isOwnLink(ctx context.Context) bool {
 }
 
 func parseIPQuery(b []byte) (r bool, domain string, id uint16, qType dnsmessage.Type) {
-	var parser dnsmessage.Parser
-	header, err := parser.Start(b)
+	message := new(dnsmessage.Message)
+	err := message.Unpack(b)
 	if err != nil {
-		newError("parser start").Base(err).WriteToLog()
 		return
 	}
-
-	id = header.ID
-	q, err := parser.Question()
-	if err != nil {
-		newError("question").Base(err).WriteToLog()
+	id = message.ID
+	if len(message.Questions) != 1 {
 		return
 	}
-	qType = q.Type
+	qType = message.Questions[0].Type
 	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
 		return
 	}
-
-	domain = q.Name.String()
+	domain, err = strmatcher.ToDomain(message.Questions[0].Name.String())
+	if err != nil {
+		return
+	}
 	r = true
 	return
 }
@@ -201,11 +199,15 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 			if !h.isOwnLink(ctx) {
 				isIPQuery, domain, id, qType := parseIPQuery(b.Bytes())
 				if isIPQuery {
-					if domain, err := strmatcher.ToDomain(domain); err == nil {
-						go h.handleIPQuery(id, qType, domain, writer)
+					go h.handleIPQuery(id, qType, domain, writer)
+					b.Release()
+					continue
+				} else {
+					go func() {
+						h.handleRawQuery(b.Bytes(), writer)
 						b.Release()
-						continue
-					}
+					}()
+					continue
 				}
 			}
 
@@ -239,6 +241,21 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 	}
 
 	return nil
+}
+
+func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
+	if rawQuery, ok := h.client.(dns.RawQuery); ok {
+		resp, err := rawQuery.QueryRaw(b)
+		if err != nil {
+			newError(err).AtError().WriteToLog()
+			return
+		}
+		if err := writer.WriteMessage(buf.FromBytes(resp)); err != nil {
+			newError("write IP answer").Base(err).WriteToLog()
+		}
+	} else {
+		newError("dns.RawQuery not implemented").AtError().WriteToLog()
+	}
 }
 
 func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string, writer dns_proto.MessageWriter) {
