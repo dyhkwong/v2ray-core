@@ -13,6 +13,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
@@ -35,6 +36,10 @@ type ClassicNameServer struct {
 	udpServer udp.DispatcherI
 	cleanup   *task.Periodic
 	reqID     uint32
+
+	requestIDs   map[uint16]bool
+	responseMsgs map[uint16]*dnsmessage.Message
+	dones        map[uint16]chan interface{}
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -78,6 +83,10 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		requests: make(map[uint16]dnsRequest),
 		pub:      pubsub.NewService(),
 		name:     name,
+
+		requestIDs:   make(map[uint16]bool),
+		responseMsgs: make(map[uint16]*dnsmessage.Message),
+		dones:        make(map[uint16]chan interface{}),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -97,6 +106,14 @@ func (s *ClassicNameServer) Cleanup() error {
 	now := time.Now()
 	s.Lock()
 	defer s.Unlock()
+
+	for id := range s.responseMsgs {
+		if _, found := s.requestIDs[id]; !found {
+			delete(s.requestIDs, id)
+			delete(s.dones, id)
+			delete(s.responseMsgs, id)
+		}
+	}
 
 	if len(s.ips) == 0 && len(s.requests) == 0 {
 		return newError(s.name, " nothing to do. stopping...")
@@ -136,6 +153,20 @@ func (s *ClassicNameServer) Cleanup() error {
 
 // HandleResponse handles udp response packet from remote DNS server.
 func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_proto.Packet) {
+	responseMsg := new(dnsmessage.Message)
+	if err := responseMsg.Unpack(packet.Payload.Bytes()); err == nil {
+		s.Lock()
+		if _, found := s.requestIDs[responseMsg.ID]; found {
+			s.responseMsgs[responseMsg.ID] = responseMsg
+			if done, found := s.dones[responseMsg.ID]; found {
+				close(done)
+			}
+			s.Unlock()
+			return
+		}
+		s.Unlock()
+	}
+
 	ipRec, err := parseResponse(packet.Payload.Bytes())
 	if err != nil {
 		newError(s.name, " fail to parse responded DNS udp").AtError().WriteToLog()
@@ -199,7 +230,7 @@ func (s *ClassicNameServer) updateIP(domain string, newRec record) {
 	common.Must(s.cleanup.Start())
 }
 
-func (s *ClassicNameServer) newReqID() uint16 {
+func (s *ClassicNameServer) NewReqID() uint16 {
 	return uint16(atomic.AddUint32(&s.reqID, 1))
 }
 
@@ -215,7 +246,7 @@ func (s *ClassicNameServer) addPendingRequest(req *dnsRequest) {
 func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying DNS for: ", domain).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
+	reqs := buildReqMsgs(domain, option, s.NewReqID, genEDNS0Options(clientIP))
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
@@ -233,6 +264,59 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 			SkipDNSResolve: true,
 		})
 		s.udpServer.Dispatch(udpCtx, s.address, b)
+	}
+}
+
+func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	requestMsg := new(dnsmessage.Message)
+	if err := requestMsg.Unpack(request); err != nil {
+		return nil, err
+	}
+	id := requestMsg.ID
+	done := make(chan interface{})
+	s.Lock()
+	delete(s.responseMsgs, id)
+	s.requestIDs[id] = true
+	s.dones[id] = done
+	s.Unlock()
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
+	dnsCtx := core.ToBackgroundDetachedContext(ctx)
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
+		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
+	}
+	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
+		Protocol:       "v2ray.dns",
+		SkipDNSResolve: true,
+	})
+	var cancel context.CancelFunc
+	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
+	defer cancel()
+	s.udpServer.Dispatch(dnsCtx, s.address, buf.FromBytes(request))
+	select {
+	case <-dnsCtx.Done():
+		s.Lock()
+		delete(s.requestIDs, id)
+		delete(s.dones, id)
+		delete(s.responseMsgs, id)
+		s.Unlock()
+		return nil, dnsCtx.Err()
+	case <-done:
+		s.Lock()
+		delete(s.requestIDs, id)
+		delete(s.dones, id)
+		responseMsg := s.responseMsgs[id]
+		delete(s.responseMsgs, id)
+		s.Unlock()
+		if response, err := responseMsg.Pack(); err == nil {
+			return response, nil
+		} else {
+			return nil, err
+		}
 	}
 }
 

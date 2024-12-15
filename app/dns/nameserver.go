@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
 	"github.com/v2fly/v2ray-core/v5/app/router"
@@ -30,6 +32,12 @@ type ServerWithTTL interface {
 	Server
 	// QueryIPWithTTL sends IP queries to its configured server.
 	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, uint32, time.Time, error)
+}
+
+type ServerRaw interface {
+	ServerWithTTL
+	NewReqID() uint16
+	QueryRaw(ctx context.Context, b []byte) ([]byte, error)
 }
 
 // Client is the interface for DNS client.
@@ -238,6 +246,38 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 	}
 	ips, err = c.MatchExpectedIPs(domain, ips)
 	return ips, ttl, expireAt, err
+}
+
+func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	if serverRaw, ok := c.server.(ServerRaw); ok {
+		requestMsg := new(dnsmessage.Message)
+		if err := requestMsg.Unpack(request); err != nil {
+			return nil, newError("failed to parse dns request").Base(err)
+		}
+		for _, question := range requestMsg.Questions {
+			newError(c.Name(), " querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+		id := requestMsg.ID
+		requestMsg.ID = serverRaw.NewReqID()
+		response, err := serverRaw.QueryRaw(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		responseMsg := new(dnsmessage.Message)
+		err = responseMsg.Unpack(response)
+		if err != nil {
+			return nil, err
+		}
+		for _, answer := range responseMsg.Answers {
+			newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+		for _, authority := range responseMsg.Authorities {
+			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+		}
+		responseMsg.ID = id
+		return responseMsg.Pack()
+	}
+	return nil, newError("not implemented")
 }
 
 // MatchExpectedIPs matches queried domain IPs with expected IPs and returns matched ones.

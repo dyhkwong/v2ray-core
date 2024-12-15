@@ -5,7 +5,6 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
-	"github.com/v2fly/v2ray-core/v5/common/protocol"
 )
 
 var (
@@ -14,7 +13,6 @@ var (
 )
 
 type SniffHeader struct {
-	domain string
 }
 
 func (s *SniffHeader) Protocol() string {
@@ -37,13 +35,9 @@ func SniffDNS(b []byte) (*SniffHeader, error) {
 	if common.Error2(parser.Start(b)) != nil {
 		return nil, errNotDNS
 	}
-	question, err := parser.Question()
+	_, err := parser.Question()
 	if err != nil {
 		return nil, errNotDNS
 	}
-	domain := question.Name.String()
-	if question.Class == dnsmessage.ClassINET && (question.Type == dnsmessage.TypeA || question.Type == dnsmessage.TypeAAAA) && protocol.IsValidDomain(domain) {
-		return &SniffHeader{domain}, nil
-	}
-	return nil, errNotWanted
+	return &SniffHeader{}, nil
 }
