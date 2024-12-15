@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"net/url"
@@ -177,14 +176,14 @@ func (s *TCPNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	common.Must(s.cleanup.Start())
 }
 
-func (s *TCPNameServer) newReqID() uint16 {
+func (s *TCPNameServer) NewReqID() uint16 {
 	return uint16(atomic.AddUint32(&s.reqID, 1))
 }
 
 func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption) {
 	newError(s.name, " querying DNS for: ", domain).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
-	reqs := buildReqMsgs(domain, option, s.newReqID, genEDNS0Options(clientIP))
+	reqs := buildReqMsgs(domain, option, s.NewReqID, genEDNS0Options(clientIP))
 
 	var deadline time.Time
 	if d, ok := ctx.Deadline(); ok {
@@ -216,7 +215,7 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 				return
 			}
 
-			dnsReqBuf := buf.New()
+			dnsReqBuf := buf.NewWithSize(2 + b.Len())
 			defer dnsReqBuf.Release()
 			binary.Write(dnsReqBuf, binary.BigEndian, uint16(b.Len()))
 			dnsReqBuf.Write(b.Bytes())
@@ -235,22 +234,16 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 				return
 			}
 
-			respBuf := buf.New()
-			defer respBuf.Release()
-			n, err := respBuf.ReadFullFrom(conn, 2)
-			if err != nil && n == 0 {
-				newError("failed to read response length").Base(err).AtError().WriteToLog()
-				return
-			}
-			var length int16
-			err = binary.Read(bytes.NewReader(respBuf.Bytes()), binary.BigEndian, &length)
+			var length uint16
+			err = binary.Read(conn, binary.BigEndian, &length)
 			if err != nil {
 				newError("failed to parse response length").Base(err).AtError().WriteToLog()
 				return
 			}
-			respBuf.Clear()
-			n, err = respBuf.ReadFullFrom(conn, int32(length))
-			if err != nil && n == 0 {
+			respBuf := buf.NewWithSize(int32(length))
+			defer respBuf.Release()
+			_, err = respBuf.ReadFullFrom(conn, int32(length))
+			if err != nil {
 				newError("failed to read response length").Base(err).AtError().WriteToLog()
 				return
 			}
@@ -264,6 +257,61 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			s.updateIP(r, rec)
 		}(req)
 	}
+}
+
+func (s *TCPNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	var deadline time.Time
+	if d, ok := ctx.Deadline(); ok {
+		deadline = d
+	} else {
+		deadline = time.Now().Add(time.Second * 5)
+	}
+
+	dnsCtx := ctx
+
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
+		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
+	}
+
+	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
+		Protocol:       s.protocol,
+		SkipDNSResolve: true,
+	})
+
+	var cancel context.CancelFunc
+	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
+	defer cancel()
+
+	dnsReqBuf := buf.NewWithSize(2 + int32(len(request)))
+	defer dnsReqBuf.Release()
+
+	binary.Write(dnsReqBuf, binary.BigEndian, uint16(len(request)))
+	dnsReqBuf.Write(request)
+
+	conn, err := s.dial(dnsCtx)
+	if err != nil {
+		return nil, newError("failed to dial namesever").Base(err)
+	}
+	defer conn.Close()
+
+	_, err = conn.Write(dnsReqBuf.Bytes())
+	if err != nil {
+		return nil, newError("failed to send query").Base(err)
+	}
+
+	var length uint16
+	err = binary.Read(conn, binary.BigEndian, &length)
+	if err != nil {
+		return nil, newError("failed to parse response length").Base(err)
+	}
+	respBuf := buf.NewWithSize(int32(length))
+	defer respBuf.Release()
+	_, err = respBuf.ReadFullFrom(conn, int32(length))
+	if err != nil {
+		return nil, newError("failed to read response length").Base(err)
+	}
+
+	return respBuf.Bytes(), nil
 }
 
 func (s *TCPNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {
