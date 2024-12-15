@@ -3,15 +3,18 @@ package splithttp
 import (
 	"context"
 	gotls "crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/quic-go/quic-go"
-	"github.com/quic-go/quic-go/http3"
+	"github.com/xtls/quic-go"
+	"github.com/xtls/quic-go/http3"
 	"golang.org/x/net/http2"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -19,12 +22,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
-	"github.com/v2fly/v2ray-core/v5/common/signal/semaphore"
+	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
-	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/transportcommon"
@@ -87,6 +89,25 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 	return client, nil
 }
 
+func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) string {
+	if realityConfig != nil {
+		return "2"
+	}
+	if tlsConfig == nil {
+		return "1.1"
+	}
+	if len(tlsConfig.NextProtocol) != 1 {
+		return "2"
+	}
+	if tlsConfig.NextProtocol[0] == "http/1.1" {
+		return "1.1"
+	}
+	if tlsConfig.NextProtocol[0] == "h3" {
+		return "3"
+	}
+	return "2"
+}
+
 func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
 	var tlsConfig *tls.Config
 	var realityConfig *reality.Config
@@ -99,14 +120,9 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 		realityConfig = cfg
 	}
 
-	isH2 := false
-	isH3 := false
-	if realityConfig != nil {
-		isH2 = true
-		isH3 = false
-	} else if tlsConfig != nil {
-		isH3 = len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3"
-		isH2 = !isH3 && !(len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "http/1.1")
+	httpVersion := decideHTTPVersion(tlsConfig, realityConfig)
+	if httpVersion == "3" {
+		dest.Network = net.Network_UDP // better to keep this line
 	}
 
 	dialContext := func(_ context.Context) (net.Conn, error) {
@@ -123,7 +139,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 
 	var transport http.RoundTripper
 
-	if isH3 {
+	if httpVersion == "3" {
 		transport = &http3.Transport{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout: connIdleTimeout,
@@ -143,7 +159,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
-	} else if isH2 {
+	} else if httpVersion == "2" {
 		transport = &http2.Transport{
 			DialTLSContext: func(ctxInner context.Context, network string, addr string, cfg *gotls.Config) (net.Conn, error) {
 				return dialContext(ctxInner)
@@ -171,8 +187,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 		client: &http.Client{
 			Transport: transport,
 		},
-		isH2:           isH2,
-		isH3:           isH3,
+		httpVersion:    httpVersion,
 		uploadRawPool:  &sync.Pool{},
 		dialUploadConn: dialContext,
 	}
@@ -196,45 +211,36 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		realityConfig = cfg
 	}
 
-	if realityConfig == nil && tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3" {
+	httpVersion := decideHTTPVersion(tlsConfig, realityConfig)
+	if httpVersion == "3" {
 		dest.Network = net.Network_UDP
 	}
 
-	newError("dialing splithttp to ", dest).WriteToLog(session.ExportIDToError(ctx))
-
+	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 	var requestURL url.URL
 
-	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
+	//scMaxEachPostBytes := transportConfiguration.GetNormalizedScMaxEachPostBytes()
+	//scMinPostsIntervalMs := transportConfiguration.GetNormalizedScMinPostsIntervalMs()
 
-	scMaxConcurrentPosts, err := transportConfiguration.GetNormalizedScMaxConcurrentPosts()
-	if err != nil {
-		return nil, err
-	}
-	scMaxEachPostBytes, err := transportConfiguration.GetNormalizedScMaxEachPostBytes()
-	if err != nil {
-		return nil, err
-	}
-	scMinPostsIntervalMs, err := transportConfiguration.GetNormalizedScMinPostsIntervalMs()
-	if err != nil {
-		return nil, err
-	}
-
-	if securityEngine, _ := security.CreateSecurityEngineFromSettings(ctx, streamSettings); securityEngine != nil || realityConfig != nil {
+	if tlsConfig != nil || realityConfig != nil {
 		requestURL.Scheme = "https"
 	} else {
 		requestURL.Scheme = "http"
 	}
 	requestURL.Host = transportConfiguration.Host
+	if requestURL.Host == "" && tlsConfig != nil {
+		requestURL.Host = tlsConfig.ServerName
+	}
+	if requestURL.Host == "" && realityConfig != nil {
+		requestURL.Host = realityConfig.ServerName
+	}
 	if requestURL.Host == "" {
-		requestURL.Host = dest.NetAddr()
+		requestURL.Host = dest.Address.String()
 	}
 
 	sessionIdUuid := uuid.New()
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
-	requestURL.RawQuery, err = transportConfiguration.GetNormalizedQuery()
-	if err != nil {
-		return nil, err
-	}
+	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
 
 	httpClient, err := getHTTPClient(ctx, dest, streamSettings)
 	if err != nil {
@@ -244,14 +250,15 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	mode := transportConfiguration.Mode
 	if mode == "" || mode == "auto" {
 		mode = "packet-up"
-		if tlsConfig != nil && (len(tlsConfig.NextProtocol) != 1 || tlsConfig.NextProtocol[0] == "h2") {
+		if httpVersion == "2" {
 			mode = "stream-up"
 		}
 		if realityConfig != nil {
 			mode = "stream-one"
 		}
 	}
-	newError("XHTTP is using mode: ", mode).AtInfo().WriteToLog()
+
+	newError(fmt.Sprintf("XHTTP is dialing to %s, mode %s, HTTP version %s, host %s", dest, mode, httpVersion, requestURL.Host)).AtInfo()
 
 	var writer io.WriteCloser
 	var reader io.ReadCloser
@@ -272,7 +279,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		return nil, err
 	}
 
-	closed := false
+	var once atomic.Int32
 
 	conn := splitConn{
 		writer:     writer,
@@ -280,10 +287,9 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		remoteAddr: remoteAddr,
 		localAddr:  localAddr,
 		onClose: func() {
-			if closed {
+			if once.Add(-1) < 0 {
 				return
 			}
-			closed = true
 		},
 	}
 
@@ -295,7 +301,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		return internet.Connection(&conn), nil
 	}
 
-	maxUploadSize := int32(scMaxEachPostBytes.roll())
+	scMaxEachPostBytes := transportConfiguration.GetNormalizedScMaxEachPostBytes()
+	scMinPostsIntervalMs := transportConfiguration.GetNormalizedScMinPostsIntervalMs()
+
+	maxUploadSize := int32(scMaxEachPostBytes.rand())
 	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - buf.Size))
 
 	conn.writer = uploadWriter{
@@ -304,39 +313,42 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	}
 
 	go func() {
-		requestsLimiter := semaphore.New(scMaxConcurrentPosts.roll())
-		var requestCounter int64
+		var seq int64
+		var lastWrite time.Time
 
-		lastWrite := time.Now()
-
-		// by offloading the uploads into a buffered pipe, multiple conn.Write
-		// calls get automatically batched together into larger POST requests.
-		// without batching, bandwidth is extremely limited.
 		for {
+			wroteRequest := done.New()
+
+			ctx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+				WroteRequest: func(httptrace.WroteRequestInfo) {
+					wroteRequest.Close()
+				},
+			})
+
+			// this intentionally makes a shallow-copy of the struct so we
+			// can reassign Path (potentially concurrently)
+			url := requestURL
+			url.Path += "/" + strconv.FormatInt(seq, 10)
+			// reassign query to get different padding
+			url.RawQuery = transportConfiguration.GetNormalizedQuery()
+
+			seq += 1
+
+			if scMinPostsIntervalMs.From > 0 {
+				time.Sleep(time.Duration(scMinPostsIntervalMs.rand())*time.Millisecond - time.Since(lastWrite))
+			}
+
+			// by offloading the uploads into a buffered pipe, multiple conn.Write
+			// calls get automatically batched together into larger POST requests.
+			// without batching, bandwidth is extremely limited.
 			chunk, err := uploadPipeReader.ReadMultiBuffer()
 			if err != nil {
 				break
 			}
 
-			<-requestsLimiter.Wait()
-
-			seq := requestCounter
-			requestCounter += 1
+			lastWrite = time.Now()
 
 			go func() {
-				defer requestsLimiter.Signal()
-
-				// this intentionally makes a shallow-copy of the struct so we
-				// can reassign Path (potentially concurrently)
-				url := requestURL
-				url.Path += "/" + strconv.FormatInt(seq, 10)
-				// reassign query to get different padding
-				url.RawQuery, err = transportConfiguration.GetNormalizedQuery()
-				if err != nil {
-					newError(err).AtError()
-					return
-				}
-
 				err := httpClient.SendUploadRequest(
 					context.WithoutCancel(ctx),
 					url.String(),
@@ -348,17 +360,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 					uploadPipeReader.Interrupt()
 				}
 			}()
-
-			if scMinPostsIntervalMs.From > 0 {
-				roll := time.Duration(scMinPostsIntervalMs.roll()) * time.Millisecond
-				if time.Since(lastWrite) < roll {
-					time.Sleep(roll)
-				}
-
-				lastWrite = time.Now()
+			wroteRequest.Close()
+			if _, ok := httpClient.(*DefaultDialerClient); ok {
+				<-wroteRequest.Wait()
 			}
-
-			lastWrite = time.Now()
 		}
 	}()
 

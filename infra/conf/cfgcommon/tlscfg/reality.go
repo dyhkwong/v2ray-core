@@ -171,8 +171,8 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 			}
 		} else {
 			config.Version[0] = 24 // Version_x
-			config.Version[1] = 11 // Version_y
-			config.Version[2] = 30 // Version_z
+			config.Version[1] = 12 // Version_y
+			config.Version[2] = 15 // Version_z
 		}
 	}
 	return config, nil

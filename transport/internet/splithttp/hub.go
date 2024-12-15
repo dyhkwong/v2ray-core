@@ -76,7 +76,7 @@ func (h *requestHandler) upsertSession(sessionId string) *httpSession {
 	}
 
 	s := &httpSession{
-		uploadQueue:      NewUploadQueue(),
+		uploadQueue:      NewUploadQueue(h.ln.config.GetNormalizedScMaxBufferedPosts()),
 		isFullyConnected: done.New(),
 	}
 
@@ -92,10 +92,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	if err := h.config.WriteResponseHeader(writer); err != nil {
-		newError(err).AtError().WriteToLog()
-		return
-	}
+	h.config.WriteResponseHeader(writer)
 
 	sessionId := ""
 	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
@@ -280,27 +277,27 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)
 	realityConfig := reality.ConfigFromStreamSettings(streamSettings)
 
-	if tlsConfig != nil && len(tlsConfig.NextProtocol) == 1 && tlsConfig.NextProtocol[0] == "h3" { // quic
+	if decideHTTPVersion(tlsConfig, realityConfig) == "3" { // quic
 		conn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
 			IP:   address.IP(),
 			Port: int(port),
 		}, streamSettings.SocketSettings)
 		if err != nil {
-			return nil, newError("failed to listen UDP (for SH3) on ", address).Base(err)
+			return nil, newError("failed to listen UDP for XHTTP/3 on ", address).Base(err)
 		}
 		l.h3listener, err = quic.ListenEarly(conn, tlsConfig.GetTLSConfig(), nil)
 		if err != nil {
-			return nil, newError("failed to listen QUIC (for SH3) on ", address, ":", port).Base(err)
+			return nil, newError("failed to listen QUIC for XHTTP/3 on ", address, ":", port).Base(err)
 		}
 		l.h3server = &http3.Server{
 			Handler: handler,
 		}
 		go func() {
 			if err := l.h3server.ServeListener(l.h3listener); err != nil {
-				newError("failed to serve http3 for splithttp").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
+				newError("failed to serve HTTP/3 for XHTTP/3").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 			}
 		}()
-		newError("listening QUIC (for SH3) on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
+		newError("listening QUIC for XHTTP/3 on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
 		return l, err
 	}
 
@@ -310,18 +307,18 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 			Net:  "unix",
 		}, streamSettings.SocketSettings)
 		if err != nil {
-			return nil, newError("failed to listen unix domain socket (for SH) on ", address).Base(err)
+			return nil, newError("failed to listen UNIX domain socket for XHTTP on ", address).Base(err)
 		}
-		newError("listening unix domain socket (for SH) on ", address).WriteToLog(session.ExportIDToError(ctx))
+		newError("listening UNIX domain socket for XHTTP on ", address).WriteToLog(session.ExportIDToError(ctx))
 	} else { // tcp
 		listener, err = internet.ListenSystem(ctx, &net.TCPAddr{
 			IP:   address.IP(),
 			Port: int(port),
 		}, streamSettings.SocketSettings)
 		if err != nil {
-			return nil, newError("failed to listen TCP (for SH) on ", address, ":", port).Base(err)
+			return nil, newError("failed to listen TCP for XHTTP on ", address, ":", port).Base(err)
 		}
-		newError("listening TCP (for SH) on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
+		newError("listening TCP for XHTTP on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
 	}
 
 	if tlsConfig != nil {
@@ -342,7 +339,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 
 	go func() {
 		if err := l.server.Serve(l.listener); err != nil {
-			newError("failed to serve http for splithttp").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
+			newError("failed to serve HTTP for XHTTP").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 		}
 	}()
 

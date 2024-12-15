@@ -389,26 +389,18 @@ func (c *DTLSConfig) Build() (proto.Message, error) {
 type SplitHTTPConfig struct {
 	Host                 string            `json:"host"`
 	Path                 string            `json:"path"`
-	Headers              map[string]string `json:"headers"`
 	Mode                 string            `json:"mode"`
-	ScMaxConcurrentPosts string            `json:"scMaxConcurrentPosts"`
-	ScMaxEachPostBytes   string            `json:"scMaxEachPostBytes"`
-	ScMinPostsIntervalMs string            `json:"scMinPostsIntervalMs"`
+	Headers              map[string]string `json:"headers"`
 	XPaddingBytes        string            `json:"xPaddingBytes"`
 	NoGRPCHeader         bool              `json:"noGRPCHeader"`
+	ScMaxEachPostBytes   string            `json:"scMaxEachPostBytes"`
+	ScMinPostsIntervalMs string            `json:"scMinPostsIntervalMs"`
+	ScMaxBufferedPosts   int64             `json:"scMaxConcurrentPosts"`
 	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 }
 
 // Build implements Buildable.
 func (c *SplitHTTPConfig) Build() (proto.Message, error) {
-	// If http host is not set in the Host field, but in headers field, we add it to Host Field here.
-	// If we don't do that, http host will be overwritten as address.
-	// Host priority: Host field > headers field > address.
-	if c.Host == "" && c.Headers["host"] != "" {
-		c.Host = c.Headers["host"]
-	} else if c.Host == "" && c.Headers["Host"] != "" {
-		c.Host = c.Headers["Host"]
-	}
 	switch c.Mode {
 	case "":
 		c.Mode = "auto"
@@ -419,13 +411,13 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	return &splithttp.Config{
 		Path:                 c.Path,
 		Host:                 c.Host,
-		Header:               c.Headers,
 		Mode:                 c.Mode,
-		ScMaxConcurrentPosts: c.ScMaxConcurrentPosts,
-		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
-		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
+		Headers:              c.Headers,
 		XPaddingBytes:        c.XPaddingBytes,
 		NoGRPCHeader:         c.NoGRPCHeader,
+		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
+		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
+		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
 		UseBrowserForwarding: c.UseBrowserForwarding,
 	}, nil
 }
@@ -441,7 +433,7 @@ func (p TransportProtocol) Build() (string, error) {
 		return "mkcp", nil
 	case "ws", "websocket":
 		return "websocket", nil
-	case "h2", "http", "h3":
+	case "h2", "http":
 		return "http", nil
 	case "ds", "domainsocket":
 		return "domainsocket", nil

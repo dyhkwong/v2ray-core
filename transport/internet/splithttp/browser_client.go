@@ -12,6 +12,10 @@ type BrowserDialerClient struct {
 	dialer extension.BrowserDialer
 }
 
+func (c *BrowserDialerClient) IsClosed() bool {
+	panic("not implemented yet")
+}
+
 func (c *BrowserDialerClient) OpenUpload(ctx context.Context, baseURL string) io.WriteCloser {
 	panic("not implemented yet")
 }

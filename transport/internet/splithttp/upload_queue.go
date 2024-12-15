@@ -23,14 +23,16 @@ type uploadQueue struct {
 	heap            uploadHeap
 	nextSeq         uint64
 	closed          bool
+	maxPackets      int
 }
 
-func NewUploadQueue() *uploadQueue {
+func NewUploadQueue(maxPackets int) *uploadQueue {
 	return &uploadQueue{
-		pushedPackets: make(chan Packet, 100),
+		pushedPackets: make(chan Packet, maxPackets),
 		heap:          uploadHeap{},
 		nextSeq:       0,
 		closed:        false,
+		maxPackets:    maxPackets,
 	}
 }
 
@@ -48,7 +50,7 @@ func (h *uploadQueue) Push(p Packet) error {
 		if p.Reader != nil {
 			p.Reader.Close()
 		}
-		return newError("splithttp packet queue closed")
+		return newError("packet queue closed")
 	}
 
 	h.pushedPackets <- p
@@ -112,6 +114,12 @@ func (h *uploadQueue) Read(b []byte) (int, error) {
 
 		// misordered packet
 		if packet.Seq > h.nextSeq {
+			if len(h.heap) > h.maxPackets {
+				// the "reassembly buffer" is too large, and we want to
+				// constrain memory usage somehow. let's tear down the
+				// connection, and hope the application retries.
+				return 0, newError("packet queue is too large")
+			}
 			heap.Push(&h.heap, packet)
 			packet2, more := <-h.pushedPackets
 			if !more {
