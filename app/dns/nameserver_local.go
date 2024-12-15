@@ -4,9 +4,11 @@ package dns
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
 )
@@ -17,7 +19,8 @@ type LocalNameServer struct {
 }
 
 // QueryIPWithTTL implements ServerWithTTL.
-func (s *LocalNameServer) QueryIPWithTTL(_ context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, time.Time, error) {
+func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, time.Time, error) {
+	newError("localhost querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	var ips []net.IP
 	var err error
 
@@ -31,16 +34,26 @@ func (s *LocalNameServer) QueryIPWithTTL(_ context.Context, domain string, _ net
 	}
 
 	if len(ips) > 0 {
-		newError("Localhost got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
+		newError("localhost got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 	}
 
 	return ips, time.Now().Add(time.Duration(1) * time.Second), err
 }
 
 // QueryIP implements Server.
-func (s *LocalNameServer) QueryIP(_ context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, error) {
-	ips, _, err := s.QueryIPWithTTL(context.TODO(), domain, nil, option, false)
+func (s *LocalNameServer) QueryIP(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, error) {
+	ips, _, err := s.QueryIPWithTTL(ctx, domain, nil, option, false)
 	return ips, err
+}
+
+// NewReqID implements ServerRaw.
+func (s *LocalNameServer) NewReqID() uint16 {
+	return uint16(rand.Intn(65536))
+}
+
+// QueryRaw implements ServerRaw.
+func (s *LocalNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	return s.client.QueryRaw(request)
 }
 
 // Name implements Server.
