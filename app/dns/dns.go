@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
 	"github.com/v2fly/v2ray-core/v5/app/router"
@@ -273,6 +275,107 @@ func (s *DNS) LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error) {
 // LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
 func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
+}
+
+func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
+	return s.queryRaw(request, false)
+}
+
+func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
+	requestMsg := new(dnsmessage.Message)
+	if err := requestMsg.Unpack(request); err != nil {
+		return nil, newError("failed to parse dns request").Base(err)
+	}
+	if requestMsg.Response || len(requestMsg.Answers) > 0 {
+		return nil, newError("failed to parse dns request: not query")
+	}
+
+	var domain string
+	var qName dnsmessage.Name
+	var qType dnsmessage.Type
+	var qClass dnsmessage.Class
+	if len(requestMsg.Questions) == 1 {
+		qName = requestMsg.Questions[0].Name
+		qType = requestMsg.Questions[0].Type
+		qClass = requestMsg.Questions[0].Class
+		// Normalize the FQDN form query
+		domain = strings.TrimSuffix(strings.ToLower(qName.String()), ".")
+	}
+
+	if len(requestMsg.Questions) == 1 && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA) && qClass == dnsmessage.ClassINET {
+		// Static host lookup
+		switch addrs := s.hosts.Lookup(domain, dns.IPOption{
+			IPv4Enable: qType == dnsmessage.TypeA,
+			IPv6Enable: qType == dnsmessage.TypeAAAA,
+			FakeEnable: fakeEnabled,
+		}); {
+		case addrs == nil: // Domain not recorded in static host
+		case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Domain replacement, unsupported
+		default: // Successfully found ip records in static host
+			newError("returning ", len(addrs), " IP(s) for domain ", domain, " -> ", addrs).WriteToLog()
+			ips, err := toNetIP(addrs)
+			if err != nil {
+				return nil, err
+			}
+			builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{
+				ID:                 requestMsg.ID,
+				RCode:              dnsmessage.RCodeSuccess,
+				RecursionAvailable: true,
+				RecursionDesired:   true,
+				Response:           true,
+			})
+			builder.EnableCompression()
+			common.Must(builder.StartQuestions())
+			common.Must(builder.Question(dnsmessage.Question{Name: qName, Class: qClass, Type: qType}))
+			common.Must(builder.StartAnswers())
+			h := dnsmessage.ResourceHeader{Name: qName, Type: qType, Class: qClass, TTL: 600}
+			for _, ip := range ips {
+				switch qType {
+				case dnsmessage.TypeA:
+					common.Must(builder.AResource(h, dnsmessage.AResource{A: [4]byte(ip)}))
+				case dnsmessage.TypeAAAA:
+					common.Must(builder.AAAAResource(h, dnsmessage.AAAAResource{AAAA: [16]byte(ip)}))
+				}
+			}
+			return builder.Finish()
+		}
+	}
+
+	clients := s.sortClients(domain, dns.IPOption{
+		IPv4Enable: qType == dnsmessage.TypeA,
+		IPv6Enable: qType == dnsmessage.TypeAAAA,
+		FakeEnable: fakeEnabled && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA),
+	})
+	if len(clients) == 0 {
+		for _, question := range requestMsg.Questions {
+			newError("querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog()
+		}
+		newError("no qualified server").AtError().WriteToLog()
+		/*
+			responseMsg := new(dnsmessage.Message)
+			responseMsg.ID = requestMsg.ID
+			responseMsg.RCode = dnsmessage.RCodeNotImplemented
+			responseMsg.RecursionAvailable = true
+			responseMsg.RecursionDesired = true
+			responseMsg.Response = true
+			return responseMsg.Pack()
+		*/
+		return []byte{request[0], request[1], 0x81, 0x84, 0, 0, 0, 0, 0, 0, 0, 0}, nil
+	}
+	errs := []error{}
+	for _, client := range clients {
+		response, err := client.QueryRaw(s.ctx, request,
+			fakeEnabled && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA),
+		)
+		if err == nil {
+			return response, nil
+		}
+		errs = append(errs, err)
+		if err != context.Canceled && err != context.DeadlineExceeded {
+			return nil, err // Only continue lookup for certain errors
+		}
+	}
+	return nil, newError(errors.Combine(errs...))
 }
 
 func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {
