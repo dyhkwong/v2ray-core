@@ -40,6 +40,7 @@ func init() {
 		fullConfig := &Config{}
 		fullConfig.OverrideResponseTtl = simplifiedServer.OverrideResponseTtl
 		fullConfig.ResponseTtl = simplifiedServer.ResponseTtl
+		fullConfig.LookupAsExchange = simplifiedServer.LookupAsExchange
 		return common.CreateObject(ctx, fullConfig)
 	}))
 }
@@ -59,6 +60,8 @@ type Handler struct {
 	config *Config
 
 	nonIPQuery string
+
+	lookupAsExchange bool
 }
 
 func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager policy.Manager) error {
@@ -92,6 +95,9 @@ func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager polic
 	h.config = config
 
 	h.nonIPQuery = config.Non_IPQuery
+
+	h.lookupAsExchange = config.LookupAsExchange
+
 	return nil
 }
 
@@ -99,28 +105,28 @@ func (h *Handler) isOwnLink(ctx context.Context) bool {
 	return h.ownLinkVerifier != nil && h.ownLinkVerifier.IsOwnLink(ctx)
 }
 
-func parseIPQuery(b []byte) (r bool, domain string, id uint16, qType dnsmessage.Type) {
-	var parser dnsmessage.Parser
-	header, err := parser.Start(b)
-	if err != nil {
-		newError("parser start").Base(err).WriteToLog()
-		return r, domain, id, qType
+func parseIPQuery(b []byte) (bool, string, uint16, dnsmessage.Type) {
+	message := new(dnsmessage.Message)
+	if err := message.Unpack(b); err != nil {
+		return false, "", 0, 0
 	}
-
-	id = header.ID
-	q, err := parser.Question()
-	if err != nil {
-		newError("question").Base(err).WriteToLog()
-		return r, domain, id, qType
+	id := message.ID
+	if len(message.Questions) != 1 || message.Response {
+		return false, "", id, 0
 	}
-	qType = q.Type
+	qClass := message.Questions[0].Class
+	if qClass != dnsmessage.ClassINET {
+		return false, "", id, 0
+	}
+	qType := message.Questions[0].Type
 	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
-		return r, domain, id, qType
+		return false, "", id, qType
 	}
-
-	domain = q.Name.String()
-	r = true
-	return r, domain, id, qType
+	domain, err := strmatcher.ToDomain(message.Questions[0].Name.String())
+	if err != nil {
+		return false, "", id, qType
+	}
+	return true, domain, id, qType
 }
 
 // Process implements proxy.Outbound.
@@ -205,12 +211,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 			if !h.isOwnLink(ctx) {
 				isIPQuery, domain, id, qType := parseIPQuery(b.Bytes())
 				if isIPQuery || h.nonIPQuery != "drop" {
-					if domain, err := strmatcher.ToDomain(domain); err == nil {
+					if isIPQuery && !h.lookupAsExchange {
 						go h.handleIPQuery(id, qType, domain, writer)
 						b.Release()
+						continue
 					} else {
-						h.handleDNSError(id, dnsmessage.RCodeFormatError, writer)
-						b.Release()
+						go func() {
+							h.handleRawQuery(b.Bytes(), writer)
+							b.Release()
+						}()
+						continue
 					}
 				} else {
 					h.handleDNSError(id, dnsmessage.RCodeNotImplemented, writer)
@@ -246,6 +256,21 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 	}
 
 	return nil
+}
+
+func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
+	if rawQuery, ok := h.client.(dns.RawQuery); ok {
+		resp, err := rawQuery.QueryRaw(b)
+		if err != nil {
+			newError(err).AtError().WriteToLog()
+			return
+		}
+		if err := writer.WriteMessage(buf.FromBytes(resp)); err != nil {
+			newError("write IP answer").Base(err).WriteToLog()
+		}
+	} else {
+		newError("dns.RawQuery not implemented").AtError().WriteToLog()
+	}
 }
 
 func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string, writer dns_proto.MessageWriter) {
