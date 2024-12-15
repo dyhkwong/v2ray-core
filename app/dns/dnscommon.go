@@ -1,7 +1,9 @@
 package dns
 
 import (
+	"encoding/base64"
 	"encoding/binary"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +14,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 )
+
+var errTruncated = newError("truncated")
 
 // Fqdn normalizes domain make sure it ends with '.'
 func Fqdn(domain string) string {
@@ -65,7 +69,7 @@ type dnsRequest struct {
 	msg     *dnsmessage.Message
 }
 
-func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+func genEDNS0Subnet(clientIP net.IP) *dnsmessage.Option {
 	if len(clientIP) == 0 {
 		return nil
 	}
@@ -98,16 +102,22 @@ func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
 
 	const EDNS0SUBNET = 0x08
 
+	return &dnsmessage.Option{
+		Code: EDNS0SUBNET,
+		Data: b,
+	}
+}
+
+func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+	if len(clientIP) == 0 {
+		return nil
+	}
+
 	opt := new(dnsmessage.Resource)
 	common.Must(opt.Header.SetEDNS0(1350, 0xfe00, true))
 
 	opt.Body = &dnsmessage.OPTResource{
-		Options: []dnsmessage.Option{
-			{
-				Code: EDNS0SUBNET,
-				Data: b,
-			},
-		},
+		Options: []dnsmessage.Option{*(genEDNS0Subnet(clientIP))},
 	}
 
 	return opt
@@ -181,6 +191,10 @@ func parseResponse(payload []byte) (*IPRecord, error) {
 		RCode:  h.RCode,
 		Expire: now,
 		TTL:    0,
+	}
+
+	if h.Truncated {
+		return ipRecord, errTruncated
 	}
 
 L:
@@ -260,4 +274,79 @@ func filterIP(ips []net.Address, option dns_feature.IPOption) []net.Address {
 		}
 	}
 	return filtered
+}
+
+func resourceBodyToString(resource dnsmessage.Resource) string {
+	switch body := resource.Body.(type) {
+	case *dnsmessage.AResource:
+		return net.IPAddress(body.A[:]).IP().String()
+	case *dnsmessage.AAAAResource:
+		return net.IPAddress(body.AAAA[:]).IP().String()
+	case *dnsmessage.CNAMEResource:
+		return body.CNAME.String()
+	case *dnsmessage.MXResource:
+		return body.MX.String()
+	case *dnsmessage.NSResource:
+		return body.NS.String()
+	case *dnsmessage.PTRResource:
+		return body.PTR.String()
+	case *dnsmessage.SOAResource:
+		return body.NS.String() + " " + body.MBox.String()
+	case *dnsmessage.TXTResource:
+		return strings.Join(body.TXT, " ")
+	case *dnsmessage.SRVResource:
+		return net.JoinHostPort(body.Target.String(), strconv.Itoa(int(body.Port)))
+	case *dnsmessage.SVCBResource, *dnsmessage.HTTPSResource:
+		var target string
+		var params []dnsmessage.SVCParam
+		switch body := resource.Body.(type) {
+		case *dnsmessage.SVCBResource:
+			target = body.Target.String()
+			params = body.Params
+
+		case *dnsmessage.HTTPSResource:
+			target = body.Target.String()
+			params = body.Params
+		}
+		var paramString []string
+		for _, param := range params {
+			switch param.Key {
+			case dnsmessage.SVCParamPort:
+				paramString = append(paramString, "port="+strconv.Itoa(int(binary.BigEndian.Uint16(param.Value))))
+
+			case dnsmessage.SVCParamECH:
+				paramString = append(paramString, "ech="+base64.StdEncoding.EncodeToString(param.Value))
+			case dnsmessage.SVCParamNoDefaultALPN:
+				paramString = append(paramString, "no-default-alpn")
+			case dnsmessage.SVCParamALPN:
+				var alpnString []string
+				pos := 0
+				for pos+1 <= len(param.Value) {
+					length := param.Value[pos]
+					pos++
+					if pos+int(length) > len(param.Value) {
+						break
+					}
+					alpnString = append(alpnString, string(param.Value[pos:pos+int(length)]))
+					pos += int(length)
+				}
+				paramString = append(paramString, "alpn="+strings.Join(alpnString, ","))
+			case dnsmessage.SVCParamIPv4Hint:
+				ipv4String := make([]string, len(param.Value)/4)
+				for i := range len(param.Value) / 4 {
+					ipv4String[i] = net.IPAddress(param.Value[i*4 : i*4+4]).IP().String()
+				}
+				paramString = append(paramString, "ipv4hint="+strings.Join(ipv4String, ","))
+			case dnsmessage.SVCParamIPv6Hint:
+				ipv6String := make([]string, len(param.Value)/16)
+				for i := range len(param.Value) / 16 {
+					ipv6String[i] = net.IPAddress(param.Value[i*16 : i*16+16]).IP().String()
+				}
+				paramString = append(paramString, "ipv6hint="+strings.Join(ipv6String, ","))
+			}
+		}
+		return target + " " + strings.Join(paramString, " ")
+	default:
+		return ""
+	}
 }
