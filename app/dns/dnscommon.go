@@ -75,7 +75,7 @@ type dnsRequest struct {
 	msg     *dnsmessage.Message
 }
 
-func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+func genEDNS0Subnet(clientIP net.IP) *dnsmessage.Option {
 	if len(clientIP) == 0 {
 		return nil
 	}
@@ -108,16 +108,22 @@ func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
 
 	const EDNS0SUBNET = 0x08
 
+	return &dnsmessage.Option{
+		Code: EDNS0SUBNET,
+		Data: b,
+	}
+}
+
+func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+	if len(clientIP) == 0 {
+		return nil
+	}
+
 	opt := new(dnsmessage.Resource)
 	common.Must(opt.Header.SetEDNS0(1350, 0xfe00, true))
 
 	opt.Body = &dnsmessage.OPTResource{
-		Options: []dnsmessage.Option{
-			{
-				Code: EDNS0SUBNET,
-				Data: b,
-			},
-		},
+		Options: []dnsmessage.Option{*(genEDNS0Subnet(clientIP))},
 	}
 
 	return opt

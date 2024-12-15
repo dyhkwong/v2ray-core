@@ -4,9 +4,13 @@ import (
 	"context"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
+
+//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 var lookupFunc = func(network, host string) ([]net.IP, error) {
 	resolver := &net.Resolver{PreferGo: false}
@@ -18,6 +22,21 @@ var lookupFunc = func(network, host string) ([]net.IP, error) {
 		return nil, dns.ErrEmptyResponse
 	}
 	return ips, nil
+}
+
+var rawQueryFunc = func(b []byte) ([]byte, error) {
+	newError("localhost does not support raw query").AtError().WriteToLog()
+	requestMsg := new(dnsmessage.Message)
+	if err := requestMsg.Unpack(b); err != nil {
+		return nil, newError("failed to parse dns request").Base(err)
+	}
+	responseMsg := new(dnsmessage.Message)
+	responseMsg.ID = requestMsg.ID
+	responseMsg.RCode = dnsmessage.RCodeNotImplemented
+	responseMsg.RecursionAvailable = true
+	responseMsg.RecursionDesired = true
+	responseMsg.Response = true
+	return responseMsg.Pack()
 }
 
 // Client is an implementation of dns.Client, which queries localhost for DNS.
@@ -63,6 +82,11 @@ func (c *Client) LookupIPv6WithTTL(host string) ([]net.IP, uint32, time.Time, er
 	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
 	ips, err := c.LookupIPv6(host)
 	return ips, ttl, expireAt, err
+}
+
+// QueryRaw implements RawQuery.
+func (c *Client) QueryRaw(reqBytes []byte) ([]byte, error) {
+	return rawQueryFunc(reqBytes)
 }
 
 // New create a new dns.Client that queries localhost for DNS.
