@@ -25,6 +25,7 @@ type Config struct {
 	OverrideResponseTtl bool          `protobuf:"varint,4,opt,name=override_response_ttl,json=overrideResponseTtl,proto3" json:"override_response_ttl,omitempty"`
 	ResponseTtl         uint32        `protobuf:"varint,3,opt,name=response_ttl,json=responseTtl,proto3" json:"response_ttl,omitempty"`
 	Non_IPQuery         string        `protobuf:"bytes,5,opt,name=non_IP_query,json=nonIPQuery,proto3" json:"non_IP_query,omitempty"`
+	LookupAsExchange    bool          `protobuf:"varint,99,opt,name=lookup_as_exchange,json=lookupAsExchange,proto3" json:"lookup_as_exchange,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -94,11 +95,18 @@ func (x *Config) GetNon_IPQuery() string {
 	return ""
 }
 
+func (x *Config) GetLookupAsExchange() bool {
+	if x != nil {
+		return x.LookupAsExchange
+	}
+	return false
+}
+
 var File_proxy_dns_config_proto protoreflect.FileDescriptor
 
 const file_proxy_dns_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16proxy/dns/config.proto\x12\x14v2ray.core.proxy.dns\x1a\x1ccommon/net/destination.proto\"\xd9\x01\n" +
+	"\x16proxy/dns/config.proto\x12\x14v2ray.core.proxy.dns\x1a\x1ccommon/net/destination.proto\"\x87\x02\n" +
 	"\x06Config\x127\n" +
 	"\x06server\x18\x01 \x01(\v2\x1f.v2ray.core.common.net.EndpointR\x06server\x12\x1d\n" +
 	"\n" +
@@ -106,7 +114,8 @@ const file_proxy_dns_config_proto_rawDesc = "" +
 	"\x15override_response_ttl\x18\x04 \x01(\bR\x13overrideResponseTtl\x12!\n" +
 	"\fresponse_ttl\x18\x03 \x01(\rR\vresponseTtl\x12 \n" +
 	"\fnon_IP_query\x18\x05 \x01(\tR\n" +
-	"nonIPQueryB]\n" +
+	"nonIPQuery\x12,\n" +
+	"\x12lookup_as_exchange\x18c \x01(\bR\x10lookupAsExchangeB]\n" +
 	"\x18com.v2ray.core.proxy.dnsP\x01Z(github.com/v2fly/v2ray-core/v4/proxy/dns\xaa\x02\x14V2Ray.Core.Proxy.Dnsb\x06proto3"
 
 var (
