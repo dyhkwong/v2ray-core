@@ -38,6 +38,15 @@ func (s *FakeDNSClient) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, e
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: true})
 }
 
+func (s *FakeDNSClient) NewReqID() uint16 {
+	// placeholder
+	return 0
+}
+
+func (s *FakeDNSClient) QueryRaw(request []byte) ([]byte, error) {
+	return s.queryRaw(request, true)
+}
+
 // FakeDNSEngine is an implementation of dns.FakeDNSEngine based on a fully functional DNS.
 type FakeDNSEngine struct {
 	dns         *DNS
