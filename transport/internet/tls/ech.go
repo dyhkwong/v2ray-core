@@ -4,24 +4,34 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/miekg/dns"
+	"golang.org/x/net/dns/dnsmessage"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
+// from "github.com/v2fly/v2ray-core/v5/app/dns", import cycle
+func fqdn(domain string) string {
+	if len(domain) > 0 && strings.HasSuffix(domain, ".") {
+		return domain
+	}
+	return domain + "."
+}
+
 func ApplyECH(c *Config, config *tls.Config) error {
-	var ECHConfig []byte
+	var echConfig []byte
 	var err error
 	var domain string
 
 	if len(c.EchConfig) > 0 {
-		ECHConfig = c.EchConfig
+		echConfig = c.EchConfig
 	} else { // ECH config > DOH lookup
 		if c.EchQueryDomain == "" {
 			domain = config.ServerName
@@ -32,16 +42,16 @@ func ApplyECH(c *Config, config *tls.Config) error {
 		if !addr.Family().IsDomain() {
 			return newError("Using DOH for ECH needs SNI")
 		}
-		ECHConfig, err = QueryRecord(addr.Domain(), c.Ech_DOHserver)
+		echConfig, err = QueryRecord(addr.Domain(), c.Ech_DOHserver)
 		if err != nil {
 			return err
 		}
-		if len(ECHConfig) == 0 {
+		if len(echConfig) == 0 {
 			return newError("no ech record found")
 		}
 	}
 
-	config.EncryptedClientHelloConfigList = ECHConfig
+	config.EncryptedClientHelloConfigList = echConfig
 	return nil
 }
 
@@ -85,12 +95,18 @@ func QueryRecord(domain string, server string) ([]byte, error) {
 }
 
 func dohQuery(server string, domain string) ([]byte, uint32, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeHTTPS)
-	m.Id = 0
+	m := new(dnsmessage.Message)
+	m.Questions = []dnsmessage.Question{
+		{
+			Name:  dnsmessage.MustNewName(fqdn(domain)),
+			Type:  dnsmessage.TypeHTTPS,
+			Class: dnsmessage.ClassINET,
+		},
+	}
+	m.ID = 0
 	msg, err := m.Pack()
 	if err != nil {
-		return []byte{}, 0, err
+		return nil, 0, err
 	}
 	tr := &http.Transport{
 		IdleConnTimeout:   90 * time.Second,
@@ -113,44 +129,46 @@ func dohQuery(server string, domain string) ([]byte, uint32, error) {
 	}
 	req, err := http.NewRequest("POST", server, bytes.NewReader(msg))
 	if err != nil {
-		return []byte{}, 0, err
+		return nil, 0, err
 	}
 	req.Header.Set("Content-Type", "application/dns-message")
 	resp, err := client.Do(req)
 	if err != nil {
-		return []byte{}, 0, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, 0, err
+		return nil, 0, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return []byte{}, 0, newError("query failed with response code:", resp.StatusCode)
+		return nil, 0, newError("query failed with response code: ", resp.StatusCode)
 	}
-	respMsg := new(dns.Msg)
+	respMsg := new(dnsmessage.Message)
 	err = respMsg.Unpack(respBody)
 	if err != nil {
-		return []byte{}, 0, err
+		return nil, 0, err
 	}
-	if len(respMsg.Answer) > 0 {
-		for _, answer := range respMsg.Answer {
-			if https, ok := answer.(*dns.HTTPS); ok {
-				for _, v := range https.Value {
-					if echConfig, ok := v.(*dns.SVCBECHConfig); ok {
-						newError(context.Background(), "Get ECH config:", echConfig.String(), " TTL:", respMsg.Answer[0].Header().Ttl).AtDebug().WriteToLog()
-						return echConfig.ECH, answer.Header().Ttl, nil
+	for _, answer := range respMsg.Answers {
+		if answer.Header.Class == dnsmessage.ClassINET && answer.Header.Type == dnsmessage.TypeHTTPS {
+			if https, ok := answer.Body.(*dnsmessage.HTTPSResource); ok {
+				for _, param := range https.Params {
+					if param.Key == dnsmessage.SVCParamECH {
+						newError("Get ECH config: ", base64.StdEncoding.EncodeToString(param.Value), " TTL: ", answer.Header.TTL).AtDebug().WriteToLog()
+						return param.Value, answer.Header.TTL, nil
 					}
 				}
 			}
 		}
 	}
-	if respMsg.Rcode == dns.RcodeSuccess || respMsg.Rcode == dns.RcodeNameError {
-		for _, ns := range respMsg.Ns {
-			if soa, ok := ns.(*dns.SOA); ok {
-				return []byte{}, min(ns.Header().Ttl, soa.Minttl), nil
+	if respMsg.RCode == dnsmessage.RCodeSuccess || respMsg.RCode == dnsmessage.RCodeNameError {
+		for _, authority := range respMsg.Authorities {
+			if authority.Header.Class == dnsmessage.ClassINET {
+				if soa, ok := authority.Body.(*dnsmessage.SOAResource); ok {
+					return nil, min(authority.Header.TTL, soa.MinTTL), nil
+				}
 			}
 		}
 	}
-	return []byte{}, 0, newError("no ech record found")
+	return nil, 0, newError("no ech record found")
 }
