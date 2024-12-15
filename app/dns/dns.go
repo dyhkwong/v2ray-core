@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dns/fakedns"
 	"github.com/v2fly/v2ray-core/v5/app/router"
@@ -273,6 +275,41 @@ func (s *DNS) LookupIPv4WithTTL(domain string) ([]net.IP, uint32, time.Time, err
 // LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
 func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, uint32, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
+}
+
+func (s *DNS) QueryRaw(requestBytes []byte) ([]byte, error) {
+	requestMsg := new(dnsmessage.Message)
+	if err := requestMsg.Unpack(requestBytes); err != nil || len(requestMsg.Questions) == 0 {
+		return nil, newError("failed to parse dns request").Base(err)
+	}
+	clients := s.sortClients(strings.TrimSuffix(strings.ToLower(requestMsg.Questions[0].Name.String()), "."), dns.IPOption{
+		FakeEnable: false,
+	})
+	if len(clients) == 0 {
+		for _, question := range requestMsg.Questions {
+			newError("querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog()
+		}
+		newError("no qualified server").AtError().WriteToLog()
+		responseMsg := new(dnsmessage.Message)
+		responseMsg.ID = requestMsg.ID
+		responseMsg.RCode = dnsmessage.RCodeNotImplemented
+		responseMsg.RecursionAvailable = true
+		responseMsg.RecursionDesired = true
+		responseMsg.Response = true
+		return responseMsg.Pack()
+	}
+	errs := []error{}
+	for _, client := range clients {
+		respBytes, err := client.QueryRaw(s.ctx, requestBytes)
+		if err == nil {
+			return respBytes, nil
+		}
+		errs = append(errs, err)
+		if err != context.Canceled && err != context.DeadlineExceeded {
+			return nil, err // Only continue lookup for certain errors
+		}
+	}
+	return nil, newError(errors.Combine(errs...))
 }
 
 func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {

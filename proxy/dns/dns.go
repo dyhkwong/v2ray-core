@@ -202,6 +202,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 						b.Release()
 						continue
 					}
+				} else {
+					go h.handleRawQuery(b.Bytes(), writer)
+					b.Release()
+					continue
 				}
 			}
 
@@ -237,6 +241,21 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 	}
 
 	return nil
+}
+
+func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
+	if rawQuery, ok := h.client.(dns.RawQuery); ok {
+		resp, err := rawQuery.QueryRaw(b)
+		if err != nil {
+			newError(err).AtError().WriteToLog()
+			return
+		}
+		if err := writer.WriteMessage(buf.FromBytes(resp)); err != nil {
+			newError("write IP answer").Base(err).WriteToLog()
+		}
+	} else {
+		newError("dns.RawQuery not implemented").AtError().WriteToLog()
+	}
 }
 
 func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string, writer dns_proto.MessageWriter) {
