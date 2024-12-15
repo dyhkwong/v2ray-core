@@ -40,7 +40,7 @@ require (
 	go.uber.org/mock v0.6.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.46.1-0.20251023203934-dec9fe711ec1
 	golang.org/x/sync v0.17.0
 	golang.org/x/sys v0.37.0
 	google.golang.org/grpc v1.76.0

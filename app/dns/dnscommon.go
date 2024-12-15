@@ -13,6 +13,8 @@ import (
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
+var errTruncated = newError("truncated")
+
 // Fqdn normalizes domain make sure it ends with '.'
 func Fqdn(domain string) string {
 	if len(domain) > 0 && strings.HasSuffix(domain, ".") {
@@ -65,7 +67,7 @@ type dnsRequest struct {
 	msg     *dnsmessage.Message
 }
 
-func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+func genEDNS0Subnet(clientIP net.IP) *dnsmessage.Option {
 	if len(clientIP) == 0 {
 		return nil
 	}
@@ -98,16 +100,22 @@ func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
 
 	const EDNS0SUBNET = 0x08
 
+	return &dnsmessage.Option{
+		Code: EDNS0SUBNET,
+		Data: b,
+	}
+}
+
+func genEDNS0Options(clientIP net.IP) *dnsmessage.Resource {
+	if len(clientIP) == 0 {
+		return nil
+	}
+
 	opt := new(dnsmessage.Resource)
 	common.Must(opt.Header.SetEDNS0(1350, 0xfe00, true))
 
 	opt.Body = &dnsmessage.OPTResource{
-		Options: []dnsmessage.Option{
-			{
-				Code: EDNS0SUBNET,
-				Data: b,
-			},
-		},
+		Options: []dnsmessage.Option{*(genEDNS0Subnet(clientIP))},
 	}
 
 	return opt
@@ -181,6 +189,10 @@ func parseResponse(payload []byte) (*IPRecord, error) {
 		RCode:  h.RCode,
 		Expire: now,
 		TTL:    0,
+	}
+
+	if h.Truncated {
+		return ipRecord, errTruncated
 	}
 
 L:
