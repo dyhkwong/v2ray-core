@@ -2,9 +2,13 @@ package dns
 
 import (
 	"context"
+	"strings"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
@@ -56,6 +60,65 @@ func (f *FakeDNSServer) QueryIPWithTTL(ctx context.Context, domain string, _ net
 func (f *FakeDNSServer) QueryIP(ctx context.Context, domain string, _ net.IP, opt dns.IPOption, _ bool) ([]net.IP, error) {
 	ips, _, err := f.QueryIPWithTTL(ctx, domain, nil, opt, false)
 	return ips, err
+}
+
+func (f *FakeDNSServer) NewReqID() uint16 {
+	// placeholder
+	return 0
+}
+
+func (f *FakeDNSServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+	requestMsg := new(dnsmessage.Message)
+	err := requestMsg.Unpack(request)
+	if err != nil {
+		return nil, newError("failed to parse dns request").Base(err)
+	}
+	if requestMsg.Response || len(requestMsg.Answers) > 0 {
+		newError("failed to parse dns request: not query").AtError().WriteToLog()
+	}
+	if len(requestMsg.Questions) == 0 {
+		return nil, newError("failed to parse dns request: no question present")
+	}
+	if len(requestMsg.Questions) > 1 {
+		return nil, newError("failed to parse dns request: too many questions")
+	}
+	qName := requestMsg.Questions[0].Name
+	qType := requestMsg.Questions[0].Type
+	qClass := requestMsg.Questions[0].Class
+	var opt dns.IPOption
+	switch qType {
+	case dnsmessage.TypeA:
+		opt = dns.IPOption{IPv4Enable: true, FakeEnable: true}
+	case dnsmessage.TypeAAAA:
+		opt = dns.IPOption{IPv6Enable: true, FakeEnable: true}
+	default:
+		return nil, newError("failed to parse dns request: not A or AAAA")
+	}
+	ips, _, err := f.QueryIPWithTTL(ctx, strings.TrimSuffix(strings.ToLower(qName.String()), "."), nil, opt, false)
+	if err != nil && err != dns.ErrEmptyResponse {
+		return nil, err
+	}
+	builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{
+		ID:                 requestMsg.ID,
+		RCode:              dnsmessage.RCodeSuccess,
+		RecursionAvailable: true,
+		RecursionDesired:   true,
+		Response:           true,
+	})
+	builder.EnableCompression()
+	common.Must(builder.StartQuestions())
+	common.Must(builder.Question(dnsmessage.Question{Name: qName, Class: qClass, Type: qType}))
+	common.Must(builder.StartAnswers())
+	h := dnsmessage.ResourceHeader{Name: qName, Type: qType, Class: qClass, TTL: 1}
+	for _, ip := range ips {
+		switch qType {
+		case dnsmessage.TypeA:
+			common.Must(builder.AResource(h, dnsmessage.AResource{A: [4]byte(ip)}))
+		case dnsmessage.TypeAAAA:
+			common.Must(builder.AAAAResource(h, dnsmessage.AAAAResource{AAAA: [16]byte(ip)}))
+		}
+	}
+	return builder.Finish()
 }
 
 func isFakeDNS(server Server) bool {

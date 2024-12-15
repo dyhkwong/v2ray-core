@@ -16,6 +16,7 @@ type DNSOutboundConfig struct {
 	OverrideResponseTTL bool               `json:"overrideResponseTTL"`
 	ResponseTTL         uint32             `json:"responseTTL"`
 	NonIPQuery          string             `json:"nonIPQuery"`
+	LookupAsExchange    bool               `json:"lookupAsExchange"`
 }
 
 func (c *DNSOutboundConfig) Build() (proto.Message, error) {
@@ -28,6 +29,7 @@ func (c *DNSOutboundConfig) Build() (proto.Message, error) {
 		OverrideResponseTtl: c.OverrideResponseTTL,
 		ResponseTtl:         c.ResponseTTL,
 		Non_IPQuery:         c.NonIPQuery,
+		LookupAsExchange:    c.LookupAsExchange,
 	}
 	if c.Address != nil {
 		config.Server.Address = c.Address.Build()
