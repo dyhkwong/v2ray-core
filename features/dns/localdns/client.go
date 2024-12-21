@@ -25,6 +25,17 @@ var (
 		return ips, nil
 	}
 	lookupFunc = defaultLookupFunc
+
+	defaultRawQueryFunc = func(_ []byte) ([]byte, error) {
+		newError("localhost does not support raw query").AtError().WriteToLog()
+		responseMsg := new(dnsmessage.Message)
+		responseMsg.RCode = dnsmessage.RCodeNotImplemented
+		responseMsg.RecursionAvailable = true
+		responseMsg.RecursionDesired = true
+		responseMsg.Response = true
+		return responseMsg.Pack()
+	}
+	rawQueryFunc = defaultRawQueryFunc
 )
 
 // SagerNet private
@@ -36,14 +47,13 @@ func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
 	}
 }
 
-var rawQueryFunc = func(_ []byte) ([]byte, error) {
-	newError("localhost does not support raw query").AtError().WriteToLog()
-	responseMsg := new(dnsmessage.Message)
-	responseMsg.RCode = dnsmessage.RCodeNotImplemented
-	responseMsg.RecursionAvailable = true
-	responseMsg.RecursionDesired = true
-	responseMsg.Response = true
-	return responseMsg.Pack()
+// SagerNet private
+func SetRawQueryFunc(fn func(reqBytes []byte) ([]byte, error)) {
+	if fn == nil {
+		rawQueryFunc = defaultRawQueryFunc
+	} else {
+		rawQueryFunc = fn
+	}
 }
 
 // Client is an implementation of dns.Client, which queries localhost for DNS.
