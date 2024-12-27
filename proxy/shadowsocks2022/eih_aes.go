@@ -7,7 +7,7 @@ import (
 	"crypto/subtle"
 	"io"
 
-	"github.com/lunixbochs/struc"
+	"github.com/v2fly/struc"
 
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 
