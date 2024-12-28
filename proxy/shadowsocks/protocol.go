@@ -31,7 +31,7 @@ var addrParser = protocol.NewAddressParser(
 )
 
 // ReadTCPSession reads a Shadowsocks TCP session from the given reader, returns its header and remaining parts.
-func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, protocolConn *sip003.ProtocolConn) (*protocol.RequestHeader, buf.Reader, error) {
+func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader) (*protocol.RequestHeader, buf.Reader, error) {
 	account := user.Account.(*MemoryAccount)
 
 	hashkdf := hmac.New(sha256.New, []byte("SSBSKDF"))
@@ -63,12 +63,6 @@ func ReadTCPSession(user *protocol.MemoryUser, reader io.Reader, protocolConn *s
 		drainer.AcknowledgeReceive(int(buffer.Len()))
 		return nil, nil, drain.WithError(drainer, reader, newError("failed to initialize decoding stream").Base(err).AtError())
 	}
-
-	if protocolConn != nil {
-		protocolConn.Reader = r
-		r = protocolConn.ProtocolReader
-	}
-
 	br := &buf.BufferedReader{Reader: r}
 
 	request := &protocol.RequestHeader{
@@ -173,24 +167,23 @@ func ReadTCPResponse(user *protocol.MemoryUser, reader io.Reader, protocolConn *
 	return r, err
 }
 
-func WriteTCPResponse(request *protocol.RequestHeader, writer io.Writer, iv []byte, protocolConn *sip003.ProtocolConn) (buf.Writer, error) {
+func WriteTCPResponse(request *protocol.RequestHeader, writer io.Writer) (buf.Writer, error) {
 	user := request.User
 	account := user.Account.(*MemoryAccount)
 
-	if len(iv) > 0 {
+	var iv []byte
+	if account.Cipher.IVSize() > 0 {
+		iv = make([]byte, account.Cipher.IVSize())
+		common.Must2(rand.Read(iv))
+		if ivError := account.CheckIV(iv); ivError != nil {
+			return nil, newError("failed to mark outgoing iv").Base(ivError)
+		}
 		if err := buf.WriteAllBytes(writer, iv); err != nil {
 			return nil, newError("failed to write IV.").Base(err)
 		}
 	}
 
-	w, err := account.Cipher.NewEncryptionWriter(account.Key, iv, writer)
-
-	if err == nil && protocolConn != nil {
-		protocolConn.Writer = w
-		w = protocolConn.ProtocolWriter
-	}
-
-	return w, err
+	return account.Cipher.NewEncryptionWriter(account.Key, iv, writer)
 }
 
 func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, protocolPlugin sip003.ProtocolPlugin) (*buf.Buffer, error) {

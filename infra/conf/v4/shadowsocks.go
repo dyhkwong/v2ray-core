@@ -19,7 +19,6 @@ type ShadowsocksUserConfig struct {
 	Email    string             `json:"email"`
 	Address  *cfgcommon.Address `json:"address"`
 	Port     uint16             `json:"port"`
-	Cipher   string             `json:"method"`
 }
 
 type ShadowsocksServerConfig struct {
@@ -105,41 +104,19 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 	config.UdpEnabled = v.UDP
 	config.Network = v.NetworkList.Build()
 
-	if v.Users == nil {
-		v.Users = v.Clients
+	account := &shadowsocks.Account{
+		Password: v.Password,
+		IvCheck:  v.IVCheck,
+	}
+	account.CipherType = shadowsocks.CipherFromString(v.Cipher)
+	if account.CipherType == shadowsocks.CipherType_UNKNOWN {
+		return nil, newError("unknown cipher method: ", v.Cipher)
 	}
 
-	if len(v.Users) == 0 {
-		account := &shadowsocks.Account{
-			Password: v.Password,
-			IvCheck:  v.IVCheck,
-		}
-		account.CipherType = shadowsocks.CipherFromString(v.Cipher)
-		if account.CipherType == shadowsocks.CipherType_UNKNOWN {
-			return nil, newError("unknown cipher method: ", v.Cipher)
-		}
-
-		config.User = &protocol.User{
-			Email:   v.Email,
-			Level:   uint32(v.Level),
-			Account: serial.ToTypedMessage(account),
-		}
-	}
-
-	for _, user := range v.Users {
-		account := &shadowsocks.Account{
-			Password: user.Password,
-			IvCheck:  v.IVCheck,
-		}
-		account.CipherType = shadowsocks.CipherFromString(user.Cipher)
-		if account.CipherType == shadowsocks.CipherType_UNKNOWN {
-			return nil, newError("unknown cipher method: ", user.Cipher)
-		}
-		config.Users = append(config.Users, &protocol.User{
-			Email:   user.Email,
-			Level:   uint32(user.Level),
-			Account: serial.ToTypedMessage(account),
-		})
+	config.User = &protocol.User{
+		Email:   v.Email,
+		Level:   uint32(v.Level),
+		Account: serial.ToTypedMessage(account),
 	}
 
 	switch strings.ToLower(v.PacketEncoding) {

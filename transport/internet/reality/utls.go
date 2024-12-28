@@ -29,7 +29,7 @@ func init() {
 
 func GetFingerprint(name string) (fingerprint *utls.ClientHelloID) {
 	if name == "" {
-		return
+		return &utls.HelloChrome_Auto
 	}
 	if fingerprint = PresetFingerprints[name]; fingerprint != nil {
 		return
@@ -52,6 +52,7 @@ var PresetFingerprints = map[string]*utls.ClientHelloID{
 	"qq":         &utls.HelloQQ_Auto,
 	"random":     nil,
 	"randomized": nil,
+	"unsafe":     nil,
 }
 
 var ModernFingerprints = map[string]*utls.ClientHelloID{

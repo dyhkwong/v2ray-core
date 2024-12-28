@@ -140,7 +140,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 	var transport http.RoundTripper
 
 	if httpVersion == "3" {
-		transport = &http3.Transport{
+		transport = &http3.RoundTripper{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout: connIdleTimeout,
 				// these two are defaults of quic-go/http3. the default of quic-go (no
@@ -219,9 +219,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 	var requestURL url.URL
 
-	//scMaxEachPostBytes := transportConfiguration.GetNormalizedScMaxEachPostBytes()
-	//scMinPostsIntervalMs := transportConfiguration.GetNormalizedScMinPostsIntervalMs()
-
 	if tlsConfig != nil || realityConfig != nil {
 		requestURL.Scheme = "https"
 	} else {
@@ -258,46 +255,33 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		}
 	}
 
-	newError(fmt.Sprintf("XHTTP is dialing to %s, mode %s, HTTP version %s, host %s", dest, mode, httpVersion, requestURL.Host)).AtInfo()
+	newError(fmt.Sprintf("XHTTP is dialing to %s, mode %s, HTTP version %s, host %s", dest, mode, httpVersion, requestURL.Host)).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 
-	var writer io.WriteCloser
-	var reader io.ReadCloser
-	var remoteAddr, localAddr net.Addr
+	var closed atomic.Int32
 
-	if mode == "stream-one" {
-		requestURL.Path = transportConfiguration.GetNormalizedPath()
-		writer, reader = httpClient.Open(context.WithoutCancel(ctx), requestURL.String())
-		remoteAddr = &net.TCPAddr{}
-		localAddr = &net.TCPAddr{}
-	} else {
-		reader, remoteAddr, localAddr, err = httpClient.OpenDownload(context.WithoutCancel(ctx), requestURL.String())
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var once atomic.Int32
-
+	reader, writer := io.Pipe()
 	conn := splitConn{
-		writer:     writer,
-		reader:     reader,
-		remoteAddr: remoteAddr,
-		localAddr:  localAddr,
+		writer: writer,
 		onClose: func() {
-			if once.Add(-1) < 0 {
+			if closed.Add(1) > 1 {
 				return
 			}
 		},
 	}
 
 	if mode == "stream-one" {
+		requestURL.Path = transportConfiguration.GetNormalizedPath()
+		conn.reader, conn.remoteAddr, conn.localAddr, _ = httpClient.OpenStream(context.WithoutCancel(ctx), requestURL.String(), reader, false)
 		return internet.Connection(&conn), nil
+	} else { // stream-down
+		var err error
+		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(context.WithoutCancel(ctx), requestURL.String(), nil, false)
+		if err != nil { // browser dialer only
+			return nil, err
+		}
 	}
 	if mode == "stream-up" {
-		conn.writer = httpClient.OpenUpload(ctx, requestURL.String())
+		httpClient.OpenStream(ctx, requestURL.String(), reader, true)
 		return internet.Connection(&conn), nil
 	}
 
@@ -349,7 +333,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			lastWrite = time.Now()
 
 			go func() {
-				err := httpClient.SendUploadRequest(
+				err := httpClient.PostPacket(
 					context.WithoutCancel(ctx),
 					url.String(),
 					&buf.MultiBufferContainer{MultiBuffer: chunk},

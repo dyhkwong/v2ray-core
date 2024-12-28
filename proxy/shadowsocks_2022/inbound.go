@@ -51,8 +51,6 @@ type Inbound struct {
 	plugin         sip003.Plugin
 	pluginOverride net.Destination
 	receiverPort   int
-
-	streamPlugin sip003.StreamPlugin
 }
 
 func (i *Inbound) Initialize(self features_inbound.Handler) {
@@ -94,15 +92,6 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
-
-		if streamPlugin, ok := plugin.(sip003.StreamPlugin); ok {
-			inbound.streamPlugin = streamPlugin
-			if err := streamPlugin.InitStreamPlugin("", config.PluginOpts); err != nil {
-				return nil, newError("failed to start plugin").Base(err)
-			}
-			return inbound, nil
-		}
-
 		port, err := net.GetFreePort()
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
@@ -165,8 +154,6 @@ func (i *Inbound) Process(ctx context.Context, network net.Network, connection i
 			return nil
 		}
 		inbound.Tag = i.tag
-	} else if i.streamPlugin != nil {
-		connection = i.streamPlugin.StreamConn(connection)
 	}
 
 	var metadata M.Metadata

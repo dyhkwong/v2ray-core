@@ -75,7 +75,6 @@ message ServerConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
-  repeated v2ray.core.common.protocol.User users = 8;
 }
 
 message ClientConfig {

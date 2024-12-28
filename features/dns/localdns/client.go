@@ -4,9 +4,13 @@ import (
 	"context"
 	"time"
 
+	"golang.org/x/net/dns/dnsmessage"
+
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
+
+//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 var (
 	defaultLookupFunc = func(network, host string) ([]net.IP, error) {
@@ -21,6 +25,17 @@ var (
 		return ips, nil
 	}
 	lookupFunc = defaultLookupFunc
+
+	defaultRawQueryFunc = func(_ []byte) ([]byte, error) {
+		newError("localhost does not support raw query").AtError().WriteToLog()
+		responseMsg := new(dnsmessage.Message)
+		responseMsg.RCode = dnsmessage.RCodeNotImplemented
+		responseMsg.RecursionAvailable = true
+		responseMsg.RecursionDesired = true
+		responseMsg.Response = true
+		return responseMsg.Pack()
+	}
+	rawQueryFunc = defaultRawQueryFunc
 )
 
 // SagerNet private
@@ -29,6 +44,15 @@ func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
 		lookupFunc = defaultLookupFunc
 	} else {
 		lookupFunc = fn
+	}
+}
+
+// SagerNet private
+func SetRawQueryFunc(fn func(reqBytes []byte) ([]byte, error)) {
+	if fn == nil {
+		rawQueryFunc = defaultRawQueryFunc
+	} else {
+		rawQueryFunc = fn
 	}
 }
 
@@ -75,6 +99,11 @@ func (c *Client) LookupIPv6WithTTL(host string) ([]net.IP, uint32, time.Time, er
 	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
 	ips, err := c.LookupIPv6(host)
 	return ips, ttl, expireAt, err
+}
+
+// QueryRaw implements RawQuery.
+func (c *Client) QueryRaw(reqBytes []byte) ([]byte, error) {
+	return rawQueryFunc(reqBytes)
 }
 
 // New create a new dns.Client that queries localhost for DNS.

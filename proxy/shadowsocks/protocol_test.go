@@ -131,7 +131,7 @@ func TestTCPRequest(t *testing.T) {
 
 		common.Must(writer.WriteMultiBuffer(buf.MultiBuffer{data}))
 
-		decodedRequest, reader, err := ReadTCPSession(request.User, cache, nil)
+		decodedRequest, reader, err := ReadTCPSession(request.User, cache)
 		common.Must(err)
 		if equalRequestHeader(decodedRequest, request) == false {
 			t.Error("different request")

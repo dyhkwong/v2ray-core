@@ -64,6 +64,10 @@ type IPv6LookupWithTTL interface {
 	LookupIPv6WithTTL(domain string) ([]net.IP, uint32, time.Time, error)
 }
 
+type RawQuery interface {
+	QueryRaw(b []byte) ([]byte, error)
+}
+
 // LookupIPWithOption is a helper function for querying DNS information from a dns.Client with dns.IPOption.
 //
 // v2ray:api:beta

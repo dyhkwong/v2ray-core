@@ -100,14 +100,12 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		config.Xver = c.Xver
 		config.ServerNames = c.ServerNames
 	} else {
-		if c.Fingerprint == "" {
-			c.Fingerprint = "chrome"
+		config.Fingerprint = strings.ToLower(c.Fingerprint)
+		if config.Fingerprint == "unsafe" || config.Fingerprint == "hellogolang" {
+			return nil, newError(`invalid "fingerprint": `, config.Fingerprint)
 		}
 		if config.Fingerprint = strings.ToLower(c.Fingerprint); reality.GetFingerprint(config.Fingerprint) == nil {
 			return nil, newError(`unknown "fingerprint": `, config.Fingerprint)
-		}
-		if config.Fingerprint == "hellogolang" {
-			return nil, newError(`invalid "fingerprint": `, config.Fingerprint)
 		}
 		if len(c.ServerNames) != 0 {
 			return nil, newError(`non-empty "serverNames", please use "serverName" instead`)
@@ -172,7 +170,7 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		} else {
 			config.Version[0] = 24 // Version_x
 			config.Version[1] = 12 // Version_y
-			config.Version[2] = 15 // Version_z
+			config.Version[2] = 18 // Version_z
 		}
 	}
 	return config, nil
