@@ -299,7 +299,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 			udpCtx = session.ContextWithInbound(udpCtx, inbound)
 		}
 		udpCtx = session.ContextWithContent(udpCtx, &session.Content{
-			Protocol:       "dns",
+			Protocol:       "v2ray.dns",
 			SkipDNSResolve: true,
 		})
 		var cancel context.CancelFunc
@@ -331,7 +331,7 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 		udpCtx = session.ContextWithInbound(udpCtx, inbound)
 	}
 	udpCtx = session.ContextWithContent(udpCtx, &session.Content{
-		Protocol:       "dns",
+		Protocol:       "v2ray.dns",
 		SkipDNSResolve: true,
 	})
 	var cancel context.CancelFunc
