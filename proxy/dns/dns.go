@@ -15,7 +15,6 @@ import (
 	dns_proto "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
-	"github.com/v2fly/v2ray-core/v5/common/strmatcher"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -122,11 +121,11 @@ func parseIPQuery(b []byte) (bool, string, uint16, dnsmessage.Type) {
 	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
 		return false, "", id, qType
 	}
-	domain, err := strmatcher.ToDomain(message.Questions[0].Name.String())
-	if err != nil {
-		return false, "", id, qType
+	domain := message.Questions[0].Name.String()
+	if dns_proto.IsDomainName(message.Questions[0].Name.String()) {
+		return true, domain, id, qType
 	}
-	return true, domain, id, qType
+	return false, "", id, qType
 }
 
 // Process implements proxy.Outbound.
