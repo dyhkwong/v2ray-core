@@ -38,7 +38,7 @@ type TCPNameServer struct {
 
 // NewTCPNameServer creates DNS over TCP server object for remote resolving.
 func NewTCPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*TCPNameServer, error) {
-	s, err := baseTCPNameServer(url, "TCP", net.Port(53), "dns")
+	s, err := baseTCPNameServer(url, "TCP", net.Port(53), "v2ray.dns")
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func NewTCPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*TCPNameServ
 
 // NewTCPLocalNameServer creates DNS over TCP client object for local resolving
 func NewTCPLocalNameServer(url *url.URL) (*TCPNameServer, error) {
-	s, err := baseTCPNameServer(url, "TCPL", net.Port(53), "dns")
+	s, err := baseTCPNameServer(url, "TCPL", net.Port(53), "v2ray.dns")
 	if err != nil {
 		return nil, err
 	}
