@@ -26,9 +26,14 @@ var (
 	}
 	lookupFunc = defaultLookupFunc
 
-	defaultRawQueryFunc = func(_ []byte) ([]byte, error) {
+	defaultRawQueryFunc = func(b []byte) ([]byte, error) {
 		newError("localhost does not support raw query").AtError().WriteToLog()
+		requestMsg := new(dnsmessage.Message)
+		if err := requestMsg.Unpack(b); err != nil {
+			return nil, newError("failed to parse dns request").Base(err)
+		}
 		responseMsg := new(dnsmessage.Message)
+		responseMsg.ID = requestMsg.ID
 		responseMsg.RCode = dnsmessage.RCodeNotImplemented
 		responseMsg.RecursionAvailable = true
 		responseMsg.RecursionDesired = true

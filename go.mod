@@ -28,7 +28,7 @@ require (
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
-	github.com/xtls/quic-go v0.0.0-20241220091641-6f5777d1c087
+	github.com/xtls/quic-go v0.48.2
 	github.com/xtls/reality v0.0.0-20240909153216-d468813b2352
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
@@ -38,7 +38,7 @@ require (
 	golang.org/x/sys v0.28.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.69.2
-	google.golang.org/protobuf v1.36.0
+	google.golang.org/protobuf v1.36.1
 	gvisor.dev/gvisor v0.0.0-20240916094835-a174eb65023f
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0

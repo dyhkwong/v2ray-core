@@ -38,9 +38,7 @@ type ClassicNameServer struct {
 	cleanup    *task.Periodic
 	reqID      uint32
 
-	requestIDs   map[uint16]bool
-	responseMsgs map[uint16]*dnsmessage.Message
-	dones        map[uint16]chan interface{}
+	channel map[uint16]chan *dnsmessage.Message
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -86,9 +84,7 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		name:       name,
 		dispatcher: dispatcher,
 
-		requestIDs:   make(map[uint16]bool),
-		responseMsgs: make(map[uint16]*dnsmessage.Message),
-		dones:        make(map[uint16]chan interface{}),
+		channel: make(map[uint16]chan *dnsmessage.Message),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -108,14 +104,6 @@ func (s *ClassicNameServer) Cleanup() error {
 	now := time.Now()
 	s.Lock()
 	defer s.Unlock()
-
-	for id := range s.responseMsgs {
-		if _, found := s.requestIDs[id]; !found {
-			delete(s.requestIDs, id)
-			delete(s.dones, id)
-			delete(s.responseMsgs, id)
-		}
-	}
 
 	if len(s.ips) == 0 && len(s.requests) == 0 {
 		return newError(s.name, " nothing to do. stopping...")
@@ -155,14 +143,11 @@ func (s *ClassicNameServer) Cleanup() error {
 
 // HandleResponse handles udp response packet from remote DNS server.
 func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_proto.Packet) {
-	responseMsg := new(dnsmessage.Message)
-	if err := responseMsg.Unpack(packet.Payload.Bytes()); err == nil {
+	msg := new(dnsmessage.Message)
+	if err := msg.Unpack(packet.Payload.Bytes()); err == nil {
 		s.Lock()
-		if _, found := s.requestIDs[responseMsg.ID]; found {
-			s.responseMsgs[responseMsg.ID] = responseMsg
-			if done, found := s.dones[responseMsg.ID]; found {
-				close(done)
-			}
+		if ch, found := s.channel[msg.ID]; found {
+			ch <- msg
 			s.Unlock()
 			return
 		}
@@ -275,11 +260,9 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 		return nil, err
 	}
 	id := requestMsg.ID
-	done := make(chan interface{})
+	ch := make(chan *dnsmessage.Message)
 	s.Lock()
-	delete(s.responseMsgs, id)
-	s.requestIDs[id] = true
-	s.dones[id] = done
+	s.channel[id] = ch
 	s.Unlock()
 	var deadline time.Time
 	if d, ok := ctx.Deadline(); ok {
@@ -302,25 +285,16 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	select {
 	case <-dnsCtx.Done():
 		s.Lock()
-		delete(s.requestIDs, id)
-		delete(s.dones, id)
-		delete(s.responseMsgs, id)
+		delete(s.channel, id)
 		// can't fix without refactoring routing.Dispatcher
 		s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
 		s.Unlock()
 		return nil, dnsCtx.Err()
-	case <-done:
+	case responseMsg := <-ch:
 		s.Lock()
-		delete(s.requestIDs, id)
-		delete(s.dones, id)
-		responseMsg := s.responseMsgs[id]
-		delete(s.responseMsgs, id)
+		delete(s.channel, id)
 		s.Unlock()
-		if response, err := responseMsg.Pack(); err == nil {
-			return response, nil
-		} else {
-			return nil, err
-		}
+		return responseMsg.Pack()
 	}
 }
 

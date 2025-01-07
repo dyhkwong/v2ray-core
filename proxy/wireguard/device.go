@@ -80,7 +80,7 @@ func (t *tunnel) Close() (err error) {
 	t.device = nil
 	err = t.tun.Close()
 	t.tun = nil
-	return nil
+	return err
 }
 
 var _ Tunnel = (*wgNet)(nil)
@@ -91,8 +91,6 @@ type wgNet struct {
 }
 
 func (g *wgNet) Close() error {
-	g.tunnel.rw.Lock()
-	defer g.tunnel.rw.Unlock()
 	return g.tunnel.Close()
 }
 

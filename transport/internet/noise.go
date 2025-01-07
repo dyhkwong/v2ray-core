@@ -3,6 +3,7 @@ package internet
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"net"
 	"strconv"
 	"strings"
@@ -51,12 +52,17 @@ func newNoiseConfig(config *SocketConfig_Noise) (*noiseConfig, error) {
 	case "str":
 		c.noise = []byte(strings.TrimSpace(config.Packet))
 	case "base64":
-		c.noise, err = base64.StdEncoding.DecodeString(strings.TrimSpace(config.Packet))
+		c.noise, err = base64.RawURLEncoding.DecodeString(strings.NewReplacer("+", "-", "/", "_", "=", "").Replace(strings.TrimSpace(config.Packet)))
 		if err != nil {
-			return nil, newError("Invalid base64 string")
+			return nil, newError("Invalid base64 string").Base(err)
+		}
+	case "hex":
+		c.noise, err = hex.DecodeString(config.Packet)
+		if err != nil {
+			return nil, newError("Invalid hex string").Base(err)
 		}
 	default:
-		return nil, newError("Invalid packet, only rand, str and base64 are supported")
+		return nil, newError("Invalid packet, only rand, str, base64, and hex are supported")
 	}
 	var delayMin, delayMax uint64
 	if len(config.Delay) > 0 {
