@@ -6,7 +6,15 @@ option go_package = "github.com/v2fly/v2ray-core/v4/transport/internet/httpupgra
 option java_package = "com.v2ray.core.transport.internet.httpupgrade";
 option java_multiple_files = true;
 
+message Header {
+  string key = 1;
+  string value = 2;
+}
+
 message Config {
   string path = 1;
   string host = 2;
+  int32 max_early_data = 3;
+  string early_data_header_name = 4;
+  repeated Header header = 5;
 }
