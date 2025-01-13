@@ -17,11 +17,10 @@ const (
 )
 
 type DetourConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	To            string                 `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	To string `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DetourConfig) Reset() {
@@ -62,12 +61,11 @@ func (x *DetourConfig) GetTo() string {
 }
 
 type DefaultConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AlterId       uint32                 `protobuf:"varint,1,opt,name=alter_id,json=alterId,proto3" json:"alter_id,omitempty"`
+	Level         uint32                 `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	AlterId uint32 `protobuf:"varint,1,opt,name=alter_id,json=alterId,proto3" json:"alter_id,omitempty"`
-	Level   uint32 `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DefaultConfig) Reset() {
@@ -115,14 +113,13 @@ func (x *DefaultConfig) GetLevel() uint32 {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	User                 []*protocol.User `protobuf:"bytes,1,rep,name=user,proto3" json:"user,omitempty"`
-	Default              *DefaultConfig   `protobuf:"bytes,2,opt,name=default,proto3" json:"default,omitempty"`
-	Detour               *DetourConfig    `protobuf:"bytes,3,opt,name=detour,proto3" json:"detour,omitempty"`
-	SecureEncryptionOnly bool             `protobuf:"varint,4,opt,name=secure_encryption_only,json=secureEncryptionOnly,proto3" json:"secure_encryption_only,omitempty"`
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	User                 []*protocol.User       `protobuf:"bytes,1,rep,name=user,proto3" json:"user,omitempty"`
+	Default              *DefaultConfig         `protobuf:"bytes,2,opt,name=default,proto3" json:"default,omitempty"`
+	Detour               *DetourConfig          `protobuf:"bytes,3,opt,name=detour,proto3" json:"detour,omitempty"`
+	SecureEncryptionOnly bool                   `protobuf:"varint,4,opt,name=secure_encryption_only,json=secureEncryptionOnly,proto3" json:"secure_encryption_only,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -184,11 +181,10 @@ func (x *Config) GetSecureEncryptionOnly() bool {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Users []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

@@ -17,18 +17,17 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Psk           []byte                 `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
+	Ipsk          [][]byte               `protobuf:"bytes,4,rep,name=ipsk,proto3" json:"ipsk,omitempty"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
+	Plugin        string                 `protobuf:"bytes,7,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts    string                 `protobuf:"bytes,8,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs    []string               `protobuf:"bytes,9,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Method     string          `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Psk        []byte          `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
-	Ipsk       [][]byte        `protobuf:"bytes,4,rep,name=ipsk,proto3" json:"ipsk,omitempty"`
-	Address    *net.IPOrDomain `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
-	Port       uint32          `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
-	Plugin     string          `protobuf:"bytes,7,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts string          `protobuf:"bytes,8,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs []string        `protobuf:"bytes,9,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {

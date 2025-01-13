@@ -16,13 +16,12 @@ const (
 )
 
 type ServerEndpoint struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	User          []*User                `protobuf:"bytes,3,rep,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Address *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	User    []*User         `protobuf:"bytes,3,rep,name=user,proto3" json:"user,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerEndpoint) Reset() {

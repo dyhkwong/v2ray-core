@@ -16,13 +16,12 @@ const (
 )
 
 type MessageOpt struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Type                  []string `protobuf:"bytes,1,rep,name=type,proto3" json:"type,omitempty"`
-	ShortName             []string `protobuf:"bytes,2,rep,name=short_name,json=shortName,proto3" json:"short_name,omitempty"`
-	TransportOriginalName string   `protobuf:"bytes,86001,opt,name=transport_original_name,json=transportOriginalName,proto3" json:"transport_original_name,omitempty"`
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Type                  []string               `protobuf:"bytes,1,rep,name=type,proto3" json:"type,omitempty"`
+	ShortName             []string               `protobuf:"bytes,2,rep,name=short_name,json=shortName,proto3" json:"short_name,omitempty"`
+	TransportOriginalName string                 `protobuf:"bytes,86001,opt,name=transport_original_name,json=transportOriginalName,proto3" json:"transport_original_name,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *MessageOpt) Reset() {
@@ -77,13 +76,10 @@ func (x *MessageOpt) GetTransportOriginalName() string {
 }
 
 type FieldOpt struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	AnyWants          []string `protobuf:"bytes,1,rep,name=any_wants,json=anyWants,proto3" json:"any_wants,omitempty"`
-	AllowedValues     []string `protobuf:"bytes,2,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
-	AllowedValueTypes []string `protobuf:"bytes,3,rep,name=allowed_value_types,json=allowedValueTypes,proto3" json:"allowed_value_types,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AnyWants          []string               `protobuf:"bytes,1,rep,name=any_wants,json=anyWants,proto3" json:"any_wants,omitempty"`
+	AllowedValues     []string               `protobuf:"bytes,2,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
+	AllowedValueTypes []string               `protobuf:"bytes,3,rep,name=allowed_value_types,json=allowedValueTypes,proto3" json:"allowed_value_types,omitempty"`
 	// convert_time_read_file_into read a file into another field, and clear this field during input parsing
 	ConvertTimeReadFileInto string `protobuf:"bytes,4,opt,name=convert_time_read_file_into,json=convertTimeReadFileInto,proto3" json:"convert_time_read_file_into,omitempty"`
 	// forbidden marks a boolean to be inaccessible to user
@@ -92,6 +88,8 @@ type FieldOpt struct {
 	ConvertTimeResourceLoading string `protobuf:"bytes,6,opt,name=convert_time_resource_loading,json=convertTimeResourceLoading,proto3" json:"convert_time_resource_loading,omitempty"`
 	// convert_time_parse_ip parse a string ip address, and put its binary representation into another field
 	ConvertTimeParseIp string `protobuf:"bytes,7,opt,name=convert_time_parse_ip,json=convertTimeParseIp,proto3" json:"convert_time_parse_ip,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *FieldOpt) Reset() {

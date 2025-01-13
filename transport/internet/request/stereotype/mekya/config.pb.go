@@ -17,11 +17,8 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Kcp *kcp.Config `protobuf:"bytes,1,opt,name=kcp,proto3" json:"kcp,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Kcp   *kcp.Config            `protobuf:"bytes,1,opt,name=kcp,proto3" json:"kcp,omitempty"`
 	// Client
 	MaxWriteDelay          int32 `protobuf:"varint,1003,opt,name=max_write_delay,json=maxWriteDelay,proto3" json:"max_write_delay,omitempty"`
 	MaxRequestSize         int32 `protobuf:"varint,1004,opt,name=max_request_size,json=maxRequestSize,proto3" json:"max_request_size,omitempty"`
@@ -32,8 +29,10 @@ type Config struct {
 	MaxSimultaneousWriteConnection int32 `protobuf:"varint,2005,opt,name=max_simultaneous_write_connection,json=maxSimultaneousWriteConnection,proto3" json:"max_simultaneous_write_connection,omitempty"`
 	PacketWritingBuffer            int32 `protobuf:"varint,2006,opt,name=packet_writing_buffer,json=packetWritingBuffer,proto3" json:"packet_writing_buffer,omitempty"`
 	// Roundtripper
-	Url        string `protobuf:"bytes,3001,opt,name=url,proto3" json:"url,omitempty"`
-	H2PoolSize int32  `protobuf:"varint,3003,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
+	Url           string `protobuf:"bytes,3001,opt,name=url,proto3" json:"url,omitempty"`
+	H2PoolSize    int32  `protobuf:"varint,3003,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

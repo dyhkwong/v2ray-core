@@ -175,9 +175,9 @@ func (SenderConfig_DomainStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type InboundConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InboundConfig) Reset() {
@@ -211,17 +211,16 @@ func (*InboundConfig) Descriptor() ([]byte, []int) {
 }
 
 type AllocationStrategy struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Type AllocationStrategy_Type `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.proxyman.AllocationStrategy_Type" json:"type,omitempty"`
+	state protoimpl.MessageState  `protogen:"open.v1"`
+	Type  AllocationStrategy_Type `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.proxyman.AllocationStrategy_Type" json:"type,omitempty"`
 	// Number of handlers (ports) running in parallel.
 	// Default value is 3 if unset.
 	Concurrency *AllocationStrategy_AllocationStrategyConcurrency `protobuf:"bytes,2,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
 	// Number of minutes before a handler is regenerated.
 	// Default value is 5 if unset.
-	Refresh *AllocationStrategy_AllocationStrategyRefresh `protobuf:"bytes,3,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	Refresh       *AllocationStrategy_AllocationStrategyRefresh `protobuf:"bytes,3,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AllocationStrategy) Reset() {
@@ -276,10 +275,7 @@ func (x *AllocationStrategy) GetRefresh() *AllocationStrategy_AllocationStrategy
 }
 
 type SniffingConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether or not to enable content sniffing on an inbound connection.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Override target destination if sniff'ed protocol is in the given list.
@@ -287,8 +283,10 @@ type SniffingConfig struct {
 	DestinationOverride []string `protobuf:"bytes,2,rep,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
 	// Whether should only try to sniff metadata without waiting for client input.
 	// Can be used to support SMTP like protocol where server send the first message.
-	MetadataOnly bool `protobuf:"varint,3,opt,name=metadata_only,json=metadataOnly,proto3" json:"metadata_only,omitempty"`
-	RouteOnly    bool `protobuf:"varint,4,opt,name=route_only,json=routeOnly,proto3" json:"route_only,omitempty"`
+	MetadataOnly  bool `protobuf:"varint,3,opt,name=metadata_only,json=metadataOnly,proto3" json:"metadata_only,omitempty"`
+	RouteOnly     bool `protobuf:"varint,4,opt,name=route_only,json=routeOnly,proto3" json:"route_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SniffingConfig) Reset() {
@@ -350,10 +348,7 @@ func (x *SniffingConfig) GetRouteOnly() bool {
 }
 
 type ReceiverConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// PortRange specifies the ports which the Receiver should listen on.
 	PortRange *net.PortRange `protobuf:"bytes,1,opt,name=port_range,json=portRange,proto3" json:"port_range,omitempty"`
 	// Listen specifies the IP address that the Receiver should listen on.
@@ -367,6 +362,8 @@ type ReceiverConfig struct {
 	// Deprecated: Marked as deprecated in app/proxyman/config.proto.
 	DomainOverride   []KnownProtocols `protobuf:"varint,7,rep,packed,name=domain_override,json=domainOverride,proto3,enum=v2ray.core.app.proxyman.KnownProtocols" json:"domain_override,omitempty"`
 	SniffingSettings *SniffingConfig  `protobuf:"bytes,8,opt,name=sniffing_settings,json=sniffingSettings,proto3" json:"sniffing_settings,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ReceiverConfig) Reset() {
@@ -450,13 +447,12 @@ func (x *ReceiverConfig) GetSniffingSettings() *SniffingConfig {
 }
 
 type InboundHandlerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Tag              string     `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	ReceiverSettings *anypb.Any `protobuf:"bytes,2,opt,name=receiver_settings,json=receiverSettings,proto3" json:"receiver_settings,omitempty"`
-	ProxySettings    *anypb.Any `protobuf:"bytes,3,opt,name=proxy_settings,json=proxySettings,proto3" json:"proxy_settings,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Tag              string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	ReceiverSettings *anypb.Any             `protobuf:"bytes,2,opt,name=receiver_settings,json=receiverSettings,proto3" json:"receiver_settings,omitempty"`
+	ProxySettings    *anypb.Any             `protobuf:"bytes,3,opt,name=proxy_settings,json=proxySettings,proto3" json:"proxy_settings,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InboundHandlerConfig) Reset() {
@@ -511,9 +507,9 @@ func (x *InboundHandlerConfig) GetProxySettings() *anypb.Any {
 }
 
 type OutboundConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OutboundConfig) Reset() {
@@ -547,10 +543,7 @@ func (*OutboundConfig) Descriptor() ([]byte, []int) {
 }
 
 type SenderConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Send traffic through the given IP. Only IP is allowed.
 	Via                *net.IPOrDomain             `protobuf:"bytes,1,opt,name=via,proto3" json:"via,omitempty"`
 	StreamSettings     *internet.StreamConfig      `protobuf:"bytes,2,opt,name=stream_settings,json=streamSettings,proto3" json:"stream_settings,omitempty"`
@@ -558,6 +551,8 @@ type SenderConfig struct {
 	MultiplexSettings  *MultiplexingConfig         `protobuf:"bytes,4,opt,name=multiplex_settings,json=multiplexSettings,proto3" json:"multiplex_settings,omitempty"`
 	DomainStrategy     SenderConfig_DomainStrategy `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"domain_strategy,omitempty"`
 	DialDomainStrategy SenderConfig_DomainStrategy `protobuf:"varint,6,opt,name=dial_domain_strategy,json=dialDomainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"dial_domain_strategy,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SenderConfig) Reset() {
@@ -633,15 +628,14 @@ func (x *SenderConfig) GetDialDomainStrategy() SenderConfig_DomainStrategy {
 }
 
 type MultiplexingConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether or not Mux is enabled.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Max number of concurrent connections that one Mux connection can handle.
 	Concurrency    uint32                    `protobuf:"varint,2,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,3,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MultiplexingConfig) Reset() {
@@ -696,11 +690,10 @@ func (x *MultiplexingConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 }
 
 type AllocationStrategy_AllocationStrategyConcurrency struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AllocationStrategy_AllocationStrategyConcurrency) Reset() {
@@ -741,11 +734,10 @@ func (x *AllocationStrategy_AllocationStrategyConcurrency) GetValue() uint32 {
 }
 
 type AllocationStrategy_AllocationStrategyRefresh struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value uint32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AllocationStrategy_AllocationStrategyRefresh) Reset() {

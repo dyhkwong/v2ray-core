@@ -74,16 +74,15 @@ func (Domain_Type) EnumDescriptor() ([]byte, []int) {
 
 // Domain for routing decision.
 type Domain struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Domain matching type.
 	Type Domain_Type `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.router.routercommon.Domain_Type" json:"type,omitempty"`
 	// Domain value.
 	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	// Attributes of this domain. May be used for filtering.
-	Attribute []*Domain_Attribute `protobuf:"bytes,3,rep,name=attribute,proto3" json:"attribute,omitempty"`
+	Attribute     []*Domain_Attribute `protobuf:"bytes,3,rep,name=attribute,proto3" json:"attribute,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Domain) Reset() {
@@ -139,15 +138,14 @@ func (x *Domain) GetAttribute() []*Domain_Attribute {
 
 // IP for routing decision, in CIDR form.
 type CIDR struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// IP address, should be either 4 or 16 bytes.
 	Ip []byte `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
 	// Number of leading ones in the network mask.
-	Prefix uint32 `protobuf:"varint,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
-	IpAddr string `protobuf:"bytes,68000,opt,name=ip_addr,json=ipAddr,proto3" json:"ip_addr,omitempty"`
+	Prefix        uint32 `protobuf:"varint,2,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	IpAddr        string `protobuf:"bytes,68000,opt,name=ip_addr,json=ipAddr,proto3" json:"ip_addr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CIDR) Reset() {
@@ -202,17 +200,16 @@ func (x *CIDR) GetIpAddr() string {
 }
 
 type GeoIP struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	CountryCode  string  `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
-	Cidr         []*CIDR `protobuf:"bytes,2,rep,name=cidr,proto3" json:"cidr,omitempty"`
-	InverseMatch bool    `protobuf:"varint,3,opt,name=inverse_match,json=inverseMatch,proto3" json:"inverse_match,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	CountryCode  string                 `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
+	Cidr         []*CIDR                `protobuf:"bytes,2,rep,name=cidr,proto3" json:"cidr,omitempty"`
+	InverseMatch bool                   `protobuf:"varint,3,opt,name=inverse_match,json=inverseMatch,proto3" json:"inverse_match,omitempty"`
 	// resource_hash instruct simplified config converter to load domain from geo file.
-	ResourceHash []byte `protobuf:"bytes,4,opt,name=resource_hash,json=resourceHash,proto3" json:"resource_hash,omitempty"`
-	Code         string `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
-	FilePath     string `protobuf:"bytes,68000,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	ResourceHash  []byte `protobuf:"bytes,4,opt,name=resource_hash,json=resourceHash,proto3" json:"resource_hash,omitempty"`
+	Code          string `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
+	FilePath      string `protobuf:"bytes,68000,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GeoIP) Reset() {
@@ -288,11 +285,10 @@ func (x *GeoIP) GetFilePath() string {
 }
 
 type GeoIPList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         []*GeoIP               `protobuf:"bytes,1,rep,name=entry,proto3" json:"entry,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Entry []*GeoIP `protobuf:"bytes,1,rep,name=entry,proto3" json:"entry,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GeoIPList) Reset() {
@@ -333,16 +329,15 @@ func (x *GeoIPList) GetEntry() []*GeoIP {
 }
 
 type GeoSite struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	CountryCode string    `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
-	Domain      []*Domain `protobuf:"bytes,2,rep,name=domain,proto3" json:"domain,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	CountryCode string                 `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
+	Domain      []*Domain              `protobuf:"bytes,2,rep,name=domain,proto3" json:"domain,omitempty"`
 	// resource_hash instruct simplified config converter to load domain from geo file.
-	ResourceHash []byte `protobuf:"bytes,3,opt,name=resource_hash,json=resourceHash,proto3" json:"resource_hash,omitempty"`
-	Code         string `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
-	FilePath     string `protobuf:"bytes,68000,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	ResourceHash  []byte `protobuf:"bytes,3,opt,name=resource_hash,json=resourceHash,proto3" json:"resource_hash,omitempty"`
+	Code          string `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
+	FilePath      string `protobuf:"bytes,68000,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GeoSite) Reset() {
@@ -411,11 +406,10 @@ func (x *GeoSite) GetFilePath() string {
 }
 
 type GeoSiteList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         []*GeoSite             `protobuf:"bytes,1,rep,name=entry,proto3" json:"entry,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Entry []*GeoSite `protobuf:"bytes,1,rep,name=entry,proto3" json:"entry,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GeoSiteList) Reset() {
@@ -456,16 +450,15 @@ func (x *GeoSiteList) GetEntry() []*GeoSite {
 }
 
 type Domain_Attribute struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// Types that are assignable to TypedValue:
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Key   string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Types that are valid to be assigned to TypedValue:
 	//
 	//	*Domain_Attribute_BoolValue
 	//	*Domain_Attribute_IntValue
-	TypedValue isDomain_Attribute_TypedValue `protobuf_oneof:"typed_value"`
+	TypedValue    isDomain_Attribute_TypedValue `protobuf_oneof:"typed_value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Domain_Attribute) Reset() {
@@ -505,23 +498,27 @@ func (x *Domain_Attribute) GetKey() string {
 	return ""
 }
 
-func (m *Domain_Attribute) GetTypedValue() isDomain_Attribute_TypedValue {
-	if m != nil {
-		return m.TypedValue
+func (x *Domain_Attribute) GetTypedValue() isDomain_Attribute_TypedValue {
+	if x != nil {
+		return x.TypedValue
 	}
 	return nil
 }
 
 func (x *Domain_Attribute) GetBoolValue() bool {
-	if x, ok := x.GetTypedValue().(*Domain_Attribute_BoolValue); ok {
-		return x.BoolValue
+	if x != nil {
+		if x, ok := x.TypedValue.(*Domain_Attribute_BoolValue); ok {
+			return x.BoolValue
+		}
 	}
 	return false
 }
 
 func (x *Domain_Attribute) GetIntValue() int64 {
-	if x, ok := x.GetTypedValue().(*Domain_Attribute_IntValue); ok {
-		return x.IntValue
+	if x != nil {
+		if x, ok := x.TypedValue.(*Domain_Attribute_IntValue); ok {
+			return x.IntValue
+		}
 	}
 	return 0
 }

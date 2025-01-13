@@ -19,10 +19,7 @@ const (
 )
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState    `protogen:"open.v1"`
 	Method         *CipherTypeWrapper        `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
 	Password       string                    `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	Networks       *net.NetworkList          `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
@@ -30,6 +27,8 @@ type ServerConfig struct {
 	Plugin         string                    `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
 	PluginOpts     string                    `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs     []string                  `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -112,18 +111,17 @@ func (x *ServerConfig) GetPluginArgs() []string {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address                        *net.IPOrDomain    `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port                           uint32             `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Method                         *CipherTypeWrapper `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
-	Password                       string             `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
-	Plugin                         string             `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts                     string             `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs                     []string           `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
-	ExperimentReducedIvHeadEntropy bool               `protobuf:"varint,90001,opt,name=experiment_reduced_iv_head_entropy,json=experimentReducedIvHeadEntropy,proto3" json:"experiment_reduced_iv_head_entropy,omitempty"`
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	Address                        *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port                           uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Method                         *CipherTypeWrapper     `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
+	Password                       string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	Plugin                         string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts                     string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs                     []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	ExperimentReducedIvHeadEntropy bool                   `protobuf:"varint,90001,opt,name=experiment_reduced_iv_head_entropy,json=experimentReducedIvHeadEntropy,proto3" json:"experiment_reduced_iv_head_entropy,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -213,11 +211,10 @@ func (x *ClientConfig) GetExperimentReducedIvHeadEntropy() bool {
 }
 
 type CipherTypeWrapper struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         shadowsocks.CipherType `protobuf:"varint,1,opt,name=value,proto3,enum=v2ray.core.proxy.shadowsocks.CipherType" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value shadowsocks.CipherType `protobuf:"varint,1,opt,name=value,proto3,enum=v2ray.core.proxy.shadowsocks.CipherType" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CipherTypeWrapper) Reset() {

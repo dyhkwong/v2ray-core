@@ -16,13 +16,12 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Http          *HTTPConfig            `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
+	AllowHttp     bool                   `protobuf:"varint,2,opt,name=allow_http,json=allowHttp,proto3" json:"allow_http,omitempty"`
+	H2PoolSize    int32                  `protobuf:"varint,3,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Http       *HTTPConfig `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
-	AllowHttp  bool        `protobuf:"varint,2,opt,name=allow_http,json=allowHttp,proto3" json:"allow_http,omitempty"`
-	H2PoolSize int32       `protobuf:"varint,3,opt,name=h2_pool_size,json=h2PoolSize,proto3" json:"h2_pool_size,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -77,12 +76,11 @@ func (x *ClientConfig) GetH2PoolSize() int32 {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Http                 *HTTPConfig `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
-	NoDecodingSessionTag bool        `protobuf:"varint,2,opt,name=no_decoding_session_tag,json=noDecodingSessionTag,proto3" json:"no_decoding_session_tag,omitempty"`
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Http                 *HTTPConfig            `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
+	NoDecodingSessionTag bool                   `protobuf:"varint,2,opt,name=no_decoding_session_tag,json=noDecodingSessionTag,proto3" json:"no_decoding_session_tag,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -130,12 +128,11 @@ func (x *ServerConfig) GetNoDecodingSessionTag() bool {
 }
 
 type HTTPConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	UrlPrefix     string                 `protobuf:"bytes,2,opt,name=urlPrefix,proto3" json:"urlPrefix,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Path      string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	UrlPrefix string `protobuf:"bytes,2,opt,name=urlPrefix,proto3" json:"urlPrefix,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HTTPConfig) Reset() {

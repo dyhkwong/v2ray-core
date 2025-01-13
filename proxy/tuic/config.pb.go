@@ -17,22 +17,21 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address           *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port              uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Uuid              string          `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	Password          string          `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
-	CongestionControl string          `protobuf:"bytes,5,opt,name=congestion_control,json=congestionControl,proto3" json:"congestion_control,omitempty"`
-	UdpRelayMode      string          `protobuf:"bytes,6,opt,name=udp_relay_mode,json=udpRelayMode,proto3" json:"udp_relay_mode,omitempty"`
-	ZeroRttHandshake  bool            `protobuf:"varint,7,opt,name=zero_rtt_handshake,json=zeroRttHandshake,proto3" json:"zero_rtt_handshake,omitempty"`
-	ServerName        string          `protobuf:"bytes,8,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
-	Alpn              []string        `protobuf:"bytes,9,rep,name=alpn,proto3" json:"alpn,omitempty"`
-	Certificate       []string        `protobuf:"bytes,10,rep,name=certificate,proto3" json:"certificate,omitempty"`
-	AllowInsecure     bool            `protobuf:"varint,11,opt,name=allow_insecure,json=allowInsecure,proto3" json:"allow_insecure,omitempty"`
-	DisableSni        bool            `protobuf:"varint,12,opt,name=disable_sni,json=disableSni,proto3" json:"disable_sni,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Address           *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port              uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Uuid              string                 `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	Password          string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	CongestionControl string                 `protobuf:"bytes,5,opt,name=congestion_control,json=congestionControl,proto3" json:"congestion_control,omitempty"`
+	UdpRelayMode      string                 `protobuf:"bytes,6,opt,name=udp_relay_mode,json=udpRelayMode,proto3" json:"udp_relay_mode,omitempty"`
+	ZeroRttHandshake  bool                   `protobuf:"varint,7,opt,name=zero_rtt_handshake,json=zeroRttHandshake,proto3" json:"zero_rtt_handshake,omitempty"`
+	ServerName        string                 `protobuf:"bytes,8,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	Alpn              []string               `protobuf:"bytes,9,rep,name=alpn,proto3" json:"alpn,omitempty"`
+	Certificate       []string               `protobuf:"bytes,10,rep,name=certificate,proto3" json:"certificate,omitempty"`
+	AllowInsecure     bool                   `protobuf:"varint,11,opt,name=allow_insecure,json=allowInsecure,proto3" json:"allow_insecure,omitempty"`
+	DisableSni        bool                   `protobuf:"varint,12,opt,name=disable_sni,json=disableSni,proto3" json:"disable_sni,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {

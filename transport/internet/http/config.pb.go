@@ -17,14 +17,13 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Host          []string               `protobuf:"bytes,1,rep,name=host,proto3" json:"host,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Method        string                 `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
+	Header        []*http.Header         `protobuf:"bytes,4,rep,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Host   []string       `protobuf:"bytes,1,rep,name=host,proto3" json:"host,omitempty"`
-	Path   string         `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Method string         `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
-	Header []*http.Header `protobuf:"bytes,4,rep,name=header,proto3" json:"header,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

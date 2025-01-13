@@ -232,10 +232,7 @@ func (SocketConfig_TProxyMode) EnumDescriptor() ([]byte, []int) {
 }
 
 type TransportConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Type of network that this settings supports.
 	// Deprecated. Use the string form below.
 	//
@@ -244,7 +241,9 @@ type TransportConfig struct {
 	// Type of network that this settings supports.
 	ProtocolName string `protobuf:"bytes,3,opt,name=protocol_name,json=protocolName,proto3" json:"protocol_name,omitempty"`
 	// Specific settings. Must be of the transports.
-	Settings *anypb.Any `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty"`
+	Settings      *anypb.Any `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TransportConfig) Reset() {
@@ -300,10 +299,7 @@ func (x *TransportConfig) GetSettings() *anypb.Any {
 }
 
 type StreamConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Effective network. Deprecated. Use the string form below.
 	//
 	// Deprecated: Marked as deprecated in transport/internet/config.proto.
@@ -316,6 +312,8 @@ type StreamConfig struct {
 	// Settings for transport security. For now the only choice is TLS.
 	SecuritySettings []*anypb.Any  `protobuf:"bytes,4,rep,name=security_settings,json=securitySettings,proto3" json:"security_settings,omitempty"`
 	SocketSettings   *SocketConfig `protobuf:"bytes,6,opt,name=socket_settings,json=socketSettings,proto3" json:"socket_settings,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *StreamConfig) Reset() {
@@ -392,12 +390,11 @@ func (x *StreamConfig) GetSocketSettings() *SocketConfig {
 }
 
 type ProxyConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Tag                 string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	TransportLayerProxy bool   `protobuf:"varint,2,opt,name=transportLayerProxy,proto3" json:"transportLayerProxy,omitempty"`
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Tag                 string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	TransportLayerProxy bool                   `protobuf:"varint,2,opt,name=transportLayerProxy,proto3" json:"transportLayerProxy,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ProxyConfig) Reset() {
@@ -446,10 +443,7 @@ func (x *ProxyConfig) GetTransportLayerProxy() bool {
 
 // SocketConfig is options to be applied on network sockets.
 type SocketConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Mark of the connection. If non-zero, the value will be set to SO_MARK.
 	Mark uint32 `protobuf:"varint,1,opt,name=mark,proto3" json:"mark,omitempty"`
 	// TFO is the state of TFO settings.
@@ -473,6 +467,8 @@ type SocketConfig struct {
 	DialerProxy                string                 `protobuf:"bytes,97,opt,name=dialer_proxy,json=dialerProxy,proto3" json:"dialer_proxy,omitempty"`
 	Fragment                   *SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises                     []*SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *SocketConfig) Reset() {
@@ -632,17 +628,16 @@ func (x *SocketConfig) GetNoises() []*SocketConfig_Noise {
 }
 
 type SocketConfig_Fragment struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Packets       string                 `protobuf:"bytes,1,opt,name=packets,proto3" json:"packets,omitempty"`
+	Length        string                 `protobuf:"bytes,2,opt,name=length,proto3" json:"length,omitempty"`
+	Interval      string                 `protobuf:"bytes,3,opt,name=interval,proto3" json:"interval,omitempty"`
+	Host1Header   string                 `protobuf:"bytes,4,opt,name=host1_header,json=host1Header,proto3" json:"host1_header,omitempty"`
+	Host1Domain   string                 `protobuf:"bytes,5,opt,name=host1_domain,json=host1Domain,proto3" json:"host1_domain,omitempty"`
+	Host2Header   string                 `protobuf:"bytes,6,opt,name=host2_header,json=host2Header,proto3" json:"host2_header,omitempty"`
+	Host2Domain   string                 `protobuf:"bytes,7,opt,name=host2_domain,json=host2Domain,proto3" json:"host2_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Packets     string `protobuf:"bytes,1,opt,name=packets,proto3" json:"packets,omitempty"`
-	Length      string `protobuf:"bytes,2,opt,name=length,proto3" json:"length,omitempty"`
-	Interval    string `protobuf:"bytes,3,opt,name=interval,proto3" json:"interval,omitempty"`
-	Host1Header string `protobuf:"bytes,4,opt,name=host1_header,json=host1Header,proto3" json:"host1_header,omitempty"`
-	Host1Domain string `protobuf:"bytes,5,opt,name=host1_domain,json=host1Domain,proto3" json:"host1_domain,omitempty"`
-	Host2Header string `protobuf:"bytes,6,opt,name=host2_header,json=host2Header,proto3" json:"host2_header,omitempty"`
-	Host2Domain string `protobuf:"bytes,7,opt,name=host2_domain,json=host2Domain,proto3" json:"host2_domain,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SocketConfig_Fragment) Reset() {
@@ -725,13 +720,12 @@ func (x *SocketConfig_Fragment) GetHost2Domain() string {
 }
 
 type SocketConfig_Noise struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Packet        string                 `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
+	Delay         string                 `protobuf:"bytes,3,opt,name=delay,proto3" json:"delay,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type   string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Packet string `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
-	Delay  string `protobuf:"bytes,3,opt,name=delay,proto3" json:"delay,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SocketConfig_Noise) Reset() {

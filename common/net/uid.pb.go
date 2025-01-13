@@ -16,12 +16,11 @@ const (
 
 // UidList represents a list of uid.
 type UidList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// The port that this range starts from.
-	Uid []uint32 `protobuf:"varint,1,rep,packed,name=uid,proto3" json:"uid,omitempty"`
+	Uid           []uint32 `protobuf:"varint,1,rep,packed,name=uid,proto3" json:"uid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UidList) Reset() {

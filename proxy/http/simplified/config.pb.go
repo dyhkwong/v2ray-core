@@ -17,9 +17,9 @@ const (
 )
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -53,13 +53,12 @@ func (*ServerConfig) Descriptor() ([]byte, []int) {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address            *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port               uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	H1SkipWaitForReply bool            `protobuf:"varint,3,opt,name=h1_skip_wait_for_reply,json=h1SkipWaitForReply,proto3" json:"h1_skip_wait_for_reply,omitempty"`
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Address            *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port               uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	H1SkipWaitForReply bool                   `protobuf:"varint,3,opt,name=h1_skip_wait_for_reply,json=h1SkipWaitForReply,proto3" json:"h1_skip_wait_for_reply,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {

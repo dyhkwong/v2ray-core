@@ -17,18 +17,17 @@ const (
 )
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Level         int32                  `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"`
+	Network       []net.Network          `protobuf:"varint,5,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin        string                 `protobuf:"bytes,6,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts    string                 `protobuf:"bytes,7,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs    []string               `protobuf:"bytes,8,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Method     string        `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key        string        `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Email      string        `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Level      int32         `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"`
-	Network    []net.Network `protobuf:"varint,5,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin     string        `protobuf:"bytes,6,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts string        `protobuf:"bytes,7,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs []string      `protobuf:"bytes,8,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -118,17 +117,16 @@ func (x *ServerConfig) GetPluginArgs() []string {
 }
 
 type MultiUserServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Users         []*User                `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
+	Network       []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Method     string        `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key        string        `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Users      []*User       `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
-	Network    []net.Network `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin     string        `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts string        `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs []string      `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MultiUserServerConfig) Reset() {
@@ -211,15 +209,14 @@ func (x *MultiUserServerConfig) GetPluginArgs() []string {
 }
 
 type RelayDestination struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
+	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	Level         int32                  `protobuf:"varint,5,opt,name=level,proto3" json:"level,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Key     string          `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Address *net.IPOrDomain `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,3,opt,name=port,proto3" json:"port,omitempty"`
-	Email   string          `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
-	Level   int32           `protobuf:"varint,5,opt,name=level,proto3" json:"level,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RelayDestination) Reset() {
@@ -288,17 +285,16 @@ func (x *RelayDestination) GetLevel() int32 {
 }
 
 type RelayServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Destinations  []*RelayDestination    `protobuf:"bytes,3,rep,name=destinations,proto3" json:"destinations,omitempty"`
+	Network       []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Method       string              `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key          string              `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Destinations []*RelayDestination `protobuf:"bytes,3,rep,name=destinations,proto3" json:"destinations,omitempty"`
-	Network      []net.Network       `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin       string              `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts   string              `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs   []string            `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RelayServerConfig) Reset() {
@@ -381,13 +377,12 @@ func (x *RelayServerConfig) GetPluginArgs() []string {
 }
 
 type User struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Level         int32                  `protobuf:"varint,3,opt,name=level,proto3" json:"level,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Level int32  `protobuf:"varint,3,opt,name=level,proto3" json:"level,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -442,17 +437,16 @@ func (x *User) GetLevel() int32 {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Method        string                 `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
+	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Address    *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port       uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Method     string          `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
-	Key        string          `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
-	Plugin     string          `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts string          `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs []string        `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {

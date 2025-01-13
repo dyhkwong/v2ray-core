@@ -20,7 +20,7 @@ require (
 	github.com/quic-go/quic-go v0.48.2
 	github.com/refraction-networking/utls v1.6.7
 	github.com/sagernet/sing v0.5.1
-	github.com/sagernet/sing-quic v0.3.1
+	github.com/sagernet/sing-quic v0.3.2
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
@@ -32,13 +32,13 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-d468813b2352
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.31.0
-	golang.org/x/net v0.33.0
+	golang.org/x/crypto v0.32.0
+	golang.org/x/net v0.34.0
 	golang.org/x/sync v0.10.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.29.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.69.2
-	google.golang.org/protobuf v1.36.1
+	google.golang.org/protobuf v1.36.2
 	gvisor.dev/gvisor v0.0.0-20240916094835-a174eb65023f
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0

@@ -76,11 +76,10 @@ func (SecurityType) EnumDescriptor() ([]byte, []int) {
 }
 
 type SecurityConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          SecurityType           `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.common.protocol.SecurityType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type SecurityType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.common.protocol.SecurityType" json:"type,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SecurityConfig) Reset() {

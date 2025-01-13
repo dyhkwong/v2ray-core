@@ -19,11 +19,10 @@ const (
 )
 
 type AddUserOperation struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *protocol.User         `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	User *protocol.User `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddUserOperation) Reset() {
@@ -64,11 +63,10 @@ func (x *AddUserOperation) GetUser() *protocol.User {
 }
 
 type RemoveUserOperation struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Email string `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoveUserOperation) Reset() {
@@ -109,11 +107,10 @@ func (x *RemoveUserOperation) GetEmail() string {
 }
 
 type AddInboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Inbound       *v5.InboundHandlerConfig `protobuf:"bytes,1,opt,name=inbound,proto3" json:"inbound,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Inbound *v5.InboundHandlerConfig `protobuf:"bytes,1,opt,name=inbound,proto3" json:"inbound,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddInboundRequest) Reset() {
@@ -154,9 +151,9 @@ func (x *AddInboundRequest) GetInbound() *v5.InboundHandlerConfig {
 }
 
 type AddInboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddInboundResponse) Reset() {
@@ -190,11 +187,10 @@ func (*AddInboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type RemoveInboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoveInboundRequest) Reset() {
@@ -235,9 +231,9 @@ func (x *RemoveInboundRequest) GetTag() string {
 }
 
 type RemoveInboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoveInboundResponse) Reset() {
@@ -271,12 +267,11 @@ func (*RemoveInboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type AlterInboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	Operation     *anypb.Any             `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag       string     `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	Operation *anypb.Any `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AlterInboundRequest) Reset() {
@@ -324,9 +319,9 @@ func (x *AlterInboundRequest) GetOperation() *anypb.Any {
 }
 
 type AlterInboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AlterInboundResponse) Reset() {
@@ -360,11 +355,10 @@ func (*AlterInboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type AddOutboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Outbound      *v5.OutboundHandlerConfig `protobuf:"bytes,1,opt,name=outbound,proto3" json:"outbound,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Outbound *v5.OutboundHandlerConfig `protobuf:"bytes,1,opt,name=outbound,proto3" json:"outbound,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddOutboundRequest) Reset() {
@@ -405,9 +399,9 @@ func (x *AddOutboundRequest) GetOutbound() *v5.OutboundHandlerConfig {
 }
 
 type AddOutboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddOutboundResponse) Reset() {
@@ -441,11 +435,10 @@ func (*AddOutboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type RemoveOutboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoveOutboundRequest) Reset() {
@@ -486,9 +479,9 @@ func (x *RemoveOutboundRequest) GetTag() string {
 }
 
 type RemoveOutboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoveOutboundResponse) Reset() {
@@ -522,12 +515,11 @@ func (*RemoveOutboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type AlterOutboundRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	Operation     *anypb.Any             `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag       string     `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	Operation *anypb.Any `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AlterOutboundRequest) Reset() {
@@ -575,9 +567,9 @@ func (x *AlterOutboundRequest) GetOperation() *anypb.Any {
 }
 
 type AlterOutboundResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AlterOutboundResponse) Reset() {
@@ -611,9 +603,9 @@ func (*AlterOutboundResponse) Descriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

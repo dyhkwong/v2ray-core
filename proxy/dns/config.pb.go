@@ -17,14 +17,13 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Server is the DNS server address. If specified, this address overrides the
 	// original one.
-	Server    *net.Endpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
-	UserLevel uint32        `protobuf:"varint,2,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	Server        *net.Endpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	UserLevel     uint32        `protobuf:"varint,2,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -72,9 +71,9 @@ func (x *Config) GetUserLevel() uint32 {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

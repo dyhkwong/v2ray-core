@@ -62,14 +62,13 @@ func (DTLSMode) EnumDescriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Mode                   DTLSMode `protobuf:"varint,1,opt,name=mode,proto3,enum=v2ray.core.transport.internet.dtls.DTLSMode" json:"mode,omitempty"`
-	Psk                    []byte   `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
-	Mtu                    uint32   `protobuf:"varint,3,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	ReplayProtectionWindow uint32   `protobuf:"varint,4,opt,name=replay_protection_window,json=replayProtectionWindow,proto3" json:"replay_protection_window,omitempty"`
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Mode                   DTLSMode               `protobuf:"varint,1,opt,name=mode,proto3,enum=v2ray.core.transport.internet.dtls.DTLSMode" json:"mode,omitempty"`
+	Psk                    []byte                 `protobuf:"bytes,2,opt,name=psk,proto3" json:"psk,omitempty"`
+	Mtu                    uint32                 `protobuf:"varint,3,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	ReplayProtectionWindow uint32                 `protobuf:"varint,4,opt,name=replay_protection_window,json=replayProtectionWindow,proto3" json:"replay_protection_window,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

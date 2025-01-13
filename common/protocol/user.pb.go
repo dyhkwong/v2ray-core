@@ -17,15 +17,14 @@ const (
 
 // User is a generic user for all procotols.
 type User struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Level uint32 `protobuf:"varint,1,opt,name=level,proto3" json:"level,omitempty"`
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Level uint32                 `protobuf:"varint,1,opt,name=level,proto3" json:"level,omitempty"`
+	Email string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	// Protocol specific account information. Must be the account proto in one of
 	// the proxies.
-	Account *anypb.Any `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty"`
+	Account       *anypb.Any `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {

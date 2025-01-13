@@ -62,12 +62,11 @@ func (Control_State) EnumDescriptor() ([]byte, []int) {
 }
 
 type Control struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	State         Control_State          `protobuf:"varint,1,opt,name=state,proto3,enum=v2ray.core.app.reverse.Control_State" json:"state,omitempty"`
+	Random        []byte                 `protobuf:"bytes,99,opt,name=random,proto3" json:"random,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	State  Control_State `protobuf:"varint,1,opt,name=state,proto3,enum=v2ray.core.app.reverse.Control_State" json:"state,omitempty"`
-	Random []byte        `protobuf:"bytes,99,opt,name=random,proto3" json:"random,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Control) Reset() {
@@ -115,12 +114,11 @@ func (x *Control) GetRandom() []byte {
 }
 
 type BridgeConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag    string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	Domain string `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BridgeConfig) Reset() {
@@ -168,12 +166,11 @@ func (x *BridgeConfig) GetDomain() string {
 }
 
 type PortalConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag    string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	Domain string `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PortalConfig) Reset() {
@@ -221,12 +218,11 @@ func (x *PortalConfig) GetDomain() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BridgeConfig  []*BridgeConfig        `protobuf:"bytes,1,rep,name=bridge_config,json=bridgeConfig,proto3" json:"bridge_config,omitempty"`
+	PortalConfig  []*PortalConfig        `protobuf:"bytes,2,rep,name=portal_config,json=portalConfig,proto3" json:"portal_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	BridgeConfig []*BridgeConfig `protobuf:"bytes,1,rep,name=bridge_config,json=bridgeConfig,proto3" json:"bridge_config,omitempty"`
-	PortalConfig []*PortalConfig `protobuf:"bytes,2,rep,name=portal_config,json=portalConfig,proto3" json:"portal_config,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

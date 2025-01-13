@@ -16,9 +16,9 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -52,13 +52,12 @@ func (*Config) Descriptor() ([]byte, []int) {
 }
 
 type ChannelConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Blocking        bool  `protobuf:"varint,1,opt,name=Blocking,proto3" json:"Blocking,omitempty"`
-	SubscriberLimit int32 `protobuf:"varint,2,opt,name=SubscriberLimit,proto3" json:"SubscriberLimit,omitempty"`
-	BufferSize      int32 `protobuf:"varint,3,opt,name=BufferSize,proto3" json:"BufferSize,omitempty"`
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Blocking        bool                   `protobuf:"varint,1,opt,name=Blocking,proto3" json:"Blocking,omitempty"`
+	SubscriberLimit int32                  `protobuf:"varint,2,opt,name=SubscriberLimit,proto3" json:"SubscriberLimit,omitempty"`
+	BufferSize      int32                  `protobuf:"varint,3,opt,name=BufferSize,proto3" json:"BufferSize,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ChannelConfig) Reset() {

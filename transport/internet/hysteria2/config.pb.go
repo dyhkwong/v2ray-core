@@ -16,13 +16,12 @@ const (
 )
 
 type Congestion struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	UpMbps        uint64                 `protobuf:"varint,2,opt,name=up_mbps,json=upMbps,proto3" json:"up_mbps,omitempty"`
+	DownMbps      uint64                 `protobuf:"varint,3,opt,name=down_mbps,json=downMbps,proto3" json:"down_mbps,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type     string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	UpMbps   uint64 `protobuf:"varint,2,opt,name=up_mbps,json=upMbps,proto3" json:"up_mbps,omitempty"`
-	DownMbps uint64 `protobuf:"varint,3,opt,name=down_mbps,json=downMbps,proto3" json:"down_mbps,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Congestion) Reset() {
@@ -77,12 +76,11 @@ func (x *Congestion) GetDownMbps() uint64 {
 }
 
 type OBFS struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type     string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OBFS) Reset() {
@@ -130,17 +128,16 @@ func (x *OBFS) GetPassword() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Password              string      `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	Congestion            *Congestion `protobuf:"bytes,4,opt,name=congestion,proto3" json:"congestion,omitempty"`
-	IgnoreClientBandwidth bool        `protobuf:"varint,5,opt,name=ignore_client_bandwidth,json=ignoreClientBandwidth,proto3" json:"ignore_client_bandwidth,omitempty"`
-	UseUdpExtension       bool        `protobuf:"varint,6,opt,name=use_udp_extension,json=useUdpExtension,proto3" json:"use_udp_extension,omitempty"`
-	Obfs                  *OBFS       `protobuf:"bytes,7,opt,name=obfs,proto3" json:"obfs,omitempty"`
-	HopPorts              string      `protobuf:"bytes,8,opt,name=hop_ports,json=hopPorts,proto3" json:"hop_ports,omitempty"`
-	HopInterval           uint32      `protobuf:"varint,9,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Password              string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	Congestion            *Congestion            `protobuf:"bytes,4,opt,name=congestion,proto3" json:"congestion,omitempty"`
+	IgnoreClientBandwidth bool                   `protobuf:"varint,5,opt,name=ignore_client_bandwidth,json=ignoreClientBandwidth,proto3" json:"ignore_client_bandwidth,omitempty"`
+	UseUdpExtension       bool                   `protobuf:"varint,6,opt,name=use_udp_extension,json=useUdpExtension,proto3" json:"use_udp_extension,omitempty"`
+	Obfs                  *OBFS                  `protobuf:"bytes,7,opt,name=obfs,proto3" json:"obfs,omitempty"`
+	HopPorts              string                 `protobuf:"bytes,8,opt,name=hop_ports,json=hopPorts,proto3" json:"hop_ports,omitempty"`
+	HopInterval           uint32                 `protobuf:"varint,9,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

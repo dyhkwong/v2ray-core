@@ -17,12 +17,11 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Assembler     *anypb.Any             `protobuf:"bytes,1,opt,name=assembler,proto3" json:"assembler,omitempty"`
+	Roundtripper  *anypb.Any             `protobuf:"bytes,2,opt,name=roundtripper,proto3" json:"roundtripper,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Assembler    *anypb.Any `protobuf:"bytes,1,opt,name=assembler,proto3" json:"assembler,omitempty"`
-	Roundtripper *anypb.Any `protobuf:"bytes,2,opt,name=roundtripper,proto3" json:"roundtripper,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

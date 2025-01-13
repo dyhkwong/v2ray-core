@@ -75,11 +75,8 @@ func (DomainStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type RoutingRule struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to TargetTag:
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to TargetTag:
 	//
 	//	*RoutingRule_Tag
 	//	*RoutingRule_BalancingTag
@@ -128,7 +125,9 @@ type RoutingRule struct {
 	NetworkType    string        `protobuf:"bytes,20,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	SkipDomain     bool          `protobuf:"varint,21,opt,name=skip_domain,json=skipDomain,proto3" json:"skip_domain,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
-	GeoDomain []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
+	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RoutingRule) Reset() {
@@ -161,23 +160,27 @@ func (*RoutingRule) Descriptor() ([]byte, []int) {
 	return file_app_router_config_proto_rawDescGZIP(), []int{0}
 }
 
-func (m *RoutingRule) GetTargetTag() isRoutingRule_TargetTag {
-	if m != nil {
-		return m.TargetTag
+func (x *RoutingRule) GetTargetTag() isRoutingRule_TargetTag {
+	if x != nil {
+		return x.TargetTag
 	}
 	return nil
 }
 
 func (x *RoutingRule) GetTag() string {
-	if x, ok := x.GetTargetTag().(*RoutingRule_Tag); ok {
-		return x.Tag
+	if x != nil {
+		if x, ok := x.TargetTag.(*RoutingRule_Tag); ok {
+			return x.Tag
+		}
 	}
 	return ""
 }
 
 func (x *RoutingRule) GetBalancingTag() string {
-	if x, ok := x.GetTargetTag().(*RoutingRule_BalancingTag); ok {
-		return x.BalancingTag
+	if x != nil {
+		if x, ok := x.TargetTag.(*RoutingRule_BalancingTag); ok {
+			return x.BalancingTag
+		}
 	}
 	return ""
 }
@@ -345,15 +348,14 @@ func (*RoutingRule_Tag) isRoutingRule_TargetTag() {}
 func (*RoutingRule_BalancingTag) isRoutingRule_TargetTag() {}
 
 type BalancingRule struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Tag              string     `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	OutboundSelector []string   `protobuf:"bytes,2,rep,name=outbound_selector,json=outboundSelector,proto3" json:"outbound_selector,omitempty"`
-	Strategy         string     `protobuf:"bytes,3,opt,name=strategy,proto3" json:"strategy,omitempty"`
-	StrategySettings *anypb.Any `protobuf:"bytes,4,opt,name=strategy_settings,json=strategySettings,proto3" json:"strategy_settings,omitempty"`
-	FallbackTag      string     `protobuf:"bytes,5,opt,name=fallback_tag,json=fallbackTag,proto3" json:"fallback_tag,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Tag              string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	OutboundSelector []string               `protobuf:"bytes,2,rep,name=outbound_selector,json=outboundSelector,proto3" json:"outbound_selector,omitempty"`
+	Strategy         string                 `protobuf:"bytes,3,opt,name=strategy,proto3" json:"strategy,omitempty"`
+	StrategySettings *anypb.Any             `protobuf:"bytes,4,opt,name=strategy_settings,json=strategySettings,proto3" json:"strategy_settings,omitempty"`
+	FallbackTag      string                 `protobuf:"bytes,5,opt,name=fallback_tag,json=fallbackTag,proto3" json:"fallback_tag,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BalancingRule) Reset() {
@@ -422,13 +424,12 @@ func (x *BalancingRule) GetFallbackTag() string {
 }
 
 type StrategyWeight struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Regexp        bool                   `protobuf:"varint,1,opt,name=regexp,proto3" json:"regexp,omitempty"`
+	Match         string                 `protobuf:"bytes,2,opt,name=match,proto3" json:"match,omitempty"`
+	Value         float32                `protobuf:"fixed32,3,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Regexp bool    `protobuf:"varint,1,opt,name=regexp,proto3" json:"regexp,omitempty"`
-	Match  string  `protobuf:"bytes,2,opt,name=match,proto3" json:"match,omitempty"`
-	Value  float32 `protobuf:"fixed32,3,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyWeight) Reset() {
@@ -483,12 +484,11 @@ func (x *StrategyWeight) GetValue() float32 {
 }
 
 type StrategyRandomConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObserverTag   string                 `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	AliveOnly     bool                   `protobuf:"varint,8,opt,name=alive_only,json=aliveOnly,proto3" json:"alive_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	ObserverTag string `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
-	AliveOnly   bool   `protobuf:"varint,8,opt,name=alive_only,json=aliveOnly,proto3" json:"alive_only,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyRandomConfig) Reset() {
@@ -536,11 +536,10 @@ func (x *StrategyRandomConfig) GetAliveOnly() bool {
 }
 
 type StrategyLeastPingConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObserverTag   string                 `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	ObserverTag string `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyLeastPingConfig) Reset() {
@@ -581,11 +580,10 @@ func (x *StrategyLeastPingConfig) GetObserverTag() string {
 }
 
 type StrategyFallbackConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObserverTag   string                 `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	ObserverTag string `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyFallbackConfig) Reset() {
@@ -626,10 +624,7 @@ func (x *StrategyFallbackConfig) GetObserverTag() string {
 }
 
 type StrategyLeastLoadConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// weight settings
 	Costs []*StrategyWeight `protobuf:"bytes,2,rep,name=costs,proto3" json:"costs,omitempty"`
 	// RTT baselines for selecting, int64 values of time.Duration
@@ -639,8 +634,10 @@ type StrategyLeastLoadConfig struct {
 	// max acceptable rtt, filter away high delay nodes. defalut 0
 	MaxRTT int64 `protobuf:"varint,5,opt,name=maxRTT,proto3" json:"maxRTT,omitempty"`
 	// acceptable failure rate
-	Tolerance   float32 `protobuf:"fixed32,6,opt,name=tolerance,proto3" json:"tolerance,omitempty"`
-	ObserverTag string  `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	Tolerance     float32 `protobuf:"fixed32,6,opt,name=tolerance,proto3" json:"tolerance,omitempty"`
+	ObserverTag   string  `protobuf:"bytes,7,opt,name=observer_tag,json=observerTag,proto3" json:"observer_tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrategyLeastLoadConfig) Reset() {
@@ -716,13 +713,12 @@ func (x *StrategyLeastLoadConfig) GetObserverTag() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	DomainStrategy DomainStrategy   `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.router.DomainStrategy" json:"domain_strategy,omitempty"`
-	Rule           []*RoutingRule   `protobuf:"bytes,2,rep,name=rule,proto3" json:"rule,omitempty"`
-	BalancingRule  []*BalancingRule `protobuf:"bytes,3,rep,name=balancing_rule,json=balancingRule,proto3" json:"balancing_rule,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	DomainStrategy DomainStrategy         `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.router.DomainStrategy" json:"domain_strategy,omitempty"`
+	Rule           []*RoutingRule         `protobuf:"bytes,2,rep,name=rule,proto3" json:"rule,omitempty"`
+	BalancingRule  []*BalancingRule       `protobuf:"bytes,3,rep,name=balancing_rule,json=balancingRule,proto3" json:"balancing_rule,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -777,11 +773,8 @@ func (x *Config) GetBalancingRule() []*BalancingRule {
 }
 
 type SimplifiedRoutingRule struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to TargetTag:
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to TargetTag:
 	//
 	//	*SimplifiedRoutingRule_Tag
 	//	*SimplifiedRoutingRule_BalancingTag
@@ -812,7 +805,9 @@ type SimplifiedRoutingRule struct {
 	NetworkType    string       `protobuf:"bytes,20,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	SkipDomain     bool         `protobuf:"varint,21,opt,name=skip_domain,json=skipDomain,proto3" json:"skip_domain,omitempty"`
 	// geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
-	GeoDomain []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
+	GeoDomain     []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedRoutingRule) Reset() {
@@ -845,23 +840,27 @@ func (*SimplifiedRoutingRule) Descriptor() ([]byte, []int) {
 	return file_app_router_config_proto_rawDescGZIP(), []int{8}
 }
 
-func (m *SimplifiedRoutingRule) GetTargetTag() isSimplifiedRoutingRule_TargetTag {
-	if m != nil {
-		return m.TargetTag
+func (x *SimplifiedRoutingRule) GetTargetTag() isSimplifiedRoutingRule_TargetTag {
+	if x != nil {
+		return x.TargetTag
 	}
 	return nil
 }
 
 func (x *SimplifiedRoutingRule) GetTag() string {
-	if x, ok := x.GetTargetTag().(*SimplifiedRoutingRule_Tag); ok {
-		return x.Tag
+	if x != nil {
+		if x, ok := x.TargetTag.(*SimplifiedRoutingRule_Tag); ok {
+			return x.Tag
+		}
 	}
 	return ""
 }
 
 func (x *SimplifiedRoutingRule) GetBalancingTag() string {
-	if x, ok := x.GetTargetTag().(*SimplifiedRoutingRule_BalancingTag); ok {
-		return x.BalancingTag
+	if x != nil {
+		if x, ok := x.TargetTag.(*SimplifiedRoutingRule_BalancingTag); ok {
+			return x.BalancingTag
+		}
 	}
 	return ""
 }
@@ -997,13 +996,12 @@ func (*SimplifiedRoutingRule_Tag) isSimplifiedRoutingRule_TargetTag() {}
 func (*SimplifiedRoutingRule_BalancingTag) isSimplifiedRoutingRule_TargetTag() {}
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState   `protogen:"open.v1"`
 	DomainStrategy DomainStrategy           `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.router.DomainStrategy" json:"domain_strategy,omitempty"`
 	Rule           []*SimplifiedRoutingRule `protobuf:"bytes,2,rep,name=rule,proto3" json:"rule,omitempty"`
 	BalancingRule  []*BalancingRule         `protobuf:"bytes,3,rep,name=balancing_rule,json=balancingRule,proto3" json:"balancing_rule,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

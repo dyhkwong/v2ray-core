@@ -69,13 +69,12 @@ func (LogType) EnumDescriptor() ([]byte, []int) {
 }
 
 type LogSpecification struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          LogType                `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.log.LogType" json:"type,omitempty"`
+	Level         log.Severity           `protobuf:"varint,2,opt,name=level,proto3,enum=v2ray.core.common.log.Severity" json:"level,omitempty"`
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type  LogType      `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.log.LogType" json:"type,omitempty"`
-	Level log.Severity `protobuf:"varint,2,opt,name=level,proto3,enum=v2ray.core.common.log.Severity" json:"level,omitempty"`
-	Path  string       `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogSpecification) Reset() {
@@ -130,12 +129,11 @@ func (x *LogSpecification) GetPath() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *LogSpecification      `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Access        *LogSpecification      `protobuf:"bytes,7,opt,name=access,proto3" json:"access,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Error  *LogSpecification `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	Access *LogSpecification `protobuf:"bytes,7,opt,name=access,proto3" json:"access,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

@@ -16,11 +16,10 @@ const (
 )
 
 type TestingMessage struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TestField     string                 `protobuf:"bytes,1,opt,name=test_field,json=testField,proto3" json:"test_field,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	TestField string `protobuf:"bytes,1,opt,name=test_field,json=testField,proto3" json:"test_field,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TestingMessage) Reset() {

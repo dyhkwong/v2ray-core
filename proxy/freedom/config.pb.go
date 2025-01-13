@@ -125,11 +125,10 @@ func (Config_DomainStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type DestinationOverride struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Server        *protocol.ServerEndpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Server *protocol.ServerEndpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DestinationOverride) Reset() {
@@ -170,11 +169,8 @@ func (x *DestinationOverride) GetServer() *protocol.ServerEndpoint {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	DomainStrategy Config_DomainStrategy `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.freedom.Config_DomainStrategy" json:"domain_strategy,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	DomainStrategy Config_DomainStrategy  `protobuf:"varint,1,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.freedom.Config_DomainStrategy" json:"domain_strategy,omitempty"`
 	// Deprecated: Marked as deprecated in proxy/freedom/config.proto.
 	Timeout             uint32                          `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	DestinationOverride *DestinationOverride            `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
@@ -182,6 +178,8 @@ type Config struct {
 	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -265,14 +263,13 @@ func (x *Config) GetNoises() []*internet.SocketConfig_Noise {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state               protoimpl.MessageState          `protogen:"open.v1"`
 	DestinationOverride *DestinationOverride            `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
 	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

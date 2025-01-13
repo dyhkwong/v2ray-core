@@ -16,14 +16,13 @@ const (
 
 // PortRange represents a range of ports.
 type PortRange struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// The port that this range starts from.
 	From uint32 `protobuf:"varint,1,opt,name=From,proto3" json:"From,omitempty"`
 	// The port that this range ends with (inclusive).
-	To uint32 `protobuf:"varint,2,opt,name=To,proto3" json:"To,omitempty"`
+	To            uint32 `protobuf:"varint,2,opt,name=To,proto3" json:"To,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PortRange) Reset() {
@@ -72,11 +71,10 @@ func (x *PortRange) GetTo() uint32 {
 
 // PortList is a list of ports.
 type PortList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         []*PortRange           `protobuf:"bytes,1,rep,name=range,proto3" json:"range,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Range []*PortRange `protobuf:"bytes,1,rep,name=range,proto3" json:"range,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PortList) Reset() {

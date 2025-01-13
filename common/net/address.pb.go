@@ -17,15 +17,14 @@ const (
 // Address of a network host. It may be either an IP address or a domain
 // address.
 type IPOrDomain struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Address:
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Address:
 	//
 	//	*IPOrDomain_Ip
 	//	*IPOrDomain_Domain
-	Address isIPOrDomain_Address `protobuf_oneof:"address"`
+	Address       isIPOrDomain_Address `protobuf_oneof:"address"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IPOrDomain) Reset() {
@@ -58,23 +57,27 @@ func (*IPOrDomain) Descriptor() ([]byte, []int) {
 	return file_common_net_address_proto_rawDescGZIP(), []int{0}
 }
 
-func (m *IPOrDomain) GetAddress() isIPOrDomain_Address {
-	if m != nil {
-		return m.Address
+func (x *IPOrDomain) GetAddress() isIPOrDomain_Address {
+	if x != nil {
+		return x.Address
 	}
 	return nil
 }
 
 func (x *IPOrDomain) GetIp() []byte {
-	if x, ok := x.GetAddress().(*IPOrDomain_Ip); ok {
-		return x.Ip
+	if x != nil {
+		if x, ok := x.Address.(*IPOrDomain_Ip); ok {
+			return x.Ip
+		}
 	}
 	return nil
 }
 
 func (x *IPOrDomain) GetDomain() string {
-	if x, ok := x.GetAddress().(*IPOrDomain_Domain); ok {
-		return x.Domain
+	if x != nil {
+		if x, ok := x.Address.(*IPOrDomain_Domain); ok {
+			return x.Domain
+		}
 	}
 	return ""
 }

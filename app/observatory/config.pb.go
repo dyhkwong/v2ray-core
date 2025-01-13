@@ -16,11 +16,10 @@ const (
 )
 
 type ObservationResult struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        []*OutboundStatus      `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Status []*OutboundStatus `protobuf:"bytes,1,rep,name=status,proto3" json:"status,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ObservationResult) Reset() {
@@ -61,16 +60,15 @@ func (x *ObservationResult) GetStatus() []*OutboundStatus {
 }
 
 type HealthPingMeasurementResult struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	All           int64                  `protobuf:"varint,1,opt,name=all,proto3" json:"all,omitempty"`
+	Fail          int64                  `protobuf:"varint,2,opt,name=fail,proto3" json:"fail,omitempty"`
+	Deviation     int64                  `protobuf:"varint,3,opt,name=deviation,proto3" json:"deviation,omitempty"`
+	Average       int64                  `protobuf:"varint,4,opt,name=average,proto3" json:"average,omitempty"`
+	Max           int64                  `protobuf:"varint,5,opt,name=max,proto3" json:"max,omitempty"`
+	Min           int64                  `protobuf:"varint,6,opt,name=min,proto3" json:"min,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	All       int64 `protobuf:"varint,1,opt,name=all,proto3" json:"all,omitempty"`
-	Fail      int64 `protobuf:"varint,2,opt,name=fail,proto3" json:"fail,omitempty"`
-	Deviation int64 `protobuf:"varint,3,opt,name=deviation,proto3" json:"deviation,omitempty"`
-	Average   int64 `protobuf:"varint,4,opt,name=average,proto3" json:"average,omitempty"`
-	Max       int64 `protobuf:"varint,5,opt,name=max,proto3" json:"max,omitempty"`
-	Min       int64 `protobuf:"varint,6,opt,name=min,proto3" json:"min,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HealthPingMeasurementResult) Reset() {
@@ -146,10 +144,7 @@ func (x *HealthPingMeasurementResult) GetMin() int64 {
 }
 
 type OutboundStatus struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// @Document Whether this outbound is usable
 	// @Restriction ReadOnlyForUser
 	Alive bool `protobuf:"varint,1,opt,name=alive,proto3" json:"alive,omitempty"`
@@ -168,8 +163,10 @@ type OutboundStatus struct {
 	LastSeenTime int64 `protobuf:"varint,5,opt,name=last_seen_time,json=lastSeenTime,proto3" json:"last_seen_time,omitempty"`
 	// @Document The time this outbound is tried
 	// @Type id.outboundTag
-	LastTryTime int64                        `protobuf:"varint,6,opt,name=last_try_time,json=lastTryTime,proto3" json:"last_try_time,omitempty"`
-	HealthPing  *HealthPingMeasurementResult `protobuf:"bytes,7,opt,name=health_ping,json=healthPing,proto3" json:"health_ping,omitempty"`
+	LastTryTime   int64                        `protobuf:"varint,6,opt,name=last_try_time,json=lastTryTime,proto3" json:"last_try_time,omitempty"`
+	HealthPing    *HealthPingMeasurementResult `protobuf:"bytes,7,opt,name=health_ping,json=healthPing,proto3" json:"health_ping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *OutboundStatus) Reset() {
@@ -252,10 +249,7 @@ func (x *OutboundStatus) GetHealthPing() *HealthPingMeasurementResult {
 }
 
 type ProbeResult struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// @Document Whether this outbound is usable
 	// @Restriction ReadOnlyForUser
 	Alive bool `protobuf:"varint,1,opt,name=alive,proto3" json:"alive,omitempty"`
@@ -266,6 +260,8 @@ type ProbeResult struct {
 	// @Document The error caused this outbound failed to relay probe request
 	// @Restriction NotMachineReadable
 	LastErrorReason string `protobuf:"bytes,3,opt,name=last_error_reason,json=lastErrorReason,proto3" json:"last_error_reason,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ProbeResult) Reset() {
@@ -320,13 +316,12 @@ func (x *ProbeResult) GetLastErrorReason() string {
 }
 
 type Intensity struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// @Document The time interval for a probe request in ms.
 	// @Type time.ms
 	ProbeInterval uint32 `protobuf:"varint,1,opt,name=probe_interval,json=probeInterval,proto3" json:"probe_interval,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Intensity) Reset() {
@@ -367,15 +362,14 @@ func (x *Intensity) GetProbeInterval() uint32 {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// @Document The selectors for outbound under observation
 	SubjectSelector   []string `protobuf:"bytes,2,rep,name=subject_selector,json=subjectSelector,proto3" json:"subject_selector,omitempty"`
 	ProbeUrl          string   `protobuf:"bytes,3,opt,name=probe_url,json=probeUrl,proto3" json:"probe_url,omitempty"`
 	ProbeInterval     int64    `protobuf:"varint,4,opt,name=probe_interval,json=probeInterval,proto3" json:"probe_interval,omitempty"`
 	EnableConcurrency bool     `protobuf:"varint,5,opt,name=enable_concurrency,json=enableConcurrency,proto3" json:"enable_concurrency,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

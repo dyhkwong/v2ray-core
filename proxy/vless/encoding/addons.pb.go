@@ -15,12 +15,11 @@ const (
 )
 
 type Addons struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flow          string                 `protobuf:"bytes,1,opt,name=Flow,proto3" json:"Flow,omitempty"`
+	Seed          []byte                 `protobuf:"bytes,2,opt,name=Seed,proto3" json:"Seed,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Flow string `protobuf:"bytes,1,opt,name=Flow,proto3" json:"Flow,omitempty"`
-	Seed []byte `protobuf:"bytes,2,opt,name=Seed,proto3" json:"Seed,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Addons) Reset() {

@@ -16,20 +16,19 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Host                 string            `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Path                 string            `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Mode                 string            `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
-	Headers              map[string]string `protobuf:"bytes,4,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XPaddingBytes        string            `protobuf:"bytes,5,opt,name=xPaddingBytes,proto3" json:"xPaddingBytes,omitempty"`
-	NoGRPCHeader         bool              `protobuf:"varint,6,opt,name=noGRPCHeader,proto3" json:"noGRPCHeader,omitempty"`
-	ScMaxEachPostBytes   string            `protobuf:"bytes,7,opt,name=scMaxEachPostBytes,proto3" json:"scMaxEachPostBytes,omitempty"`
-	ScMinPostsIntervalMs string            `protobuf:"bytes,8,opt,name=scMinPostsIntervalMs,proto3" json:"scMinPostsIntervalMs,omitempty"`
-	ScMaxBufferedPosts   int64             `protobuf:"varint,9,opt,name=scMaxBufferedPosts,proto3" json:"scMaxBufferedPosts,omitempty"`
-	UseBrowserForwarding bool              `protobuf:"varint,99,opt,name=use_browser_forwarding,json=useBrowserForwarding,proto3" json:"use_browser_forwarding,omitempty"`
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Host                 string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Path                 string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Mode                 string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	Headers              map[string]string      `protobuf:"bytes,4,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XPaddingBytes        string                 `protobuf:"bytes,5,opt,name=xPaddingBytes,proto3" json:"xPaddingBytes,omitempty"`
+	NoGRPCHeader         bool                   `protobuf:"varint,6,opt,name=noGRPCHeader,proto3" json:"noGRPCHeader,omitempty"`
+	ScMaxEachPostBytes   string                 `protobuf:"bytes,7,opt,name=scMaxEachPostBytes,proto3" json:"scMaxEachPostBytes,omitempty"`
+	ScMinPostsIntervalMs string                 `protobuf:"bytes,8,opt,name=scMinPostsIntervalMs,proto3" json:"scMinPostsIntervalMs,omitempty"`
+	ScMaxBufferedPosts   int64                  `protobuf:"varint,9,opt,name=scMaxBufferedPosts,proto3" json:"scMaxBufferedPosts,omitempty"`
+	UseBrowserForwarding bool                   `protobuf:"varint,99,opt,name=use_browser_forwarding,json=useBrowserForwarding,proto3" json:"use_browser_forwarding,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

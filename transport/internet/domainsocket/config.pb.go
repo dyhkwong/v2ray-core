@@ -16,10 +16,7 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Path of the domain socket. This overrides the IP/Port parameter from
 	// upstream caller.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -29,7 +26,9 @@ type Config struct {
 	Abstract bool `protobuf:"varint,2,opt,name=abstract,proto3" json:"abstract,omitempty"`
 	// Some apps, eg. haproxy, use the full length of sockaddr_un.sun_path to
 	// connect(2) or bind(2) when using abstract UDS.
-	Padding bool `protobuf:"varint,3,opt,name=padding,proto3" json:"padding,omitempty"`
+	Padding       bool `protobuf:"varint,3,opt,name=padding,proto3" json:"padding,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

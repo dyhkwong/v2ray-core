@@ -66,14 +66,13 @@ func (ForcedALPN) EnumDescriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TlsConfig     *tls.Config            `protobuf:"bytes,1,opt,name=tls_config,json=tlsConfig,proto3" json:"tls_config,omitempty"`
+	Imitate       string                 `protobuf:"bytes,2,opt,name=imitate,proto3" json:"imitate,omitempty"`
+	NoSNI         bool                   `protobuf:"varint,3,opt,name=noSNI,proto3" json:"noSNI,omitempty"`
+	ForceAlpn     ForcedALPN             `protobuf:"varint,4,opt,name=force_alpn,json=forceAlpn,proto3,enum=v2ray.core.transport.internet.tls.utls.ForcedALPN" json:"force_alpn,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	TlsConfig *tls.Config `protobuf:"bytes,1,opt,name=tls_config,json=tlsConfig,proto3" json:"tls_config,omitempty"`
-	Imitate   string      `protobuf:"bytes,2,opt,name=imitate,proto3" json:"imitate,omitempty"`
-	NoSNI     bool        `protobuf:"varint,3,opt,name=noSNI,proto3" json:"noSNI,omitempty"`
-	ForceAlpn ForcedALPN  `protobuf:"varint,4,opt,name=force_alpn,json=forceAlpn,proto3,enum=v2ray.core.transport.internet.tls.utls.ForcedALPN" json:"force_alpn,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

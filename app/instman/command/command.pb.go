@@ -16,9 +16,9 @@ const (
 )
 
 type ListInstanceReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListInstanceReq) Reset() {
@@ -52,11 +52,10 @@ func (*ListInstanceReq) Descriptor() ([]byte, []int) {
 }
 
 type ListInstanceResp struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          []string               `protobuf:"bytes,1,rep,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Name []string `protobuf:"bytes,1,rep,name=name,proto3" json:"name,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListInstanceResp) Reset() {
@@ -97,13 +96,12 @@ func (x *ListInstanceResp) GetName() []string {
 }
 
 type AddInstanceReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Name             string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ConfigType       string `protobuf:"bytes,2,opt,name=configType,proto3" json:"configType,omitempty"`
-	ConfigContentB64 string `protobuf:"bytes,3,opt,name=configContentB64,proto3" json:"configContentB64,omitempty"`
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Name             string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ConfigType       string                 `protobuf:"bytes,2,opt,name=configType,proto3" json:"configType,omitempty"`
+	ConfigContentB64 string                 `protobuf:"bytes,3,opt,name=configContentB64,proto3" json:"configContentB64,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AddInstanceReq) Reset() {
@@ -158,9 +156,9 @@ func (x *AddInstanceReq) GetConfigContentB64() string {
 }
 
 type AddInstanceResp struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddInstanceResp) Reset() {
@@ -194,11 +192,10 @@ func (*AddInstanceResp) Descriptor() ([]byte, []int) {
 }
 
 type StartInstanceReq struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StartInstanceReq) Reset() {
@@ -239,9 +236,9 @@ func (x *StartInstanceReq) GetName() string {
 }
 
 type StartInstanceResp struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StartInstanceResp) Reset() {
@@ -275,9 +272,9 @@ func (*StartInstanceResp) Descriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

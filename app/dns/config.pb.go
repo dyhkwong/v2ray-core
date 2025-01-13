@@ -215,10 +215,7 @@ func (FallbackStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type NameServer struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state             protoimpl.MessageState       `protogen:"open.v1"`
 	Address           *net.Endpoint                `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	ClientIp          []byte                       `protobuf:"bytes,5,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
 	Tag               string                       `protobuf:"bytes,7,opt,name=tag,proto3" json:"tag,omitempty"`
@@ -233,6 +230,8 @@ type NameServer struct {
 	QueryStrategy    *QueryStrategy    `protobuf:"varint,8,opt,name=query_strategy,json=queryStrategy,proto3,enum=v2ray.core.app.dns.QueryStrategy,oneof" json:"query_strategy,omitempty"`
 	CacheStrategy    *CacheStrategy    `protobuf:"varint,9,opt,name=cache_strategy,json=cacheStrategy,proto3,enum=v2ray.core.app.dns.CacheStrategy,oneof" json:"cache_strategy,omitempty"`
 	FallbackStrategy *FallbackStrategy `protobuf:"varint,10,opt,name=fallback_strategy,json=fallbackStrategy,proto3,enum=v2ray.core.app.dns.FallbackStrategy,oneof" json:"fallback_strategy,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *NameServer) Reset() {
@@ -344,16 +343,15 @@ func (x *NameServer) GetFallbackStrategy() FallbackStrategy {
 }
 
 type HostMapping struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Type   DomainMatchingType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
-	Domain string             `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
-	Ip     [][]byte           `protobuf:"bytes,3,rep,name=ip,proto3" json:"ip,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Type   DomainMatchingType     `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
+	Domain string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Ip     [][]byte               `protobuf:"bytes,3,rep,name=ip,proto3" json:"ip,omitempty"`
 	// ProxiedDomain indicates the mapped domain has the same IP address on this
 	// domain. V2Ray will use this domain for IP queries.
 	ProxiedDomain string `protobuf:"bytes,4,opt,name=proxied_domain,json=proxiedDomain,proto3" json:"proxied_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HostMapping) Reset() {
@@ -415,10 +413,7 @@ func (x *HostMapping) GetProxiedDomain() string {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Nameservers used by this DNS. Only traditional UDP servers are support at
 	// the moment. A special value 'localhost' as a domain address can be set to
 	// use DNS on local system.
@@ -431,7 +426,7 @@ type Config struct {
 	// Deprecated. Use static_hosts.
 	//
 	// Deprecated: Marked as deprecated in app/dns/config.proto.
-	Hosts map[string]*net.IPOrDomain `protobuf:"bytes,2,rep,name=Hosts,proto3" json:"Hosts,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Hosts map[string]*net.IPOrDomain `protobuf:"bytes,2,rep,name=Hosts,proto3" json:"Hosts,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Client IP for EDNS client subnet. Must be 4 bytes (IPv4) or 16 bytes
 	// (IPv6).
 	ClientIp []byte `protobuf:"bytes,3,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
@@ -462,6 +457,8 @@ type Config struct {
 	CacheStrategy CacheStrategy `protobuf:"varint,12,opt,name=cache_strategy,json=cacheStrategy,proto3,enum=v2ray.core.app.dns.CacheStrategy" json:"cache_strategy,omitempty"`
 	// Default fallback strategy for each name server.
 	FallbackStrategy FallbackStrategy `protobuf:"varint,13,opt,name=fallback_strategy,json=fallbackStrategy,proto3,enum=v2ray.core.app.dns.FallbackStrategy" json:"fallback_strategy,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -598,10 +595,7 @@ func (x *Config) GetFallbackStrategy() FallbackStrategy {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// NameServer list used by this DNS client.
 	NameServer []*SimplifiedNameServer `protobuf:"bytes,5,rep,name=name_server,json=nameServer,proto3" json:"name_server,omitempty"`
 	// Client IP for EDNS client subnet. Must be 4 bytes (IPv4) or 16 bytes
@@ -634,6 +628,8 @@ type SimplifiedConfig struct {
 	CacheStrategy CacheStrategy `protobuf:"varint,12,opt,name=cache_strategy,json=cacheStrategy,proto3,enum=v2ray.core.app.dns.CacheStrategy" json:"cache_strategy,omitempty"`
 	// Default fallback strategy for each name server.
 	FallbackStrategy FallbackStrategy `protobuf:"varint,13,opt,name=fallback_strategy,json=fallbackStrategy,proto3,enum=v2ray.core.app.dns.FallbackStrategy" json:"fallback_strategy,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {
@@ -754,16 +750,15 @@ func (x *SimplifiedConfig) GetFallbackStrategy() FallbackStrategy {
 }
 
 type SimplifiedHostMapping struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Type   DomainMatchingType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
-	Domain string             `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
-	Ip     []string           `protobuf:"bytes,3,rep,name=ip,proto3" json:"ip,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Type   DomainMatchingType     `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
+	Domain string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Ip     []string               `protobuf:"bytes,3,rep,name=ip,proto3" json:"ip,omitempty"`
 	// ProxiedDomain indicates the mapped domain has the same IP address on this
 	// domain. V2Ray will use this domain for IP queries.
 	ProxiedDomain string `protobuf:"bytes,4,opt,name=proxied_domain,json=proxiedDomain,proto3" json:"proxied_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedHostMapping) Reset() {
@@ -825,10 +820,7 @@ func (x *SimplifiedHostMapping) GetProxiedDomain() string {
 }
 
 type SimplifiedNameServer struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state             protoimpl.MessageState                 `protogen:"open.v1"`
 	Address           *net.Endpoint                          `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	ClientIp          string                                 `protobuf:"bytes,5,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
 	Tag               string                                 `protobuf:"bytes,7,opt,name=tag,proto3" json:"tag,omitempty"`
@@ -844,6 +836,8 @@ type SimplifiedNameServer struct {
 	CacheStrategy    *CacheStrategy          `protobuf:"varint,9,opt,name=cache_strategy,json=cacheStrategy,proto3,enum=v2ray.core.app.dns.CacheStrategy,oneof" json:"cache_strategy,omitempty"`
 	FallbackStrategy *FallbackStrategy       `protobuf:"varint,10,opt,name=fallback_strategy,json=fallbackStrategy,proto3,enum=v2ray.core.app.dns.FallbackStrategy,oneof" json:"fallback_strategy,omitempty"`
 	GeoDomain        []*routercommon.GeoSite `protobuf:"bytes,68001,rep,name=geo_domain,json=geoDomain,proto3" json:"geo_domain,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SimplifiedNameServer) Reset() {
@@ -962,12 +956,11 @@ func (x *SimplifiedNameServer) GetGeoDomain() []*routercommon.GeoSite {
 }
 
 type NameServer_PriorityDomain struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          DomainMatchingType     `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type   DomainMatchingType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
-	Domain string             `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NameServer_PriorityDomain) Reset() {
@@ -1015,12 +1008,11 @@ func (x *NameServer_PriorityDomain) GetDomain() string {
 }
 
 type NameServer_OriginalRule struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          string                 `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	Size          uint32                 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Rule string `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
-	Size uint32 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NameServer_OriginalRule) Reset() {
@@ -1068,12 +1060,11 @@ func (x *NameServer_OriginalRule) GetSize() uint32 {
 }
 
 type SimplifiedNameServer_PriorityDomain struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          DomainMatchingType     `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Type   DomainMatchingType `protobuf:"varint,1,opt,name=type,proto3,enum=v2ray.core.app.dns.DomainMatchingType" json:"type,omitempty"`
-	Domain string             `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedNameServer_PriorityDomain) Reset() {
@@ -1121,12 +1112,11 @@ func (x *SimplifiedNameServer_PriorityDomain) GetDomain() string {
 }
 
 type SimplifiedNameServer_OriginalRule struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          string                 `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	Size          uint32                 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Rule string `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
-	Size uint32 `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedNameServer_OriginalRule) Reset() {

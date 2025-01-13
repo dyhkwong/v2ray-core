@@ -18,13 +18,12 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Key           string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Security      *protocol.SecurityConfig `protobuf:"bytes,2,opt,name=security,proto3" json:"security,omitempty"`
+	Header        *anypb.Any               `protobuf:"bytes,3,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Key      string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Security *protocol.SecurityConfig `protobuf:"bytes,2,opt,name=security,proto3" json:"security,omitempty"`
-	Header   *anypb.Any               `protobuf:"bytes,3,opt,name=header,proto3" json:"header,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

@@ -17,19 +17,18 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address           *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port              uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	User              string          `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
-	Password          string          `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
-	PrivateKey        string          `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
-	PublicKey         string          `protobuf:"bytes,6,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	HostKeyAlgorithms []string        `protobuf:"bytes,7,rep,name=host_key_algorithms,json=hostKeyAlgorithms,proto3" json:"host_key_algorithms,omitempty"`
-	ClientVersion     string          `protobuf:"bytes,8,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
-	UserLevel         uint32          `protobuf:"varint,9,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Address           *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port              uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	User              string                 `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	Password          string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	PrivateKey        string                 `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	PublicKey         string                 `protobuf:"bytes,6,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	HostKeyAlgorithms []string               `protobuf:"bytes,7,rep,name=host_key_algorithms,json=hostKeyAlgorithms,proto3" json:"host_key_algorithms,omitempty"`
+	ClientVersion     string                 `protobuf:"bytes,8,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
+	UserLevel         uint32                 `protobuf:"varint,9,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

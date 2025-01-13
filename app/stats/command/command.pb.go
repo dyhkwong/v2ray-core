@@ -16,14 +16,13 @@ const (
 )
 
 type GetStatsRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of the stat counter.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Whether or not to reset the counter to fetching its value.
-	Reset_ bool `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
+	Reset_        bool `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetStatsRequest) Reset() {
@@ -71,12 +70,11 @@ func (x *GetStatsRequest) GetReset_() bool {
 }
 
 type Stat struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         int64                  `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Name  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Value int64  `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Stat) Reset() {
@@ -124,11 +122,10 @@ func (x *Stat) GetValue() int64 {
 }
 
 type GetStatsResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stat          *Stat                  `protobuf:"bytes,1,opt,name=stat,proto3" json:"stat,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Stat *Stat `protobuf:"bytes,1,opt,name=stat,proto3" json:"stat,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetStatsResponse) Reset() {
@@ -169,15 +166,14 @@ func (x *GetStatsResponse) GetStat() *Stat {
 }
 
 type QueryStatsRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Deprecated, use Patterns instead
-	Pattern  string   `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
-	Reset_   bool     `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
-	Patterns []string `protobuf:"bytes,3,rep,name=patterns,proto3" json:"patterns,omitempty"`
-	Regexp   bool     `protobuf:"varint,4,opt,name=regexp,proto3" json:"regexp,omitempty"`
+	Pattern       string   `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Reset_        bool     `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
+	Patterns      []string `protobuf:"bytes,3,rep,name=patterns,proto3" json:"patterns,omitempty"`
+	Regexp        bool     `protobuf:"varint,4,opt,name=regexp,proto3" json:"regexp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *QueryStatsRequest) Reset() {
@@ -239,11 +235,10 @@ func (x *QueryStatsRequest) GetRegexp() bool {
 }
 
 type QueryStatsResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stat          []*Stat                `protobuf:"bytes,1,rep,name=stat,proto3" json:"stat,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Stat []*Stat `protobuf:"bytes,1,rep,name=stat,proto3" json:"stat,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *QueryStatsResponse) Reset() {
@@ -284,9 +279,9 @@ func (x *QueryStatsResponse) GetStat() []*Stat {
 }
 
 type SysStatsRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SysStatsRequest) Reset() {
@@ -320,20 +315,19 @@ func (*SysStatsRequest) Descriptor() ([]byte, []int) {
 }
 
 type SysStatsResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NumGoroutine  uint32                 `protobuf:"varint,1,opt,name=NumGoroutine,proto3" json:"NumGoroutine,omitempty"`
+	NumGC         uint32                 `protobuf:"varint,2,opt,name=NumGC,proto3" json:"NumGC,omitempty"`
+	Alloc         uint64                 `protobuf:"varint,3,opt,name=Alloc,proto3" json:"Alloc,omitempty"`
+	TotalAlloc    uint64                 `protobuf:"varint,4,opt,name=TotalAlloc,proto3" json:"TotalAlloc,omitempty"`
+	Sys           uint64                 `protobuf:"varint,5,opt,name=Sys,proto3" json:"Sys,omitempty"`
+	Mallocs       uint64                 `protobuf:"varint,6,opt,name=Mallocs,proto3" json:"Mallocs,omitempty"`
+	Frees         uint64                 `protobuf:"varint,7,opt,name=Frees,proto3" json:"Frees,omitempty"`
+	LiveObjects   uint64                 `protobuf:"varint,8,opt,name=LiveObjects,proto3" json:"LiveObjects,omitempty"`
+	PauseTotalNs  uint64                 `protobuf:"varint,9,opt,name=PauseTotalNs,proto3" json:"PauseTotalNs,omitempty"`
+	Uptime        uint32                 `protobuf:"varint,10,opt,name=Uptime,proto3" json:"Uptime,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	NumGoroutine uint32 `protobuf:"varint,1,opt,name=NumGoroutine,proto3" json:"NumGoroutine,omitempty"`
-	NumGC        uint32 `protobuf:"varint,2,opt,name=NumGC,proto3" json:"NumGC,omitempty"`
-	Alloc        uint64 `protobuf:"varint,3,opt,name=Alloc,proto3" json:"Alloc,omitempty"`
-	TotalAlloc   uint64 `protobuf:"varint,4,opt,name=TotalAlloc,proto3" json:"TotalAlloc,omitempty"`
-	Sys          uint64 `protobuf:"varint,5,opt,name=Sys,proto3" json:"Sys,omitempty"`
-	Mallocs      uint64 `protobuf:"varint,6,opt,name=Mallocs,proto3" json:"Mallocs,omitempty"`
-	Frees        uint64 `protobuf:"varint,7,opt,name=Frees,proto3" json:"Frees,omitempty"`
-	LiveObjects  uint64 `protobuf:"varint,8,opt,name=LiveObjects,proto3" json:"LiveObjects,omitempty"`
-	PauseTotalNs uint64 `protobuf:"varint,9,opt,name=PauseTotalNs,proto3" json:"PauseTotalNs,omitempty"`
-	Uptime       uint32 `protobuf:"varint,10,opt,name=Uptime,proto3" json:"Uptime,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SysStatsResponse) Reset() {
@@ -437,9 +431,9 @@ func (x *SysStatsResponse) GetUptime() uint32 {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

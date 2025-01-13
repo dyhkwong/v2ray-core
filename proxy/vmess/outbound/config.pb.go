@@ -19,12 +19,11 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState     `protogen:"open.v1"`
 	Receiver       []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=Receiver,proto3" json:"Receiver,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType  `protobuf:"varint,2,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -72,14 +71,13 @@ func (x *Config) GetPacketEncoding() packetaddr.PacketAddrType {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState    `protogen:"open.v1"`
 	Address        *net.IPOrDomain           `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Port           uint32                    `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	Uuid           string                    `protobuf:"bytes,3,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,4,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

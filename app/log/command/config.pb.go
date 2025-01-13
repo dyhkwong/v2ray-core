@@ -15,9 +15,9 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -51,9 +51,9 @@ func (*Config) Descriptor() ([]byte, []int) {
 }
 
 type RestartLoggerRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RestartLoggerRequest) Reset() {
@@ -87,9 +87,9 @@ func (*RestartLoggerRequest) Descriptor() ([]byte, []int) {
 }
 
 type RestartLoggerResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RestartLoggerResponse) Reset() {
@@ -123,9 +123,9 @@ func (*RestartLoggerResponse) Descriptor() ([]byte, []int) {
 }
 
 type FollowLogRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FollowLogRequest) Reset() {
@@ -159,11 +159,10 @@ func (*FollowLogRequest) Descriptor() ([]byte, []int) {
 }
 
 type FollowLogResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FollowLogResponse) Reset() {

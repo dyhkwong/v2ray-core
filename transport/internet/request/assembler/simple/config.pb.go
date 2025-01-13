@@ -16,17 +16,16 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	MaxWriteSize             int32   `protobuf:"varint,1,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
-	WaitSubsequentWriteMs    int32   `protobuf:"varint,2,opt,name=wait_subsequent_write_ms,json=waitSubsequentWriteMs,proto3" json:"wait_subsequent_write_ms,omitempty"`
-	InitialPollingIntervalMs int32   `protobuf:"varint,3,opt,name=initial_polling_interval_ms,json=initialPollingIntervalMs,proto3" json:"initial_polling_interval_ms,omitempty"`
-	MaxPollingIntervalMs     int32   `protobuf:"varint,4,opt,name=max_polling_interval_ms,json=maxPollingIntervalMs,proto3" json:"max_polling_interval_ms,omitempty"`
-	MinPollingIntervalMs     int32   `protobuf:"varint,5,opt,name=min_polling_interval_ms,json=minPollingIntervalMs,proto3" json:"min_polling_interval_ms,omitempty"`
-	BackoffFactor            float32 `protobuf:"fixed32,6,opt,name=backoff_factor,json=backoffFactor,proto3" json:"backoff_factor,omitempty"`
-	FailedRetryIntervalMs    int32   `protobuf:"varint,7,opt,name=failed_retry_interval_ms,json=failedRetryIntervalMs,proto3" json:"failed_retry_interval_ms,omitempty"`
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	MaxWriteSize             int32                  `protobuf:"varint,1,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
+	WaitSubsequentWriteMs    int32                  `protobuf:"varint,2,opt,name=wait_subsequent_write_ms,json=waitSubsequentWriteMs,proto3" json:"wait_subsequent_write_ms,omitempty"`
+	InitialPollingIntervalMs int32                  `protobuf:"varint,3,opt,name=initial_polling_interval_ms,json=initialPollingIntervalMs,proto3" json:"initial_polling_interval_ms,omitempty"`
+	MaxPollingIntervalMs     int32                  `protobuf:"varint,4,opt,name=max_polling_interval_ms,json=maxPollingIntervalMs,proto3" json:"max_polling_interval_ms,omitempty"`
+	MinPollingIntervalMs     int32                  `protobuf:"varint,5,opt,name=min_polling_interval_ms,json=minPollingIntervalMs,proto3" json:"min_polling_interval_ms,omitempty"`
+	BackoffFactor            float32                `protobuf:"fixed32,6,opt,name=backoff_factor,json=backoffFactor,proto3" json:"backoff_factor,omitempty"`
+	FailedRetryIntervalMs    int32                  `protobuf:"varint,7,opt,name=failed_retry_interval_ms,json=failedRetryIntervalMs,proto3" json:"failed_retry_interval_ms,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -109,11 +108,10 @@ func (x *ClientConfig) GetFailedRetryIntervalMs() int32 {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MaxWriteSize  int32                  `protobuf:"varint,1,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	MaxWriteSize int32 `protobuf:"varint,1,opt,name=max_write_size,json=maxWriteSize,proto3" json:"max_write_size,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {

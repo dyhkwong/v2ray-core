@@ -17,11 +17,10 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Holders       *taggedfeatures.Config `protobuf:"bytes,1,opt,name=holders,proto3" json:"holders,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Holders *taggedfeatures.Config `protobuf:"bytes,1,opt,name=holders,proto3" json:"holders,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

@@ -86,6 +86,12 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 		globalDialerMap[key] = client
 	}
 
+	if client.IsClosed() {
+		delete(globalDialerMap, key)
+		client = createHTTPClient(ctx, dest, streamSettings)
+		globalDialerMap[key] = client
+	}
+
 	return client, nil
 }
 
@@ -271,11 +277,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	if mode == "stream-one" {
 		requestURL.Path = transportConfiguration.GetNormalizedPath()
-		conn.reader, conn.remoteAddr, conn.localAddr, _ = httpClient.OpenStream(context.WithoutCancel(ctx), requestURL.String(), reader, false)
+		conn.reader, conn.remoteAddr, conn.localAddr, _ = httpClient.OpenStream(ctx, requestURL.String(), reader, false)
 		return internet.Connection(&conn), nil
 	} else { // stream-down
 		var err error
-		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(context.WithoutCancel(ctx), requestURL.String(), nil, false)
+		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), nil, false)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
@@ -334,7 +340,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 			go func() {
 				err := httpClient.PostPacket(
-					context.WithoutCancel(ctx),
+					ctx,
 					url.String(),
 					&buf.MultiBufferContainer{MultiBuffer: chunk},
 					int64(chunk.Len()),

@@ -51,20 +51,19 @@ func applyOutboundSocketOptions(network string, address string, fd uintptr, conf
 		var bytes [4]byte
 		binary.BigEndian.PutUint32(bytes[:], uint32(iface.Index))
 		index := *(*uint32)(unsafe.Pointer(&bytes[0]))
-		host, _, err := net.SplitHostPort(address)
+		dest, err := v2net.ParseDestination(address)
 		if err != nil {
 			return err
 		}
-		addr := v2net.ParseAddress(host)
 		switch {
-		case host == "", addr.Family().IsIP() && addr.IP().IsUnspecified():
+		case dest.Address == v2net.AnyIP, dest.Address == v2net.AnyIPv6:
 			_ = windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index)
 			_ = windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index))
-		case addr.Family().IsIPv6():
+		case dest.Address.Family().IsIPv6():
 			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index); err != nil {
 				return newError("failed to set IPV6_UNICAST_IF", err)
 			}
-		case addr.Family().IsIPv4():
+		case dest.Address.Family().IsIPv4():
 			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index)); err != nil {
 				return newError("failed to set IP_UNICAST_IF", err)
 			}
@@ -106,20 +105,19 @@ func applyInboundSocketOptions(network string, address string, fd uintptr, confi
 		var bytes [4]byte
 		binary.BigEndian.PutUint32(bytes[:], uint32(iface.Index))
 		index := *(*uint32)(unsafe.Pointer(&bytes[0]))
-		host, _, err := net.SplitHostPort(address)
+		dest, err := v2net.ParseDestination(address)
 		if err != nil {
 			return err
 		}
-		addr := v2net.ParseAddress(host)
 		switch {
-		case host == "", addr.Family().IsIP() && addr.IP().IsUnspecified():
+		case dest.Address == v2net.AnyIP, dest.Address == v2net.AnyIPv6:
 			_ = windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index)
 			_ = windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index))
-		case addr.Family().IsIPv6():
+		case dest.Address.Family().IsIPv6():
 			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index); err != nil {
 				return newError("failed to set IPV6_UNICAST_IF", err)
 			}
-		case addr.Family().IsIPv4():
+		case dest.Address.Family().IsIPv4():
 			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index)); err != nil {
 				return newError("failed to set IP_UNICAST_IF", err)
 			}

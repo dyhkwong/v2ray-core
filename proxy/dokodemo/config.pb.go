@@ -17,12 +17,9 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port    uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Address *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port    uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// List of networks that the Dokodemo accepts.
 	// Deprecated. Use networks.
 	//
@@ -34,6 +31,8 @@ type Config struct {
 	Timeout        uint32 `protobuf:"varint,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	FollowRedirect bool   `protobuf:"varint,5,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
 	UserLevel      uint32 `protobuf:"varint,6,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -118,14 +117,13 @@ func (x *Config) GetUserLevel() uint32 {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address        *net.IPOrDomain  `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port           uint32           `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Networks       *net.NetworkList `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
-	FollowRedirect bool             `protobuf:"varint,4,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Address        *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port           uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Networks       *net.NetworkList       `protobuf:"bytes,3,opt,name=networks,proto3" json:"networks,omitempty"`
+	FollowRedirect bool                   `protobuf:"varint,4,opt,name=follow_redirect,json=followRedirect,proto3" json:"follow_redirect,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

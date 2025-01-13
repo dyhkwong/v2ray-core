@@ -17,11 +17,10 @@ const (
 )
 
 type GetOutboundStatusRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=Tag,proto3" json:"Tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag string `protobuf:"bytes,1,opt,name=Tag,proto3" json:"Tag,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetOutboundStatusRequest) Reset() {
@@ -62,11 +61,10 @@ func (x *GetOutboundStatusRequest) GetTag() string {
 }
 
 type GetOutboundStatusResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Status        *observatory.ObservationResult `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Status *observatory.ObservationResult `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetOutboundStatusResponse) Reset() {
@@ -107,9 +105,9 @@ func (x *GetOutboundStatusResponse) GetStatus() *observatory.ObservationResult {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

@@ -18,15 +18,14 @@ const (
 
 // Config is the settings for Commander.
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Tag of the outbound handler that handles grpc connections.
 	Tag string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Services that supported by this server. All services must implement Service
 	// interface.
-	Service []*anypb.Any `protobuf:"bytes,2,rep,name=service,proto3" json:"service,omitempty"`
+	Service       []*anypb.Any `protobuf:"bytes,2,rep,name=service,proto3" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -75,9 +74,9 @@ func (x *Config) GetService() []*anypb.Any {
 
 // ReflectionConfig is the placeholder config for ReflectionService.
 type ReflectionConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReflectionConfig) Reset() {
@@ -111,12 +110,11 @@ func (*ReflectionConfig) Descriptor() ([]byte, []int) {
 }
 
 type SimplifiedConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
+	Name          []string               `protobuf:"bytes,2,rep,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Tag  string   `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
-	Name []string `protobuf:"bytes,2,rep,name=name,proto3" json:"name,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {

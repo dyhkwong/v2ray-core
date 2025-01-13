@@ -71,15 +71,14 @@ func (ClientConfig_DomainStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type PeerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey     string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PreSharedKey  string                 `protobuf:"bytes,2,opt,name=pre_shared_key,json=preSharedKey,proto3" json:"pre_shared_key,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	KeepAlive     uint32                 `protobuf:"varint,4,opt,name=keep_alive,json=keepAlive,proto3" json:"keep_alive,omitempty"`
+	AllowedIps    []string               `protobuf:"bytes,5,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	PublicKey    string   `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	PreSharedKey string   `protobuf:"bytes,2,opt,name=pre_shared_key,json=preSharedKey,proto3" json:"pre_shared_key,omitempty"`
-	Endpoint     string   `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	KeepAlive    uint32   `protobuf:"varint,4,opt,name=keep_alive,json=keepAlive,proto3" json:"keep_alive,omitempty"`
-	AllowedIps   []string `protobuf:"bytes,5,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PeerConfig) Reset() {
@@ -148,10 +147,7 @@ func (x *PeerConfig) GetAllowedIps() []string {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state          protoimpl.MessageState      `protogen:"open.v1"`
 	SecretKey      string                      `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
 	Address        []string                    `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
 	Peers          []*PeerConfig               `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
@@ -159,6 +155,8 @@ type ClientConfig struct {
 	NumWorkers     int32                       `protobuf:"varint,5,opt,name=num_workers,json=numWorkers,proto3" json:"num_workers,omitempty"`
 	Reserved       []byte                      `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
 	DomainStrategy ClientConfig_DomainStrategy `protobuf:"varint,7,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.wireguard.ClientConfig_DomainStrategy" json:"domain_strategy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -241,15 +239,14 @@ func (x *ClientConfig) GetDomainStrategy() ClientConfig_DomainStrategy {
 }
 
 type ServerConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SecretKey     string                 `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
+	Address       []string               `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
+	Peers         []*PeerConfig          `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	Mtu           int32                  `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	NumWorkers    int32                  `protobuf:"varint,5,opt,name=num_workers,json=numWorkers,proto3" json:"num_workers,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	SecretKey  string        `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
-	Address    []string      `protobuf:"bytes,2,rep,name=address,proto3" json:"address,omitempty"`
-	Peers      []*PeerConfig `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
-	Mtu        int32         `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	NumWorkers int32         `protobuf:"varint,5,opt,name=num_workers,json=numWorkers,proto3" json:"num_workers,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {

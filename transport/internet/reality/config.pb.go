@@ -16,24 +16,23 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Show          bool                   `protobuf:"varint,1,opt,name=show,proto3" json:"show,omitempty"`
+	Dest          string                 `protobuf:"bytes,2,opt,name=dest,proto3" json:"dest,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Xver          uint64                 `protobuf:"varint,4,opt,name=xver,proto3" json:"xver,omitempty"`
+	ServerNames   []string               `protobuf:"bytes,5,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
+	PrivateKey    []byte                 `protobuf:"bytes,6,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	ShortIds      [][]byte               `protobuf:"bytes,7,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
+	Fingerprint   string                 `protobuf:"bytes,21,opt,name=Fingerprint,proto3" json:"Fingerprint,omitempty"`
+	ServerName    string                 `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	PublicKey     []byte                 `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	ShortId       []byte                 `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
+	SpiderX       string                 `protobuf:"bytes,25,opt,name=spider_x,json=spiderX,proto3" json:"spider_x,omitempty"`
+	SpiderY       []int64                `protobuf:"varint,26,rep,packed,name=spider_y,json=spiderY,proto3" json:"spider_y,omitempty"`
+	Version       []byte                 `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Show        bool     `protobuf:"varint,1,opt,name=show,proto3" json:"show,omitempty"`
-	Dest        string   `protobuf:"bytes,2,opt,name=dest,proto3" json:"dest,omitempty"`
-	Type        string   `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Xver        uint64   `protobuf:"varint,4,opt,name=xver,proto3" json:"xver,omitempty"`
-	ServerNames []string `protobuf:"bytes,5,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
-	PrivateKey  []byte   `protobuf:"bytes,6,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
-	ShortIds    [][]byte `protobuf:"bytes,7,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
-	Fingerprint string   `protobuf:"bytes,21,opt,name=Fingerprint,proto3" json:"Fingerprint,omitempty"`
-	ServerName  string   `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
-	PublicKey   []byte   `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	ShortId     []byte   `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
-	SpiderX     string   `protobuf:"bytes,25,opt,name=spider_x,json=spiderX,proto3" json:"spider_x,omitempty"`
-	SpiderY     []int64  `protobuf:"varint,26,rep,packed,name=spider_y,json=spiderY,proto3" json:"spider_y,omitempty"`
-	Version     []byte   `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

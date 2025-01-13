@@ -72,11 +72,10 @@ func (Network) EnumDescriptor() ([]byte, []int) {
 
 // NetworkList is a list of Networks.
 type NetworkList struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Network       []Network              `protobuf:"varint,1,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Network []Network `protobuf:"varint,1,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NetworkList) Reset() {

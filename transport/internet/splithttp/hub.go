@@ -94,6 +94,12 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 	h.config.WriteResponseHeader(writer)
 
+	clientVer := []int{0, 0, 0}
+	x_version := strings.Split(request.URL.Query().Get("x_version"), ".")
+	for j := 0; j < 3 && len(x_version) > j; j++ {
+		clientVer[j], _ = strconv.Atoi(x_version[j])
+	}
+
 	sessionId := ""
 	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
 	if len(subpath) > 0 {

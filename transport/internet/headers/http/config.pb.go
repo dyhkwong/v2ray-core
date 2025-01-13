@@ -15,15 +15,14 @@ const (
 )
 
 type Header struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// "Accept", "Cookie", etc
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Each entry must be valid in one piece. Random entry will be chosen if
 	// multiple entries present.
-	Value []string `protobuf:"bytes,2,rep,name=value,proto3" json:"value,omitempty"`
+	Value         []string `protobuf:"bytes,2,rep,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Header) Reset() {
@@ -72,11 +71,10 @@ func (x *Header) GetValue() []string {
 
 // HTTP version. Default value "1.1".
 type Version struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Version) Reset() {
@@ -118,11 +116,10 @@ func (x *Version) GetValue() string {
 
 // HTTP method. Default value "GET".
 type Method struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Method) Reset() {
@@ -163,17 +160,16 @@ func (x *Method) GetValue() string {
 }
 
 type RequestConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Full HTTP version like "1.1".
 	Version *Version `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
 	// GET, POST, CONNECT etc
 	Method *Method `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
 	// URI like "/login.php"
-	Uri    []string  `protobuf:"bytes,3,rep,name=uri,proto3" json:"uri,omitempty"`
-	Header []*Header `protobuf:"bytes,4,rep,name=header,proto3" json:"header,omitempty"`
+	Uri           []string  `protobuf:"bytes,3,rep,name=uri,proto3" json:"uri,omitempty"`
+	Header        []*Header `protobuf:"bytes,4,rep,name=header,proto3" json:"header,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RequestConfig) Reset() {
@@ -235,14 +231,13 @@ func (x *RequestConfig) GetHeader() []*Header {
 }
 
 type Status struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Status code. Default "200".
 	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	// Statue reason. Default "OK".
-	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Status) Reset() {
@@ -290,13 +285,12 @@ func (x *Status) GetReason() string {
 }
 
 type ResponseConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Version       *Version               `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Status        *Status                `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Header        []*Header              `protobuf:"bytes,3,rep,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
-
-	Version *Version  `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Status  *Status   `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	Header  []*Header `protobuf:"bytes,3,rep,name=header,proto3" json:"header,omitempty"`
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResponseConfig) Reset() {
@@ -351,16 +345,15 @@ func (x *ResponseConfig) GetHeader() []*Header {
 }
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Settings for authenticating requests. If not set, client side will not send
 	// authenication header, and server side will bypass authentication.
 	Request *RequestConfig `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
 	// Settings for authenticating responses. If not set, client side will bypass
 	// authentication, and server side will not send authentication header.
-	Response *ResponseConfig `protobuf:"bytes,2,opt,name=response,proto3" json:"response,omitempty"`
+	Response      *ResponseConfig `protobuf:"bytes,2,opt,name=response,proto3" json:"response,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {

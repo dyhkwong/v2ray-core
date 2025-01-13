@@ -17,18 +17,17 @@ const (
 )
 
 type UDPProtocolConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Address                     *net.IPOrDomain `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port                        uint32          `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Password                    string          `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	ScramblePacket              bool            `protobuf:"varint,4,opt,name=scramble_packet,json=scramblePacket,proto3" json:"scramble_packet,omitempty"`
-	EnableFec                   bool            `protobuf:"varint,5,opt,name=enable_fec,json=enableFec,proto3" json:"enable_fec,omitempty"`
-	EnableStabilization         bool            `protobuf:"varint,6,opt,name=enable_stabilization,json=enableStabilization,proto3" json:"enable_stabilization,omitempty"`
-	EnableRenegotiation         bool            `protobuf:"varint,7,opt,name=enable_renegotiation,json=enableRenegotiation,proto3" json:"enable_renegotiation,omitempty"`
-	HandshakeMaskingPaddingSize uint32          `protobuf:"varint,8,opt,name=handshake_masking_padding_size,json=handshakeMaskingPaddingSize,proto3" json:"handshake_masking_padding_size,omitempty"`
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	Address                     *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port                        uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Password                    string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	ScramblePacket              bool                   `protobuf:"varint,4,opt,name=scramble_packet,json=scramblePacket,proto3" json:"scramble_packet,omitempty"`
+	EnableFec                   bool                   `protobuf:"varint,5,opt,name=enable_fec,json=enableFec,proto3" json:"enable_fec,omitempty"`
+	EnableStabilization         bool                   `protobuf:"varint,6,opt,name=enable_stabilization,json=enableStabilization,proto3" json:"enable_stabilization,omitempty"`
+	EnableRenegotiation         bool                   `protobuf:"varint,7,opt,name=enable_renegotiation,json=enableRenegotiation,proto3" json:"enable_renegotiation,omitempty"`
+	HandshakeMaskingPaddingSize uint32                 `protobuf:"varint,8,opt,name=handshake_masking_padding_size,json=handshakeMaskingPaddingSize,proto3" json:"handshake_masking_padding_size,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *UDPProtocolConfig) Reset() {

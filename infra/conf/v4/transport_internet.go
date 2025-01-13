@@ -250,19 +250,34 @@ func (c *HTTPConfig) Build() (proto.Message, error) {
 	return config, nil
 }
 
+type HTTPUpgradeHeaderConfig struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type HTTPUpgradeConfig struct {
-	Host    string            `json:"host"`
-	Path    string            `json:"path"`
-	Headers map[string]string `json:"headers"`
+	Host                string                    `json:"host"`
+	Path                string                    `json:"path"`
+	MaxEarlyData        int32                     `json:"maxEarlyData"`
+	EarlyDataHeaderName string                    `json:"earlyDataHeaderName"`
+	Header              []HTTPUpgradeHeaderConfig `json:"header"`
 }
 
 // Build implements Buildable.
 func (c *HTTPUpgradeConfig) Build() (proto.Message, error) {
-	return &httpupgrade.Config{
-		Host:    c.Host,
-		Path:    c.Path,
-		Headers: c.Headers,
-	}, nil
+	config := &httpupgrade.Config{
+		Host:                c.Host,
+		Path:                c.Path,
+		MaxEarlyData:        c.MaxEarlyData,
+		EarlyDataHeaderName: c.EarlyDataHeaderName,
+	}
+	for _, header := range c.Header {
+		config.Header = append(config.Header, &httpupgrade.Header{
+			Key:   header.Key,
+			Value: header.Value,
+		})
+	}
+	return config, nil
 }
 
 type QUICConfig struct {
