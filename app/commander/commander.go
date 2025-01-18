@@ -7,6 +7,7 @@ package commander
 
 import (
 	"context"
+	"github.com/v2fly/v2ray-core/v4/features"
 	"net"
 	"sync"
 
@@ -17,6 +18,12 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/signal/done"
 	"github.com/v2fly/v2ray-core/v4/features/outbound"
 )
+
+type CommanderIfce interface {
+	features.Feature
+
+	ExtractGrpcServer() *grpc.Server
+}
 
 // Commander is a V2Ray feature that provides gRPC methods to external clients.
 type Commander struct {
@@ -58,7 +65,7 @@ func NewCommander(ctx context.Context, config *Config) (*Commander, error) {
 
 // Type implements common.HasType.
 func (c *Commander) Type() interface{} {
-	return (*Commander)(nil)
+	return (*CommanderIfce)(nil)
 }
 
 // Start implements common.Runnable.
@@ -102,6 +109,14 @@ func (c *Commander) Close() error {
 	}
 
 	return nil
+}
+
+// ExtractGrpcServer extracts the gRPC server from Commander.
+// Private function for core code base.
+func (c *Commander) ExtractGrpcServer() *grpc.Server {
+	c.Lock()
+	defer c.Unlock()
+	return c.server
 }
 
 func init() {

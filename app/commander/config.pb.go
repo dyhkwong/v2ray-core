@@ -17,24 +17,21 @@ const (
 
 // Config is the settings for Commander.
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Tag of the outbound handler that handles grpc connections.
 	Tag string `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Services that supported by this server. All services must implement Service
 	// interface.
-	Service []*serial.TypedMessage `protobuf:"bytes,2,rep,name=service,proto3" json:"service,omitempty"`
+	Service       []*serial.TypedMessage `protobuf:"bytes,2,rep,name=service,proto3" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_commander_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_commander_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -45,7 +42,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_app_commander_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -76,18 +73,16 @@ func (x *Config) GetService() []*serial.TypedMessage {
 
 // ReflectionConfig is the placeholder config for ReflectionService.
 type ReflectionConfig struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReflectionConfig) Reset() {
 	*x = ReflectionConfig{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_app_commander_config_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_app_commander_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *ReflectionConfig) String() string {
@@ -98,7 +93,7 @@ func (*ReflectionConfig) ProtoMessage() {}
 
 func (x *ReflectionConfig) ProtoReflect() protoreflect.Message {
 	mi := &file_app_commander_config_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -151,7 +146,7 @@ func file_app_commander_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_commander_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_commander_config_proto_goTypes = []interface{}{
+var file_app_commander_config_proto_goTypes = []any{
 	(*Config)(nil),              // 0: v2ray.core.app.commander.Config
 	(*ReflectionConfig)(nil),    // 1: v2ray.core.app.commander.ReflectionConfig
 	(*serial.TypedMessage)(nil), // 2: v2ray.core.common.serial.TypedMessage
@@ -169,32 +164,6 @@ func init() { file_app_commander_config_proto_init() }
 func file_app_commander_config_proto_init() {
 	if File_app_commander_config_proto != nil {
 		return
-	}
-	if !protoimpl.UnsafeEnabled {
-		file_app_commander_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_app_commander_config_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReflectionConfig); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
