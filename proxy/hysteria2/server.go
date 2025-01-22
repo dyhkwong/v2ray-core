@@ -70,7 +70,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 	}
 
 	if !IsHy2Transport && network == net.Network_UDP {
-		return newError(hyTransport.CanNotUseUdpExtension)
+		return newError(hyTransport.CanNotUseUDPExtension)
 	}
 
 	sessionPolicy := s.policyManager.ForLevel(0)

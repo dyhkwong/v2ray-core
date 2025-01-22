@@ -92,7 +92,7 @@ func Test_parseResponse(t *testing.T) {
 				got.Expire = time.Time{}
 			}
 			if cmp.Diff(got, tt.want) != "" {
-				t.Errorf(cmp.Diff(got, tt.want))
+				t.Errorf("%v", cmp.Diff(got, tt.want))
 				// t.Errorf("handleResponse() = %#v, want %#v", got, tt.want)
 			}
 		})

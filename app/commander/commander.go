@@ -7,7 +7,6 @@ package commander
 
 import (
 	"context"
-	"github.com/v2fly/v2ray-core/v4/features"
 	"net"
 	"sync"
 
@@ -16,6 +15,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/signal/done"
+	"github.com/v2fly/v2ray-core/v4/features"
 	"github.com/v2fly/v2ray-core/v4/features/outbound"
 )
 

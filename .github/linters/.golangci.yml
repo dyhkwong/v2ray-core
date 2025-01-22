@@ -30,15 +30,12 @@ linters:
     - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
-    - varcheck
     - whitespace
   disable:
-    - deadcode
     - errcheck
     - unused
 linters-settings:

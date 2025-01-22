@@ -2,10 +2,10 @@ package packetaddr
 
 import (
 	"bytes"
-	"github.com/v2fly/v2ray-core/v4/common/errors"
 	gonet "net"
 
 	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/errors"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/protocol"
 )

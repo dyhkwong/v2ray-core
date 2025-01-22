@@ -5,11 +5,12 @@ package httpupgrade
 
 import (
 	"context"
+	"io"
+	"time"
+
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
-	"io"
-	"time"
 )
 
 type connection struct {
