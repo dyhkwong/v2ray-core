@@ -11,15 +11,12 @@ import (
 func (c *Config) GetREALITYConfig() *reality.Config {
 	var dialer net.Dialer
 	config := &reality.Config{
-		DialContext: dialer.DialContext,
-
-		Show: c.Show,
-		Type: c.Type,
-		Dest: c.Dest,
-		Xver: byte(c.Xver),
-
-		PrivateKey: c.PrivateKey,
-
+		DialContext:            dialer.DialContext,
+		Show:                   true,
+		Type:                   c.Type,
+		Dest:                   c.Dest,
+		Xver:                   byte(c.Xver),
+		PrivateKey:             c.PrivateKey,
 		NextProtos:             nil, // should be nil
 		SessionTicketsDisabled: true,
 	}

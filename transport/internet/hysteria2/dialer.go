@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	hyClient "github.com/apernet/hysteria/core/v2/client"
-	hyProtocol "github.com/apernet/hysteria/core/v2/international/protocol"
 	"github.com/apernet/hysteria/extras/v2/obfs"
 	"github.com/apernet/hysteria/extras/v2/transport/udphop"
 	"github.com/apernet/quic-go/quicvarint"
+	hyClient "github.com/v2fly/hysteria/core/v2/client"
+	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -25,9 +25,11 @@ type dialerConf struct {
 	*internet.MemoryStreamConfig
 }
 
-var RunningClient map[dialerConf](hyClient.Client)
-var ClientMutex sync.Mutex
-var MBps uint64 = 1000000 / 8 // MByte
+var (
+	RunningClient map[dialerConf](hyClient.Client)
+	ClientMutex   sync.Mutex
+	MBps          uint64 = 1000000 / 8 // MByte
+)
 
 func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*hyClient.TLSConfig, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
@@ -246,7 +248,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	}
 
 	// write TCP frame type
-	frameSize := int(quicvarint.Len(hyProtocol.FrameTypeTCPRequest))
+	frameSize := quicvarint.Len(hyProtocol.FrameTypeTCPRequest)
 	buf := make([]byte, frameSize)
 	hyProtocol.VarintPut(buf, hyProtocol.FrameTypeTCPRequest)
 	_, err = conn.stream.Write(buf)

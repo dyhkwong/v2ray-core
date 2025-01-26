@@ -89,7 +89,7 @@ Command "%s" not found.
 Make sure that %s is in your system path or current path.
 Download %s from https://github.com/protocolbuffers/protobuf/releases
 `, protoc, protoc, protoc)
-		return "", fmt.Errorf(errStr)
+		return "", fmt.Errorf("%v", errStr)
 	}
 	return path, nil
 }

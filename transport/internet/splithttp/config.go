@@ -4,16 +4,17 @@ import (
 	"crypto/rand"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
 
 type RangeConfig struct {
-	From int
-	To   int
+	From int32
+	To   int32
 }
 
-func newRandRangeConfig(defaultFrom, defaultTo int, randRange string) (config *RangeConfig) {
+func newRandRangeConfig(defaultFrom, defaultTo int32, randRange string) (config *RangeConfig) {
 	config = &RangeConfig{
 		From: defaultFrom,
 		To:   defaultTo,
@@ -25,17 +26,17 @@ func newRandRangeConfig(defaultFrom, defaultTo int, randRange string) (config *R
 	if err != nil || to == 0 {
 		return
 	}
-	config.From = from
-	config.To = to
+	config.From = int32(from)
+	config.To = int32(to)
 	return
 }
 
-func (c *RangeConfig) rand() int {
+func (c *RangeConfig) rand() int32 {
 	if c.From == c.To {
 		return c.From
 	}
 	bigInt, _ := rand.Int(rand.Reader, big.NewInt(int64(c.To-c.From)))
-	return c.From + int(bigInt.Int64())
+	return c.From + int32(bigInt.Int64())
 }
 
 func parseRangeString(str string) (int, int, error) {
@@ -91,20 +92,26 @@ func (c *Config) GetNormalizedQuery() string {
 	if len(pathAndQuery) > 1 {
 		query = pathAndQuery[1]
 	}
-	if query != "" {
-		query += "&"
-	}
-	paddingLen := c.GetNormalizedXPaddingBytes().rand()
-	if paddingLen > 0 {
-		query += "x_padding=" + strings.Repeat("0", int(paddingLen))
+	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
+		query += "&x_padding=" + strings.Repeat("0", int(paddingLen))
 	}
 	return query
 }
 
-func (c *Config) GetRequestHeader() http.Header {
+func (c *Config) GetRequestHeader(rawURL string) http.Header {
 	header := http.Header{}
 	for k, v := range c.Headers {
 		header.Add(k, v)
+	}
+	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
+		u, _ := url.Parse(rawURL)
+		// https://www.rfc-editor.org/rfc/rfc7541.html#appendix-B
+		// h2's HPACK Header Compression feature employs a huffman encoding using a static table.
+		// 'X' is assigned an 8 bit code, so HPACK compression won't change actual padding length on the wire.
+		// https://www.rfc-editor.org/rfc/rfc9204.html#section-4.1.2-2
+		// h3's similar QPACK feature uses the same huffman table.
+		u.RawQuery = "x_padding=" + strings.Repeat("X", int(c.GetNormalizedXPaddingBytes().rand()))
+		header.Set("Referer", u.String())
 	}
 	return header
 }
@@ -113,9 +120,8 @@ func (c *Config) WriteResponseHeader(writer http.ResponseWriter) {
 	// CORS headers for the browser dialer
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-	paddingLen := c.GetNormalizedXPaddingBytes().rand()
-	if paddingLen > 0 {
-		writer.Header().Set("X-Padding", strings.Repeat("0", int(paddingLen)))
+	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
+		writer.Header().Set("X-Padding", strings.Repeat("X", int(paddingLen)))
 	}
 }
 

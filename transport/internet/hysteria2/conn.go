@@ -3,16 +3,18 @@ package hysteria2
 import (
 	"time"
 
-	hyClient "github.com/apernet/hysteria/core/v2/client"
-	"github.com/apernet/hysteria/core/v2/international/protocol"
-	hyServer "github.com/apernet/hysteria/core/v2/server"
 	"github.com/apernet/quic-go"
+	hyClient "github.com/v2fly/hysteria/core/v2/client"
+	"github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyServer "github.com/v2fly/hysteria/core/v2/server"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
-const CanNotUseUdpExtension = "Only hysteria2 proxy protocol can use udpExtension."
-const Hy2MustNeedTLS = "Hysteria2 based on QUIC that requires TLS."
+const (
+	CanNotUseUDPExtension = "Only hysteria2 proxy protocol can use udpExtension."
+	Hy2MustNeedTLS        = "Hysteria2 based on QUIC that requires TLS."
+)
 
 type HyConn struct {
 	IsUDPExtension   bool
@@ -44,7 +46,7 @@ func (c *HyConn) Write(b []byte) (int, error) {
 
 func (c *HyConn) WritePacket(b []byte, dest net.Destination) (int, error) {
 	if !c.IsUDPExtension {
-		return 0, newError(CanNotUseUdpExtension)
+		return 0, newError(CanNotUseUDPExtension)
 	}
 
 	if c.IsServer {
@@ -64,11 +66,14 @@ func (c *HyConn) WritePacket(b []byte, dest net.Destination) (int, error) {
 
 func (c *HyConn) ReadPacket() (int, []byte, *net.Destination, error) {
 	if !c.IsUDPExtension {
-		return 0, nil, nil, newError(CanNotUseUdpExtension)
+		return 0, nil, nil, newError(CanNotUseUDPExtension)
 	}
 
 	if c.IsServer {
-		msg := <-c.ServerUDPSession.ReceiveCh
+		msg, ok := <-c.ServerUDPSession.ReceiveCh
+		if !ok {
+			return 0, nil, nil, newError("UDP session receive channel closed")
+		}
 		dest, err := net.ParseDestination("udp:" + msg.Addr)
 		return len(msg.Data), msg.Data, &dest, err
 	}
@@ -86,11 +91,11 @@ func (c *HyConn) ReadPacket() (int, []byte, *net.Destination, error) {
 func (c *HyConn) Close() error {
 	if c.IsUDPExtension {
 		if !c.IsServer && c.ClientUDPSession == nil || (c.IsServer && c.ServerUDPSession == nil) {
-			return newError(CanNotUseUdpExtension)
+			return newError(CanNotUseUDPExtension)
 		}
 		if c.IsServer {
-			c.ServerUDPSession.Close()
-			return c.ServerUDPSession.Conn.Close()
+			c.ServerUDPSession.CloseWithErr(nil)
+			return nil
 		}
 		return c.ClientUDPSession.Close()
 	}

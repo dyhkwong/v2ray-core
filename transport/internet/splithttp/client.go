@@ -59,7 +59,7 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 		method = "POST" // stream-up/one
 	}
 	req, _ := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
-	req.Header = c.transportConfig.GetRequestHeader()
+	req.Header = c.transportConfig.GetRequestHeader(url)
 	if method == "POST" && !c.transportConfig.NoGRPCHeader {
 		req.Header.Set("Content-Type", "application/grpc")
 	}
@@ -68,10 +68,10 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 	go func() {
 		resp, err := c.client.Do(req)
 		if err != nil {
-			if !uploadOnly {
+			if !uploadOnly { // stream-down is enough
 				c.closed = true
+				newError("failed to " + method + " " + url).Base(err).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 			}
-			newError("failed to " + method + " " + url).Base(err).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 			gotConn.Close()
 			wrc.Close()
 			return
@@ -98,7 +98,7 @@ func (c *DefaultDialerClient) PostPacket(ctx context.Context, url string, body i
 		return err
 	}
 	req.ContentLength = contentLength
-	req.Header = c.transportConfig.GetRequestHeader()
+	req.Header = c.transportConfig.GetRequestHeader(url)
 
 	if c.httpVersion != "1.1" {
 		resp, err := c.client.Do(req)

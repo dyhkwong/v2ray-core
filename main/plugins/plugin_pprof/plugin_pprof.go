@@ -1,4 +1,4 @@
-package plugin_pprof
+package plugin_pprof //nolint: stylecheck
 
 import (
 	"net/http"

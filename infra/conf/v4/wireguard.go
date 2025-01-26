@@ -31,7 +31,7 @@ func (c *WireGuardPeerConfig) Build() (proto.Message, error) {
 	}
 	config.Endpoint = c.Endpoint
 	// default 0
-	config.KeepAlive = uint32(c.KeepAlive)
+	config.KeepAlive = c.KeepAlive
 	if len(c.AllowedIPs) == 0 {
 		config.AllowedIps = []string{"0.0.0.0/0", "::0/0"}
 	} else {

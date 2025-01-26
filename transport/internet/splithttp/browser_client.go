@@ -9,19 +9,20 @@ import (
 )
 
 type BrowserDialerClient struct {
-	dialer extension.BrowserDialer
+	dialer          extension.BrowserDialer
+	transportConfig *Config
 }
 
 func (c *BrowserDialerClient) IsClosed() bool {
-	return false // not implemented yet
+	panic("not implemented yet")
 }
 
 func (c *BrowserDialerClient) OpenStream(ctx context.Context, url string, body io.Reader, uploadOnly bool) (io.ReadCloser, net.Addr, net.Addr, error) {
 	if body != nil {
-		panic("not implemented yet")
+		return nil, nil, nil, newError("bidirectional streaming for browser dialer not implemented yet")
 	}
 
-	conn, err := c.dialer.DialGet(url)
+	conn, err := c.dialer.DialGet(url, c.transportConfig.GetRequestHeader(url))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -35,7 +36,7 @@ func (c *BrowserDialerClient) PostPacket(ctx context.Context, url string, body i
 		return err
 	}
 
-	err = c.dialer.DialPost(url, bytes)
+	err = c.dialer.DialPost(url, c.transportConfig.GetRequestHeader(url), bytes)
 	if err != nil {
 		return err
 	}

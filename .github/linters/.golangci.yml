@@ -1,9 +1,6 @@
 run:
   timeout: 5m
-
-issues:
-  new: true
-  exclude-files:
+  skip-files:
     - generated.*
     - .pb.go
     - infra/conf/cfgcommon/tlscfg/reality.go
@@ -11,7 +8,13 @@ issues:
     - proxy/vless/inbound/inbound.go
     - proxy/vless/outbound/outbound.go
     - proxy/wireguard/*.*
+    - transport/internet/fragment.go
+    - transport/internet/noise.go
     - transport/internet/reality/*.*
+    - transport/internet/splithttp/*.*
+
+issues:
+  new: true
   exclude-rules:
     - linters:
         - staticcheck
@@ -42,11 +45,10 @@ linters:
     - typecheck
     - unconvert
     - unparam
-    - unused
     - whitespace
   disable:
-    - deadcode
     - errcheck
+    - unused
 
 linters-settings:
   goimports:

@@ -32,7 +32,7 @@ func NewTableCipher(key []byte) (enc, dec TableCipher) {
 	}
 	for i = 1; i < 1024; i++ {
 		table = sort(table, func(x, y uint64) int64 {
-			return int64(a%uint64(x+i) - a%uint64(y+i))
+			return int64(a%(x+i) - a%(y+i))
 		})
 	}
 	for i = 0; i < tableSize; i++ {

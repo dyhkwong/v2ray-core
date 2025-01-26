@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	hyProtocol "github.com/apernet/hysteria/core/v2/international/protocol"
+	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -67,7 +67,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 	}
 
 	if !IsHy2Transport && network == net.Network_UDP {
-		return newError(hyTransport.CanNotUseUdpExtension)
+		return newError(hyTransport.CanNotUseUDPExtension)
 	}
 
 	sessionPolicy := s.policyManager.ForLevel(0)

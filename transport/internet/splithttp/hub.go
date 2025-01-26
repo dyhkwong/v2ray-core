@@ -94,12 +94,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 	h.config.WriteResponseHeader(writer)
 
-	clientVer := []int{0, 0, 0}
-	x_version := strings.Split(request.URL.Query().Get("x_version"), ".")
-	for j := 0; j < 3 && len(x_version) > j; j++ {
-		clientVer[j], _ = strconv.Atoi(x_version[j])
-	}
-
 	sessionId := ""
 	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
 	if len(subpath) > 0 {
@@ -137,6 +131,8 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				newError("failed to upload (PushReader)").Base(err).AtInfo().WriteToLog()
 				writer.WriteHeader(http.StatusConflict)
 			} else {
+				writer.Header().Set("X-Accel-Buffering", "no")
+				writer.Header().Set("Cache-Control", "no-store")
 				writer.WriteHeader(http.StatusOK)
 				<-request.Context().Done()
 			}
@@ -269,7 +265,6 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	}
 	shSettings := streamSettings.ProtocolSettings.(*Config)
 	l.config = shSettings
-	var listener net.Listener
 	var err error
 	handler := &requestHandler{
 		config:    shSettings,
@@ -308,7 +303,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	}
 
 	if port == net.Port(0) { // unix
-		listener, err = internet.ListenSystem(ctx, &net.UnixAddr{
+		l.listener, err = internet.ListenSystem(ctx, &net.UnixAddr{
 			Name: address.Domain(),
 			Net:  "unix",
 		}, streamSettings.SocketSettings)
@@ -317,7 +312,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		}
 		newError("listening UNIX domain socket for XHTTP on ", address).WriteToLog(session.ExportIDToError(ctx))
 	} else { // tcp
-		listener, err = internet.ListenSystem(ctx, &net.TCPAddr{
+		l.listener, err = internet.ListenSystem(ctx, &net.TCPAddr{
 			IP:   address.IP(),
 			Port: int(port),
 		}, streamSettings.SocketSettings)
@@ -326,29 +321,22 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		}
 		newError("listening TCP for XHTTP on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
 	}
-
 	if tlsConfig != nil {
-		listener = gotls.NewListener(listener, tlsConfig.GetTLSConfig())
+		l.listener = gotls.NewListener(l.listener, tlsConfig.GetTLSConfig())
 	}
 	if realityConfig != nil {
-		listener = goreality.NewListener(listener, realityConfig.GetREALITYConfig())
+		l.listener = goreality.NewListener(l.listener, realityConfig.GetREALITYConfig())
 	}
-
-	// h2cHandler can handle both plaintext HTTP/1.1 and h2c
-	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
-	l.listener = listener
 	l.server = http.Server{
-		Handler:           h2cHandler,
+		Handler:           h2c.NewHandler(handler, &http2.Server{}), // h2cHandler can handle both plaintext HTTP/1.1 and h2c
 		ReadHeaderTimeout: time.Second * 4,
 		MaxHeaderBytes:    8192,
 	}
-
 	go func() {
 		if err := l.server.Serve(l.listener); err != nil {
 			newError("failed to serve HTTP for XHTTP").Base(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 		}
 	}()
-
 	return l, err
 }
 

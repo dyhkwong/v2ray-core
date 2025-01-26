@@ -21,7 +21,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 	url.Scheme = "https"
 	s := baseDOHNameServer(url, "H3", "quic")
 	s.httpClient = &http.Client{
-		Transport: &http3.RoundTripper{
+		Transport: &http3.Transport{
 			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 				dest, err := net.ParseDestination("udp:" + addr)
 				if err != nil {
@@ -49,7 +49,7 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
 	s := baseDOHNameServer(url, "H3L", "quic")
 	s.httpClient = &http.Client{
-		Transport: &http3.RoundTripper{
+		Transport: &http3.Transport{
 			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
 				dest, err := net.ParseDestination("udp:" + addr)
 				if err != nil {

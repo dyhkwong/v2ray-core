@@ -27,6 +27,8 @@ jobs:
           # Exclude i386 on darwin.
           - goarch: 386
             goos: darwin
+          - goarch: amd64
+            goos: linux
         include:
           # BEGIN Linux ARM 5 6 7
           - goos: linux
@@ -86,6 +88,15 @@ jobs:
             goarch: mipsle
           - goos: linux
             goarch: mips
+          - goos: linux
+            goarch: arm64
+            pie: pie
+          - goos: linux
+            goarch: amd64
+            pie: pie
+          - goos: linux
+            goarch: amd64
+            pie: 
           # END MIPS
           # END Other architectures
       fail-fast: false
@@ -95,6 +106,7 @@ jobs:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       GOARM: ${{ matrix.goarm }}
+      PIE_ENABLED: ${{ matrix.pie }}
       CGO_ENABLED: 0
 
     steps:
@@ -106,7 +118,7 @@ jobs:
       - name: Show workflow information
         id: get_filename
         run: |
-          export _NAME=$(jq ".[\"$GOOS-$GOARCH$GOARM$TUN\"].friendlyName" -r < release/friendly-filenames.json)
+          export _NAME=$(jq ".[\"$GOOS-$GOARCH$GOARM$PIE_ENABLED\"].friendlyName" -r < release/friendly-filenames.json)
           echo "GOOS: $GOOS, GOARCH: $GOARCH, GOARM: $GOARM, RELEASE_NAME: $_NAME"
           echo "ASSET_NAME=$_NAME" >> $GITHUB_OUTPUT
           echo "ASSET_NAME=$_NAME" >> $GITHUB_ENV
@@ -124,15 +136,16 @@ jobs:
           mkdir -p build_assets
           EXTRA_ARG=""
           case "$GOOS-$GOARCH" in
-            "linux-386")
-              ;&
             "linux-amd64")
               ;&
             "linux-arm64")
-              EXTRA_ARG=EXTRA_ARG+"-buildmode=pie"
+            if [ -z $PIE_ENABLED ]
+            then
+              EXTRA_ARG=$EXTRA_ARG" -buildmode=pie"
+            fi
               ;;
           esac
-          go build -v -o build_assets/v2ray -trimpath -ldflags "-s -w -buildid=" ./main
+          go build $EXTRA_ARG -v -o build_assets/v2ray -trimpath -ldflags "-s -w -buildid=" ./main
 
       - name: Rename Windows V2Ray
         if: matrix.goos == 'windows'

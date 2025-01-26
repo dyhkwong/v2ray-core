@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -40,6 +40,12 @@ func NewDialer(ctx context.Context, config *Config) *Dialer {
 
 //go:embed dialer.html
 var webpage []byte
+
+type task struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
+	Extra  any    `json:"extra,omitempty"`
+}
 
 var conns = make(chan *websocket.Conn, 256)
 
@@ -103,22 +109,67 @@ func (d *Dialer) Close() error {
 	return nil
 }
 
+type webSocketExtra struct {
+	Protocol string `json:"protocol,omitempty"`
+}
+
 func (d *Dialer) DialWS(uri string, ed []byte) (*websocket.Conn, error) {
-	data := []byte("WS " + uri)
-	if ed != nil {
-		data = append(data, " "+base64.RawURLEncoding.EncodeToString(ed)...)
+	task := task{
+		Method: "WS",
+		URL:    uri,
 	}
-	return d.dialRaw(data)
+	if ed != nil {
+		task.Extra = webSocketExtra{
+			Protocol: base64.RawURLEncoding.EncodeToString(ed),
+		}
+	}
+	return d.dialTask(task)
 }
 
-func (d *Dialer) DialGet(uri string) (*websocket.Conn, error) {
-	data := []byte("GET " + uri)
-	return d.dialRaw(data)
+type httpExtra struct {
+	Referrer string            `json:"referrer,omitempty"`
+	Headers  map[string]string `json:"headers,omitempty"`
 }
 
-func (d *Dialer) DialPost(uri string, payload []byte) error {
-	data := []byte("POST " + uri)
-	conn, err := d.dialRaw(data)
+func httpExtraFromHeaders(headers http.Header) *httpExtra {
+	if len(headers) == 0 {
+		return nil
+	}
+
+	extra := httpExtra{}
+	if referrer := headers.Get("Referer"); referrer != "" {
+		extra.Referrer = referrer
+		headers.Del("Referer")
+	}
+
+	if len(headers) > 0 {
+		extra.Headers = make(map[string]string)
+		for header := range headers {
+			extra.Headers[header] = headers.Get(header)
+		}
+	}
+
+	return &extra
+}
+
+func (d *Dialer) DialGet(uri string, headers http.Header) (*websocket.Conn, error) {
+	task := task{
+		Method: "GET",
+		URL:    uri,
+		Extra:  httpExtraFromHeaders(headers),
+	}
+
+	return d.dialTask(task)
+}
+
+func (d *Dialer) DialPost(uri string, headers http.Header, payload []byte) error {
+	task := task{
+		Method: "POST",
+		URL:    uri,
+		Extra:  httpExtraFromHeaders(headers),
+	}
+
+	conn, err := d.dialTask(task)
 	if err != nil {
 		return err
 	}
@@ -135,7 +186,11 @@ func (d *Dialer) DialPost(uri string, payload []byte) error {
 	return nil
 }
 
-func (d *Dialer) dialRaw(data []byte) (*websocket.Conn, error) {
+func (d *Dialer) dialTask(task task) (*websocket.Conn, error) {
+	data, err := json.Marshal(task)
+	if err != nil {
+		return nil, err
+	}
 	var conn *websocket.Conn
 	for {
 		conn = <-conns
@@ -145,7 +200,7 @@ func (d *Dialer) dialRaw(data []byte) (*websocket.Conn, error) {
 			break
 		}
 	}
-	err := d.checkOK(conn)
+	err = d.checkOK(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +214,7 @@ func (d *Dialer) checkOK(conn *websocket.Conn) error {
 		return err
 	} else if s := string(p); s != "ok" {
 		conn.Close()
-		return errors.New(s)
+		return newError(s)
 	}
 
 	return nil
