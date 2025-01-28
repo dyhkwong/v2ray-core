@@ -43,6 +43,7 @@ import (
 	_ "github.com/v2fly/v2ray-core/v4/proxy/dokodemo"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/freedom"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/http"
+	_ "github.com/v2fly/v2ray-core/v4/proxy/http3"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/loopback"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/mixed"
 	_ "github.com/v2fly/v2ray-core/v4/proxy/mtproto"
