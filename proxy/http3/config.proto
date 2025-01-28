@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.http3;
+option csharp_namespace = "V2Ray.Core.Proxy.Http3";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/http3";
+option java_package = "com.v2ray.core.proxy.http3";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/protoext/extensions.proto";
+import "transport/internet/tls/config.proto";
+
+message ClientConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "http3";
+
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  uint32 level = 3;
+  string username = 4;
+  string password = 5;
+  map<string,string> headers = 6;
+  v2ray.core.transport.internet.tls.Config tls_settings = 7;
+}
