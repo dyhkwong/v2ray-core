@@ -3,6 +3,7 @@ package http
 import (
 	"bufio"
 	"bytes"
+	"container/list"
 	"context"
 	"encoding/base64"
 	"io"
@@ -34,17 +35,28 @@ type Client struct {
 	serverPicker       protocol.ServerPicker
 	policyManager      policy.Manager
 	h1SkipWaitForReply bool
+	transport          *http2.Transport
+	cachedH2Mutex      sync.Mutex
+	cachedH2Conns      map[net.Destination]*list.List
+}
+
+func (c *Client) Close() error {
+	c.cachedH2Mutex.Lock()
+	for _, cachedH2Conn := range c.cachedH2Conns {
+		for elem := cachedH2Conn.Front(); elem != nil; elem = elem.Next() {
+			_ = elem.Value.(*h2Conn).h2Conn.Close()
+			_ = elem.Value.(*h2Conn).rawConn.Close()
+		}
+	}
+	clear(c.cachedH2Conns)
+	c.cachedH2Mutex.Unlock()
+	return nil
 }
 
 type h2Conn struct {
 	rawConn net.Conn
 	h2Conn  *http2.ClientConn
 }
-
-var (
-	cachedH2Mutex sync.Mutex
-	cachedH2Conns map[net.Destination]h2Conn
-)
 
 // NewClient create a new http client based on the given config.
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
@@ -59,12 +71,15 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	if serverList.Size() == 0 {
 		return nil, newError("0 target server")
 	}
-
 	v := core.MustFromContext(ctx)
 	return &Client{
 		serverPicker:       protocol.NewRoundRobinServerPicker(serverList),
 		policyManager:      v.GetFeature(policy.ManagerType()).(policy.Manager),
 		h1SkipWaitForReply: config.H1SkipWaitForReply,
+		transport: &http2.Transport{
+			ReadIdleTimeout: time.Second * 15,
+		},
+		cachedH2Conns: make(map[net.Destination]*list.List),
 	}, nil
 }
 
@@ -108,12 +123,13 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
+	var server *protocol.ServerSpec
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server := c.serverPicker.PickServer()
+		server = c.serverPicker.PickServer()
 		dest := server.Destination()
 		user = server.PickUser()
 
-		netConn, firstResp, err := setUpHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
+		netConn, firstResp, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
 		if netConn != nil {
 			if _, ok := netConn.(*http2Conn); !ok && !c.h1SkipWaitForReply {
 				if _, err := netConn.Write(firstPayload); err != nil {
@@ -138,6 +154,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			newError("failed to closed connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
 		}
 	}()
+
+	newError("tunneling request to ", target, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	p := c.policyManager.ForLevel(0)
 	if user != nil {
@@ -164,8 +182,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	return nil
 }
 
-// setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte, writeFirstPayloadInH1 bool,
+// setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
+func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte, writeFirstPayloadInH1 bool,
 ) (net.Conn, buf.MultiBuffer, error) {
 	req := &http.Request{
 		Method: http.MethodConnect,
@@ -249,7 +267,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 			wg.Done()
 		}()
 
-		resp, err := h2clientConn.RoundTrip(req) // nolint: bodyclose
+		resp, err := h2clientConn.RoundTrip(req.WithContext(ctx)) // nolint: bodyclose
 		if err != nil {
 			rawConn.Close()
 			return nil, err
@@ -268,12 +286,15 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 		return newHTTP2Conn(rawConn, pw, resp.Body), nil
 	}
 
-	cachedH2Mutex.Lock()
-	cachedConn, cachedConnFound := cachedH2Conns[dest]
-	cachedH2Mutex.Unlock()
+	c.cachedH2Mutex.Lock()
+	var cachedConn *list.Element
+	if cachedH2Conn, found := c.cachedH2Conns[dest]; found {
+		cachedConn = cachedH2Conn.Front()
+	}
+	c.cachedH2Mutex.Unlock()
 
-	if cachedConnFound {
-		rc, cc := cachedConn.rawConn, cachedConn.h2Conn
+	if cachedConn != nil {
+		rc, cc := cachedConn.Value.(*h2Conn).rawConn, cachedConn.Value.(*h2Conn).h2Conn
 		if cc.CanTakeNewRequest() {
 			proxyConn, err := connectHTTP2(rc, cc)
 			if err != nil {
@@ -307,8 +328,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 	case "", "http/1.1":
 		return connectHTTP1(rawConn)
 	case "h2":
-		t := http2.Transport{}
-		h2clientConn, err := t.NewClientConn(rawConn)
+		h2clientConn, err := c.transport.NewClientConn(rawConn)
 		if err != nil {
 			rawConn.Close()
 			return nil, nil, err
@@ -319,16 +339,15 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 			return nil, nil, err
 		}
 
-		cachedH2Mutex.Lock()
-		if cachedH2Conns == nil {
-			cachedH2Conns = make(map[net.Destination]h2Conn)
+		c.cachedH2Mutex.Lock()
+		if _, found := c.cachedH2Conns[dest]; !found {
+			c.cachedH2Conns[dest] = &list.List{}
 		}
-
-		cachedH2Conns[dest] = h2Conn{
+		c.cachedH2Conns[dest].PushFront(&h2Conn{
 			rawConn: rawConn,
 			h2Conn:  h2clientConn,
-		}
-		cachedH2Mutex.Unlock()
+		})
+		c.cachedH2Mutex.Unlock()
 
 		return proxyConn, nil, err
 	default:
