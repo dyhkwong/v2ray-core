@@ -17,7 +17,7 @@ import (
 )
 
 type connectionContext struct {
-	rawConn *sysConn
+	rawConn net.PacketConn
 	conn    quic.EarlyConnection
 }
 
@@ -159,39 +159,26 @@ func (s *clientConnections) openConnection(ctx context.Context, destAddr net.Add
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	var packetConn net.PacketConn
-	switch conn := rawConn.(type) {
+	var pc net.PacketConn
+	switch rc := rawConn.(type) {
 	case *internet.PacketConnWrapper:
-		if udpConn, ok := conn.Conn.(*net.UDPConn); ok {
-			packetConn = udpConn
-		} else {
-			packetConn = conn.Conn
-		}
+		pc = rc.Conn
 	case net.PacketConn:
-		if udpConn, ok := conn.(*net.UDPConn); ok {
-			packetConn = udpConn
-		} else {
-			packetConn = conn
-		}
+		pc = rc
 	default:
 		rawConn.Close()
-		return nil, errNotUDPConn
+		return nil, newError("not a net.PacketConn")
 	}
 
-	sysConn, err := wrapSysConn(packetConn, streamSettings.ProtocolSettings.(*Config))
+	sysConn, err := wrapSysConn(pc, streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
 	}
 
 	tr := quic.Transport{
+		Conn:               sysConn,
 		ConnectionIDLength: 12,
-	}
-
-	if _, ok := packetConn.(*net.UDPConn); ok {
-		tr.Conn = wrapSysUDPConn(sysConn)
-	} else {
-		tr.Conn = sysConn
 	}
 
 	tlsConfig := tls.ConfigFromStreamSettings(streamSettings)

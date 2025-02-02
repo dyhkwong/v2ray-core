@@ -45,6 +45,7 @@ var (
 		"blackhole":        func() interface{} { return new(BlackholeConfig) },
 		"freedom":          func() interface{} { return new(FreedomConfig) },
 		"http":             func() interface{} { return new(HTTPClientConfig) },
+		"http3":            func() interface{} { return new(HTTP3ClientConfig) },
 		"shadowsocks":      func() interface{} { return new(ShadowsocksClientConfig) },
 		"socks":            func() interface{} { return new(SocksClientConfig) },
 		"ssh":              func() interface{} { return new(SSHClientConfig) },

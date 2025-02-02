@@ -476,8 +476,8 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		var err error
 		if requestAddons.Flow == vless.XRV {
 			ctx1 := session.ContextWithInbound(ctx, nil) // TODO enable splice
-			clientReader = encoding.NewVisionReader(clientReader, trafficState, ctx1)
-			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, ctx1)
+			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx1)
+			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx1)
 		} else {
 			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
 			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
@@ -499,7 +499,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		}
 
 		// default: clientWriter := bufferWriter
-		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, ctx)
+		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, false, ctx)
 		{
 			multiBuffer, err1 := serverReader.ReadMultiBuffer()
 			if err1 != nil {
@@ -517,7 +517,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 
 		var err error
 		if requestAddons.Flow == vless.XRV {
-			err = encoding.XtlsWrite(serverReader, clientWriter, timer, connection, trafficState, ctx)
+			err = encoding.XtlsWrite(serverReader, clientWriter, timer, connection, trafficState, false, ctx)
 		} else {
 			// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
 			err = buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer))

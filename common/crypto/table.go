@@ -71,6 +71,6 @@ func sort(arr []uint64, comparison func(uint64, uint64) int64) []uint64 {
 	if len(arr) < 2 {
 		return arr
 	}
-	var middle uint64 = uint64(len(arr) / 2)
+	middle := uint64(len(arr) / 2)
 	return merge(sort(arr[0:middle], comparison), sort(arr[middle:], comparison), comparison)
 }

@@ -139,7 +139,7 @@ jobs:
             "linux-amd64")
               ;&
             "linux-arm64")
-            if [ -z $PIE_ENABLED ]
+            if [ ! -z $PIE_ENABLED ]
             then
               EXTRA_ARG=$EXTRA_ARG" -buildmode=pie"
             fi

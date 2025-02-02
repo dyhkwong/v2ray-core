@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xtls/quic-go"
-	"github.com/xtls/quic-go/http3"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 	"golang.org/x/net/http2"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -160,7 +160,16 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				if err != nil {
 					return nil, err
 				}
-				return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+				var pc net.PacketConn
+				switch rc := rawConn.(type) {
+				case *internet.PacketConnWrapper:
+					pc = rc.Conn
+				case net.PacketConn:
+					pc = rc
+				default:
+					pc = internet.NewConnWrapper(rc)
+				}
+				return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	} else if httpVersion == "2" {

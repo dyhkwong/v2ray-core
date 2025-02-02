@@ -130,10 +130,16 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 						if err != nil {
 							return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
 						}
-						if _, ok := rawConn.(net.PacketConn); !ok {
+						var pc net.PacketConn
+						switch rc := rawConn.(type) {
+						case *internet.PacketConnWrapper:
+							pc = rc.Conn
+						case net.PacketConn:
+							pc = rc
+						default:
 							return nil, newError("port hopping does not work with chain proxy")
 						}
-						return internet.WrapPacketConn(rawConn), nil
+						return wrapPacketConn(pc), nil
 					},
 				)
 			}
@@ -141,7 +147,16 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 			if err != nil {
 				return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
 			}
-			return internet.WrapPacketConn(rawConn), nil
+			var pc net.PacketConn
+			switch rc := rawConn.(type) {
+			case *internet.PacketConnWrapper:
+				pc = rc.Conn
+			case net.PacketConn:
+				pc = rc
+			default:
+				pc = internet.NewConnWrapper(rc)
+			}
+			return wrapPacketConn(pc), nil
 		},
 	}
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {

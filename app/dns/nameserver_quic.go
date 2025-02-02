@@ -522,14 +522,24 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnecti
 			cnc.ConnectionInputMulti(link.Writer),
 			cnc.ConnectionOutputMultiUDP(link.Reader),
 		)
-		return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+
+		return quic.DialEarly(ctx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 	}
 
 	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
 	if err != nil {
 		return nil, err
 	}
-	return quic.DialEarly(ctx, internet.WrapPacketConn(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	var pc net.PacketConn
+	switch rc := rawConn.(type) {
+	case *internet.PacketConnWrapper:
+		pc = rc.Conn
+	case net.PacketConn:
+		pc = rc
+	default:
+		pc = internet.NewConnWrapper(rc)
+	}
+	return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (quic.Stream, error) {
