@@ -6,6 +6,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -16,23 +17,20 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Server is the DNS server address. If specified, this address overrides the
 	// original one.
-	Server    *net.Endpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
-	UserLevel uint32        `protobuf:"varint,2,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	Server        *net.Endpoint `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	UserLevel     uint32        `protobuf:"varint,2,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
 	*x = Config{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proxy_dns_config_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
+	mi := &file_proxy_dns_config_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
 func (x *Config) String() string {
@@ -43,7 +41,7 @@ func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_proxy_dns_config_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
+	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
 			ms.StoreMessageInfo(mi)
@@ -74,7 +72,7 @@ func (x *Config) GetUserLevel() uint32 {
 
 var File_proxy_dns_config_proto protoreflect.FileDescriptor
 
-var file_proxy_dns_config_proto_rawDesc = []byte{
+var file_proxy_dns_config_proto_rawDesc = string([]byte{
 	0x0a, 0x16, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x2f, 0x64, 0x6e, 0x73, 0x2f, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x14, 0x76, 0x32, 0x72, 0x61, 0x79, 0x2e,
 	0x63, 0x6f, 0x72, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x2e, 0x64, 0x6e, 0x73, 0x1a, 0x1c,
@@ -93,22 +91,22 @@ var file_proxy_dns_config_proto_rawDesc = []byte{
 	0x78, 0x79, 0x2f, 0x64, 0x6e, 0x73, 0xaa, 0x02, 0x14, 0x56, 0x32, 0x52, 0x61, 0x79, 0x2e, 0x43,
 	0x6f, 0x72, 0x65, 0x2e, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x2e, 0x44, 0x6e, 0x73, 0x62, 0x06, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x33,
-}
+})
 
 var (
 	file_proxy_dns_config_proto_rawDescOnce sync.Once
-	file_proxy_dns_config_proto_rawDescData = file_proxy_dns_config_proto_rawDesc
+	file_proxy_dns_config_proto_rawDescData []byte
 )
 
 func file_proxy_dns_config_proto_rawDescGZIP() []byte {
 	file_proxy_dns_config_proto_rawDescOnce.Do(func() {
-		file_proxy_dns_config_proto_rawDescData = protoimpl.X.CompressGZIP(file_proxy_dns_config_proto_rawDescData)
+		file_proxy_dns_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proxy_dns_config_proto_rawDesc), len(file_proxy_dns_config_proto_rawDesc)))
 	})
 	return file_proxy_dns_config_proto_rawDescData
 }
 
 var file_proxy_dns_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proxy_dns_config_proto_goTypes = []interface{}{
+var file_proxy_dns_config_proto_goTypes = []any{
 	(*Config)(nil),       // 0: v2ray.core.proxy.dns.Config
 	(*net.Endpoint)(nil), // 1: v2ray.core.common.net.Endpoint
 }
@@ -126,25 +124,11 @@ func file_proxy_dns_config_proto_init() {
 	if File_proxy_dns_config_proto != nil {
 		return
 	}
-	if !protoimpl.UnsafeEnabled {
-		file_proxy_dns_config_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Config); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_proxy_dns_config_proto_rawDesc,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_dns_config_proto_rawDesc), len(file_proxy_dns_config_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
@@ -155,7 +139,6 @@ func file_proxy_dns_config_proto_init() {
 		MessageInfos:      file_proxy_dns_config_proto_msgTypes,
 	}.Build()
 	File_proxy_dns_config_proto = out.File
-	file_proxy_dns_config_proto_rawDesc = nil
 	file_proxy_dns_config_proto_goTypes = nil
 	file_proxy_dns_config_proto_depIdxs = nil
 }
