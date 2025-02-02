@@ -7,6 +7,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -658,7 +659,7 @@ func (*Config) Descriptor() ([]byte, []int) {
 
 var File_app_router_command_command_proto protoreflect.FileDescriptor
 
-var file_app_router_command_command_proto_rawDesc = []byte{
+var file_app_router_command_command_proto_rawDesc = string([]byte{
 	0x0a, 0x20, 0x61, 0x70, 0x70, 0x2f, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x2f, 0x63, 0x6f, 0x6d,
 	0x6d, 0x61, 0x6e, 0x64, 0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x2e, 0x70, 0x72, 0x6f,
 	0x74, 0x6f, 0x12, 0x1d, 0x76, 0x32, 0x72, 0x61, 0x79, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x61,
@@ -802,16 +803,16 @@ var file_app_router_command_command_proto_rawDesc = []byte{
 	0x52, 0x61, 0x79, 0x2e, 0x43, 0x6f, 0x72, 0x65, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x52, 0x6f, 0x75,
 	0x74, 0x65, 0x72, 0x2e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x62, 0x06, 0x70, 0x72, 0x6f,
 	0x74, 0x6f, 0x33,
-}
+})
 
 var (
 	file_app_router_command_command_proto_rawDescOnce sync.Once
-	file_app_router_command_command_proto_rawDescData = file_app_router_command_command_proto_rawDesc
+	file_app_router_command_command_proto_rawDescData []byte
 )
 
 func file_app_router_command_command_proto_rawDescGZIP() []byte {
 	file_app_router_command_command_proto_rawDescOnce.Do(func() {
-		file_app_router_command_command_proto_rawDescData = protoimpl.X.CompressGZIP(file_app_router_command_command_proto_rawDescData)
+		file_app_router_command_command_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_app_router_command_command_proto_rawDesc), len(file_app_router_command_command_proto_rawDesc)))
 	})
 	return file_app_router_command_command_proto_rawDescData
 }
@@ -863,7 +864,7 @@ func file_app_router_command_command_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_app_router_command_command_proto_rawDesc,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_router_command_command_proto_rawDesc), len(file_app_router_command_command_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   12,
 			NumExtensions: 0,
@@ -874,7 +875,6 @@ func file_app_router_command_command_proto_init() {
 		MessageInfos:      file_app_router_command_command_proto_msgTypes,
 	}.Build()
 	File_app_router_command_command_proto = out.File
-	file_app_router_command_command_proto_rawDesc = nil
 	file_app_router_command_command_proto_goTypes = nil
 	file_app_router_command_command_proto_depIdxs = nil
 }

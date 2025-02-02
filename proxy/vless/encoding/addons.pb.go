@@ -5,6 +5,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -68,7 +69,7 @@ func (x *Addons) GetSeed() []byte {
 
 var File_proxy_vless_encoding_addons_proto protoreflect.FileDescriptor
 
-var file_proxy_vless_encoding_addons_proto_rawDesc = []byte{
+var file_proxy_vless_encoding_addons_proto_rawDesc = string([]byte{
 	0x0a, 0x21, 0x70, 0x72, 0x6f, 0x78, 0x79, 0x2f, 0x76, 0x6c, 0x65, 0x73, 0x73, 0x2f, 0x65, 0x6e,
 	0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x2f, 0x61, 0x64, 0x64, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72,
 	0x6f, 0x74, 0x6f, 0x12, 0x1f, 0x76, 0x32, 0x72, 0x61, 0x79, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e,
@@ -85,16 +86,16 @@ var file_proxy_vless_encoding_addons_proto_rawDesc = []byte{
 	0x64, 0x69, 0x6e, 0x67, 0xaa, 0x02, 0x1f, 0x56, 0x32, 0x52, 0x61, 0x79, 0x2e, 0x43, 0x6f, 0x72,
 	0x65, 0x2e, 0x50, 0x72, 0x6f, 0x78, 0x79, 0x2e, 0x56, 0x6c, 0x65, 0x73, 0x73, 0x2e, 0x45, 0x6e,
 	0x63, 0x6f, 0x64, 0x69, 0x6e, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
-}
+})
 
 var (
 	file_proxy_vless_encoding_addons_proto_rawDescOnce sync.Once
-	file_proxy_vless_encoding_addons_proto_rawDescData = file_proxy_vless_encoding_addons_proto_rawDesc
+	file_proxy_vless_encoding_addons_proto_rawDescData []byte
 )
 
 func file_proxy_vless_encoding_addons_proto_rawDescGZIP() []byte {
 	file_proxy_vless_encoding_addons_proto_rawDescOnce.Do(func() {
-		file_proxy_vless_encoding_addons_proto_rawDescData = protoimpl.X.CompressGZIP(file_proxy_vless_encoding_addons_proto_rawDescData)
+		file_proxy_vless_encoding_addons_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proxy_vless_encoding_addons_proto_rawDesc), len(file_proxy_vless_encoding_addons_proto_rawDesc)))
 	})
 	return file_proxy_vless_encoding_addons_proto_rawDescData
 }
@@ -120,7 +121,7 @@ func file_proxy_vless_encoding_addons_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_proxy_vless_encoding_addons_proto_rawDesc,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_vless_encoding_addons_proto_rawDesc), len(file_proxy_vless_encoding_addons_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
@@ -131,7 +132,6 @@ func file_proxy_vless_encoding_addons_proto_init() {
 		MessageInfos:      file_proxy_vless_encoding_addons_proto_msgTypes,
 	}.Build()
 	File_proxy_vless_encoding_addons_proto = out.File
-	file_proxy_vless_encoding_addons_proto_rawDesc = nil
 	file_proxy_vless_encoding_addons_proto_goTypes = nil
 	file_proxy_vless_encoding_addons_proto_depIdxs = nil
 }

@@ -7,6 +7,7 @@ import (
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	reflect "reflect"
 	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -70,7 +71,7 @@ func (x *Config) GetRoundtripper() *anypb.Any {
 
 var File_transport_internet_request_assembly_config_proto protoreflect.FileDescriptor
 
-var file_transport_internet_request_assembly_config_proto_rawDesc = []byte{
+var file_transport_internet_request_assembly_config_proto_rawDesc = string([]byte{
 	0x0a, 0x30, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x2f, 0x69, 0x6e, 0x74, 0x65,
 	0x72, 0x6e, 0x65, 0x74, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2f, 0x61, 0x73, 0x73,
 	0x65, 0x6d, 0x62, 0x6c, 0x79, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x70, 0x72, 0x6f,
@@ -102,16 +103,16 @@ var file_transport_internet_request_assembly_config_proto_rawDesc = []byte{
 	0x6e, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x2e, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65, 0x74, 0x2e,
 	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x41, 0x73, 0x73, 0x65, 0x6d, 0x62, 0x6c, 0x79,
 	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
-}
+})
 
 var (
 	file_transport_internet_request_assembly_config_proto_rawDescOnce sync.Once
-	file_transport_internet_request_assembly_config_proto_rawDescData = file_transport_internet_request_assembly_config_proto_rawDesc
+	file_transport_internet_request_assembly_config_proto_rawDescData []byte
 )
 
 func file_transport_internet_request_assembly_config_proto_rawDescGZIP() []byte {
 	file_transport_internet_request_assembly_config_proto_rawDescOnce.Do(func() {
-		file_transport_internet_request_assembly_config_proto_rawDescData = protoimpl.X.CompressGZIP(file_transport_internet_request_assembly_config_proto_rawDescData)
+		file_transport_internet_request_assembly_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_transport_internet_request_assembly_config_proto_rawDesc), len(file_transport_internet_request_assembly_config_proto_rawDesc)))
 	})
 	return file_transport_internet_request_assembly_config_proto_rawDescData
 }
@@ -140,7 +141,7 @@ func file_transport_internet_request_assembly_config_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_transport_internet_request_assembly_config_proto_rawDesc,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_internet_request_assembly_config_proto_rawDesc), len(file_transport_internet_request_assembly_config_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
@@ -151,7 +152,6 @@ func file_transport_internet_request_assembly_config_proto_init() {
 		MessageInfos:      file_transport_internet_request_assembly_config_proto_msgTypes,
 	}.Build()
 	File_transport_internet_request_assembly_config_proto = out.File
-	file_transport_internet_request_assembly_config_proto_rawDesc = nil
 	file_transport_internet_request_assembly_config_proto_goTypes = nil
 	file_transport_internet_request_assembly_config_proto_depIdxs = nil
 }
