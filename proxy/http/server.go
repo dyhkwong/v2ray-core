@@ -63,8 +63,11 @@ func isTimeout(err error) bool {
 }
 
 func parseBasicAuth(auth string) (username, password string, ok bool) {
-	const prefix = "Basic "
-	if !strings.HasPrefix(auth, prefix) {
+	const prefix = "basic "
+	if len(auth) <= len(prefix) {
+		return username, password, ok
+	}
+	if strings.ToLower(auth[:len(prefix)]) != prefix {
 		return username, password, ok
 	}
 	c, err := base64.StdEncoding.DecodeString(auth[len(prefix):])
