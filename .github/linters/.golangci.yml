@@ -1,8 +1,5 @@
 run:
   timeout: 5m
-  skip-files:
-    - generated.*
-    - .pb.go
 issues:
   new: true
   exclude-rules:
@@ -12,6 +9,9 @@ issues:
     - linters:
         - stylecheck
       text: "ST1016:"
+  exclude-files:
+    - generated.*
+    - .pb.go
 linters:
   enable:
     - asciicheck

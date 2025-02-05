@@ -31,6 +31,7 @@ import (
 
 	// Developer preview features
 	_ "github.com/v2fly/v2ray-core/v4/app/observatory"
+	_ "github.com/v2fly/v2ray-core/v4/app/persistentstorage/filesystemstorage"
 	_ "github.com/v2fly/v2ray-core/v4/app/tun"
 
 	// Inbound and outbound proxies.
