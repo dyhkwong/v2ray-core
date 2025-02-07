@@ -13,6 +13,8 @@ import (
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
+var errTruncated = newError("truncated")
+
 // Fqdn normalizes domain make sure it ends with '.'
 func Fqdn(domain string) string {
 	if len(domain) > 0 && strings.HasSuffix(domain, ".") {
@@ -197,6 +199,10 @@ func parseResponse(payload []byte) (*IPRecord, error) {
 		RCode:  h.RCode,
 		Expire: now,
 		TTL:    0,
+	}
+
+	if h.Truncated {
+		return ipRecord, errTruncated
 	}
 
 L:
