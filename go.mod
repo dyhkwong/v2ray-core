@@ -36,7 +36,7 @@ require (
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
 	google.golang.org/grpc v1.70.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.5
 	gvisor.dev/gvisor v0.0.0-20231020174304-b8a429915ff1
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0
