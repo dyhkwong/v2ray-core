@@ -18,7 +18,9 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
+	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/transientstorageimpl"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -55,7 +57,11 @@ func Test_listenSHAndDial(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -123,7 +129,11 @@ func TestDialWithRemoteAddr(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -188,7 +198,11 @@ func Test_listenSHAndDial_TLS(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -308,7 +322,11 @@ func Test_listenSHAndDial_QUIC(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -379,7 +397,11 @@ func Test_listenSHAndDial_Unix(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -450,7 +472,11 @@ func Test_queryString(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {
@@ -509,7 +535,11 @@ func Test_maxUpload(t *testing.T) {
 
 	ctx := context.Background()
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("splithttp")
 	if err != nil {

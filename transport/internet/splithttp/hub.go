@@ -117,15 +117,19 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		currentSession = h.upsertSession(sessionId)
 	}
 
-	if request.Method == "POST" && sessionId != "" {
+	if request.Method == "POST" && sessionId != "" { // stream-up, packet-up
 		seq := ""
 		if len(subpath) > 1 {
 			seq = subpath[1]
 		}
 
 		if seq == "" {
+			uploadDone := done.New()
 			err = currentSession.uploadQueue.Push(Packet{
-				Reader: request.Body,
+				Reader: &httpRequestBodyReader{
+					requestReader: request.Body,
+					uploadDone:    uploadDone,
+				},
 			})
 			if err != nil {
 				newError("failed to upload (PushReader)").Base(err).AtInfo().WriteToLog()
@@ -134,8 +138,12 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				writer.Header().Set("X-Accel-Buffering", "no")
 				writer.Header().Set("Cache-Control", "no-store")
 				writer.WriteHeader(http.StatusOK)
-				<-request.Context().Done()
+				select {
+				case <-request.Context().Done():
+				case <-uploadDone.Wait():
+				}
 			}
+			uploadDone.Close()
 			return
 		}
 
@@ -166,13 +174,13 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		writer.WriteHeader(http.StatusOK)
-	} else if request.Method == "GET" || sessionId == "" {
+	} else if request.Method == "GET" || sessionId == "" { // stream-down, stream-one
 		responseFlusher, ok := writer.(http.Flusher)
 		if !ok {
 			panic("expected http.ResponseWriter to be an http.Flusher")
 		}
 
-		if sessionId != "" {
+		if sessionId != "" { // if not stream-one
 			// after GET is done, the connection is finished. disable automatic
 			// session reaping, and handle it in defer
 			currentSession.isFullyConnected.Close()
@@ -220,6 +228,20 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		newError("unsupported method: ", request.Method).AtInfo().WriteToLog()
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+type httpRequestBodyReader struct {
+	requestReader io.ReadCloser
+	uploadDone    *done.Instance
+}
+
+func (c *httpRequestBodyReader) Read(b []byte) (int, error) {
+	return c.requestReader.Read(b)
+}
+
+func (c *httpRequestBodyReader) Close() error {
+	defer c.uploadDone.Close()
+	return c.requestReader.Close()
 }
 
 type httpResponseBodyWriter struct {

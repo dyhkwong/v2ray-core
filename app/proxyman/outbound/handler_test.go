@@ -12,7 +12,9 @@ import (
 	. "github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/app/stats"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
+	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/transientstorageimpl"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -48,7 +50,11 @@ func TestOutboundWithoutStatCounter(t *testing.T) {
 	v.AddFeature((outbound.Manager)(new(Manager)))
 	ctx := toContext(context.Background(), v)
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	ctx = envctx.ContextWithEnvironment(ctx, proxyEnvironment)
 	h, _ := NewHandler(ctx, &core.OutboundHandlerConfig{
@@ -81,7 +87,11 @@ func TestOutboundWithStatCounter(t *testing.T) {
 	v.AddFeature((outbound.Manager)(new(Manager)))
 	ctx := toContext(context.Background(), v)
 	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
-	rootEnv := environment.NewRootEnvImpl(ctx, transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener())
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(ctx)
+	rootEnv := environment.NewRootEnvImpl(ctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
 	proxyEnvironment := rootEnv.ProxyEnvironment("o")
 	ctx = envctx.ContextWithEnvironment(ctx, proxyEnvironment)
 	h, _ := NewHandler(ctx, &core.OutboundHandlerConfig{

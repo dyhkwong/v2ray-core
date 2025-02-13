@@ -4,7 +4,9 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon"
+	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon/tlscfg"
 	"github.com/v2fly/v2ray-core/v5/proxy/tuic"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 type TuicClientConfig struct {
@@ -15,10 +17,7 @@ type TuicClientConfig struct {
 	CongestionControl string             `json:"congestionControl"`
 	UDPRelayMode      string             `json:"udpRelayMode"`
 	ZeroRTTHandshake  bool               `json:"zeroRTTHandshake"`
-	ServerName        string             `json:"serverName"`
-	ALPN              []string           `json:"alpn"`
-	Certificate       []string           `json:"certificate"`
-	AllowInsecure     bool               `json:"allowInsecure"`
+	TLSSettings       *tlscfg.TLSConfig  `json:"tlsSettings"`
 	DisableSni        bool               `json:"disableSNI"`
 }
 
@@ -34,11 +33,14 @@ func (c *TuicClientConfig) Build() (proto.Message, error) {
 		CongestionControl: c.CongestionControl,
 		UdpRelayMode:      c.UDPRelayMode,
 		ZeroRttHandshake:  c.ZeroRTTHandshake,
-		ServerName:        c.ServerName,
-		Alpn:              c.ALPN,
-		Certificate:       c.Certificate,
-		AllowInsecure:     c.AllowInsecure,
 		DisableSni:        c.DisableSni,
+	}
+	if c.TLSSettings != nil {
+		tlsSettings, err := c.TLSSettings.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.TlsSettings = tlsSettings.(*tls.Config)
 	}
 	return config, nil
 }

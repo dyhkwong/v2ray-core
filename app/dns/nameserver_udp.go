@@ -37,18 +37,35 @@ type ClassicNameServer struct {
 	udpServer  udp.DispatcherI
 	cleanup    *task.Periodic
 	reqID      uint32
+	tcpServer  *TCPNameServer
 
 	channel map[uint16]chan *dnsmessage.Message
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
-func NewUDPNameServer(url *url.URL, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
-	return baseUDPNameServer(url, "UDP", dispatcher)
+func NewUDPNameServer(u *url.URL, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
+	s, err := baseUDPNameServer(u, "UDP", dispatcher)
+	if err != nil {
+		return nil, err
+	}
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp",
+		Host:   u.Host,
+	}, dispatcher)
+	return s, nil
 }
 
 // NewUDPLocalNameServer creates udp server object for local resolving.
-func NewUDPLocalNameServer(url *url.URL) (*ClassicNameServer, error) {
-	return baseUDPNameServer(url, "UDPL", dispatcher.SystemInstance)
+func NewUDPLocalNameServer(u *url.URL) (*ClassicNameServer, error) {
+	s, err := baseUDPNameServer(u, "UDPL", dispatcher.SystemInstance)
+	if err != nil {
+		return nil, err
+	}
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp+local",
+		Host:   u.Host,
+	}, dispatcher.SystemInstance)
+	return s, nil
 }
 
 func baseUDPNameServer(url *url.URL, prefix string, dispatcher routing.Dispatcher) (*ClassicNameServer, error) {
@@ -72,7 +89,12 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 		address.Port = net.Port(53)
 	}
 	newError("DNS: created UDP client initialized for ", address.NetAddr()).AtInfo().WriteToLog()
-	return newClassicNameServer(address, strings.ToUpper(address.String()), dispatcher)
+	s := newClassicNameServer(address, strings.ToUpper(address.String()), dispatcher)
+	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+		Scheme: "tcp",
+		Host:   address.NetAddr(),
+	}, dispatcher)
+	return s
 }
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
@@ -155,7 +177,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	}
 
 	ipRec, err := parseResponse(packet.Payload.Bytes())
-	if err != nil {
+	if err != nil && err != errTruncated {
 		newError(s.name, " fail to parse responded DNS udp").AtError().WriteToLog()
 		return
 	}
@@ -171,6 +193,28 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	if !ok {
 		newError(s.name, " cannot find the pending request").AtError().WriteToLog()
 		return
+	}
+
+	if err == errTruncated {
+		newError("truncated, retry over tcp").AtError().WriteToLog()
+		tcpRequestMsg := *req.msg
+		tcpRequestMsg.ID = s.tcpServer.NewReqID()
+		b, err := dns.PackMessage(&tcpRequestMsg)
+		if err != nil {
+			newError(err).AtError().WriteToLog()
+			return
+		}
+		response, err := s.tcpServer.QueryRaw(ctx, b.Bytes())
+		if err != nil {
+			newError("failed to send DNS query over TCP").Base(err).AtError().WriteToLog()
+			return
+		}
+		ipRec, err = parseResponse(response)
+		if err != nil {
+			newError(s.name, " fail to parse responded DNS tcp").AtError().WriteToLog()
+			return
+		}
+		ipRec.ReqID = id
 	}
 
 	var rec record
@@ -254,7 +298,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 	}
 }
 
-func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
+func (s *ClassicNameServer) QueryRaw(originCtx context.Context, request []byte) ([]byte, error) {
 	requestMsg := new(dnsmessage.Message)
 	if err := requestMsg.Unpack(request); err != nil {
 		return nil, err
@@ -265,13 +309,13 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	s.channel[id] = ch
 	s.Unlock()
 	var deadline time.Time
-	if d, ok := ctx.Deadline(); ok {
+	if d, ok := originCtx.Deadline(); ok {
 		deadline = d
 	} else {
 		deadline = time.Now().Add(time.Second * 5)
 	}
-	dnsCtx := core.ToBackgroundDetachedContext(ctx)
-	if inbound := session.InboundFromContext(ctx); inbound != nil {
+	dnsCtx := core.ToBackgroundDetachedContext(originCtx)
+	if inbound := session.InboundFromContext(originCtx); inbound != nil {
 		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
 	}
 	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
@@ -294,6 +338,23 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 		s.Lock()
 		delete(s.channel, id)
 		s.Unlock()
+		if responseMsg.Truncated {
+			newError("truncated, retry over tcp").AtError().WriteToLog()
+			requestMsg.ID = s.tcpServer.NewReqID()
+			request, err := requestMsg.Pack()
+			if err != nil {
+				return nil, err
+			}
+			response, err := s.tcpServer.QueryRaw(originCtx, request)
+			if err != nil {
+				return nil, err
+			}
+			if err := responseMsg.Unpack(response); err != nil {
+				return nil, err
+			}
+			responseMsg.ID = id
+			return responseMsg.Pack()
+		}
 		return responseMsg.Pack()
 	}
 }

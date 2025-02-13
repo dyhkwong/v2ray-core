@@ -156,6 +156,7 @@ type Hyteria2ConfigOBFS struct {
 
 type Hy2Config struct {
 	Password              string              `json:"password"`
+	Passwords             []string            `json:"passwords"`
 	Congestion            Hy2ConfigCongestion `json:"congestion"`
 	UseUDPExtension       bool                `json:"use_udp_extension"`
 	IgnoreClientBandwidth bool                `json:"ignore_client_bandwidth"`
@@ -167,7 +168,8 @@ type Hy2Config struct {
 // Build implements Buildable.
 func (c *Hy2Config) Build() (proto.Message, error) {
 	return &hysteria2.Config{
-		Password: c.Password,
+		Password:  c.Password,
+		Passwords: c.Passwords,
 		Congestion: &hysteria2.Congestion{
 			Type:     c.Congestion.Type,
 			DownMbps: c.Congestion.DownMbps,
@@ -469,7 +471,7 @@ func (p TransportProtocol) Build() (string, error) {
 		return "dtls", nil
 	case "request":
 		return "request", nil
-	case "splithttp":
+	case "xhttp", "splithttp":
 		return "splithttp", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
@@ -497,6 +499,7 @@ type StreamConfig struct {
 	DTLSSettings        *DTLSConfig             `json:"dtlsSettings"`
 	RequestSettings     *RequestConfig          `json:"requestSettings"`
 	SplitHTTPSettings   *SplitHTTPConfig        `json:"splithttpSettings"`
+	XHTTPSettings       *SplitHTTPConfig        `json:"xhttpSettings"`
 	SocketSettings      *socketcfg.SocketConfig `json:"sockopt"`
 }
 
@@ -713,6 +716,9 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			ProtocolName: "request",
 			Settings:     serial.ToTypedMessage(rs),
 		})
+	}
+	if c.SplitHTTPSettings == nil {
+		c.SplitHTTPSettings = c.XHTTPSettings
 	}
 	if c.SplitHTTPSettings != nil {
 		hs, err := c.SplitHTTPSettings.Build()

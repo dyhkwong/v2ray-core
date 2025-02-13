@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"sync"
 	"syscall"
 
 	"golang.zx2c4.com/wireguard/tun"
@@ -32,6 +33,7 @@ type netTun struct {
 	incomingPacket chan *buffer.View
 	mtu            int
 	hasV4, hasV6   bool
+	closeOnce      *sync.Once
 }
 
 type Net netTun
@@ -48,6 +50,7 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int, promiscuousMode bool) (t
 		events:         make(chan tun.Event, 1),
 		incomingPacket: make(chan *buffer.View),
 		mtu:            mtu,
+		closeOnce:      &sync.Once{},
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true) // TCP SACK is disabled by default
 	tcpipErr := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt)
@@ -155,18 +158,17 @@ func (tun *netTun) WriteNotify() {
 }
 
 func (tun *netTun) Close() error {
-	tun.stack.RemoveNIC(1)
-
-	if tun.events != nil {
-		close(tun.events)
-	}
-
-	tun.ep.Close()
-
-	if tun.incomingPacket != nil {
-		close(tun.incomingPacket)
-	}
-
+	// workaround close(tun.events) panic: close of closed channel
+	tun.closeOnce.Do(func() {
+		tun.stack.RemoveNIC(1)
+		if tun.events != nil {
+			close(tun.events)
+		}
+		tun.ep.Close()
+		if tun.incomingPacket != nil {
+			close(tun.incomingPacket)
+		}
+	})
 	return nil
 }
 

@@ -20,6 +20,9 @@ type HTTP3ClientConfig struct {
 }
 
 func (c *HTTP3ClientConfig) Build() (proto.Message, error) {
+	if c.Address == nil {
+		return nil, newError("missing server address")
+	}
 	config := &http3.ClientConfig{
 		Address:  c.Address.Build(),
 		Port:     uint32(c.Port),

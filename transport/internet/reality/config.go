@@ -12,7 +12,6 @@ func (c *Config) GetREALITYConfig() *reality.Config {
 	var dialer net.Dialer
 	config := &reality.Config{
 		DialContext:            dialer.DialContext,
-		Show:                   true,
 		Type:                   c.Type,
 		Dest:                   c.Dest,
 		Xver:                   byte(c.Xver),

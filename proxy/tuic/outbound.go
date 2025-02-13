@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"io"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/sagernet/sing-quic/tuic"
@@ -20,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	v2tls "github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 func init() {
@@ -48,31 +48,29 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if err != nil {
 		return nil, newError(err, "invalid uuid: ", config.Uuid)
 	}
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: config.AllowInsecure,
-	}
 
-	if len(config.Alpn) > 0 {
-		tlsConfig.NextProtos = config.Alpn
-	}
-
-	var serverName string
-	switch {
-	case len(config.ServerName) > 0:
-		serverName = config.ServerName
-	case config.Address.AsAddress().Family().IsIP():
-		serverName = config.Address.AsAddress().IP().String()
+	switch config.UdpRelayMode {
+	case "", "native", "quic":
 	default:
-		serverName = config.Address.AsAddress().String()
+		return nil, newError("invalid UDP relay mode: ", config.UdpRelayMode)
+	}
+	switch config.CongestionControl {
+	case "", "bbr", "new_reno", "cubic":
+	default:
+		return nil, newError("invalid congestion control: ", config.CongestionControl)
 	}
 
-	if config.DisableSni && !net.ParseAddress(serverName).Family().IsIP() {
-		tlsConfig.ServerName = "127.0.0.1"
-	} else {
-		tlsConfig.ServerName = serverName
+	if config.TlsSettings == nil {
+		config.TlsSettings = &v2tls.Config{}
 	}
-
+	tlsConfig := config.TlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr))
+	if len(config.TlsSettings.NextProtocol) == 0 {
+		// TUIC does not send ALPN if not explicitly set
+		tlsConfig.NextProtos = nil
+	}
 	if config.DisableSni {
+		serverName := tlsConfig.ServerName
+		tlsConfig.ServerName = "127.0.0.1"
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
 			verifyOptions := x509.VerifyOptions{
@@ -85,26 +83,6 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			_, err := state.PeerCertificates[0].Verify(verifyOptions)
 			return err
 		}
-	}
-
-	if len(config.Certificate) > 0 {
-		certificate := []byte(strings.Join(config.Certificate, "\n"))
-		certPool := x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(certificate) {
-			return nil, newError("failed to parse certificate")
-		}
-		tlsConfig.RootCAs = certPool
-	}
-
-	switch config.UdpRelayMode {
-	case "", "native", "quic":
-	default:
-		return nil, newError("invalid UDP relay mode: ", config.UdpRelayMode)
-	}
-	switch config.CongestionControl {
-	case "", "bbr", "new_reno", "cubic":
-	default:
-		return nil, newError("invalid congestion control: ", config.CongestionControl)
 	}
 
 	o.tuicOptions = tuic.ClientOptions{

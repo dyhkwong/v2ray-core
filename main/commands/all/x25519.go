@@ -42,7 +42,8 @@ func executeX25519(cmd *base.Command, args []string) {
 		// Modify random bytes using algorithm described at:
 		// https://cr.yp.to/ecdh.html.
 		privateKey[0] &= 248
-		privateKey[31] &= 127 | 64
+		privateKey[31] &= 127
+		privateKey[31] |= 64
 	}
 	fmt.Println("Private key:", base64.RawURLEncoding.EncodeToString(privateKey))
 	publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)

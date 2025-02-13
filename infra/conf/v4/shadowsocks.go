@@ -43,7 +43,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 			v.Users = v.Clients
 		}
 		if len(v.Users) > 0 {
-			if strings.HasPrefix(v.Cipher, strings.ToLower("2022-blake3-aes-")) {
+			if !strings.HasPrefix(v.Cipher, strings.ToLower("2022-blake3-aes-")) {
 				return nil, newError("shadowsocks 2022 (multi-user): only 2022-blake3-aes-*-gcm methods are supported")
 			}
 			if v.Users[0].Address == nil {

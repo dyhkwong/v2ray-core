@@ -221,6 +221,9 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		pc = internet.NewConnWrapper(c)
 	}
 
+	if config.TlsSettings == nil {
+		config.TlsSettings = &v2tls.Config{}
+	}
 	quicConn, err := quic.DialEarly(ctx, pc, rawConn.RemoteAddr(),
 		config.TlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
 		&quic.Config{

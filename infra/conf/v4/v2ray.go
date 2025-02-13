@@ -342,22 +342,23 @@ type Config struct {
 	// and should not be used.
 	OutboundDetours []OutboundDetourConfig `json:"outboundDetour"`
 
-	LogConfig        *log.LogConfig          `json:"log"`
-	RouterConfig     *router.RouterConfig    `json:"routing"`
-	DNSConfig        *dns.DNSConfig          `json:"dns"`
-	InboundConfigs   []InboundDetourConfig   `json:"inbounds"`
-	OutboundConfigs  []OutboundDetourConfig  `json:"outbounds"`
-	Transport        *TransportConfig        `json:"transport"`
-	Policy           *PolicyConfig           `json:"policy"`
-	API              *APIConfig              `json:"api"`
-	Stats            *StatsConfig            `json:"stats"`
-	Reverse          *ReverseConfig          `json:"reverse"`
-	FakeDNS          *dns.FakeDNSConfig      `json:"fakeDns"`
-	BrowserForwarder *BrowserForwarderConfig `json:"browserForwarder"`
-	BrowserDialer    *BrowserDialerConfig    `json:"browserDialer"`
-	Observatory      *ObservatoryConfig      `json:"observatory"`
-	BurstObservatory *BurstObservatoryConfig `json:"burstObservatory"`
-	MultiObservatory *MultiObservatoryConfig `json:"multiObservatory"`
+	LogConfig         *log.LogConfig           `json:"log"`
+	RouterConfig      *router.RouterConfig     `json:"routing"`
+	DNSConfig         *dns.DNSConfig           `json:"dns"`
+	InboundConfigs    []InboundDetourConfig    `json:"inbounds"`
+	OutboundConfigs   []OutboundDetourConfig   `json:"outbounds"`
+	Transport         *TransportConfig         `json:"transport"`
+	Policy            *PolicyConfig            `json:"policy"`
+	API               *APIConfig               `json:"api"`
+	Stats             *StatsConfig             `json:"stats"`
+	Reverse           *ReverseConfig           `json:"reverse"`
+	FakeDNS           *dns.FakeDNSConfig       `json:"fakeDns"`
+	BrowserForwarder  *BrowserForwarderConfig  `json:"browserForwarder"`
+	BrowserDialer     *BrowserDialerConfig     `json:"browserDialer"`
+	Observatory       *ObservatoryConfig       `json:"observatory"`
+	BurstObservatory  *BurstObservatoryConfig  `json:"burstObservatory"`
+	MultiObservatory  *MultiObservatoryConfig  `json:"multiObservatory"`
+	FileSystemStorage *FileSystemStorageConfig `json:"fileSystemStorage"`
 
 	Services map[string]*json.RawMessage `json:"services"`
 }
@@ -523,6 +524,14 @@ func (c *Config) Build() (*core.Config, error) {
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(r))
+	}
+
+	if c.FileSystemStorage != nil {
+		f, err := c.FileSystemStorage.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.App = append(config.App, serial.ToTypedMessage(f))
 	}
 
 	var inbounds []InboundDetourConfig

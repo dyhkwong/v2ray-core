@@ -139,7 +139,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 						default:
 							return nil, newError("port hopping does not work with chain proxy")
 						}
-						return wrapPacketConn(pc), nil
+						return pc, nil
 					},
 				)
 			}
@@ -156,7 +156,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 			default:
 				pc = internet.NewConnWrapper(rc)
 			}
-			return wrapPacketConn(pc), nil
+			return pc, nil
 		},
 	}
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {

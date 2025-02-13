@@ -29,7 +29,7 @@ type Client struct {
 	// cached configuration
 	addresses        []netip.Addr
 	hasIPv4, hasIPv6 bool
-	wgLock           sync.Mutex
+	wgLock           *sync.Mutex
 }
 
 func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
@@ -48,6 +48,7 @@ func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 		addresses:     addresses,
 		hasIPv4:       hasIPv4,
 		hasIPv6:       hasIPv6,
+		wgLock:        &sync.Mutex{},
 	}, nil
 }
 
@@ -83,7 +84,7 @@ func (h *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (
 			},
 			workers: int(h.conf.NumWorkers),
 		},
-		ctx:      ctx,
+		ctx:      core.ToBackgroundDetachedContext(ctx),
 		dialer:   dialer,
 		reserved: h.conf.Reserved,
 	}

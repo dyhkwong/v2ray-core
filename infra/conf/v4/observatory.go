@@ -16,18 +16,20 @@ import (
 )
 
 type ObservatoryConfig struct {
-	SubjectSelector   []string          `json:"subjectSelector"`
-	ProbeURL          string            `json:"probeURL"`
-	ProbeInterval     duration.Duration `json:"probeInterval"`
-	EnableConcurrency bool              `json:"enableConcurrency"`
+	SubjectSelector       []string          `json:"subjectSelector"`
+	ProbeURL              string            `json:"probeURL"`
+	ProbeInterval         duration.Duration `json:"probeInterval"`
+	PersistentProbeResult bool              `json:"persistentProbeResult"`
+	EnableConcurrency     bool              `json:"enableConcurrency"`
 }
 
 func (o *ObservatoryConfig) Build() (proto.Message, error) {
 	return &observatory.Config{
-		SubjectSelector:   o.SubjectSelector,
-		ProbeUrl:          o.ProbeURL,
-		ProbeInterval:     int64(o.ProbeInterval),
-		EnableConcurrency: o.EnableConcurrency,
+		SubjectSelector:       o.SubjectSelector,
+		ProbeUrl:              o.ProbeURL,
+		ProbeInterval:         int64(o.ProbeInterval),
+		PersistentProbeResult: o.PersistentProbeResult,
+		EnableConcurrency:     o.EnableConcurrency,
 	}, nil
 }
 

@@ -33,6 +33,7 @@ type netBind struct {
 
 	workers   int
 	readQueue chan *netReadInfo
+	closeOnce *sync.Once
 }
 
 // SetMark implements conn.Bind
@@ -81,6 +82,7 @@ func (bind *netBind) BatchSize() int {
 // Open implements conn.Bind
 func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 	bind.readQueue = make(chan *netReadInfo)
+	bind.closeOnce = &sync.Once{}
 
 	fun := func(bufs [][]byte, sizes []int, eps []conn.Endpoint) (n int, err error) {
 		defer func() {
@@ -114,7 +116,10 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 // Close implements conn.Bind
 func (bind *netBind) Close() error {
 	if bind.readQueue != nil {
-		close(bind.readQueue)
+		// workaround close(bind.readQueue) panic: close of closed channel
+		bind.closeOnce.Do(func() {
+			close(bind.readQueue)
+		})
 	}
 	return nil
 }

@@ -257,40 +257,20 @@ func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
 		for _, question := range requestMsg.Questions {
 			newError(c.Name(), " querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
+
 		id := requestMsg.ID
 		requestMsg.ID = serverRaw.NewReqID()
-
-		if len(c.clientIP) > 0 {
-			hasOptResource := false
-			for i, resource := range requestMsg.Additionals {
-				if resource.Header.Type == dnsmessage.TypeOPT {
-					if optResource, ok := resource.Body.(*dnsmessage.OPTResource); ok {
-						hasOptResource = true
-						hasEDNS0Subnet := false
-						for j, option := range optResource.Options {
-							if option.Code == 0x08 {
-								hasEDNS0Subnet = true
-								optResource.Options[j] = *(genEDNS0Subnet(c.clientIP))
-								requestMsg.Additionals[i].Body = optResource
-							}
-						}
-						if !hasEDNS0Subnet {
-							optResource.Options = append(optResource.Options, *(genEDNS0Subnet(c.clientIP)))
-							requestMsg.Additionals[i].Body = optResource
-						}
-					}
-				}
-			}
-			if !hasOptResource {
-				requestMsg.Additionals = append(requestMsg.Additionals, *(genEDNS0Options(c.clientIP)))
-			}
+		ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
+		request, err := requestMsg.Pack()
+		if err != nil {
+			return nil, err
 		}
 
-		ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
 		response, err := serverRaw.QueryRaw(ctx, request)
 		if err != nil {
 			return nil, err
 		}
+
 		responseMsg := new(dnsmessage.Message)
 		if err := responseMsg.Unpack(response); err != nil {
 			return nil, err
@@ -301,6 +281,7 @@ func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
 		for _, authority := range responseMsg.Authorities {
 			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
+
 		responseMsg.ID = id
 		return responseMsg.Pack()
 	}
