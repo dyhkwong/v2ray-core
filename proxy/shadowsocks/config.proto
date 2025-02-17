@@ -65,4 +65,5 @@ message ClientConfig {
   string plugin_opts = 3;
   repeated string plugin_args = 4;
   string plugin_working_dir = 5;
+  bool uot = 6;
 }

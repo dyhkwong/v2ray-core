@@ -30,6 +30,7 @@ func init() {
 					Port:    simplifiedClient.Port,
 				},
 			},
+			Uot: simplifiedClient.Uot,
 		}
 		return common.CreateObject(ctx, fullClient)
 	}))
