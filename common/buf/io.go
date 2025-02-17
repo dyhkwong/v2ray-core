@@ -29,6 +29,10 @@ type Writer interface {
 	WriteMultiBuffer(MultiBuffer) error
 }
 
+type Flusher interface {
+	Flush() error
+}
+
 // WriteAllBytes ensures all bytes are written into the given writer.
 func WriteAllBytes(writer io.Writer, payload []byte) error {
 	for len(payload) > 0 {

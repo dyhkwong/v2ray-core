@@ -23,4 +23,5 @@ message ClientConfig {
   string plugin_opts = 8;
   repeated string plugin_args = 9;
   string plugin_working_dir = 10;
+  bool uot = 11;
 }
