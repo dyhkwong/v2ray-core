@@ -75,6 +75,7 @@ func init() {
 			PluginOpts:       simplifiedClient.PluginOpts,
 			PluginArgs:       simplifiedClient.PluginArgs,
 			PluginWorkingDir: simplifiedClient.PluginWorkingDir,
+			Uot:              simplifiedClient.Uot,
 		}
 
 		return common.CreateObject(ctx, fullClient)
