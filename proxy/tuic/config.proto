@@ -21,4 +21,5 @@ message ClientConfig {
   string udp_relay_mode = 6;
   bool zero_rtt_handshake = 7;
   uint32 heartbeat = 8;
+  bool udp_over_stream = 9;
 }
