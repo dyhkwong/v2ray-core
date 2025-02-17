@@ -19,6 +19,7 @@ type TuicClientConfig struct {
 	Heartbeat         uint32             `json:"heartbeat"`
 	ZeroRTTHandshake  bool               `json:"zeroRTTHandshake"`
 	DisableSni        bool               `json:"disableSNI"`
+	UDPOverStream     bool               `json:"udpOverStream"`
 	TLSSettings       *tlscfg.TLSConfig  `json:"tlsSettings"`
 }
 
@@ -36,6 +37,7 @@ func (c *TuicClientConfig) Build() (proto.Message, error) {
 		Heartbeat:         c.Heartbeat,
 		ZeroRttHandshake:  c.ZeroRTTHandshake,
 		DisableSni:        c.DisableSni,
+		UdpOverStream:     c.UDPOverStream,
 	}
 	if c.TLSSettings != nil {
 		tlsSettings, err := c.TLSSettings.Build()
