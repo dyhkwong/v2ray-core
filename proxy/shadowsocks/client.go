@@ -10,6 +10,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
+	"github.com/v2fly/v2ray-core/v5/common/net/uot"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -33,6 +34,8 @@ type Client struct {
 
 	streamPlugin   sip003.StreamPlugin
 	protocolPlugin sip003.ProtocolPlugin
+
+	uot bool
 }
 
 func (c *Client) Close() error {
@@ -104,6 +107,8 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		client.plugin = plugin
 	}
 
+	client.uot = config.Uot
+
 	return client, nil
 }
 
@@ -115,6 +120,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 	destination := outbound.Target
 	network := destination.Network
+
+	if c.uot {
+		network = net.Network_TCP
+	}
 
 	var server *protocol.ServerSpec
 	var conn internet.Connection
@@ -164,7 +173,13 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	if destination.Network == net.Network_TCP {
 		request.Command = protocol.RequestCommandTCP
 	} else {
-		request.Command = protocol.RequestCommandUDP
+		if c.uot {
+			request.Address = net.DomainAddress(uot.MagicAddress)
+			request.Port = 0
+			request.Command = protocol.RequestCommandTCP
+		} else {
+			request.Command = protocol.RequestCommandUDP
+		}
 	}
 
 	request.User = user
@@ -225,6 +240,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 				return newError("failed to write request").Base(err)
 			}
 
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
+				bodyWriter = uot.NewBufferedWriter(bodyWriter, &destination)
+			}
+
 			if err = buf.CopyOnceTimeout(link.Reader, bodyWriter, proxy.FirstPayloadTimeout); err != nil && err != buf.ErrNotTimeoutReader && err != buf.ErrReadTimeout {
 				return newError("failed to write A request payload").Base(err).AtWarning()
 			}
@@ -242,6 +261,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			responseReader, err := ReadTCPResponse(user, conn, protocolConn)
 			if err != nil {
 				return err
+			}
+
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
+				responseReader = uot.NewBufferedReader(responseReader)
 			}
 
 			return buf.Copy(responseReader, link.Writer, buf.UpdateActivity(timer))

@@ -9,6 +9,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
+	"github.com/v2fly/v2ray-core/v5/common/net/uot"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -27,6 +28,7 @@ type Client struct {
 	policyManager policy.Manager
 	version       Version
 	dns           dns.Client
+	uot           bool
 }
 
 // NewClient create a new Socks5 client based on the given config.
@@ -52,6 +54,8 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	if config.Version == Version_SOCKS4 {
 		c.dns = v.GetFeature(dns.ClientType()).(dns.Client)
 	}
+
+	// c.uot = config.Uot
 
 	return c, nil
 }
@@ -103,6 +107,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	switch c.version {
 	case Version_SOCKS4:
+		if destination.Network == net.Network_UDP {
+			return newError("udp is not supported in socks4")
+		} else if destination.Address.Family().IsIPv6() {
+			return newError("ipv6 is not supported in socks4")
+		}
 		if request.Address.Family().IsDomain() {
 			ips, err := dns.LookupIPWithOption(c.dns, request.Address.Domain(), dns.IPOption{IPv4Enable: true, IPv6Enable: false, FakeEnable: false})
 			if err != nil {
@@ -112,19 +121,25 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			}
 			request.Address = net.IPAddress(ips[0])
 		}
-		fallthrough
 	case Version_SOCKS4A:
 		request.Version = socks4Version
 
-		if destination.Network == net.Network_UDP {
+		if destination.Network == net.Network_UDP && !c.uot {
 			return newError("udp is not supported in socks4")
-		} else if destination.Address.Family().IsIPv6() {
+		}
+		if destination.Address.Family().IsIPv6() && destination.Network == net.Network_TCP {
 			return newError("ipv6 is not supported in socks4")
 		}
 	}
 
 	if destination.Network == net.Network_UDP {
-		request.Command = protocol.RequestCommandUDP
+		if c.uot {
+			request.Address = net.DomainAddress(uot.MagicAddress)
+			request.Port = 0
+			request.Command = protocol.RequestCommandTCP
+		} else {
+			request.Command = protocol.RequestCommandUDP
+		}
 	}
 
 	user := server.PickUser()
@@ -193,10 +208,16 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	if request.Command == protocol.RequestCommandTCP {
 		requestFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
+				return buf.Copy(link.Reader, uot.NewWriter(conn, &destination), buf.UpdateActivity(timer))
+			}
 			return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 		}
 		responseFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
+				return buf.Copy(uot.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+			}
 			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 		}
 	} else if request.Command == protocol.RequestCommandUDP {
