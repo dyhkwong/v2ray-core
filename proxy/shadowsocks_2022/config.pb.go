@@ -471,6 +471,7 @@ type ClientConfig struct {
 	PluginOpts       string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs       []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	PluginWorkingDir string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	Uot              bool                   `protobuf:"varint,9,opt,name=uot,proto3" json:"uot,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -561,6 +562,13 @@ func (x *ClientConfig) GetPluginWorkingDir() string {
 	return ""
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 var File_proxy_shadowsocks_2022_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
@@ -612,7 +620,7 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\x04User\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x14\n" +
-	"\x05level\x18\x03 \x01(\x05R\x05level\"\xb3\x02\n" +
+	"\x05level\x18\x03 \x01(\x05R\x05level\"\xc5\x02\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x16\n" +
@@ -623,7 +631,8 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir: \x82\xb5\x18\x1c\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
+	"\x03uot\x18\t \x01(\bR\x03uot: \x82\xb5\x18\x1c\n" +
 	"\boutbound\x12\x10shadowsocks-2022B\x84\x01\n" +
 	"%com.v2ray.core.proxy.shadowsocks_2022P\x01Z5github.com/v2fly/v2ray-core/v5/proxy/shadowsocks_2022\xaa\x02!V2Ray.Core.Proxy.Shadowsocks_2022b\x06proto3"
 
