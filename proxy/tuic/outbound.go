@@ -10,6 +10,7 @@ import (
 	"github.com/sagernet/sing-quic/tuic"
 	"github.com/sagernet/sing/common/bufio"
 	"github.com/sagernet/sing/common/network"
+	"github.com/sagernet/sing/common/uot"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -29,9 +30,10 @@ func init() {
 }
 
 type Outbound struct {
-	serverAddr net.Destination
-	options    tuic.ClientOptions
-	client     *tuic.Client
+	serverAddr    net.Destination
+	options       tuic.ClientOptions
+	client        *tuic.Client
+	udpOverStream bool
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -41,6 +43,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Port:    net.Port(config.Port),
 			Network: net.Network_UDP,
 		},
+		udpOverStream: config.UdpOverStream,
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
 	if err != nil {
@@ -48,7 +51,11 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	}
 
 	switch config.UdpRelayMode {
-	case "", "native", "quic":
+	case "", "native":
+		if config.UdpOverStream {
+			return nil, newError("UDP over stream is conflict with UDP relay mode \"native\"")
+		}
+	case "quic":
 	default:
 		return nil, newError("invalid UDP relay mode: ", config.UdpRelayMode)
 	}
@@ -93,7 +100,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		UUID:              uuid,
 		Password:          config.Password,
 		CongestionControl: config.CongestionControl,
-		UDPStream:         config.UdpRelayMode == "quic",
+		UDPStream:         config.UdpRelayMode == "quic" || config.UdpOverStream,
 		ZeroRTTHandshake:  config.ZeroRttHandshake,
 		Heartbeat:         time.Second * time.Duration(config.Heartbeat),
 	}
@@ -128,11 +135,20 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		}
 		return singbridge.ReturnError(bufio.CopyConn(detachedCtx, singbridge.NewPipeConnWrapper(link), serverConn))
 	} else {
-		serverConn, err := o.client.ListenPacket(detachedCtx)
-		if err != nil {
-			return err
+		if o.udpOverStream {
+			serverConn, err := o.client.DialConn(detachedCtx, uot.RequestDestination(uot.Version))
+			if err != nil {
+				return err
+			}
+			streamConn := uot.NewLazyConn(serverConn, uot.Request{Destination: singbridge.ToSocksAddr(destination)})
+			return singbridge.ReturnError(bufio.CopyPacketConn(detachedCtx, singbridge.NewPacketConnWrapper(link, destination), streamConn))
+		} else {
+			serverConn, err := o.client.ListenPacket(detachedCtx)
+			if err != nil {
+				return err
+			}
+			return singbridge.ReturnError(bufio.CopyPacketConn(detachedCtx, singbridge.NewPacketConnWrapper(link, destination), serverConn.(network.PacketConn)))
 		}
-		return singbridge.ReturnError(bufio.CopyPacketConn(detachedCtx, singbridge.NewPacketConnWrapper(link, destination), serverConn.(network.PacketConn)))
 	}
 }
 
