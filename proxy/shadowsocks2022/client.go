@@ -12,6 +12,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
+	"github.com/v2fly/v2ray-core/v5/common/net/uot"
 	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
@@ -30,6 +31,8 @@ type Client struct {
 	pluginOverride net.Destination
 
 	streamPlugin sip003.StreamPlugin
+
+	uot bool
 }
 
 func (c *Client) Close() error {
@@ -73,6 +76,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 	destination := outbound.Target
 	network := destination.Network
+	originalNetwork := network
+
+	if c.uot {
+		network = net.Network_TCP
+	}
 
 	keyDerivation := newBLAKE3KeyDerivation()
 	var method Method
@@ -145,8 +153,15 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 		TCPRequestBuffer := buf.New()
 		defer TCPRequestBuffer.Release()
-		err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, destination.Address,
-			int(destination.Port), nil, TCPRequestBuffer)
+
+		if c.uot && originalNetwork == net.Network_UDP {
+			err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, net.DomainAddress(uot.MagicAddressV2),
+				0, nil, TCPRequestBuffer)
+		} else {
+			err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, destination.Address,
+				int(destination.Port), nil, TCPRequestBuffer)
+		}
+
 		if err != nil {
 			return newError("failed to encode TCP request header").Base(err)
 		}
@@ -156,6 +171,9 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 		requestDone := func() error {
 			encodedWriter := request.CreateClientC2SWriter(conn)
+			if c.uot && originalNetwork == net.Network_UDP {
+				return buf.Copy(link.Reader, uot.NewWriterV2(encodedWriter, destination), buf.UpdateActivity(timer))
+			}
 			return buf.Copy(link.Reader, encodedWriter, buf.UpdateActivity(timer))
 		}
 		responseDone := func() error {
@@ -171,6 +189,14 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			if err != nil {
 				initialPayload.Release()
 				return newError("failed to create client S2C reader").Base(err)
+			}
+			if c.uot && originalNetwork == net.Network_UDP {
+				return buf.Copy(uot.NewReaderV2(
+					&buf.BufferedReader{
+						Reader: encodedReader,
+						Buffer: buf.MultiBuffer{initialPayload},
+					},
+				), link.Writer, buf.UpdateActivity(timer))
 			}
 			err = link.Writer.WriteMultiBuffer(buf.MultiBuffer{initialPayload})
 			if err != nil {
@@ -293,6 +319,8 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		}
 		c.plugin = plugin
 	}
+
+	c.uot = config.Uot
 
 	return c, nil
 }
