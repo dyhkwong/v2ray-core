@@ -90,6 +90,7 @@ type ClientConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Uot           bool                   `protobuf:"varint,3,opt,name=uot,proto3" json:"uot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -138,6 +139,13 @@ func (x *ClientConfig) GetPort() uint32 {
 	return 0
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 var File_proxy_socks_simplified_config_proto protoreflect.FileDescriptor
 
 const file_proxy_socks_simplified_config_proto_rawDesc = "" +
@@ -149,10 +157,11 @@ const file_proxy_socks_simplified_config_proto_rawDesc = "" +
 	"udpEnabled\x12R\n" +
 	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12(\n" +
 	"\x10defer_last_reply\x18\b \x01(\bR\x0edeferLastReply:\x14\x82\xb5\x18\x10\n" +
-	"\ainbound\x12\x05socks\"v\n" +
+	"\ainbound\x12\x05socks\"\x88\x01\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
-	"\x04port\x18\x02 \x01(\rR\x04port:\x15\x82\xb5\x18\x11\n" +
+	"\x04port\x18\x02 \x01(\rR\x04port\x12\x10\n" +
+	"\x03uot\x18\x03 \x01(\bR\x03uot:\x15\x82\xb5\x18\x11\n" +
 	"\boutbound\x12\x05socksB\x84\x01\n" +
 	"%com.v2ray.core.proxy.socks.simplifiedP\x01Z5github.com/v2fly/v2ray-core/v5/proxy/socks/simplified\xaa\x02!V2Ray.Core.Proxy.Socks.Simplifiedb\x06proto3"
 
