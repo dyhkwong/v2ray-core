@@ -10,6 +10,8 @@ import (
 	"github.com/sagernet/sing-shadowsocks2/shadowaead_2022"
 	B "github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
+	M "github.com/sagernet/sing/common/metadata"
+	"github.com/sagernet/sing/common/uot"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
@@ -36,6 +38,8 @@ type Outbound struct {
 	pluginOverride net.Destination
 
 	streamPlugin sip003.StreamPlugin
+
+	uotClient *uot.Client
 }
 
 func (o *Outbound) Close() error {
@@ -93,6 +97,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		o.plugin = plugin
 	}
 
+	if config.Uot {
+		o.uotClient = &uot.Client{}
+	}
+
 	return o, nil
 }
 
@@ -113,6 +121,10 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		serverDestination = o.server
 	}
 	serverDestination.Network = network
+
+	if o.uotClient != nil {
+		serverDestination.Network = net.Network_TCP
+	}
 
 	connection, err := dialer.Dial(ctx, serverDestination)
 	if err != nil {
@@ -155,6 +167,14 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		}
 		return singbridge.ReturnError(bufio.CopyConn(ctx, singbridge.NewPipeConnWrapper(link), serverConn))
 	} else {
+		if o.uotClient != nil {
+			uotConn, err := o.uotClient.DialEarlyConn(o.method.DialEarlyConn(connection, M.Socksaddr{Fqdn: uot.MagicAddress}), false, singbridge.ToSocksAddr(destination))
+			if err != nil {
+				return err
+			}
+			return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), uotConn))
+		}
+
 		serverConn := o.method.DialPacketConn(connection)
 		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), serverConn))
 	}
