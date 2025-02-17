@@ -17,6 +17,7 @@ type Shadowsocks2022Config struct {
 	PluginOpts       string                `json:"pluginOpts"`
 	PluginArgs       *cfgcommon.StringList `json:"pluginArgs"`
 	PluginWorkingDir string                `json:"pluginWorkingDir"`
+	UoT              bool                  `json:"uot"`
 }
 
 func (c *Shadowsocks2022Config) Build() (proto.Message, error) {
@@ -32,5 +33,6 @@ func (c *Shadowsocks2022Config) Build() (proto.Message, error) {
 		config.PluginArgs = *c.PluginArgs
 	}
 	config.PluginWorkingDir = c.PluginWorkingDir
+	config.Uot = c.UoT
 	return config, nil
 }
