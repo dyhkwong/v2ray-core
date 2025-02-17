@@ -150,6 +150,7 @@ type ShadowsocksClientConfig struct {
 	PluginOpts       string                     `json:"pluginOpts"`
 	PluginArgs       []string                   `json:"pluginArgs"`
 	PluginWorkingDir string                     `json:"pluginWorkingDir"`
+	UoT              bool                       `json:"uot"`
 }
 
 func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
@@ -177,6 +178,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 			config.PluginOpts = v.PluginOpts
 			config.PluginArgs = v.PluginArgs
 			config.PluginWorkingDir = v.PluginWorkingDir
+			config.Uot = v.UoT
 			return config, nil
 		}
 	}
@@ -225,6 +227,8 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 	config.PluginOpts = v.PluginOpts
 	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
+
+	config.Uot = v.UoT
 
 	return config, nil
 }
