@@ -355,6 +355,7 @@ type ClientConfig struct {
 	PluginOpts       string                     `protobuf:"bytes,3,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs       []string                   `protobuf:"bytes,4,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	PluginWorkingDir string                     `protobuf:"bytes,5,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	Uot              bool                       `protobuf:"varint,6,opt,name=uot,proto3" json:"uot,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -424,6 +425,13 @@ func (x *ClientConfig) GetPluginWorkingDir() string {
 	return ""
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 var File_proxy_shadowsocks_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_config_proto_rawDesc = "" +
@@ -446,7 +454,7 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\"\xda\x01\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\"\xec\x01\n" +
 	"\fClientConfig\x12B\n" +
 	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\x12\x16\n" +
 	"\x06plugin\x18\x02 \x01(\tR\x06plugin\x12\x1f\n" +
@@ -454,7 +462,8 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\x04 \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir*\x99\x05\n" +
+	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
+	"\x03uot\x18\x06 \x01(\bR\x03uot*\x99\x05\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +

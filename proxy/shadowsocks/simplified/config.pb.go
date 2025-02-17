@@ -129,6 +129,7 @@ type ClientConfig struct {
 	PluginOpts                     string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs                     []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	PluginWorkingDir               string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	Uot                            bool                   `protobuf:"varint,9,opt,name=uot,proto3" json:"uot,omitempty"`
 	ExperimentReducedIvHeadEntropy bool                   `protobuf:"varint,90001,opt,name=experiment_reduced_iv_head_entropy,json=experimentReducedIvHeadEntropy,proto3" json:"experiment_reduced_iv_head_entropy,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
@@ -220,6 +221,13 @@ func (x *ClientConfig) GetPluginWorkingDir() string {
 	return ""
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 func (x *ClientConfig) GetExperimentReducedIvHeadEntropy() bool {
 	if x != nil {
 		return x.ExperimentReducedIvHeadEntropy
@@ -287,7 +295,7 @@ const file_proxy_shadowsocks_simplified_config_proto_rawDesc = "" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
 	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir:\x1a\x82\xb5\x18\x16\n" +
-	"\ainbound\x12\vshadowsocks\"\xc2\x03\n" +
+	"\ainbound\x12\vshadowsocks\"\xd4\x03\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12R\n" +
@@ -298,7 +306,8 @@ const file_proxy_shadowsocks_simplified_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\x12L\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
+	"\x03uot\x18\t \x01(\bR\x03uot\x12L\n" +
 	"\"experiment_reduced_iv_head_entropy\x18\x91\xbf\x05 \x01(\bR\x1eexperimentReducedIvHeadEntropy:\x1b\x82\xb5\x18\x17\n" +
 	"\boutbound\x12\vshadowsocks\"S\n" +
 	"\x11CipherTypeWrapper\x12>\n" +

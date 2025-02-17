@@ -28,6 +28,7 @@ type ClientConfig struct {
 	PluginOpts       string                 `protobuf:"bytes,8,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs       []string               `protobuf:"bytes,9,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	PluginWorkingDir string                 `protobuf:"bytes,10,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	Uot              bool                   `protobuf:"varint,11,opt,name=uot,proto3" json:"uot,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -125,11 +126,18 @@ func (x *ClientConfig) GetPluginWorkingDir() string {
 	return ""
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 var File_proxy_shadowsocks2022_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks2022_config_proto_rawDesc = "" +
 	"\n" +
-	"\"proxy/shadowsocks2022/config.proto\x12 v2ray.core.proxy.shadowsocks2022\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xc6\x02\n" +
+	"\"proxy/shadowsocks2022/config.proto\x12 v2ray.core.proxy.shadowsocks2022\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xd8\x02\n" +
 	"\fClientConfig\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03psk\x18\x02 \x01(\fR\x03psk\x12\x12\n" +
@@ -142,7 +150,8 @@ const file_proxy_shadowsocks2022_config_proto_rawDesc = "" +
 	"\vplugin_args\x18\t \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
 	"\x12plugin_working_dir\x18\n" +
-	" \x01(\tR\x10pluginWorkingDir:\x1f\x82\xb5\x18\x1b\n" +
+	" \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
+	"\x03uot\x18\v \x01(\bR\x03uot:\x1f\x82\xb5\x18\x1b\n" +
 	"\boutbound\x12\x0fshadowsocks2022B\x81\x01\n" +
 	"$com.v2ray.core.proxy.shadowsocks2022P\x01Z4github.com/v2fly/v2ray-core/v5/proxy/shadowsocks2022\xaa\x02 V2Ray.Core.Proxy.Shadowsocks2022b\x06proto3"
 
