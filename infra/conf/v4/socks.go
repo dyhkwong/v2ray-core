@@ -90,6 +90,7 @@ type SocksClientConfig struct {
 	Servers        []*SocksRemoteConfig `json:"servers"`
 	Version        string               `json:"version"`
 	DelayAuthWrite bool                 `json:"delayAuthWrite"`
+	UoT            bool                 `json:"uot"`
 }
 
 func (v *SocksClientConfig) Build() (proto.Message, error) {
@@ -128,5 +129,6 @@ func (v *SocksClientConfig) Build() (proto.Message, error) {
 		config.Server[idx] = server
 	}
 	config.DelayAuthWrite = v.DelayAuthWrite
+	config.Uot = v.UoT
 	return config, nil
 }
