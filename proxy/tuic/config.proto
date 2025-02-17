@@ -24,4 +24,5 @@ message ClientConfig {
   uint32 heartbeat = 8;
   bool disable_sni = 9;
   v2ray.core.transport.internet.tls.Config tls_settings = 10;
+  bool udp_over_stream = 11;
 }
