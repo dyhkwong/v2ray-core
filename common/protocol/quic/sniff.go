@@ -12,7 +12,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
-	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	ptls "github.com/v2fly/v2ray-core/v5/common/protocol/tls"
 )
 
@@ -297,8 +296,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 		}
 		return &SniffHeader{domain: tlsHdr.Domain()}, nil
 	}
-	// All payload is parsed as valid QUIC packets, but we need more packets for crypto data to read client hello.
-	return nil, protocol.ErrProtoNeedMoreData
+	return nil, common.ErrNoClue
 }
 
 func hkdfExpandLabel(hash crypto.Hash, secret, context []byte, label string, length int) []byte { //nolint:unparam

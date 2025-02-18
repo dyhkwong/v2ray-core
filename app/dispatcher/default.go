@@ -33,11 +33,8 @@ type cachedReader struct {
 	cache  buf.MultiBuffer
 }
 
-func (r *cachedReader) Cache(b *buf.Buffer) error {
-	mb, err := r.reader.ReadMultiBufferTimeout(time.Millisecond * 100)
-	if err != nil {
-		return err
-	}
+func (r *cachedReader) Cache(b *buf.Buffer) {
+	mb, _ := r.reader.ReadMultiBufferTimeout(time.Millisecond * 100)
 	r.Lock()
 	if !mb.IsEmpty() {
 		r.cache, _ = buf.MergeMulti(r.cache, mb)
@@ -53,7 +50,6 @@ func (r *cachedReader) Cache(b *buf.Buffer) error {
 	n := r.cache.Copy(rawBytes)
 	b.Resize(0, int32(n))
 	r.Unlock()
-	return nil
 }
 
 func (r *cachedReader) readInternal() buf.MultiBuffer {
@@ -276,24 +272,20 @@ func sniffer(ctx context.Context, cReader *cachedReader, metadataOnly bool, netw
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			default:
-				cacheErr := cReader.Cache(payload)
+				totalAttempt++
+				if totalAttempt > 2 {
+					return nil, errSniffingTimeout
+				}
 
+				cReader.Cache(payload)
 				if !payload.IsEmpty() {
 					result, err := sniffer.Sniff(ctx, payload.Bytes(), network)
-					switch err {
-					case common.ErrNoClue: // No Clue: protocol not matches, and sniffer cannot determine whether there will be a match or not
-						totalAttempt++
-					case protocol.ErrProtoNeedMoreData: // Protocol Need More Data: protocol matches, but need more data to complete sniffing
-						if cacheErr != nil { // Cache error (e.g. timeout) counts for failed attempt
-							totalAttempt++
-						}
-					default:
+					if err != common.ErrNoClue {
 						return result, err
 					}
 				}
-
-				if totalAttempt >= 2 {
-					return nil, errSniffingTimeout
+				if payload.IsFull() {
+					return nil, errUnknownContent
 				}
 			}
 		}
