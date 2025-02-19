@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
+	github.com/anytls/sing-anytls v0.0.8
 	github.com/apernet/quic-go v0.52.1-0.20250607183305-9320c9d14431
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152
