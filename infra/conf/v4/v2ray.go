@@ -39,6 +39,7 @@ var (
 		"shadowsocks-2022-relay": func() interface{} { return new(Shadowsocks2022RelayServerConfig) },
 		"mixed":                  func() interface{} { return new(MixedServerConfig) },
 		"wireguard":              func() interface{} { return new(WireGuardServerConfig) },
+		"anytls":                 func() interface{} { return new(AnyTLSServerConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
@@ -60,6 +61,7 @@ var (
 		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ClientConfig) },
 		"wireguard":        func() interface{} { return new(WireGuardClientConfig) },
 		"tuic":             func() interface{} { return new(TuicClientConfig) },
+		"anytls":           func() interface{} { return new(AnyTLSClientConfig) },
 	}, "protocol", "settings")
 )
 
