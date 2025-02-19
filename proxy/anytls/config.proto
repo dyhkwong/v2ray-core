@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.anytls;
+option csharp_namespace = "V2Ray.Core.Proxy.Anytls";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/anytls";
+option java_package = "com.v2ray.core.proxy.anytls";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+import "common/net/address.proto";
+
+message ClientConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "anytls";
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  string password = 3;
+  int64 idle_session_check_interval = 4;
+  int64 idle_session_timeout = 5;
+  int64 min_idle_session = 6;
+}
+
+message User {
+  string password = 1;
+  string email = 2;
+  int32 level = 3;
+}
+
+message ServerConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "inbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "anytls";
+  repeated User users = 1;
+  repeated string padding_scheme = 2;
+}
