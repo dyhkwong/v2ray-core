@@ -22,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
+	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/proxy"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -34,8 +35,10 @@ type Client struct {
 }
 
 type h3Conn struct {
-	rawConn net.Conn
-	h3Conn  *http3.ClientConn
+	rawConn      net.Conn
+	h3Conn       *http3.ClientConn
+	readCounter  stats.Counter
+	writeCounter stats.Counter
 }
 
 var (
@@ -88,7 +91,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		if err != nil {
 			return err
 		}
-		conn = internet.Connection(netConn)
+		conn = netConn
 		return nil
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
@@ -145,7 +148,7 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		req.Header.Set(key, value)
 	}
 
-	connectHTTP3 := func(rawConn net.Conn, h3clientConn *http3.ClientConn) (net.Conn, error) {
+	connectHTTP3 := func(rawConn net.Conn, h3clientConn *http3.ClientConn, readCounter, writeCounter stats.Counter) (net.Conn, error) {
 		pr, pw := io.Pipe()
 		req.Body = pr
 
@@ -171,27 +174,34 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		if resp.StatusCode != http.StatusOK {
 			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 		}
-		return newHTTP3Conn(rawConn, pw, resp.Body), nil
+		return &http3Conn{
+			Conn:         rawConn,
+			in:           pw,
+			out:          resp.Body,
+			readCounter:  readCounter,
+			writeCounter: writeCounter,
+		}, nil
 	}
 
 	cachedH3Mutex.Lock()
-	cachedConn, cachedConnFound := cachedH3Conns[dest]
+	cachedConn, found := cachedH3Conns[dest]
 	cachedH3Mutex.Unlock()
 
-	if cachedConnFound {
-		rc, cc := cachedConn.rawConn, cachedConn.h3Conn
+	if found {
+		rawConn, h3Conn := cachedConn.rawConn, cachedConn.h3Conn
+		readCounter, writeCounter := cachedConn.readCounter, cachedConn.writeCounter
 		select {
-		case <-cc.Context().Done():
-			cc.CloseWithError(0, "")
-			rc.Close()
+		case <-h3Conn.Context().Done():
+			h3Conn.CloseWithError(0, "")
+			rawConn.Close()
 			cachedH3Mutex.Lock()
 			delete(cachedH3Conns, dest)
 			cachedH3Mutex.Unlock()
 		default:
-			proxyConn, err := connectHTTP3(rc, cc)
+			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
 			if err != nil {
-				cc.CloseWithError(0, "")
-				rc.Close()
+				h3Conn.CloseWithError(0, "")
+				rawConn.Close()
 				cachedH3Mutex.Lock()
 				delete(cachedH3Conns, dest)
 				cachedH3Mutex.Unlock()
@@ -206,8 +216,10 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		return nil, err
 	}
 
+	var readCounter, writeCounter stats.Counter
 	iConn := rawConn
-	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
 		iConn = statConn.Connection
 	}
 
@@ -215,8 +227,16 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 	switch c := iConn.(type) {
 	case *internet.PacketConnWrapper:
 		pc = c.Conn
+		if statConn != nil {
+			readCounter = statConn.ReadCounter
+			writeCounter = statConn.WriteCounter
+		}
 	case net.PacketConn:
 		pc = c
+		if statConn != nil {
+			readCounter = statConn.ReadCounter
+			writeCounter = statConn.WriteCounter
+		}
 	default:
 		pc = internet.NewConnWrapper(c)
 	}
@@ -234,9 +254,9 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		return nil, err
 	}
 
-	t := http3.Transport{}
+	t := &http3.Transport{}
 	h3clientConn := t.NewClientConn(quicConn)
-	proxyConn, err := connectHTTP3(rawConn, h3clientConn)
+	proxyConn, err := connectHTTP3(rawConn, h3clientConn, readCounter, writeCounter)
 	if err != nil {
 		quicConn.CloseWithError(0, "")
 		rawConn.Close()
@@ -249,35 +269,43 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 	}
 
 	cachedH3Conns[dest] = h3Conn{
-		rawConn: rawConn,
-		h3Conn:  h3clientConn,
+		rawConn:      rawConn,
+		h3Conn:       h3clientConn,
+		readCounter:  readCounter,
+		writeCounter: writeCounter,
 	}
 	cachedH3Mutex.Unlock()
 
 	return proxyConn, err
 }
 
-func newHTTP3Conn(c net.Conn, pipedReqBody *io.PipeWriter, respBody io.ReadCloser) net.Conn {
-	return &http3Conn{Conn: c, in: pipedReqBody, out: respBody}
-}
-
 type http3Conn struct {
 	net.Conn
-	in  *io.PipeWriter
-	out io.ReadCloser
+	in           *io.PipeWriter
+	out          io.ReadCloser
+	readCounter  stats.Counter
+	writeCounter stats.Counter
 }
 
-func (h *http3Conn) Read(p []byte) (n int, err error) {
-	return h.out.Read(p)
+func (c *http3Conn) Read(p []byte) (n int, err error) {
+	n, err = c.out.Read(p)
+	if c.readCounter != nil {
+		c.readCounter.Add(int64(n))
+	}
+	return
 }
 
-func (h *http3Conn) Write(p []byte) (n int, err error) {
-	return h.in.Write(p)
+func (c *http3Conn) Write(p []byte) (n int, err error) {
+	n, err = c.in.Write(p)
+	if c.writeCounter != nil {
+		c.writeCounter.Add(int64(n))
+	}
+	return
 }
 
-func (h *http3Conn) Close() error {
-	h.in.Close()
-	return h.out.Close()
+func (c *http3Conn) Close() error {
+	c.in.Close()
+	return c.out.Close()
 }
 
 func init() {

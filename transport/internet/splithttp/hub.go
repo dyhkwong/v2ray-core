@@ -100,11 +100,15 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		sessionId = subpath[0]
 	}
 
-	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
 	remoteAddr, err := net.ResolveTCPAddr("tcp", request.RemoteAddr)
 	if err != nil {
-		remoteAddr = &net.TCPAddr{}
+		remoteAddr = &net.TCPAddr{
+			IP:   net.AnyIP.IP(),
+			Port: int(0),
+		}
 	}
+
+	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
 	if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
 		remoteAddr = &net.TCPAddr{
 			IP:   forwardedAddrs[0].IP(),

@@ -97,13 +97,15 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 			return nil, errNotQuic
 		}
 
-		tokenLen, err := readUvarint(buffer)
-		if err != nil || tokenLen > uint64(len(b)) {
-			return nil, errNotQuic
-		}
+		if isQuicInitial { // Only initial packets have token, see https://datatracker.ietf.org/doc/html/rfc9000#section-17.2.2
+			tokenLen, err := readUvarint(buffer)
+			if err != nil || tokenLen > uint64(len(b)) {
+				return nil, errNotQuic
+			}
 
-		if _, err = buffer.ReadBytes(int32(tokenLen)); err != nil {
-			return nil, errNotQuic
+			if _, err = buffer.ReadBytes(int32(tokenLen)); err != nil {
+				return nil, errNotQuic
+			}
 		}
 
 		packetLen, err := readUvarint(buffer)

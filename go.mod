@@ -38,7 +38,7 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
-	gvisor.dev/gvisor v0.0.0-20250203181318-1be12ee1a006
+	gvisor.dev/gvisor v0.0.0-20250207211332-a025ffd3b3e0
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0
 )

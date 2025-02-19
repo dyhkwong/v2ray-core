@@ -12,6 +12,7 @@ import (
 	"github.com/sagernet/sing/common/bufio"
 	N "github.com/sagernet/sing/common/network"
 
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -126,6 +127,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 	destination := outbound.Target
 
+	ctx = core.ToBackgroundDetachedContext(ctx)
 	if err := o.updateDialer(ctx, dialer); err != nil {
 		return err
 	}
