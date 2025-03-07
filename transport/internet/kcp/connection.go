@@ -539,6 +539,7 @@ func (c *Connection) Terminate() {
 	c.closer.Close()
 	c.sendingWorker.Release()
 	c.receivingWorker.Release()
+	c.output.Release()
 }
 
 func (c *Connection) HandleOption(opt SegmentOption) {
