@@ -4,18 +4,19 @@ go 1.23.1
 
 require (
 	github.com/adrg/xdg v0.5.3
+	github.com/anytls/sing-anytls v0.0.3
 	github.com/apernet/hysteria/extras/v2 v2.6.1
 	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/miekg/dns v1.1.63
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
-	github.com/quic-go/quic-go v0.49.0
+	github.com/quic-go/quic-go v0.50.0
 	github.com/refraction-networking/utls v1.6.7
 	github.com/sagernet/sing v0.6.1
 	github.com/sagernet/sing-quic v0.4.0
@@ -31,14 +32,14 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	golang.org/x/net v0.35.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
-	gvisor.dev/gvisor v0.0.0-20250207211332-a025ffd3b3e0
+	gvisor.dev/gvisor v0.0.0-20250215002057-313350f3e697
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.3.0
 )

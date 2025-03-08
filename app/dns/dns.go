@@ -323,7 +323,7 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	}
 
 	// Normalize the FQDN form query
-	domain = strings.TrimSuffix(strings.ToLower(domain), ".")
+	domain = strings.TrimSuffix(domain, ".")
 
 	ttl := uint32(600)
 	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
@@ -374,7 +374,7 @@ func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {
 	domainRules := []string{}
 
 	// Priority domain matching
-	for _, match := range s.domainMatcher.Match(domain) {
+	for _, match := range s.domainMatcher.Match(strings.ToLower(domain)) {
 		info := s.matcherInfos[match]
 		client := s.clients[info.clientIdx]
 		domainRule := client.domains[info.domainRuleIdx]

@@ -34,7 +34,7 @@ type Buffer struct {
 	Endpoint  *net.Destination
 }
 
-// New creates a Buffer with 0 length and 16K capacity.
+// New creates a Buffer with 0 length and 8K capacity.
 func New() *Buffer {
 	return &Buffer{
 		v: pool.Get().([]byte),

@@ -11,6 +11,7 @@ import (
 	"github.com/quic-go/quic-go"
 	"golang.org/x/net/dns/dnsmessage"
 
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -514,6 +515,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnecti
 	}
 
 	if s.dispatcher != nil {
+		ctx = core.ToBackgroundDetachedContext(ctx)
 		link, err := s.dispatcher.Dispatch(ctx, s.destination)
 		if err != nil {
 			return nil, err

@@ -59,41 +59,65 @@ type TrafficState struct {
 	IsTLS                  bool
 	Cipher                 uint16
 	RemainingServerHello   int32
+	Inbound                InboundState
+	Outbound               OutboundState
+}
 
+type InboundState struct {
+	// reader link state
+	WithinPaddingBuffers   bool
+	UplinkReaderDirectCopy bool
+	RemainingCommand       int32
+	RemainingContent       int32
+	RemainingPadding       int32
+	CurrentCommand         int
+	// write link state
+	IsPadding                bool
+	DownlinkWriterDirectCopy bool
+}
+
+type OutboundState struct {
 	// reader link state
 	WithinPaddingBuffers     bool
 	DownlinkReaderDirectCopy bool
-	UplinkReaderDirectCopy   bool
 	RemainingCommand         int32
 	RemainingContent         int32
 	RemainingPadding         int32
 	CurrentCommand           int
-
 	// write link state
-	IsPadding                bool
-	DownlinkWriterDirectCopy bool
-	UplinkWriterDirectCopy   bool
+	IsPadding              bool
+	UplinkWriterDirectCopy bool
 }
 
 func NewTrafficState(userUUID []byte) *TrafficState {
 	return &TrafficState{
-		UserUUID:                 userUUID,
-		NumberOfPacketToFilter:   8,
-		EnableXtls:               false,
-		IsTLS12orAbove:           false,
-		IsTLS:                    false,
-		Cipher:                   0,
-		RemainingServerHello:     -1,
-		WithinPaddingBuffers:     true,
-		DownlinkReaderDirectCopy: false,
-		UplinkReaderDirectCopy:   false,
-		RemainingCommand:         -1,
-		RemainingContent:         -1,
-		RemainingPadding:         -1,
-		CurrentCommand:           0,
-		IsPadding:                true,
-		DownlinkWriterDirectCopy: false,
-		UplinkWriterDirectCopy:   false,
+		UserUUID:               userUUID,
+		NumberOfPacketToFilter: 8,
+		EnableXtls:             false,
+		IsTLS12orAbove:         false,
+		IsTLS:                  false,
+		Cipher:                 0,
+		RemainingServerHello:   -1,
+		Inbound: InboundState{
+			WithinPaddingBuffers:     true,
+			UplinkReaderDirectCopy:   false,
+			RemainingCommand:         -1,
+			RemainingContent:         -1,
+			RemainingPadding:         -1,
+			CurrentCommand:           0,
+			IsPadding:                true,
+			DownlinkWriterDirectCopy: false,
+		},
+		Outbound: OutboundState{
+			WithinPaddingBuffers:     true,
+			DownlinkReaderDirectCopy: false,
+			RemainingCommand:         -1,
+			RemainingContent:         -1,
+			RemainingPadding:         -1,
+			CurrentCommand:           0,
+			IsPadding:                true,
+			UplinkWriterDirectCopy:   false,
+		},
 	}
 }
 
@@ -118,28 +142,43 @@ func NewVisionReader(reader buf.Reader, state *TrafficState, isUplink bool, cont
 func (w *VisionReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	buffer, err := w.Reader.ReadMultiBuffer()
 	if !buffer.IsEmpty() {
-		if w.trafficState.WithinPaddingBuffers || w.trafficState.NumberOfPacketToFilter > 0 {
+		var withinPaddingBuffers *bool
+		var remainingContent *int32
+		var remainingPadding *int32
+		var currentCommand *int
+		var switchToDirectCopy *bool
+		if w.isUplink {
+			withinPaddingBuffers = &w.trafficState.Inbound.WithinPaddingBuffers
+			remainingContent = &w.trafficState.Inbound.RemainingContent
+			remainingPadding = &w.trafficState.Inbound.RemainingPadding
+			currentCommand = &w.trafficState.Inbound.CurrentCommand
+			switchToDirectCopy = &w.trafficState.Inbound.UplinkReaderDirectCopy
+		} else {
+			withinPaddingBuffers = &w.trafficState.Outbound.WithinPaddingBuffers
+			remainingContent = &w.trafficState.Outbound.RemainingContent
+			remainingPadding = &w.trafficState.Outbound.RemainingPadding
+			currentCommand = &w.trafficState.Outbound.CurrentCommand
+			switchToDirectCopy = &w.trafficState.Outbound.DownlinkReaderDirectCopy
+		}
+
+		if *withinPaddingBuffers || w.trafficState.NumberOfPacketToFilter > 0 {
 			mb2 := make(buf.MultiBuffer, 0, len(buffer))
 			for _, b := range buffer {
-				newbuffer := XtlsUnpadding(b, w.trafficState, w.ctx)
+				newbuffer := XtlsUnpadding(b, w.trafficState, w.isUplink, w.ctx)
 				if newbuffer.Len() > 0 {
 					mb2 = append(mb2, newbuffer)
 				}
 			}
 			buffer = mb2
-			if w.trafficState.RemainingContent > 0 || w.trafficState.RemainingPadding > 0 || w.trafficState.CurrentCommand == 0 {
-				w.trafficState.WithinPaddingBuffers = true
-			} else if w.trafficState.CurrentCommand == 1 {
-				w.trafficState.WithinPaddingBuffers = false
-			} else if w.trafficState.CurrentCommand == 2 {
-				w.trafficState.WithinPaddingBuffers = false
-				if w.isUplink {
-					w.trafficState.UplinkReaderDirectCopy = true
-				} else {
-					w.trafficState.DownlinkReaderDirectCopy = true
-				}
+			if *remainingContent > 0 || *remainingPadding > 0 || *currentCommand == 0 {
+				*withinPaddingBuffers = true
+			} else if *currentCommand == 1 {
+				*withinPaddingBuffers = false
+			} else if *currentCommand == 2 {
+				*withinPaddingBuffers = false
+				*switchToDirectCopy = true
 			} else {
-				newError("XtlsRead unknown command ", w.trafficState.CurrentCommand, buffer.Len()).WriteToLog(session.ExportIDToError(w.ctx))
+				newError("XtlsRead unknown command ", *currentCommand, buffer.Len()).WriteToLog(session.ExportIDToError(w.ctx))
 			}
 		}
 		if w.trafficState.NumberOfPacketToFilter > 0 {
@@ -175,7 +214,16 @@ func (w *VisionWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	if w.trafficState.NumberOfPacketToFilter > 0 {
 		XtlsFilterTls(mb, w.trafficState, w.ctx)
 	}
-	if w.trafficState.IsPadding {
+	var isPadding *bool
+	var switchToDirectCopy *bool
+	if w.isUplink {
+		isPadding = &w.trafficState.Outbound.IsPadding
+		switchToDirectCopy = &w.trafficState.Outbound.UplinkWriterDirectCopy
+	} else {
+		isPadding = &w.trafficState.Inbound.IsPadding
+		switchToDirectCopy = &w.trafficState.Inbound.DownlinkWriterDirectCopy
+	}
+	if *isPadding {
 		if len(mb) == 1 && mb[0] == nil {
 			mb[0] = XtlsPadding(nil, CommandPaddingContinue, &w.writeOnceUserUUID, true, w.ctx) // we do a long padding to hide vless header
 			return w.Writer.WriteMultiBuffer(mb)
@@ -185,11 +233,7 @@ func (w *VisionWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		for i, b := range mb {
 			if w.trafficState.IsTLS && b.Len() >= 6 && bytes.Equal(TlsApplicationDataStart, b.BytesTo(3)) {
 				if w.trafficState.EnableXtls {
-					if w.isUplink {
-						w.trafficState.UplinkWriterDirectCopy = true
-					} else {
-						w.trafficState.DownlinkWriterDirectCopy = true
-					}
+					*switchToDirectCopy = true
 				}
 				var command byte = CommandPaddingContinue
 				if i == len(mb)-1 {
@@ -199,16 +243,16 @@ func (w *VisionWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 					}
 				}
 				mb[i] = XtlsPadding(b, command, &w.writeOnceUserUUID, true, w.ctx)
-				w.trafficState.IsPadding = false // padding going to end
+				*isPadding = false // padding going to end
 				longPadding = false
 				continue
 			} else if !w.trafficState.IsTLS12orAbove && w.trafficState.NumberOfPacketToFilter <= 1 { // For compatibility with earlier vision receiver, we finish padding 1 packet early
-				w.trafficState.IsPadding = false
+				*isPadding = false
 				mb[i] = XtlsPadding(b, CommandPaddingEnd, &w.writeOnceUserUUID, longPadding, w.ctx)
 				break
 			}
 			var command byte = CommandPaddingContinue
-			if i == len(mb)-1 && !w.trafficState.IsPadding {
+			if i == len(mb)-1 && !*isPadding {
 				command = CommandPaddingEnd
 				if w.trafficState.EnableXtls {
 					command = CommandPaddingDirect
@@ -295,38 +339,53 @@ func XtlsPadding(b *buf.Buffer, command byte, userUUID *[]byte, longPadding bool
 }
 
 // XtlsUnpadding remove padding and parse command
-func XtlsUnpadding(b *buf.Buffer, s *TrafficState, ctx context.Context) *buf.Buffer {
-	if s.RemainingCommand == -1 && s.RemainingContent == -1 && s.RemainingPadding == -1 { // inital state
+func XtlsUnpadding(b *buf.Buffer, s *TrafficState, isUplink bool, ctx context.Context) *buf.Buffer {
+	var remainingCommand *int32
+	var remainingContent *int32
+	var remainingPadding *int32
+	var currentCommand *int
+	if isUplink {
+		remainingCommand = &s.Inbound.RemainingCommand
+		remainingContent = &s.Inbound.RemainingContent
+		remainingPadding = &s.Inbound.RemainingPadding
+		currentCommand = &s.Inbound.CurrentCommand
+	} else {
+		remainingCommand = &s.Outbound.RemainingCommand
+		remainingContent = &s.Outbound.RemainingContent
+		remainingPadding = &s.Outbound.RemainingPadding
+		currentCommand = &s.Outbound.CurrentCommand
+	}
+	if *remainingCommand == -1 && *remainingContent == -1 && *remainingPadding == -1 { // initial state
 		if b.Len() >= 21 && bytes.Equal(s.UserUUID, b.BytesTo(16)) {
 			b.Advance(16)
-			s.RemainingCommand = 5
+			*remainingCommand = 5
 		} else {
 			return b
 		}
 	}
 	newbuffer := buf.New()
 	for b.Len() > 0 {
-		if s.RemainingCommand > 0 {
+		if *remainingCommand > 0 {
 			data, err := b.ReadByte()
 			if err != nil {
 				return newbuffer
 			}
-			switch s.RemainingCommand {
+			switch *remainingCommand {
 			case 5:
-				s.CurrentCommand = int(data)
+				*currentCommand = int(data)
 			case 4:
-				s.RemainingContent = int32(data) << 8
+				*remainingContent = int32(data) << 8
 			case 3:
-				s.RemainingContent = s.RemainingContent | int32(data)
+				*remainingContent = *remainingContent | int32(data)
 			case 2:
-				s.RemainingPadding = int32(data) << 8
+				*remainingPadding = int32(data) << 8
 			case 1:
-				s.RemainingPadding = s.RemainingPadding | int32(data)
-				newError("Xtls Unpadding new block, content ", s.RemainingContent, " padding ", s.RemainingPadding, " command ", s.CurrentCommand).WriteToLog(session.ExportIDToError(ctx))
+				*remainingPadding = *remainingPadding | int32(data)
+				newError("Xtls Unpadding new block, content ", *remainingContent, " padding ", *remainingPadding, " command ", *currentCommand).WriteToLog(session.ExportIDToError(ctx))
 			}
-			s.RemainingCommand--
-		} else if s.RemainingContent > 0 {
-			len := s.RemainingContent
+			*remainingCommand--
+		} else if *remainingContent > 0 {
+			len := *remainingContent
 			if b.Len() < len {
 				len = b.Len()
 			}
@@ -335,22 +394,22 @@ func XtlsUnpadding(b *buf.Buffer, s *TrafficState, ctx context.Context) *buf.Buf
 				return newbuffer
 			}
 			newbuffer.Write(data)
-			s.RemainingContent -= len
+			*remainingContent -= len
 		} else { // remainingPadding > 0
-			len := s.RemainingPadding
+			len := *remainingPadding
 			if b.Len() < len {
 				len = b.Len()
 			}
 			b.Advance(len)
-			s.RemainingPadding -= len
+			*remainingPadding -= len
 		}
-		if s.RemainingCommand <= 0 && s.RemainingContent <= 0 && s.RemainingPadding <= 0 { // this block done
-			if s.CurrentCommand == 0 {
-				s.RemainingCommand = 5
+		if *remainingCommand <= 0 && *remainingContent <= 0 && *remainingPadding <= 0 { // this block done
+			if *currentCommand == 0 {
+				*remainingCommand = 5
 			} else {
-				s.RemainingCommand = -1 // set to initial state
-				s.RemainingContent = -1
-				s.RemainingPadding = -1
+				*remainingCommand = -1 // set to initial state
+				*remainingContent = -1
+				*remainingPadding = -1
 				if b.Len() > 0 { // shouldn't happen
 					newbuffer.Write(b.Bytes())
 				}
@@ -496,7 +555,7 @@ func readV(ctx context.Context, reader buf.Reader, writer buf.Writer, timer sign
 func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer, conn net.Conn, input *bytes.Reader, rawInput *bytes.Buffer, trafficState *TrafficState, isUplink bool, ctx context.Context) error {
 	err := func() error {
 		for {
-			if isUplink && trafficState.UplinkReaderDirectCopy || !isUplink && trafficState.DownlinkReaderDirectCopy {
+			if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
 				var writerConn net.Conn
 				var inTimer *signal.ActivityTimer
 				if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Conn != nil {
@@ -508,7 +567,7 @@ func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer,
 			buffer, err := reader.ReadMultiBuffer()
 			if !buffer.IsEmpty() {
 				timer.Update()
-				if isUplink && trafficState.UplinkReaderDirectCopy || !isUplink && trafficState.DownlinkReaderDirectCopy {
+				if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
 					// XTLS Vision processes struct TLS Conn's input and rawInput
 					if inputBuffer, err := buf.ReadFrom(input); err == nil {
 						if !inputBuffer.IsEmpty() {
@@ -542,14 +601,14 @@ func XtlsWrite(reader buf.Reader, writer buf.Writer, timer signal.ActivityUpdate
 		var ct stats.Counter
 		for {
 			buffer, err := reader.ReadMultiBuffer()
-			if isUplink && trafficState.UplinkWriterDirectCopy || !isUplink && trafficState.DownlinkWriterDirectCopy {
+			if isUplink && trafficState.Outbound.UplinkWriterDirectCopy || !isUplink && trafficState.Inbound.DownlinkWriterDirectCopy {
 				rawConn, _, writerCounter := UnwrapRawConn(conn)
 				writer = buf.NewWriter(rawConn)
 				ct = writerCounter
 				if isUplink {
-					trafficState.UplinkWriterDirectCopy = false
+					trafficState.Outbound.UplinkWriterDirectCopy = false
 				} else {
-					trafficState.DownlinkWriterDirectCopy = false
+					trafficState.Inbound.DownlinkWriterDirectCopy = false
 				}
 			}
 			if !buffer.IsEmpty() {

@@ -3,7 +3,7 @@ syntax = "proto3";
 package v2ray.core.proxy.tuic;
 option csharp_namespace = "V2Ray.Core.Proxy.Tuic";
 option go_package = "github.com/v2fly/v2ray-core/v5/proxy/tuic";
-option java_package = "com.v2ray.core.proxy.Tuic";
+option java_package = "com.v2ray.core.proxy.tuic";
 option java_multiple_files = true;
 
 import "common/protoext/extensions.proto";

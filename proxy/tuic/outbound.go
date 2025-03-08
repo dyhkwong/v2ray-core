@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io"
-	"os"
 	"sync"
 
 	"github.com/sagernet/sing-quic/tuic"
@@ -32,9 +31,8 @@ func init() {
 type Outbound struct {
 	mutex       sync.Mutex
 	serverAddr  net.Destination
-	dialer      internet.Dialer
 	tuicOptions tuic.ClientOptions
-	tuicClient  *tuic.Client
+	tuicClients map[internet.Dialer]*tuic.Client
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -87,6 +85,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	}
 
 	o.tuicOptions = tuic.ClientOptions{
+		Context: ctx,
 		TLSConfig: &tlsConfigWrapper{
 			config: tlsConfig,
 		},
@@ -98,29 +97,27 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		ZeroRTTHandshake:  config.ZeroRttHandshake,
 	}
 
+	o.tuicClients = make(map[internet.Dialer]*tuic.Client)
+
 	return o, nil
 }
 
-func (o *Outbound) updateDialer(ctx context.Context, dialer internet.Dialer) error {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-	if o.dialer != dialer {
-		if o.tuicClient != nil {
-			_ = o.tuicClient.CloseWithError(os.ErrClosed)
-		}
-		o.tuicOptions.Context = ctx
-		o.tuicOptions.Dialer = &dialerWrapper{dialer}
-		tuicClient, err := tuic.NewClient(o.tuicOptions)
-		if err != nil {
-			return newError("failed to create TUIC client").Base(err)
-		}
-		o.tuicClient = tuicClient
-		o.dialer = dialer
-	}
-	return nil
-}
-
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+	o.mutex.Lock()
+	tuicClient, found := o.tuicClients[dialer]
+	if !found {
+		var err error
+		options := o.tuicOptions
+		options.Dialer = &dialerWrapper{dialer}
+		tuicClient, err = tuic.NewClient(options)
+		if err != nil {
+			o.mutex.Unlock()
+			return err
+		}
+		o.tuicClients[dialer] = tuicClient
+	}
+	o.mutex.Unlock()
+
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified")
@@ -128,14 +125,11 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	destination := outbound.Target
 
 	ctx = core.ToBackgroundDetachedContext(ctx)
-	if err := o.updateDialer(ctx, dialer); err != nil {
-		return err
-	}
 
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	if destination.Network == net.Network_TCP {
-		serverConn, err := o.tuicClient.DialConn(ctx, toSocksaddr(destination))
+		serverConn, err := tuicClient.DialConn(ctx, toSocksaddr(destination))
 		if err != nil {
 			return err
 		}
@@ -154,7 +148,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 			Writer: link.Writer,
 			Dest:   destination,
 		}
-		serverConn, err := o.tuicClient.ListenPacket(ctx)
+		serverConn, err := tuicClient.ListenPacket(ctx)
 		if err != nil {
 			return err
 		}

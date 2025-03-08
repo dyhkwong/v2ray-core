@@ -33,6 +33,7 @@ type requestHandler struct {
 	ln        *Listener
 	sessionMu *sync.Mutex
 	sessions  sync.Map
+	localAddr net.Addr
 }
 
 type httpSession struct {
@@ -42,21 +43,6 @@ type httpSession struct {
 	// after the client connects, this becomes "done" and the session lives as
 	// long as the GET request.
 	isFullyConnected *done.Instance
-}
-
-func (h *requestHandler) maybeReapSession(isFullyConnected *done.Instance, sessionId string) {
-	shouldReap := done.New()
-	go func() {
-		time.Sleep(30 * time.Second)
-		shouldReap.Close()
-	}()
-
-	select {
-	case <-isFullyConnected.Wait():
-		return
-	case <-shouldReap.Wait():
-		h.sessions.Delete(sessionId)
-	}
 }
 
 func (h *requestHandler) upsertSession(sessionId string) *httpSession {
@@ -81,7 +67,21 @@ func (h *requestHandler) upsertSession(sessionId string) *httpSession {
 	}
 
 	h.sessions.Store(sessionId, s)
-	go h.maybeReapSession(s.isFullyConnected, sessionId)
+
+	shouldReap := done.New()
+	go func() {
+		time.Sleep(30 * time.Second)
+		shouldReap.Close()
+	}()
+	go func() {
+		select {
+		case <-shouldReap.Wait():
+			h.sessions.Delete(sessionId)
+			s.uploadQueue.Close()
+		case <-s.isFullyConnected.Wait():
+		}
+	}()
+
 	return s
 }
 
@@ -100,19 +100,26 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		sessionId = subpath[0]
 	}
 
-	remoteAddr, err := net.ResolveTCPAddr("tcp", request.RemoteAddr)
+	var remoteAddr net.Addr
+	var err error
+	remoteAddr, err = net.ResolveTCPAddr("tcp", request.RemoteAddr)
 	if err != nil {
 		remoteAddr = &net.TCPAddr{
 			IP:   net.AnyIP.IP(),
-			Port: int(0),
+			Port: 0,
 		}
 	}
-
+	if request.ProtoMajor == 3 {
+		remoteAddr = &net.UDPAddr{
+			IP:   remoteAddr.(*net.TCPAddr).IP,
+			Port: remoteAddr.(*net.TCPAddr).Port,
+		}
+	}
 	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
 	if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
 		remoteAddr = &net.TCPAddr{
 			IP:   forwardedAddrs[0].IP(),
-			Port: int(0),
+			Port: 0,
 		}
 	}
 
@@ -128,12 +135,13 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		if seq == "" {
-			uploadDone := done.New()
+			httpSC := &httpServerConn{
+				Instance:       done.New(),
+				Reader:         request.Body,
+				ResponseWriter: writer,
+			}
 			err = currentSession.uploadQueue.Push(Packet{
-				Reader: &httpRequestBodyReader{
-					requestReader: request.Body,
-					uploadDone:    uploadDone,
-				},
+				Reader: httpSC,
 			})
 			if err != nil {
 				newError("failed to upload (PushReader)").Base(err).AtInfo().WriteToLog()
@@ -144,10 +152,10 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				writer.WriteHeader(http.StatusOK)
 				select {
 				case <-request.Context().Done():
-				case <-uploadDone.Wait():
+				case <-httpSC.Wait():
 				}
 			}
-			uploadDone.Close()
+			httpSC.Close()
 			return
 		}
 
@@ -179,11 +187,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		writer.WriteHeader(http.StatusOK)
 	} else if request.Method == "GET" || sessionId == "" { // stream-down, stream-one
-		responseFlusher, ok := writer.(http.Flusher)
-		if !ok {
-			panic("expected http.ResponseWriter to be an http.Flusher")
-		}
-
 		if sessionId != "" { // if not stream-one
 			// after GET is done, the connection is finished. disable automatic
 			// session reaping, and handle it in defer
@@ -201,19 +204,18 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		writer.Header().Set("Content-Type", "text/event-stream")
 
 		writer.WriteHeader(http.StatusOK)
+		writer.(http.Flusher).Flush()
 
-		responseFlusher.Flush()
-
-		downloadDone := done.New()
-
+		httpSC := &httpServerConn{
+			Instance:       done.New(),
+			Reader:         request.Body,
+			ResponseWriter: writer,
+		}
 		conn := splitConn{
-			writer: &httpResponseBodyWriter{
-				responseWriter:  writer,
-				downloadDone:    downloadDone,
-				responseFlusher: responseFlusher,
-			},
-			reader:     request.Body,
+			writer:     httpSC,
+			reader:     httpSC,
 			remoteAddr: remoteAddr,
+			localAddr:  h.localAddr,
 		}
 		if sessionId != "" {
 			conn.reader = currentSession.uploadQueue
@@ -224,7 +226,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		// "A ResponseWriter may not be used after [Handler.ServeHTTP] has returned."
 		select {
 		case <-request.Context().Done():
-		case <-downloadDone.Wait():
+		case <-httpSC.Wait():
 		}
 
 		conn.Close()
@@ -234,45 +236,30 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	}
 }
 
-type httpRequestBodyReader struct {
-	requestReader io.ReadCloser
-	uploadDone    *done.Instance
-}
-
-func (c *httpRequestBodyReader) Read(b []byte) (int, error) {
-	return c.requestReader.Read(b)
-}
-
-func (c *httpRequestBodyReader) Close() error {
-	defer c.uploadDone.Close()
-	return c.requestReader.Close()
-}
-
-type httpResponseBodyWriter struct {
+type httpServerConn struct {
 	sync.Mutex
-	responseWriter  http.ResponseWriter
-	responseFlusher http.Flusher
-	downloadDone    *done.Instance
+	*done.Instance
+	io.Reader // no need to Close request.Body
+	http.ResponseWriter
 }
 
-func (c *httpResponseBodyWriter) Write(b []byte) (int, error) {
+func (c *httpServerConn) Write(b []byte) (int, error) {
 	c.Lock()
 	defer c.Unlock()
-	if c.downloadDone.Done() {
+	if c.Done() {
 		return 0, io.ErrClosedPipe
 	}
-	n, err := c.responseWriter.Write(b)
+	n, err := c.ResponseWriter.Write(b)
 	if err == nil {
-		c.responseFlusher.Flush()
+		c.ResponseWriter.(http.Flusher).Flush()
 	}
 	return n, err
 }
 
-func (c *httpResponseBodyWriter) Close() error {
+func (c *httpServerConn) Close() error {
 	c.Lock()
 	defer c.Unlock()
-	c.downloadDone.Close()
-	return nil
+	return c.Instance.Close()
 }
 
 type Listener struct {
@@ -289,13 +276,12 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	l := &Listener{
 		addConn: addConn,
 	}
-	shSettings := streamSettings.ProtocolSettings.(*Config)
-	l.config = shSettings
+	l.config = streamSettings.ProtocolSettings.(*Config)
 	var err error
 	handler := &requestHandler{
-		config:    shSettings,
-		host:      shSettings.Host,
-		path:      shSettings.GetNormalizedPath(),
+		config:    l.config,
+		host:      l.config.Host,
+		path:      l.config.GetNormalizedPath(),
 		ln:        l,
 		sessionMu: &sync.Mutex{},
 		sessions:  sync.Map{},
@@ -316,6 +302,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		if err != nil {
 			return nil, newError("failed to listen QUIC for XHTTP/3 on ", address, ":", port).Base(err)
 		}
+		handler.localAddr = l.h3listener.Addr()
 		l.h3server = &http3.Server{
 			Handler: handler,
 		}
@@ -325,6 +312,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 			}
 		}()
 		newError("listening QUIC for XHTTP/3 on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
+
 		return l, err
 	}
 
@@ -353,6 +341,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	if realityConfig != nil {
 		l.listener = goreality.NewListener(l.listener, realityConfig.GetREALITYConfig())
 	}
+	handler.localAddr = l.listener.Addr()
 	l.server = http.Server{
 		Handler:           h2c.NewHandler(handler, &http2.Server{}), // h2cHandler can handle both plaintext HTTP/1.1 and h2c
 		ReadHeaderTimeout: time.Second * 4,
