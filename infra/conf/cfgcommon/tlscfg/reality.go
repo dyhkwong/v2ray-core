@@ -22,6 +22,7 @@ type REALITYConfig struct {
 	Type        string          `json:"type"`
 	Xver        uint64          `json:"xver"`
 	ServerNames []string        `json:"serverNames"`
+	Password    string          `json:"password"`
 	PrivateKey  string          `json:"privateKey"`
 	ShortIds    []string        `json:"shortIds"`
 
@@ -75,11 +76,14 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		if len(c.ServerNames) == 0 {
 			return nil, newError(`empty "serverNames"`)
 		}
+		if c.Password != "" {
+			c.PublicKey = c.Password
+		}
 		if c.PrivateKey == "" {
-			return nil, newError(`empty "privateKey"`)
+			return nil, newError(`empty "password"`)
 		}
 		if config.PrivateKey, err = base64.RawURLEncoding.DecodeString(c.PrivateKey); err != nil || len(config.PrivateKey) != 32 {
-			return nil, newError(`invalid "privateKey": `, c.PrivateKey)
+			return nil, newError(`invalid "password": `, c.PrivateKey)
 		}
 		if len(c.ShortIds) == 0 {
 			c.ShortIds = []string{""}

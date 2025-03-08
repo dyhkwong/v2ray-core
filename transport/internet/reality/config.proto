@@ -19,7 +19,7 @@ message Config {
   bytes private_key = 5;
   repeated bytes short_ids = 6;
 
-  string Fingerprint = 21;
+  string fingerprint = 21;
   string server_name = 22;
   bytes public_key = 23;
   bytes short_id = 24;
