@@ -390,7 +390,9 @@ func (c *Connection) writeMultiBufferInternal(reader io.Reader) error {
 	}()
 
 	var b *buf.Buffer
-	defer b.Release()
+	defer func() {
+		b.Release()
+	}()
 
 	for {
 		for {
