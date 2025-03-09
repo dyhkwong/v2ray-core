@@ -214,23 +214,24 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 				return
 			}
 
+			dnsReqBuf := buf.New()
+			defer dnsReqBuf.Release()
+			binary.Write(dnsReqBuf, binary.BigEndian, uint16(b.Len()))
+			dnsReqBuf.Write(b.Bytes())
+			b.Release()
+
 			conn, err := s.dial(dnsCtx)
 			if err != nil {
 				newError("failed to dial namesever").Base(err).AtError().WriteToLog()
 				return
 			}
 			defer conn.Close()
-			dnsReqBuf := buf.New()
-			binary.Write(dnsReqBuf, binary.BigEndian, uint16(b.Len()))
-			dnsReqBuf.Write(b.Bytes())
-			b.Release()
 
 			_, err = conn.Write(dnsReqBuf.Bytes())
 			if err != nil {
 				newError("failed to send query").Base(err).AtError().WriteToLog()
 				return
 			}
-			dnsReqBuf.Release()
 
 			respBuf := buf.New()
 			defer respBuf.Release()
