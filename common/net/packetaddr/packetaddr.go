@@ -23,14 +23,17 @@ func AttachAddressToPacket(data *buf.Buffer, address gonet.Addr) (*buf.Buffer, e
 	udpaddr := address.(*gonet.UDPAddr)
 	port, err := net.PortFromInt(uint32(udpaddr.Port))
 	if err != nil {
+		packetBuf.Release()
 		return nil, err
 	}
 	err = addrParser.WriteAddressPort(packetBuf, net.IPAddress(udpaddr.IP), port)
 	if err != nil {
+		packetBuf.Release()
 		return nil, err
 	}
 	_, err = packetBuf.Write(data.Bytes())
 	if err != nil {
+		packetBuf.Release()
 		return nil, err
 	}
 	data.Release()
@@ -42,6 +45,7 @@ func AttachAddressToPacket(data *buf.Buffer, address gonet.Addr) (*buf.Buffer, e
 // gain ownership of the returning value
 func ExtractAddressFromPacket(data *buf.Buffer) (*buf.Buffer, gonet.Addr, error) {
 	packetBuf := buf.StackNew()
+	defer packetBuf.Release()
 	address, port, err := addrParser.ReadAddressPort(&packetBuf, bytes.NewReader(data.Bytes()))
 	if err != nil {
 		return nil, nil, err
@@ -55,6 +59,5 @@ func ExtractAddressFromPacket(data *buf.Buffer) (*buf.Buffer, gonet.Addr, error)
 		Zone: "",
 	}
 	data.Advance(packetBuf.Len())
-	packetBuf.Release()
 	return data, addr, nil
 }
