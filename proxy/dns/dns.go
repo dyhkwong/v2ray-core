@@ -183,10 +183,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := reader.ReadMessage()
 			if err == io.EOF {
+				b.Release()
 				return nil
 			}
 
 			if err != nil {
+				b.Release()
 				return err
 			}
 
@@ -197,6 +199,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 				if isIPQuery {
 					if domain, err := strmatcher.ToDomain(domain); err == nil {
 						go h.handleIPQuery(id, qType, domain, writer)
+						b.Release()
 						continue
 					}
 				}
@@ -212,10 +215,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := connReader.ReadMessage()
 			if err == io.EOF {
+				b.Release()
 				return nil
 			}
 
 			if err != nil {
+				b.Release()
 				return err
 			}
 
