@@ -144,6 +144,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			initialPayload := buf.NewWithSize(65535)
 			encodedReader, err := request.CreateClientS2CReader(conn, initialPayload)
 			if err != nil {
+				initialPayload.Release()
 				return newError("failed to create client S2C reader").Base(err)
 			}
 			err = link.Writer.WriteMultiBuffer(buf.MultiBuffer{initialPayload})
