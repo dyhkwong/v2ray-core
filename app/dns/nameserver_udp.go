@@ -107,6 +107,7 @@ func (s *ClassicNameServer) Cleanup() error {
 
 // HandleResponse handles udp response packet from remote DNS server.
 func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_proto.Packet) {
+	defer packet.Payload.Release()
 	ipRec, err := parseResponse(packet.Payload.Bytes())
 	if err != nil {
 		newError(s.name, " fail to parse responded DNS udp").AtError().WriteToLog()
@@ -190,7 +191,11 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
-		b, _ := dns.PackMessage(req.msg)
+		b, err := dns.PackMessage(req.msg)
+		if err != nil {
+			newError("failed to pack dns query").Base(err).AtError().WriteToLog()
+			return
+		}
 		udpCtx := core.ToBackgroundDetachedContext(ctx)
 		if inbound := session.InboundFromContext(ctx); inbound != nil {
 			udpCtx = session.ContextWithInbound(udpCtx, inbound)
