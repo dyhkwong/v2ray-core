@@ -414,9 +414,11 @@ func NewUDPReader(reader io.Reader) *UDPReader {
 func (r *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	b := buf.New()
 	if _, err := b.ReadFrom(r.reader); err != nil {
+		b.Release()
 		return nil, err
 	}
 	if _, err := DecodeUDPPacket(b); err != nil {
+		b.Release()
 		return nil, err
 	}
 	return buf.MultiBuffer{b}, nil
