@@ -31,13 +31,13 @@ func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 }
 
 func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(buffer)
 	for _, b := range buffer {
 		_, err := m.WriteTo(b.Bytes(), m.dest)
 		if err != nil {
 			return err
 		}
 	}
-	buf.ReleaseMulti(buffer)
 	return nil
 }
 
