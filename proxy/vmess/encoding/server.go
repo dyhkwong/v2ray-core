@@ -139,6 +139,10 @@ func parseSecurityType(b byte) protocol.SecurityType {
 func (s *ServerSession) DecodeRequestHeader(reader io.Reader) (*protocol.RequestHeader, error) {
 	buffer := buf.New()
 
+	defer func() {
+		buffer.Release()
+	}()
+
 	drainer, err := drain.NewBehaviorSeedLimitedDrainer(int64(s.userValidator.GetBehaviorSeed()), 16+38, 3266, 64)
 	if err != nil {
 		return nil, newError("failed to initialize drainer").Base(err)
@@ -149,10 +153,6 @@ func (s *ServerSession) DecodeRequestHeader(reader io.Reader) (*protocol.Request
 		drainer.AcknowledgeReceive(int(buffer.Len()))
 		return drain.WithError(drainer, reader, e)
 	}
-
-	defer func() {
-		buffer.Release()
-	}()
 
 	if _, err := buffer.ReadFullFrom(reader, protocol.IDBytesLen); err != nil {
 		return nil, newError("failed to read request header").Base(err)

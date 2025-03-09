@@ -203,6 +203,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 				if isIPQuery {
 					if domain, err := strmatcher.ToDomain(domain); err == nil {
 						go h.handleIPQuery(id, qType, domain, writer)
+						b.Release()
 						continue
 					}
 				}
