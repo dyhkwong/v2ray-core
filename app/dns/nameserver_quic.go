@@ -189,6 +189,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			}
 
 			dnsReqBuf := buf.New()
+			defer dnsReqBuf.Release()
 			binary.Write(dnsReqBuf, binary.BigEndian, uint16(b.Len()))
 			dnsReqBuf.Write(b.Bytes())
 			b.Release()
