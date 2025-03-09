@@ -223,6 +223,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 		if bufferedReader.Buffered() > 0 {
 			payload, err := buf.ReadFrom(io.LimitReader(bufferedReader, int64(bufferedReader.Buffered())))
 			if err != nil {
+				rawConn.Close()
 				return nil, nil, newError("unable to drain buffer: ").Base(err)
 			}
 			return rawConn, payload, nil
@@ -310,7 +311,6 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 
 		proxyConn, err := connectHTTP2(rawConn, h2clientConn)
 		if err != nil {
-			rawConn.Close()
 			return nil, nil, err
 		}
 
@@ -327,6 +327,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 
 		return proxyConn, nil, err
 	default:
+		rawConn.Close()
 		return nil, nil, newError("negotiated unsupported application layer protocol: " + nextProto)
 	}
 }
