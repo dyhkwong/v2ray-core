@@ -126,6 +126,7 @@ func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer) (buf.Wri
 	header := buf.New()
 
 	if err := addrParser.WriteAddressPort(header, request.Address, request.Port); err != nil {
+		header.Release()
 		return nil, newError("failed to write address").Base(err)
 	}
 
@@ -196,12 +197,14 @@ func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte) (*buf.Buff
 	}
 
 	if err := addrParser.WriteAddressPort(buffer, request.Address, request.Port); err != nil {
+		buffer.Release()
 		return nil, newError("failed to write address").Base(err)
 	}
 
 	buffer.Write(payload)
 
 	if err := account.Cipher.EncodePacket(account.Key, buffer); err != nil {
+		buffer.Release()
 		return nil, newError("failed to encrypt UDP payload").Base(err)
 	}
 
