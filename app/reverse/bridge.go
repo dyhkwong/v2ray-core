@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/mux"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -166,6 +167,7 @@ func (w *BridgeWorker) handleInternalConn(link transport.Link) {
 					w.state = ctl.State
 				}
 			}
+			buf.ReleaseMulti(mb)
 		}
 	}()
 }
