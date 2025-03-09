@@ -207,11 +207,14 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 				if isIPQuery || h.nonIPQuery != "drop" {
 					if domain, err := strmatcher.ToDomain(domain); err == nil {
 						go h.handleIPQuery(id, qType, domain, writer)
+						b.Release()
 					} else {
 						h.handleDNSError(id, dnsmessage.RCodeFormatError, writer)
+						b.Release()
 					}
 				} else {
 					h.handleDNSError(id, dnsmessage.RCodeNotImplemented, writer)
+					b.Release()
 				}
 			} else if err := connWriter.WriteMessage(b); err != nil {
 				return err
