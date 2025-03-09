@@ -98,6 +98,7 @@ func (a *aesEIHGenerator) generateEIHWithMask(derivation KeyDerivation, method M
 		if mask == nil {
 			err := derivation.GetIdentitySubKey(a.ipsk[current], salt, identityKey)
 			if err != nil {
+				identityKeyBuf.Release()
 				return nil, newError("failed to get identity sub key").Base(err)
 			}
 		} else {
@@ -109,10 +110,12 @@ func (a *aesEIHGenerator) generateEIHWithMask(derivation KeyDerivation, method M
 		}
 		err := method.GenerateEIH(identityKey, currentPskHash[:], eih[current][:])
 		if err != nil {
+			identityKeyBuf.Release()
 			return nil, newError("failed to generate EIH").Base(err)
 		}
 		current--
 		if current < 0 {
+			identityKeyBuf.Release()
 			break
 		}
 		currentPskHash = a.ipskHash[current]
