@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/mux"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
@@ -168,6 +169,7 @@ func (w *BridgeWorker) handleInternalConn(link transport.Link) {
 					w.state = ctl.State
 				}
 			}
+			buf.ReleaseMulti(mb)
 		}
 	}()
 }

@@ -125,6 +125,7 @@ func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer) (buf.Wri
 	header := buf.New()
 
 	if err := addrParser.WriteAddressPort(header, request.Address, request.Port); err != nil {
+		header.Release()
 		return nil, newError("failed to write address").Base(err)
 	}
 

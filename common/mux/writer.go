@@ -57,6 +57,7 @@ func (w *Writer) writeMetaOnly() error {
 	meta := w.getNextFrameMeta()
 	b := buf.New()
 	if err := meta.WriteTo(b); err != nil {
+		b.Release()
 		return err
 	}
 	return w.writer.WriteMultiBuffer(buf.MultiBuffer{b})
@@ -65,13 +66,16 @@ func (w *Writer) writeMetaOnly() error {
 func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuffer) error {
 	frame := buf.New()
 	if err := meta.WriteTo(frame); err != nil {
+		frame.Release()
 		return err
 	}
 	if _, err := serial.WriteUint16(frame, uint16(data.Len())); err != nil {
+		frame.Release()
 		return err
 	}
 
 	if len(data)+1 > 64*1024*1024 {
+		frame.Release()
 		return errors.New("value too large")
 	}
 	sliceSize := len(data) + 1

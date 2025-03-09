@@ -92,6 +92,7 @@ func (p *AESUDPClientPacketProcessor) EncodeUDPRequest(request *UDPRequest, out 
 		Padding:       nil,
 	}
 	requestBodyBuffer := buf.New()
+	defer requestBodyBuffer.Release()
 	{
 		err := struc.Pack(requestBodyBuffer, &headerStruct)
 		if err != nil {
@@ -166,6 +167,7 @@ func (p *AESUDPClientPacketProcessor) DecodeUDPResp(input []byte, resp *UDPRespo
 		decryptedDest := decryptedDestBuffer.Extend(int32(len(input)) - 16 - int32(mainPacketAEADMaterialized.Overhead()))
 		_, err := mainPacketAEADMaterialized.Open(decryptedDest[:0], separateHeaderBuffer.Bytes()[4:16], input[16:], nil)
 		if err != nil {
+			decryptedDestBuffer.Release()
 			return newError("failed to open main packet").Base(err)
 		}
 		decryptedDestReader := bytes.NewReader(decryptedDest)
@@ -173,6 +175,7 @@ func (p *AESUDPClientPacketProcessor) DecodeUDPResp(input []byte, resp *UDPRespo
 		{
 			err := struc.Unpack(decryptedDestReader, &headerStruct)
 			if err != nil {
+				decryptedDestBuffer.Release()
 				return newError("failed to unpack header").Base(err)
 			}
 		}
@@ -182,6 +185,7 @@ func (p *AESUDPClientPacketProcessor) DecodeUDPResp(input []byte, resp *UDPRespo
 		var port net.Port
 		resp.Address, port, err = addrParser.ReadAddressPort(addressReaderBuf, decryptedDestReader)
 		if err != nil {
+			decryptedDestBuffer.Release()
 			return newError("failed to read address port").Base(err)
 		}
 		resp.Port = int(port)
