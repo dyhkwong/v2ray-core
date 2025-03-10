@@ -27,14 +27,12 @@ func (l *FallbackStrategy) InjectContext(ctx context.Context) {
 
 func (l *FallbackStrategy) PickOutbound(strings []string) string {
 	if l.observatory == nil {
-		common.Must(core.RequireFeatures(l.ctx, func(observatory extension.Observatory) error {
-			if l.config.ObserverTag != "" {
-				l.observatory = common.Must2(observatory.(features.TaggedFeatures).GetFeaturesByTag(l.config.ObserverTag)).(extension.Observatory)
-			} else {
-				l.observatory = observatory
-			}
-			return nil
-		}))
+		observatory := core.MustFromContext(l.ctx).GetFeature(extension.ObservatoryType()).(extension.Observatory)
+		if l.config.ObserverTag != "" {
+			l.observatory = common.Must2(observatory.(features.TaggedFeatures).GetFeaturesByTag(l.config.ObserverTag)).(extension.Observatory)
+		} else {
+			l.observatory = observatory
+		}
 	}
 
 	observeReport, err := l.observatory.GetObservation(l.ctx)
