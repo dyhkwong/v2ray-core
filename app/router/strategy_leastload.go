@@ -138,10 +138,7 @@ func (l *LeastLoadStrategy) selectLeastLoad(nodes []*node) []*node {
 
 func (l *LeastLoadStrategy) getNodes(candidates []string, maxRTT time.Duration) []*node {
 	if l.observer == nil {
-		common.Must(core.RequireFeatures(l.ctx, func(observatory extension.Observatory) error {
-			l.observer = observatory
-			return nil
-		}))
+		l.observer = core.MustFromContext(l.ctx).GetFeature(extension.ObservatoryType()).(extension.Observatory)
 	}
 
 	var result proto.Message
