@@ -639,6 +639,8 @@ func CipherFromString(c string) CipherType {
 		return CipherType_CAMELLIA_192_CFB8
 	case "camellia-256-cfb8":
 		return CipherType_CAMELLIA_256_CFB8
+	case "salsa20":
+		return CipherType_SALSA20
 	case "chacha20":
 		return CipherType_CHACHA20
 	case "chacha20-ietf":
