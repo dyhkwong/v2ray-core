@@ -41,10 +41,7 @@ func (s *RandomStrategy) PickOutbound(candidates []string) string {
 	if s != nil && s.settings.AliveOnly {
 		// candidates are considered alive unless observed otherwise
 		if s.observatory == nil {
-			core.RequireFeatures(s.ctx, func(observatory extension.Observatory) error {
-				s.observatory = observatory
-				return nil
-			})
+			s.observatory = core.MustFromContext(s.ctx).GetFeature(extension.ObservatoryType()).(extension.Observatory)
 		}
 		if s.observatory != nil {
 			var observeReport protoiface.MessageV1
