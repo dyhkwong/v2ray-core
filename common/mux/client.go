@@ -39,6 +39,13 @@ func (m *ClientManager) Dispatch(ctx context.Context, link *transport.Link) erro
 	return newError("unable to find an available mux client").AtWarning()
 }
 
+func (m *ClientManager) Close() error {
+	if m.Picker != nil {
+		common.Close(m.Picker)
+	}
+	return nil
+}
+
 type WorkerPicker interface {
 	PickAvailable() (*ClientWorker, error)
 }
@@ -121,6 +128,15 @@ func (p *IncrementalWorkerPicker) PickAvailable() (*ClientWorker, error) {
 	}
 
 	return worker, err
+}
+
+func (p *IncrementalWorkerPicker) Close() error {
+	p.access.Lock()
+	defer p.access.Unlock()
+	if p.cleanupTask != nil {
+		p.cleanupTask.Close()
+	}
+	return nil
 }
 
 type ClientWorkerFactory interface {

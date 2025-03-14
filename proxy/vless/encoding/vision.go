@@ -540,6 +540,9 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 		if xorConn, ok := conn.(*encryption.XorConn); ok {
 			return xorConn, nil, nil // full-random xorConn should not be penetrated
 		}
+		if trackedConn, ok := conn.(*internet.TrackedConn); ok {
+			conn = trackedConn.Conn
+		}
 		statConn, ok := conn.(*internet.StatCouterConnection)
 		if ok {
 			conn = statConn.Connection
