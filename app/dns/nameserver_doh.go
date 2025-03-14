@@ -113,6 +113,7 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 		}
 	}
 	s.httpClient = s.newHTTPClient()
+
 	newError("DNS: created Local DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }
@@ -130,6 +131,15 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 		Execute:  s.Cleanup,
 	}
 	return s
+}
+
+func (s *DoHNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.
