@@ -222,6 +222,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 func NewPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
@@ -271,6 +274,9 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination, ipToDomain *sync.Map) buf.Writer {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
