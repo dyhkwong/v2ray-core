@@ -47,6 +47,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 // NewH3LocalNameServer creates DOH client object for local resolving
 func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
+
 	s := baseDOHNameServer(url, "H3L", "quic")
 	s.httpClient = &http.Client{
 		Transport: &http3.Transport{

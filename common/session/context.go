@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 )
 
@@ -18,6 +19,7 @@ const (
 	trackedConnectionErrorKey
 	handlerSessionKey // nolint: varcheck
 	dispatcherKey
+	connectionPoolKey
 )
 
 // ContextWithID returns a new context with the given ID.
@@ -144,6 +146,17 @@ func ContextWithDispatcher(ctx context.Context, dispatcher routing.Dispatcher) c
 func DispatcherFromContext(ctx context.Context) routing.Dispatcher {
 	if dispatcher, ok := ctx.Value(dispatcherKey).(routing.Dispatcher); ok {
 		return dispatcher
+	}
+	return nil
+}
+
+func ContextWithConnectionPool(ctx context.Context, connectionPool *track.ConnectionPool) context.Context {
+	return context.WithValue(ctx, connectionPoolKey, connectionPool)
+}
+
+func ConnectionPoolFromContext(ctx context.Context) *track.ConnectionPool {
+	if connectionPool, ok := ctx.Value(connectionPoolKey).(*track.ConnectionPool); ok {
+		return connectionPool
 	}
 	return nil
 }
