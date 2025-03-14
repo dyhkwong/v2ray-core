@@ -127,6 +127,18 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 	return s
 }
 
+func (s *ClassicNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ip4 = nil
+	s.ip6 = nil
+	s.requests = nil
+	s.tcpServer.Close()
+	s.Unlock()
+	return nil
+}
+
 // Name implements Server.
 func (s *ClassicNameServer) Name() string {
 	return s.name

@@ -104,6 +104,19 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 	return s, nil
 }
 
+func (s *QUICNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	s.ip4 = nil
+	s.ip6 = nil
+	s.Unlock()
+	return nil
+}
+
 // Name returns client name
 func (s *QUICNameServer) Name() string {
 	return s.name
