@@ -4,6 +4,7 @@ package router
 
 import (
 	"context"
+	"sync"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -18,10 +19,15 @@ import (
 
 // Router is an implementation of routing.Router.
 type Router struct {
+	sync.Mutex
 	domainStrategy DomainStrategy
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
+
+	closed    bool
+	taskCount uint64
+	done      chan interface{}
 }
 
 // Route is an implementation of routing.Route.
@@ -67,6 +73,8 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 		r.rules = append(r.rules, rr)
 	}
 
+	r.done = make(chan interface{})
+
 	return nil
 }
 
@@ -84,6 +92,21 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
+	if r.closed {
+		return nil, nil, newError("router closed")
+	}
+	r.Lock()
+	r.taskCount++
+	r.Unlock()
+	defer func() {
+		r.Lock()
+		r.taskCount--
+		if r.taskCount == 0 && r.closed {
+			close(r.done)
+		}
+		r.Unlock()
+	}()
+
 	// SkipDNSResolve is set from DNS module.
 	// the DOH remote server maybe a domain name,
 	// this prevents cycle resolving dead loop
@@ -122,6 +145,18 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
+	r.closed = true
+	r.Lock()
+	if r.taskCount == 0 {
+		close(r.done)
+	}
+	r.Unlock()
+	go func() {
+		<-r.done
+		r.balancers = nil
+		r.rules = nil
+		r.dns = nil
+	}()
 	return nil
 }
 
