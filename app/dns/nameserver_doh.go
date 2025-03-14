@@ -19,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -36,6 +37,8 @@ type DoHNameServer struct {
 	dohURL     string
 	name       string
 	protocol   string
+
+	connectionPool *track.ConnectionPool
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
@@ -78,6 +81,8 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
 	s := baseDOHNameServer(url, "DOHL", "tls")
+	connectionPool := track.NewConnectionPool()
+	s.connectionPool = connectionPool
 	tr := &http.Transport{
 		IdleConnTimeout:   90 * time.Second,
 		ForceAttemptHTTP2: true,
@@ -86,6 +91,7 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 			if err != nil {
 				return nil, err
 			}
+			ctx = session.ContextWithConnectionPool(ctx, connectionPool)
 			conn, err := internet.DialSystem(ctx, dest, nil)
 			if err != nil {
 				return nil, err
@@ -114,6 +120,18 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 		Execute:  s.Cleanup,
 	}
 	return s
+}
+
+func (s *DoHNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
+	}
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.
