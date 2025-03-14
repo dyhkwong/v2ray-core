@@ -116,6 +116,15 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 	return s
 }
 
+func (s *DoHNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.Unlock()
+	return nil
+}
+
 // Name implements Server.
 func (s *DoHNameServer) Name() string {
 	return s.name
