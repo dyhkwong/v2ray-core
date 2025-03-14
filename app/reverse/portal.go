@@ -195,6 +195,13 @@ func (p *StaticMuxPicker) AddWorker(worker *PortalWorker) {
 	p.workers = append(p.workers, worker)
 }
 
+func (p *StaticMuxPicker) Close() error {
+	p.access.Lock()
+	defer p.access.Unlock()
+	p.cTask.Close()
+	return nil
+}
+
 type PortalWorker struct {
 	client   *mux.ClientWorker
 	control  *task.Periodic
