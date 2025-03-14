@@ -98,6 +98,15 @@ func baseTCPNameServer(url *url.URL, prefix string, port net.Port, protocol stri
 	return s, nil
 }
 
+func (s *TCPNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.Unlock()
+	return nil
+}
+
 // Name implements Server.
 func (s *TCPNameServer) Name() string {
 	return s.name
