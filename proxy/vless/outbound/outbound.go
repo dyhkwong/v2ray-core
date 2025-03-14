@@ -164,6 +164,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	defer conn.Close()
 
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.Conn
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
