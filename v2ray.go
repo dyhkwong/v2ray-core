@@ -5,6 +5,8 @@ package core
 import (
 	"context"
 	"reflect"
+	"runtime"
+	"runtime/debug"
 	sync "sync"
 
 	"github.com/v2fly/v2ray-core/v4/common"
@@ -202,6 +204,11 @@ func NewWithContext(ctx context.Context, config *Config) (*Instance, error) {
 }
 
 func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
+	defer func() {
+		runtime.GC()
+		debug.FreeOSMemory()
+	}()
+
 	if config.Transport != nil {
 		features.PrintDeprecatedFeatureWarning("global transport settings")
 	}
