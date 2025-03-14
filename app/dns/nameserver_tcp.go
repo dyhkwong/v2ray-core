@@ -19,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -35,6 +36,8 @@ type TCPNameServer struct {
 	reqID       uint32
 	dial        func(context.Context) (net.Conn, error)
 	protocol    string
+
+	connectionPool *track.ConnectionPool
 }
 
 // NewTCPNameServer creates DNS over TCP server object for remote resolving.
@@ -65,8 +68,10 @@ func NewTCPLocalNameServer(url *url.URL) (*TCPNameServer, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	connectionPool := track.NewConnectionPool()
+	s.connectionPool = connectionPool
 	s.dial = func(ctx context.Context) (net.Conn, error) {
+		ctx = session.ContextWithConnectionPool(ctx, connectionPool)
 		return internet.DialSystem(ctx, s.destination, nil)
 	}
 
@@ -96,6 +101,18 @@ func baseTCPNameServer(url *url.URL, prefix string, port net.Port, protocol stri
 	}
 
 	return s, nil
+}
+
+func (s *TCPNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
+	}
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.

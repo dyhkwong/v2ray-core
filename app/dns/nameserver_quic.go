@@ -20,6 +20,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -42,6 +43,8 @@ type QUICNameServer struct {
 	destination net.Destination
 	connection  *quic.Conn
 	dispatcher  routing.Dispatcher
+
+	connectionPool *track.ConnectionPool
 }
 
 // NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
@@ -92,6 +95,8 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 		pub:         pubsub.NewService(),
 		name:        url.String(),
 		destination: dest,
+
+		connectionPool: track.NewConnectionPool(),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -99,6 +104,21 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 	}
 
 	return s, nil
+}
+
+func (s *QUICNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
+	}
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name returns client name
@@ -513,7 +533,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 	}
 
-	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
+	rawConn, err := internet.DialSystem(session.ContextWithConnectionPool(ctx, s.connectionPool), s.destination, nil)
 	if err != nil {
 		return nil, err
 	}
