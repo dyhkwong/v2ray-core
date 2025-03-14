@@ -3,6 +3,7 @@ package outbound
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	sing_mux "github.com/sagernet/sing-mux"
 	"github.com/sagernet/sing/common/bufio"
@@ -60,19 +61,22 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx               context.Context
-	tag               string
-	senderSettings    *proxyman.SenderConfig
-	streamSettings    *internet.MemoryStreamConfig
-	proxy             proxy.Outbound
-	outboundManager   outbound.Manager
-	mux               *mux.ClientManager
-	smux              *sing_mux.Client
-	uplinkCounter     stats.Counter
-	downlinkCounter   stats.Counter
-	dns               dns.Client
-	fakedns           dns.FakeDNSEngine
-	muxPacketEncoding packetaddr.PacketAddrType
+	ctx                  context.Context
+	tag                  string
+	senderSettings       *proxyman.SenderConfig
+	streamSettings       *internet.MemoryStreamConfig
+	proxy                proxy.Outbound
+	outboundManager      outbound.Manager
+	mux                  *mux.ClientManager
+	smux                 *sing_mux.Client
+	uplinkCounter        stats.Counter
+	downlinkCounter      stats.Counter
+	dns                  dns.Client
+	fakedns              dns.FakeDNSEngine
+	muxPacketEncoding    packetaddr.PacketAddrType
+	pool                 *internet.ConnectionPool
+	closed               atomic.Bool
+	transportEnvironment environment.TransportEnvironment
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -85,6 +89,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		outboundManager: v.GetFeature(outbound.ManagerType()).(outbound.Manager),
 		uplinkCounter:   uplinkCounter,
 		downlinkCounter: downlinkCounter,
+		pool:            internet.NewConnectionPool(),
 	}
 
 	if config.SenderSettings != nil {
@@ -191,6 +196,13 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 			}
 		}
 	}
+
+	proxyEnvironment := envctx.EnvironmentFromContext(ctx).(environment.ProxyEnvironment)
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
+	if err != nil {
+		return nil, newError("unable to narrow environment to transport").Base(err)
+	}
+	h.transportEnvironment = transportEnvironment
 
 	return h, nil
 }
@@ -360,6 +372,9 @@ func (h *Handler) Address() net.Address {
 
 // Dial implements internet.Dialer.
 func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Connection, error) {
+	if h.closed.Load() {
+		return nil, newError("handler closed")
+	}
 	if h.senderSettings != nil {
 		if h.senderSettings.ProxySettings.HasTag() && !h.senderSettings.ProxySettings.TransportLayerProxy {
 			tag := h.senderSettings.ProxySettings.Tag
@@ -389,7 +404,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 					}
 				}
 
-				return h.getStatCouterConnection(conn), nil
+				return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
 			}
 
 			newError("failed to get outbound handler with tag: ", tag).AtWarning().WriteToLog(session.ExportIDToError(ctx))
@@ -430,17 +445,15 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 			return nil, newError("unable to listen socket").Base(err)
 		}
 		conn := packetaddr.ToPacketAddrConnWrapper(packetConn, isStream)
-		return h.getStatCouterConnection(conn), nil
+		return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
 	}
 
-	proxyEnvironment := envctx.EnvironmentFromContext(h.ctx).(environment.ProxyEnvironment)
-	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
-	if err != nil {
-		return nil, newError("unable to narrow environment to transport").Base(err)
-	}
-	ctx = envctx.ContextWithEnvironment(ctx, transportEnvironment)
+	ctx = envctx.ContextWithEnvironment(ctx, h.transportEnvironment)
 	conn, err := internet.Dial(ctx, dest, h.streamSettings)
-	return h.getStatCouterConnection(conn), err
+	if err != nil {
+		return nil, err
+	}
+	return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), err
 }
 
 func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address, strategy proxyman.SenderConfig_DomainStrategy) net.Address {
@@ -515,15 +528,22 @@ func (h *Handler) Start() error {
 
 // Close implements common.Closable.
 func (h *Handler) Close() error {
-	common.Close(h.mux)
+	h.closed.Store(true)
+	h.pool.ResetConnections()
+
+	if h.mux != nil {
+		common.Close(h.mux)
+	}
 	if h.smux != nil {
 		common.Close(h.smux)
 	}
 
 	if closableProxy, ok := h.proxy.(common.Closable); ok {
 		if err := closableProxy.Close(); err != nil {
-			return newError("unable to close proxy").Base(err)
+			newError("unable to close proxy").Base(err).AtError().WriteToLog()
 		}
 	}
+
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 	return nil
 }
