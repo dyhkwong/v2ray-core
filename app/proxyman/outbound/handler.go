@@ -21,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/singbridge"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -60,19 +61,22 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx               context.Context
-	tag               string
-	senderSettings    *proxyman.SenderConfig
-	streamSettings    *internet.MemoryStreamConfig
-	proxy             proxy.Outbound
-	outboundManager   outbound.Manager
-	mux               *mux.ClientManager
-	smux              *sing_mux.Client
-	uplinkCounter     stats.Counter
-	downlinkCounter   stats.Counter
-	dns               dns.Client
-	fakedns           dns.FakeDNSEngine
-	muxPacketEncoding packetaddr.PacketAddrType
+	ctx                  context.Context
+	tag                  string
+	senderSettings       *proxyman.SenderConfig
+	streamSettings       *internet.MemoryStreamConfig
+	proxy                proxy.Outbound
+	outboundManager      outbound.Manager
+	mux                  *mux.ClientManager
+	smux                 *sing_mux.Client
+	uplinkCounter        stats.Counter
+	downlinkCounter      stats.Counter
+	dns                  dns.Client
+	fakedns              dns.FakeDNSEngine
+	muxPacketEncoding    packetaddr.PacketAddrType
+	closed               bool
+	transportEnvironment environment.TransportEnvironment
+	connectionPool       *track.ConnectionPool
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -191,6 +195,15 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 			}
 		}
 	}
+
+	proxyEnvironment := envctx.EnvironmentFromContext(ctx).(environment.ProxyEnvironment)
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
+	if err != nil {
+		return nil, newError("unable to narrow environment to transport").Base(err)
+	}
+	h.transportEnvironment = transportEnvironment
+
+	h.connectionPool = track.NewConnectionPool()
 
 	return h, nil
 }
@@ -360,6 +373,9 @@ func (h *Handler) Address() net.Address {
 
 // Dial implements internet.Dialer.
 func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Connection, error) {
+	if h.closed {
+		return nil, newError("handler closed")
+	}
 	if h.senderSettings != nil {
 		if h.senderSettings.ProxySettings.HasTag() && !h.senderSettings.ProxySettings.TransportLayerProxy {
 			tag := h.senderSettings.ProxySettings.Tag
@@ -433,13 +449,12 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 		return h.getStatCouterConnection(conn), nil
 	}
 
-	proxyEnvironment := envctx.EnvironmentFromContext(h.ctx).(environment.ProxyEnvironment)
-	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
-	if err != nil {
-		return nil, newError("unable to narrow environment to transport").Base(err)
-	}
-	ctx = envctx.ContextWithEnvironment(ctx, transportEnvironment)
+	ctx = envctx.ContextWithEnvironment(ctx, h.transportEnvironment)
+	ctx = session.ContextWithConnectionPool(ctx, h.connectionPool)
 	conn, err := internet.Dial(ctx, dest, h.streamSettings)
+	if err != nil {
+		return nil, err
+	}
 	return h.getStatCouterConnection(conn), err
 }
 
@@ -515,15 +530,22 @@ func (h *Handler) Start() error {
 
 // Close implements common.Closable.
 func (h *Handler) Close() error {
-	common.Close(h.mux)
+	h.closed = true
+	h.connectionPool.ResetConnections()
+
+	if h.mux != nil {
+		common.Close(h.mux)
+	}
 	if h.smux != nil {
 		common.Close(h.smux)
 	}
 
 	if closableProxy, ok := h.proxy.(common.Closable); ok {
 		if err := closableProxy.Close(); err != nil {
-			return newError("unable to close proxy").Base(err)
+			newError("unable to close proxy").Base(err).AtError().WriteToLog()
 		}
 	}
+
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 	return nil
 }
