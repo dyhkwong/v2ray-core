@@ -308,6 +308,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 	}
 
 	iConn := rawConn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
 		iConn = statConn.Connection
 	}
