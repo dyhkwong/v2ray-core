@@ -232,6 +232,9 @@ func (c *Client) makeVirtualTun() (Tunnel, error) {
 
 func newPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
@@ -281,6 +284,9 @@ func (r *packetReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domainStrategy ClientConfig_DomainStrategy, hasIPv4, hasIPv6 bool, ipToDomain *sync.Map) buf.Writer {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
