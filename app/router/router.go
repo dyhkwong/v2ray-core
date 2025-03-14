@@ -3,7 +3,9 @@ package router
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"container/list"
 	"context"
+	"sync"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -22,6 +24,11 @@ type Router struct {
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
+
+	closed   bool
+	mu       sync.Mutex
+	taskList list.List
+	done     chan any
 }
 
 // Route is an implementation of routing.Route.
@@ -67,6 +74,8 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 		r.rules = append(r.rules, rr)
 	}
 
+	r.done = make(chan any)
+
 	return nil
 }
 
@@ -84,6 +93,21 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
+	if r.closed {
+		return nil, nil, newError("router closed")
+	}
+	r.mu.Lock()
+	elem := r.taskList.PushBack(nil)
+	r.mu.Unlock()
+	defer func() {
+		r.mu.Lock()
+		r.taskList.Remove(elem)
+		if r.taskList.Len() == 0 && r.closed {
+			close(r.done)
+		}
+		r.mu.Unlock()
+	}()
+
 	// SkipDNSResolve is set from DNS module.
 	// the DOH remote server maybe a domain name,
 	// this prevents cycle resolving dead loop
@@ -122,6 +146,18 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
+	r.closed = true
+	r.mu.Lock()
+	if r.taskList.Len() == 0 {
+		close(r.done)
+	}
+	r.mu.Unlock()
+	go func() {
+		<-r.done
+		r.balancers = nil
+		r.rules = nil
+		r.dns = nil
+	}()
 	return nil
 }
 
