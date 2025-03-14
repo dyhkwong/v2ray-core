@@ -305,3 +305,10 @@ func (c *Client) MatchExpectedIPs(domain string, ips []net.IP) ([]net.IP, error)
 	newError("domain ", domain, " expectIPs ", newIps, " matched at server ", c.Name()).AtDebug().WriteToLog()
 	return newIps, nil
 }
+
+func (c *Client) Close() error {
+	c.domains = nil
+	c.expectIPs = nil
+	c.fakeDNS = nil
+	return nil
+}
