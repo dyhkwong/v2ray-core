@@ -213,6 +213,9 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 
 	var readCounter, writeCounter stats.Counter
 	iConn := rawConn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.NetConn()
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
