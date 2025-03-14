@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 
@@ -102,9 +101,6 @@ func executeRun(cmd *base.Command, args []string) {
 		base.Fatalf("Failed to start: %s", err)
 	}
 	defer server.Close()
-
-	// Explicitly triggering GC to remove garbage from config loading.
-	runtime.GC()
 
 	{
 		osSignals := make(chan os.Signal, 1)
