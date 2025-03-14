@@ -103,3 +103,15 @@ func (s *Service) Publish(name string, message interface{}) {
 		}
 	}
 }
+
+func (s *Service) Close() error {
+	s.Lock()
+	for _, subs := range s.subs {
+		for _, sub := range subs {
+			sub.Close()
+		}
+	}
+	s.ctask.Close()
+	s.Unlock()
+	return nil
+}
