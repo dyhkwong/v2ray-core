@@ -233,6 +233,12 @@ func (s *DNS) Start() error {
 
 // Close implements common.Closable.
 func (s *DNS) Close() error {
+	for _, client := range s.clients {
+		client.Close()
+	}
+	s.hosts = nil
+	s.domainMatcher = nil
+	s.clients = nil
 	return nil
 }
 

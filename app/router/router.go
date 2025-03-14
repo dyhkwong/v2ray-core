@@ -122,6 +122,9 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
+	r.balancers = nil
+	r.rules = nil
+	r.dns = nil
 	return nil
 }
 
