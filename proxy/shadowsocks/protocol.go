@@ -120,6 +120,7 @@ func WriteTCPRequest(request *protocol.RequestHeader, writer io.Writer, iv []byt
 	header := buf.New()
 
 	if err := addrParser.WriteAddressPort(header, request.Address, request.Port); err != nil {
+		header.Release()
 		return nil, newError("failed to write address").Base(err)
 	}
 
@@ -307,6 +308,7 @@ type UDPWriter struct {
 }
 
 func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
 	for _, buffer := range mb {
 		if buffer == nil {
 			continue
@@ -320,15 +322,12 @@ func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			}
 		}
 		packet, err := EncodeUDPPacket(request, buffer.Bytes(), w.Plugin)
-		buffer.Release()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 		_, err = w.Writer.Write(packet.Bytes())
 		packet.Release()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 	}

@@ -73,6 +73,9 @@ func (c *packetConnectionAdaptor) ReadFrom(p []byte) (n int, addr gonet.Addr, er
 	c.readerBuffer, n = buf.SplitFirstBytes(c.readerBuffer, p)
 	var w *buf.Buffer
 	w, addr, err = ExtractAddressFromPacket(buf.FromBytes(p[:n]))
+	if err != nil {
+		return 0, nil, err
+	}
 	n = copy(p, w.Bytes())
 	w.Release()
 	return
@@ -88,6 +91,7 @@ func (c *packetConnectionAdaptor) WriteTo(p []byte, addr gonet.Addr) (n int, err
 	var buffer *buf.Buffer
 	buffer, err = AttachAddressToPacket(buf.FromBytes(p), addr)
 	if err != nil {
+		buffer.Release()
 		return 0, err
 	}
 	mb := buf.MultiBuffer{buffer}
@@ -143,11 +147,13 @@ func (pc *packetConnWrapper) Read(p []byte) (n int, err error) {
 	recbuf.Extend(buf.Size)
 	n, addr, err := pc.PacketConn.ReadFrom(recbuf.Bytes())
 	if err != nil {
+		recbuf.Release()
 		return 0, err
 	}
 	recbuf.Resize(0, int32(n))
 	result, err := AttachAddressToPacket(&recbuf, addr)
 	if err != nil {
+		recbuf.Release()
 		return 0, err
 	}
 	n = copy(p, result.Bytes())
@@ -161,10 +167,10 @@ func (pc *packetConnWrapper) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 	_, err = pc.PacketConn.WriteTo(data.Bytes(), addr)
+	data.Release()
 	if err != nil {
 		return 0, err
 	}
-	data.Release()
 	return len(p), nil
 }
 

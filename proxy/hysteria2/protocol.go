@@ -96,6 +96,7 @@ type PacketWriter struct {
 
 // WriteMultiBuffer implements buf.Writer
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
 	for _, b := range mb {
 		if b.IsEmpty() {
 			continue
@@ -105,7 +106,6 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			target = b.Endpoint
 		}
 		if _, err := w.writePacket(b.Bytes(), *target); err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 	}
@@ -115,12 +115,12 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 
 // WriteMultiBufferWithMetadata writes udp packet with destination specified
 func (w *PacketWriter) WriteMultiBufferWithMetadata(mb buf.MultiBuffer, dest net.Destination) error {
+	defer buf.ReleaseMulti(mb)
 	for _, b := range mb {
 		if b.IsEmpty() {
 			continue
 		}
 		if _, err := w.writePacket(b.Bytes(), dest); err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 	}
@@ -154,6 +154,7 @@ func (c *ConnReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	b := buf.New()
 	_, err := b.ReadFrom(c)
 	if err != nil {
+		b.Release()
 		return nil, err
 	}
 	return buf.MultiBuffer{b}, nil

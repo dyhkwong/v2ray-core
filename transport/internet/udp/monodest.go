@@ -68,6 +68,7 @@ func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 }
 
 func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(buffer)
 	for _, b := range buffer {
 		dest := m.dest
 		if b.Endpoint != nil {
@@ -82,7 +83,6 @@ func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 			return err
 		}
 	}
-	buf.ReleaseMulti(buffer)
 	return nil
 }
 

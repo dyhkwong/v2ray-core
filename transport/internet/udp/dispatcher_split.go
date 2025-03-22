@@ -84,6 +84,7 @@ func (v *Dispatcher) Dispatch(ctx context.Context, destination net.Destination, 
 
 	conn, err := v.getInboundRay(ctx, destination)
 	if err != nil {
+		payload.Release()
 		return
 	}
 	outputStream := conn.link.Writer
@@ -113,7 +114,6 @@ func handleInput(ctx context.Context, conn *connEntry, dest net.Destination, cal
 
 		mb, err := input.ReadMultiBuffer()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			newError("failed to handle UDP input").Base(err).WriteToLog(session.ExportIDToError(ctx))
 			return
 		}

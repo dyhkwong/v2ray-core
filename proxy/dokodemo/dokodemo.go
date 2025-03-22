@@ -234,6 +234,7 @@ type PacketWriter struct {
 }
 
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
 	for _, buffer := range mb {
 		if buffer == nil {
 			continue
@@ -251,7 +252,6 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				)
 				if err != nil {
 					newError(err).WriteToLog()
-					buffer.Release()
 					continue
 				}
 				w.conns[*buffer.Endpoint] = conn
@@ -262,12 +262,9 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				w.conns[*buffer.Endpoint] = nil
 				conn.Close()
 			}
-			buffer.Release()
 		} else {
 			_, err = w.conn.WriteTo(buffer.Bytes(), w.back)
-			buffer.Release()
 			if err != nil {
-				buf.ReleaseMulti(mb)
 				return err
 			}
 		}

@@ -183,10 +183,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := reader.ReadMessage()
 			if err == io.EOF {
+				b.Release()
 				return nil
 			}
 
 			if err != nil {
+				b.Release()
 				return err
 			}
 
@@ -197,10 +199,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 				if isIPQuery {
 					if domain, err := strmatcher.ToDomain(domain); err == nil {
 						go h.handleIPQuery(id, qType, domain, writer)
+						b.Release()
 						continue
 					}
 				} else {
-					go h.handleRawQuery(b, writer)
+					go h.handleRawQuery(b.Bytes(), writer)
+					b.Release()
 					continue
 				}
 			}
@@ -215,10 +219,12 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := connReader.ReadMessage()
 			if err == io.EOF {
+				b.Release()
 				return nil
 			}
 
 			if err != nil {
+				b.Release()
 				return err
 			}
 
@@ -237,9 +243,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 	return nil
 }
 
-func (h *Handler) handleRawQuery(buffer *buf.Buffer, writer dns_proto.MessageWriter) {
+func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
 	if rawQuery, ok := h.client.(dns.RawQuery); ok {
-		resp, err := rawQuery.QueryRaw(buffer.Bytes())
+		resp, err := rawQuery.QueryRaw(b)
 		if err != nil {
 			newError(err).AtError().WriteToLog()
 			return

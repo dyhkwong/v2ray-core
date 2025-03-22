@@ -25,7 +25,7 @@ func (r *BufReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 				endpoint = &r.dest
 			}
 			if endpoint.Address.Family().IsDomain() {
-				buffer.Release()
+				buf.ReleaseMulti(mb)
 				return nil, newError("PacketAddr does not support domain name").AtError()
 			}
 			packet, err := AttachAddressToPacket(buffer, &net.UDPAddr{
@@ -33,12 +33,14 @@ func (r *BufReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 				Port: int(endpoint.Port),
 			})
 			if err != nil {
+				buf.ReleaseMulti(mb)
 				return nil, newError("failed to attach address to packet").Base(err)
 			}
 			buffer = packet
 		} else {
 			extracted, addr, err := ExtractAddressFromPacket(buffer)
 			if err != nil {
+				buf.ReleaseMulti(mb)
 				return nil, newError("failed to extract address from packet").Base(err)
 			}
 			udpAddr := addr.(*net.UDPAddr)
@@ -81,6 +83,7 @@ func (w *BufWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if w.reverse {
 			extracted, addr, err := ExtractAddressFromPacket(buffer)
 			if err != nil {
+				buf.ReleaseMulti(mb)
 				return newError("failed to extract address from packet").Base(err)
 			}
 			udpAddr := addr.(*net.UDPAddr)
@@ -96,7 +99,7 @@ func (w *BufWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				dest = buffer.Endpoint
 			}
 			if dest.Address.Family().IsDomain() {
-				buffer.Release()
+				buf.ReleaseMulti(mb)
 				return newError("PacketAddr does not support domain name").AtError()
 			}
 			packet, err := AttachAddressToPacket(buffer, &net.UDPAddr{
@@ -104,6 +107,7 @@ func (w *BufWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				Port: int(dest.Port),
 			})
 			if err != nil {
+				buf.ReleaseMulti(mb)
 				return newError("failed to attach address to packet").Base(err)
 			}
 			buffer = packet

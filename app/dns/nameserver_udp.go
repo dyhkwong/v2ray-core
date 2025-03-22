@@ -165,6 +165,7 @@ func (s *ClassicNameServer) Cleanup() error {
 
 // HandleResponse handles udp response packet from remote DNS server.
 func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_proto.Packet) {
+	defer packet.Payload.Release()
 	msg := new(dnsmessage.Message)
 	if err := msg.Unpack(packet.Payload.Bytes()); err == nil {
 		s.Lock()
@@ -204,6 +205,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 			newError(err).AtError().WriteToLog()
 			return
 		}
+		defer b.Release()
 		response, err := s.tcpServer.QueryRaw(ctx, b.Bytes())
 		if err != nil {
 			newError("failed to send DNS query over TCP").Base(err).AtError().WriteToLog()

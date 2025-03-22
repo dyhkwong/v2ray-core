@@ -62,10 +62,8 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 	config := streamSettings.ProtocolSettings.(*Config)
 	if reality.ConfigFromStreamSettings(streamSettings) == nil && config.UseBrowserForwarding {
 		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
-		var dialer extension.BrowserDialer
-		common.Must(core.RequireFeatures(ctx, func(d extension.BrowserDialer) { dialer = d }))
 		return &BrowserDialerClient{
-			dialer:          dialer,
+			dialer:          core.MustFromContext(ctx).GetFeature(extension.BrowserDialerType()).(extension.BrowserDialer),
 			transportConfig: config,
 		}, nil
 	}
@@ -412,10 +410,11 @@ func (w uploadWriter) Write(b []byte) (int, error) {
 	buffer := buf.New()
 	n, err := buffer.Write(b)
 	if err != nil {
+		buffer.Release()
 		return 0, err
 	}
 
-	err = w.WriteMultiBuffer([]*buf.Buffer{buffer})
+	err = w.WriteMultiBuffer(buf.MultiBuffer{buffer})
 	if err != nil {
 		return 0, err
 	}

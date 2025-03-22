@@ -336,6 +336,7 @@ type PacketWriter struct {
 }
 
 func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
 	for _, b := range mb {
 		if b == nil {
 			continue
@@ -368,7 +369,6 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		}
 		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if destAddr == nil {
-			b.Release()
 			continue
 		}
 		if w.dest.Address.Family().IsDomain() && w.dest.Address == originalDest.Address && !w.addrPort.Addr.IsValid() {
@@ -376,9 +376,7 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			w.addrPort.Port = net.Port(destAddr.Port)
 		}
 		n, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
-		b.Release()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 		if w.counter != nil {

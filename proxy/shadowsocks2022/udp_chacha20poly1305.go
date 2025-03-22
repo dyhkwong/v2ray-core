@@ -73,11 +73,13 @@ func (p *Chacha20Poly1305UDPClientPacketProcessor) DecodeUDPResp(input []byte, r
 	decryptedDest := decryptedDestBuffer.Extend(int32(len(input)) - 24 - int32(p.Cipher.Overhead()))
 	_, err := p.Cipher.Open(decryptedDest[:0], input[:24], input[24:], nil)
 	if err != nil {
+		decryptedDestBuffer.Release()
 		return newError("failed to open packet").Base(err)
 	}
 	decryptedDestReader := bytes.NewReader(decryptedDest)
 	headerStruct := chacha20poly1305RespHeader{}
 	if err := struc.Unpack(decryptedDestReader, &headerStruct); err != nil {
+		decryptedDestBuffer.Release()
 		return newError("failed to unpack header").Base(err)
 	}
 	resp.TimeStamp = headerStruct.TimeStamp
@@ -88,6 +90,7 @@ func (p *Chacha20Poly1305UDPClientPacketProcessor) DecodeUDPResp(input []byte, r
 	var port net.Port
 	resp.Address, port, err = addrParser.ReadAddressPort(addressReaderBuf, decryptedDestReader)
 	if err != nil {
+		decryptedDestBuffer.Release()
 		return newError("failed to read address port").Base(err)
 	}
 	resp.Port = int(port)

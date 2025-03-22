@@ -519,7 +519,7 @@ func Test_maxUpload(t *testing.T) {
 	listen, err := ListenSH(context.Background(), net.LocalHostIP, listenPort, streamSettings, func(conn internet.Connection) {
 		go func(c internet.Connection) {
 			defer c.Close()
-			var b [10240]byte
+			var b [buf.Size]byte
 			c.SetReadDeadline(time.Now().Add(2 * time.Second))
 			n, err := c.Read(b[:])
 			if err != nil {
@@ -550,11 +550,11 @@ func Test_maxUpload(t *testing.T) {
 	conn, err := Dial(ctx, net.TCPDestination(net.LocalHostIP, listenPort), streamSettings)
 
 	// send a slightly too large upload
-	var upload [10001]byte
+	var upload [buf.Size + 1]byte
 	_, err = conn.Write(upload[:])
 	common.Must(err)
 
-	var b [10240]byte
+	var b [buf.Size]byte
 	n, _ := io.ReadFull(conn, b[:])
 	fmt.Println("string is", n)
 	if string(b[:n]) != "Response" {
@@ -562,7 +562,7 @@ func Test_maxUpload(t *testing.T) {
 	}
 	common.Must(conn.Close())
 
-	if uploadSize > 10000 || uploadSize == 0 {
+	if uploadSize > buf.Size || uploadSize == 0 {
 		t.Error("incorrect upload size: ", uploadSize)
 	}
 

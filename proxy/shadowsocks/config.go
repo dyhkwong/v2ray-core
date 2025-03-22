@@ -452,13 +452,6 @@ func (c *AEADCipher) EncodePacket(key []byte, b *buf.Buffer) error {
 	payloadLen := b.Len()
 	auth := c.createAuthenticator(key, b.BytesTo(ivLen))
 
-	if int(payloadLen)+auth.Overhead() > buf.Size {
-		newBuf := buf.NewWithSize(payloadLen + int32(auth.Overhead()))
-		newBuf.Write(b.Bytes())
-		b.Release()
-		*b = *newBuf
-	}
-
 	b.Extend(int32(auth.Overhead()))
 	_, err := auth.Seal(b.BytesTo(ivLen), b.BytesRange(ivLen, payloadLen))
 	return err
@@ -639,6 +632,8 @@ func CipherFromString(c string) CipherType {
 		return CipherType_CAMELLIA_192_CFB8
 	case "camellia-256-cfb8":
 		return CipherType_CAMELLIA_256_CFB8
+	case "salsa20":
+		return CipherType_SALSA20
 	case "chacha20":
 		return CipherType_CHACHA20
 	case "chacha20-ietf":

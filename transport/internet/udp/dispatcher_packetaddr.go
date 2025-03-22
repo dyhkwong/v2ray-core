@@ -24,6 +24,7 @@ func (p PacketAddrDispatcher) Close() error {
 }
 
 func (p PacketAddrDispatcher) Dispatch(ctx context.Context, destination net.Destination, payload *buf.Buffer) {
+	defer payload.Release()
 	if destination.Network != net.Network_UDP {
 		return
 	}
@@ -41,6 +42,7 @@ func (p PacketAddrDispatcher) readWorker() {
 		readBuf := buf.New()
 		n, addr, err := p.conn.ReadFrom(readBuf.Extend(buf.Size))
 		if err != nil {
+			readBuf.Release()
 			return
 		}
 		readBuf.Resize(0, int32(n))

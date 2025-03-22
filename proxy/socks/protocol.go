@@ -382,10 +382,12 @@ func NewUDPReader(reader io.Reader) *UDPReader {
 func (r *UDPReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	b := buf.New()
 	if _, err := b.ReadFrom(r.reader); err != nil {
+		b.Release()
 		return nil, err
 	}
 	req, err := DecodeUDPPacket(b)
 	if err != nil {
+		b.Release()
 		return nil, err
 	}
 	dest := req.Destination()
@@ -423,6 +425,7 @@ func NewUDPWriter(request *protocol.RequestHeader, writer io.Writer) *UDPWriter 
 }
 
 func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
 	for _, b := range mb {
 		if b == nil {
 			continue
@@ -437,15 +440,12 @@ func (w *UDPWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			}
 		}
 		packet, err := EncodeUDPPacket(request, b.Bytes())
-		b.Release()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 		_, err = w.writer.Write(packet.Bytes())
 		packet.Release()
 		if err != nil {
-			buf.ReleaseMulti(mb)
 			return err
 		}
 	}
