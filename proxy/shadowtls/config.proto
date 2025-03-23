@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.shadowtls;
+option csharp_namespace = "V2Ray.Core.Proxy.ShadowTLS";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/shadowtls";
+option java_package = "com.v2ray.core.proxy.shadowtls";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+import "common/net/address.proto";
+import "transport/internet/tls/config.proto";
+
+message ClientConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "shadowtls";
+
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  string password = 3;
+  uint32 version = 4;
+  v2ray.core.transport.internet.tls.Config tls_settings = 5;
+}
