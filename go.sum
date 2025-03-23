@@ -217,6 +217,8 @@ github.com/sagernet/sing-shadowsocks v0.2.9 h1:Paep5zCszRKsEn8587O0MnhFWKJwDW1Y4
 github.com/sagernet/sing-shadowsocks v0.2.9/go.mod h1:TE/Z6401Pi8tgr0nBZcM/xawAI6u3F6TTbz4nH/qw+8=
 github.com/sagernet/sing-shadowsocks2 v0.2.2 h1:GUN6ttP3NSJL/bFJJZZezp9/o6DQdG9qWyQdRvOy2LY=
 github.com/sagernet/sing-shadowsocks2 v0.2.2/go.mod h1:ZAYv1VFjvnMK4QQJltuvoN52biUN76TdNwzyDjSRrzc=
+github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11 h1:tK+75l64tm9WvEFrYRE1t0YxoFdWQqw/h7Uhzj0vJ+w=
+github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11/go.mod h1:sWqKnGlMipCHaGsw1sTTlimyUpgzP4WP3pjhCsYt9oA=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771 h1:emzAzMZ1L9iaKCTxdy3Em8Wv4ChIAGnfiz18Cda70g4=
 github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771/go.mod h1:bR6DqgcAl1zTcOX8/pE2Qkj9XO00eCNqmKb7lXP8EAg=
