@@ -167,6 +167,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	}
 	if destination.Network == net.Network_UDP && h.config.Noises != nil {
 		iConn := conn
+		trackedConn, ok := iConn.(*internet.TrackedConn)
+		if ok {
+			iConn = trackedConn.Conn
+		}
 		statConn, ok := iConn.(*internet.StatCouterConnection)
 		if ok {
 			iConn = statConn.Connection
@@ -186,6 +190,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 					WriteCounter: statConn.WriteCounter,
 				}
 			}
+			if trackedConn != nil {
+				conn = internet.UpdateTrackedConn(trackedConn, conn)
+			}
 		case net.PacketConn:
 			noisePacketConn, err := internet.NewNoisePacketConn(c, h.config.Noises)
 			if err != nil {
@@ -201,6 +208,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 					ReadCounter:  statConn.ReadCounter,
 					WriteCounter: statConn.WriteCounter,
 				}
+			}
+			if trackedConn != nil {
+				conn = internet.UpdateTrackedConn(trackedConn, conn)
 			}
 		default:
 			noiseConn, err := internet.NewNoiseConn(conn, h.config.Noises)
@@ -275,6 +285,9 @@ type addrPort struct {
 
 func NewPacketReader(conn net.Conn, dest net.Destination, addrPort *addrPort) buf.Reader {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.Conn
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
@@ -326,6 +339,9 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination, addrPort *addrPort) buf.Writer {
 	iConn := conn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.Conn
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
