@@ -11,17 +11,19 @@ import (
 	"github.com/v2fly/v2ray-core/v5/app/policy"
 	. "github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/app/stats"
+	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
 	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/transientstorageimpl"
-	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/proxy/freedom"
+	"github.com/v2fly/v2ray-core/v5/testing/servers/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	_ "github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 )
 
 func TestInterfaces(t *testing.T) {
@@ -61,7 +63,12 @@ func TestOutboundWithoutStatCounter(t *testing.T) {
 		Tag:           "tag",
 		ProxySettings: serial.ToTypedMessage(&freedom.Config{}),
 	})
-	conn, _ := h.(*Handler).Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), 13146))
+	server := &tcp.Server{}
+	dest, err := server.Start()
+	common.Must(err)
+	defer server.Close()
+	conn, err := h.(*Handler).Dial(ctx, dest)
+	common.Must(err)
 	_, ok := conn.(*internet.StatCouterConnection)
 	if ok {
 		t.Errorf("Expected conn to not be StatCouterConnection")
@@ -98,7 +105,15 @@ func TestOutboundWithStatCounter(t *testing.T) {
 		Tag:           "tag",
 		ProxySettings: serial.ToTypedMessage(&freedom.Config{}),
 	})
-	conn, _ := h.(*Handler).Dial(ctx, net.TCPDestination(net.DomainAddress("localhost"), 13146))
+	server := &tcp.Server{}
+	dest, err := server.Start()
+	common.Must(err)
+	defer server.Close()
+	conn, err := h.(*Handler).Dial(ctx, dest)
+	common.Must(err)
+	if trackedConn, ok := conn.(*internet.TrackedConn); ok {
+		conn = trackedConn.Conn
+	}
 	_, ok := conn.(*internet.StatCouterConnection)
 	if !ok {
 		t.Errorf("Expected conn to be StatCouterConnection")
