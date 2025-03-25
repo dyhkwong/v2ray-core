@@ -477,6 +477,9 @@ func XtlsFilterTls(buffer buf.MultiBuffer, trafficState *TrafficState, ctx conte
 func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 	var readCounter, writerCounter stats.Counter
 	if conn != nil {
+		if trackedConn, ok := conn.(*internet.TrackedConn); ok {
+			conn = trackedConn.Conn
+		}
 		statConn, ok := conn.(*internet.StatCouterConnection)
 		if ok {
 			conn = statConn.Connection
