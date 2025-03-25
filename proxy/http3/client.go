@@ -218,6 +218,9 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 
 	var readCounter, writeCounter stats.Counter
 	iConn := rawConn
+	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
+		iConn = trackedConn.Conn
+	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
 		iConn = statConn.Connection
