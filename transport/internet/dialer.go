@@ -95,35 +95,48 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 		newError("dialing to ", dest, " resolved from ", originalAddr).WriteToLog(session.ExportIDToError(ctx))
 	}
 
-	conn, err := effectiveSystemDialer.Dial(ctx, src, dest, sockopt)
-	if err == nil {
-		if dest.Network == net.Network_TCP && sockopt != nil && sockopt.Fragment != nil {
-			return NewFragmentConn(conn, sockopt.Fragment)
+	rawConn, err := effectiveSystemDialer.Dial(ctx, src, dest, sockopt)
+	if err != nil {
+		return nil, err
+	}
+	if dest.Network == net.Network_TCP && sockopt != nil && sockopt.Fragment != nil {
+		fragmentConn, err := NewFragmentConn(rawConn, sockopt.Fragment)
+		if err != nil {
+			rawConn.Close()
+			return nil, err
 		}
-		if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
-			switch c := conn.(type) {
-			case *PacketConnWrapper:
-				noisePacketConn, err := NewNoisePacketConn(c.Conn, sockopt.Noises)
-				if err != nil {
-					return nil, err
-				}
-				c.Conn = noisePacketConn
-				return c, nil
-			case net.PacketConn:
-				noisePacketConn, err := NewNoisePacketConn(c, sockopt.Noises)
-				if err != nil {
-					return nil, err
-				}
-				return &PacketConnWrapper{
-					Conn: noisePacketConn,
-					Dest: conn.RemoteAddr(),
-				}, nil
-			default:
-				return NewNoiseConn(conn, sockopt.Noises)
+		return fragmentConn, nil
+	}
+	if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
+		switch conn := rawConn.(type) {
+		case *PacketConnWrapper:
+			noisePacketConn, err := NewNoisePacketConn(conn.Conn, sockopt.Noises)
+			if err != nil {
+				rawConn.Close()
+				return nil, err
 			}
+			conn.Conn = noisePacketConn
+			return conn, nil
+		case net.PacketConn:
+			noisePacketConn, err := NewNoisePacketConn(conn, sockopt.Noises)
+			if err != nil {
+				rawConn.Close()
+				return nil, err
+			}
+			return &PacketConnWrapper{
+				Conn: noisePacketConn,
+				Dest: rawConn.RemoteAddr(),
+			}, nil
+		default:
+			noiseConn, err := NewNoiseConn(conn, sockopt.Noises)
+			if err != nil {
+				rawConn.Close()
+				return nil, err
+			}
+			return noiseConn, nil
 		}
 	}
-	return conn, err
+	return rawConn, nil
 }
 
 func DialTaggedOutbound(ctx context.Context, dest net.Destination, tag string) (net.Conn, error) {

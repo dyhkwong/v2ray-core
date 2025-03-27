@@ -5,6 +5,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/bittorrent"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/http"
@@ -61,17 +62,20 @@ var errUnknownContent = newError("unknown content")
 func (s *Sniffer) Sniff(c context.Context, payload []byte, network net.Network) (SniffResult, error) {
 	var pendingSniffer []protocolSnifferWithMetadata
 	for _, si := range s.sniffer {
-		s := si.protocolSniffer
+		sniffer := si.protocolSniffer
 		if si.metadataSniffer {
 			continue
 		}
 		if si.network != network {
 			continue
 		}
-		result, err := s(c, payload)
+		result, err := sniffer(c, payload)
 		if err == common.ErrNoClue {
 			pendingSniffer = append(pendingSniffer, si)
 			continue
+		} else if err == protocol.ErrProtoNeedMoreData { // Sniffer protocol matched, but need more data to complete sniffing
+			s.sniffer = []protocolSnifferWithMetadata{si}
+			return nil, protocol.ErrProtoNeedMoreData
 		}
 
 		if err == nil && result != nil {

@@ -11,17 +11,18 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/miekg/dns v1.1.63
+	github.com/miekg/dns v1.1.64
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
-	github.com/quic-go/quic-go v0.50.0
+	github.com/quic-go/quic-go v0.50.1
 	github.com/refraction-networking/utls v1.6.7
-	github.com/sagernet/sing v0.6.3
+	github.com/sagernet/sing v0.6.4
 	github.com/sagernet/sing-quic v0.4.0
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
+	github.com/sagernet/sing-shadowtls v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
 	github.com/stretchr/testify v1.10.0
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
@@ -38,8 +39,8 @@ require (
 	golang.org/x/sys v0.31.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.5
-	gvisor.dev/gvisor v0.0.0-20250304193240-12d3e07d4ad6
+	google.golang.org/protobuf v1.36.6
+	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.4.0
 )
@@ -75,11 +76,11 @@ require (
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
-	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
+	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

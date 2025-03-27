@@ -61,6 +61,7 @@ var (
 		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ClientConfig) },
 		"wireguard":        func() interface{} { return new(WireGuardClientConfig) },
 		"tuic":             func() interface{} { return new(TuicClientConfig) },
+		"shadowtls":        func() interface{} { return new(ShadowTLSClientConfig) },
 		"anytls":           func() interface{} { return new(AnyTLSClientConfig) },
 	}, "protocol", "settings")
 )

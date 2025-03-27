@@ -46,7 +46,7 @@ func GetPool(size int32) *sync.Pool {
 	return nil
 }
 
-// Alloc returns a byte slice with at least the given size. Minimum size of returned slice is 32768.
+// Alloc returns a byte slice with at least the given size. Minimum size of returned slice is 16384.
 //
 // v2ray:api:stable
 func Alloc(size int32) []byte {
