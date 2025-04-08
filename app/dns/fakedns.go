@@ -29,12 +29,12 @@ func (s *FakeDNSClient) LookupIPv6(domain string) ([]net.IP, error) {
 }
 
 // LookupIPv4WithTTL implements dns.IPv4LookupWithTTL.
-func (s *FakeDNSClient) LookupIPv4WithTTL(domain string) ([]net.IP, uint32, time.Time, error) {
+func (s *FakeDNSClient) LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv4Enable: true, FakeEnable: true})
 }
 
 // LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
-func (s *FakeDNSClient) LookupIPv6WithTTL(domain string) ([]net.IP, uint32, time.Time, error) {
+func (s *FakeDNSClient) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: true})
 }
 

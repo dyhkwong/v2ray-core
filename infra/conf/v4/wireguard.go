@@ -135,9 +135,12 @@ func (c *WireGuardServerConfig) Build() (proto.Message, error) {
 }
 
 func parseWireGuardKey(key string) (string, error) {
+	if key == "" {
+		return "", newError("key must not be empty")
+	}
 	str, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return "", newError("invalid key")
+		return "", newError("invalid key: ", key)
 	}
 	return hex.EncodeToString(str), nil
 }

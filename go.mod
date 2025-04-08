@@ -4,22 +4,22 @@ go 1.23.1
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/anytls/sing-anytls v0.0.6
+	github.com/anytls/sing-anytls v0.0.7
 	github.com/apernet/hysteria/extras/v2 v2.6.1
 	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/miekg/dns v1.1.64
+	github.com/miekg/dns v1.1.65
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
 	github.com/quic-go/quic-go v0.50.1
 	github.com/refraction-networking/utls v1.6.7
-	github.com/sagernet/sing v0.6.4
-	github.com/sagernet/sing-quic v0.4.0
+	github.com/sagernet/sing v0.6.5
+	github.com/sagernet/sing-quic v0.4.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
 	github.com/sagernet/sing-shadowtls v0.2.0
@@ -33,14 +33,14 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463
 	go.uber.org/mock v0.5.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
-	golang.org/x/crypto v0.36.0
-	golang.org/x/net v0.37.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/sys v0.31.0
+	golang.org/x/crypto v0.37.0
+	golang.org/x/net v0.38.0
+	golang.org/x/sync v0.13.0
+	golang.org/x/sys v0.32.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
-	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20
+	gvisor.dev/gvisor v0.0.0-20250402222442-ae48befd1d56
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.4.0
 )
@@ -53,7 +53,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/gofrs/uuid/v5 v5.3.0 // indirect
+	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/pprof v0.0.0-20231101202521-4ca4178f5c7a // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect

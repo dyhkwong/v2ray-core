@@ -337,23 +337,22 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	}
 }
 
-func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, uint32, time.Time, error) {
+func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {
 	s.RLock()
 	record, found := s.ips[domain]
 	s.RUnlock()
 
 	if !found {
-		return nil, 0, time.Time{}, errRecordNotFound
+		return nil, time.Time{}, errRecordNotFound
 	}
 
 	var ips, a, aaaa []net.Address
-	var ttl uint32
 	var expireAt time.Time
 	var err, lastErr error
 	updated := false
 	if option.IPv4Enable {
-		a, ttl, expireAt, err = record.A.getIPsAndTTL()
-		if ttl == 0 {
+		a, expireAt, err = record.A.getIPs()
+		if record.A != nil && record.A.TTL == 0 {
 			record.A = nil
 			updated = true
 		}
@@ -364,8 +363,8 @@ func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOp
 	}
 
 	if option.IPv6Enable {
-		aaaa, ttl, expireAt, err = record.AAAA.getIPsAndTTL()
-		if ttl == 0 {
+		aaaa, expireAt, err = record.AAAA.getIPs()
+		if record.AAAA != nil && record.AAAA.TTL == 0 {
 			record.AAAA = nil
 			updated = true
 		}
@@ -383,27 +382,27 @@ func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOp
 
 	if len(ips) > 0 {
 		ips, err := toNetIP(ips)
-		return ips, ttl, expireAt, err
+		return ips, expireAt, err
 	}
 
 	if lastErr != nil {
-		return nil, ttl, expireAt, lastErr
+		return nil, expireAt, lastErr
 	}
 
-	return nil, ttl, expireAt, dns_feature.ErrEmptyResponse
+	return nil, expireAt, dns_feature.ErrEmptyResponse
 }
 
 // QueryIPWithTTL is called from dns.ServerWithTTL->queryIPTimeout
-func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, uint32, time.Time, error) {
+func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, time.Time, error) {
 	fqdn := Fqdn(domain)
 
 	if disableCache {
 		newError("DNS cache is disabled. Querying IP for ", domain, " at ", s.name).AtDebug().WriteToLog()
 	} else {
-		ips, ttl, expireAt, err := s.findIPsForDomain(fqdn, option)
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
 		if err != errRecordNotFound {
 			newError(s.name, " cache HIT ", domain, " -> ", ips).Base(err).AtDebug().WriteToLog()
-			return ips, ttl, expireAt, err
+			return ips, expireAt, err
 		}
 	}
 
@@ -436,14 +435,14 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
-		ips, ttl, expireAt, err := s.findIPsForDomain(fqdn, option)
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
 		if err != errRecordNotFound {
-			return ips, ttl, expireAt, err
+			return ips, expireAt, err
 		}
 
 		select {
 		case <-ctx.Done():
-			return nil, ttl, expireAt, ctx.Err()
+			return nil, expireAt, ctx.Err()
 		case <-done:
 		}
 	}
@@ -451,7 +450,7 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 
 // QueryIP is called from dns.Server->queryIPTimeout
 func (s *QUICNameServer) QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns_feature.IPOption, disableCache bool) ([]net.IP, error) {
-	ips, _, _, err := s.QueryIPWithTTL(ctx, domain, clientIP, option, disableCache)
+	ips, _, err := s.QueryIPWithTTL(ctx, domain, clientIP, option, disableCache)
 	return ips, err
 }
 

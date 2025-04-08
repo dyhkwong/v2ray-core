@@ -48,7 +48,7 @@ type IPv4Lookup interface {
 // IPv4LookupWithTTL is an optional feature for querying IPv4 addresses only, with TTL information.
 type IPv4LookupWithTTL interface {
 	IPv4Lookup
-	LookupIPv4WithTTL(domain string) ([]net.IP, uint32, time.Time, error)
+	LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error)
 }
 
 // IPv6Lookup is an optional feature for querying IPv6 addresses only.
@@ -61,7 +61,7 @@ type IPv6Lookup interface {
 // IPv6LookupWithTTL is an optional feature for querying IPv6 addresses only, with TTL information.
 type IPv6LookupWithTTL interface {
 	IPv6Lookup
-	LookupIPv6WithTTL(domain string) ([]net.IP, uint32, time.Time, error)
+	LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error)
 }
 
 type RawQuery interface {

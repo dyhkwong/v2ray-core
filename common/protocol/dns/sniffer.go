@@ -2,13 +2,15 @@ package dns
 
 import (
 	"encoding/binary"
+	_ "unsafe"
 
 	"golang.org/x/net/dns/dnsmessage"
-
-	"github.com/v2fly/v2ray-core/v5/common/errors"
 )
 
-var errNotDNS = errors.New("not dns")
+//go:linkname isDomainName net.isDomainName
+func isDomainName(domain string) bool
+
+var errNotDNS = newError("not dns")
 
 type SniffHeader struct{}
 
@@ -31,6 +33,11 @@ func SniffDNS(b []byte) (*SniffHeader, error) {
 	message := new(dnsmessage.Message)
 	if err := message.Unpack(b); err != nil || len(message.Questions) == 0 {
 		return nil, errNotDNS
+	}
+	for _, question := range message.Questions {
+		if !isDomainName(question.Name.String()) {
+			return nil, errNotDNS
+		}
 	}
 	return &SniffHeader{}, nil
 }

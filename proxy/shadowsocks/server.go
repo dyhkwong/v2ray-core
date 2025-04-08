@@ -150,7 +150,9 @@ func (s *Server) handlerUDPPayload(ctx context.Context, conn internet.Connection
 		var request *protocol.RequestHeader
 		request = protocol.RequestHeaderFromContext(ctx)
 		if request == nil {
-			request = &protocol.RequestHeader{}
+			request = &protocol.RequestHeader{
+				User: s.user,
+			}
 		}
 		if packet.Source.IsValid() {
 			request.Port = packet.Source.Port

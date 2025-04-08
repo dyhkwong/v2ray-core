@@ -38,6 +38,8 @@ func init() {
 		simplifiedServer := config.(*SimplifiedConfig)
 		_ = simplifiedServer
 		fullConfig := &Config{}
+		fullConfig.OverrideResponseTtl = simplifiedServer.OverrideResponseTtl
+		fullConfig.ResponseTtl = simplifiedServer.ResponseTtl
 		return common.CreateObject(ctx, fullConfig)
 	}))
 }
@@ -53,6 +55,8 @@ type Handler struct {
 	ownLinkVerifier ownLinkVerifier
 	server          net.Destination
 	timeout         time.Duration
+
+	config *Config
 }
 
 func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager policy.Manager) error {
@@ -82,6 +86,8 @@ func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager polic
 	if config.Server != nil {
 		h.server = config.Server.AsDestination()
 	}
+
+	h.config = config
 	return nil
 }
 
@@ -90,25 +96,23 @@ func (h *Handler) isOwnLink(ctx context.Context) bool {
 }
 
 func parseIPQuery(b []byte) (r bool, domain string, id uint16, qType dnsmessage.Type) {
-	var parser dnsmessage.Parser
-	header, err := parser.Start(b)
+	message := new(dnsmessage.Message)
+	err := message.Unpack(b)
 	if err != nil {
-		newError("parser start").Base(err).WriteToLog()
 		return
 	}
-
-	id = header.ID
-	q, err := parser.Question()
-	if err != nil {
-		newError("question").Base(err).WriteToLog()
+	id = message.ID
+	if len(message.Questions) != 1 {
 		return
 	}
-	qType = q.Type
+	qType = message.Questions[0].Type
 	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
 		return
 	}
-
-	domain = q.Name.String()
+	domain, err = strmatcher.ToDomain(message.Questions[0].Name.String())
+	if err != nil {
+		return
+	}
 	r = true
 	return
 }
@@ -197,11 +201,9 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 			if !h.isOwnLink(ctx) {
 				isIPQuery, domain, id, qType := parseIPQuery(b.Bytes())
 				if isIPQuery {
-					if domain, err := strmatcher.ToDomain(domain); err == nil {
-						go h.handleIPQuery(id, qType, domain, writer)
-						b.Release()
-						continue
-					}
+					go h.handleIPQuery(id, qType, domain, writer)
+					b.Release()
+					continue
 				} else {
 					go h.handleRawQuery(b.Bytes(), writer)
 					b.Release()
@@ -262,20 +264,23 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	var ips []net.IP
 	var err error
 
-	var ttl uint32 = 600
 	timeNow := time.Now()
+	ttl := uint32(600)
+	if h.config.OverrideResponseTtl {
+		ttl = h.config.ResponseTtl
+	}
 	expireAt := timeNow.Add(time.Duration(ttl) * time.Second)
 
 	switch qType {
 	case dnsmessage.TypeA:
 		if ipv4Lookup, ok := h.ipv4Lookup.(dns.IPv4LookupWithTTL); ok {
-			ips, ttl, expireAt, err = ipv4Lookup.LookupIPv4WithTTL(domain)
+			ips, expireAt, err = ipv4Lookup.LookupIPv4WithTTL(domain)
 		} else {
 			ips, err = h.ipv4Lookup.LookupIPv4(domain)
 		}
 	case dnsmessage.TypeAAAA:
 		if ipv6Lookup, ok := h.ipv6Lookup.(dns.IPv6LookupWithTTL); ok {
-			ips, ttl, expireAt, err = ipv6Lookup.LookupIPv6WithTTL(domain)
+			ips, expireAt, err = ipv6Lookup.LookupIPv6WithTTL(domain)
 		} else {
 			ips, err = h.ipv6Lookup.LookupIPv6(domain)
 		}
@@ -305,12 +310,7 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	}))
 	common.Must(builder.StartAnswers())
 
-	nowTTL := int((expireAt.Sub(timeNow).Seconds()))
-	if nowTTL < 0 {
-		nowTTL = 0
-	}
-	duration := ttl - uint32(nowTTL)
-	rHeader := dnsmessage.ResourceHeader{Name: dnsmessage.MustNewName(domain), Class: dnsmessage.ClassINET, TTL: ttl - duration}
+	rHeader := dnsmessage.ResourceHeader{Name: dnsmessage.MustNewName(domain), Class: dnsmessage.ClassINET, TTL: max(uint32(expireAt.Sub(timeNow).Seconds()), 0)}
 	for _, ip := range ips {
 		if len(ip) == net.IPv4len {
 			var r dnsmessage.AResource

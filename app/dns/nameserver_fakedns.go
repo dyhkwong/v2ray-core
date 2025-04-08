@@ -21,15 +21,15 @@ func (FakeDNSServer) Name() string {
 	return "fakedns"
 }
 
-func (f *FakeDNSServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, opt dns.IPOption, _ bool) ([]net.IP, uint32, time.Time, error) {
+func (f *FakeDNSServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, opt dns.IPOption, _ bool) ([]net.IP, time.Time, error) {
 	if !opt.FakeEnable {
-		return nil, 0, time.Time{}, nil // Returning empty ip record with no error will continue DNS lookup, effectively indicating that this server is disabled.
+		return nil, time.Time{}, nil // Returning empty ip record with no error will continue DNS lookup, effectively indicating that this server is disabled.
 	}
 	if f.fakeDNSEngine == nil {
 		if err := core.RequireFeatures(ctx, func(fd dns.FakeDNSEngine) {
 			f.fakeDNSEngine = fd
 		}); err != nil {
-			return nil, 0, time.Time{}, newError("Unable to locate a fake DNS Engine").Base(err).AtError()
+			return nil, time.Time{}, newError("Unable to locate a fake DNS Engine").Base(err).AtError()
 		}
 	}
 	var ips []net.Address
@@ -41,21 +41,20 @@ func (f *FakeDNSServer) QueryIPWithTTL(ctx context.Context, domain string, _ net
 
 	netIP, err := toNetIP(ips)
 	if err != nil {
-		return nil, 0, time.Time{}, newError("Unable to convert IP to net ip").Base(err).AtError()
+		return nil, time.Time{}, newError("Unable to convert IP to net ip").Base(err).AtError()
 	}
 
 	newError(f.Name(), " got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 
-	ttl := uint32(1)
-	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
+	expireAt := time.Now().Add(time.Duration(1) * time.Second)
 	if len(netIP) > 0 {
-		return netIP, ttl, expireAt, nil
+		return netIP, expireAt, nil
 	}
-	return nil, ttl, expireAt, dns.ErrEmptyResponse
+	return nil, expireAt, dns.ErrEmptyResponse
 }
 
 func (f *FakeDNSServer) QueryIP(ctx context.Context, domain string, _ net.IP, opt dns.IPOption, _ bool) ([]net.IP, error) {
-	ips, _, _, err := f.QueryIPWithTTL(ctx, domain, nil, opt, false)
+	ips, _, err := f.QueryIPWithTTL(ctx, domain, nil, opt, false)
 	return ips, err
 }
 

@@ -17,11 +17,10 @@ type LocalNameServer struct {
 }
 
 // QueryIPWithTTL implements ServerWithTTL.
-func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, uint32, time.Time, error) {
+func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, time.Time, error) {
 	newError("localhost querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	var ips []net.IP
-	ttl := uint32(600)
-	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
+	expireAt := time.Now().Add(time.Duration(600) * time.Second)
 	var err error
 
 	switch {
@@ -37,12 +36,12 @@ func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ n
 		newError("localhost got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 	}
 
-	return ips, ttl, expireAt, err
+	return ips, expireAt, err
 }
 
 // QueryIP implements Server.
 func (s *LocalNameServer) QueryIP(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, error) {
-	ips, _, _, err := s.QueryIPWithTTL(ctx, domain, nil, option, false)
+	ips, _, err := s.QueryIPWithTTL(ctx, domain, nil, option, false)
 	return ips, err
 }
 

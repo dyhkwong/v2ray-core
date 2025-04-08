@@ -9,18 +9,12 @@ This branch includes patches used in [Exclave](https://github.com/dyhkwong/Excla
 
 ## License
 
-```
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-```
+This program is licensed under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 ## Notes
 
-This project is a fork of [v2ray-core](https://github.com/v2fly/v2ray-core) and contains code initially licensed under the MIT License, which is GPL-compatible.
+This project is a fork of [v2ray-core](https://github.com/v2fly/v2ray-core), which is originally licensed under the MIT License.
 
-This project contains code licensed under GPL 3.0 or later, e.g. code from [SagerNet/v2ray-core](https://github.com/SagerNet/v2ray-core).
+This project incorporates some code originally licensed under GPL 3.0 or later, such as the code from [SagerNet/v2ray-core](https://github.com/SagerNet/v2ray-core).
 
-This project contains code initially licensed under MPL 2.0, e.g. code from [Xray-core](https://github.com/XTLS/Xray-core). As described in MPL 2.0 Section 3.3, if a larger work is a combination of software licensed under MPL 2.0 (without the notice described in MPL 2.0 Exhibit B attached) with software licensed under one or more secondary licenses (e.g. GPL 3.0 or later), the larger work is permitted to additionally distribute the covered software licensed under MPL 2.0 (without the notice described in MPL 2.0 Exhibit B attached) under the secondary license(s). The recipient (e.g. this project) of the larger work may further distribute the covered software under the secondary license(s).
+This project incorporates some code originally licensed under MPL 2.0 in the form of Section 3.3, such as the code from [Xray-core](https://github.com/XTLS/Xray-core)

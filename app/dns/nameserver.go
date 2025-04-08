@@ -31,7 +31,7 @@ type Server interface {
 type ServerWithTTL interface {
 	Server
 	// QueryIPWithTTL sends IP queries to its configured server.
-	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, uint32, time.Time, error)
+	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, time.Time, error)
 }
 
 type ServerRaw interface {
@@ -211,16 +211,16 @@ func (c *Client) Name() string {
 
 // QueryIP send DNS query to the name server with the client's IP and IP options.
 func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, error) {
-	ips, _, _, err := c.QueryIPWithTTL(ctx, domain, option)
+	ips, _, err := c.QueryIPWithTTL(ctx, domain, option)
 	return ips, err
 }
 
 // QueryIPWithTTL send DNS query to the name server with the client's IP and IP options, with TTL information returned.
-func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, uint32, time.Time, error) {
+func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
 	queryOption := option.With(c.queryStrategy)
 	if !queryOption.IsValid() {
 		newError(c.server.Name(), " returns empty answer: ", domain, ". ", toReqTypes(option)).AtInfo().WriteToLog()
-		return nil, 0, time.Time{}, dns.ErrEmptyResponse
+		return nil, time.Time{}, dns.ErrEmptyResponse
 	}
 	server := c.server
 	if queryOption.FakeEnable && c.fakeDNS != nil {
@@ -231,21 +231,20 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	var ips []net.IP
-	var ttl uint32 = 600
-	var expireAt time.Time
+	expireAt := time.Now().Add(time.Duration(600) * time.Second)
 	var err error
 	if serverWithTTL, ok := server.(ServerWithTTL); ok {
-		ips, ttl, expireAt, err = serverWithTTL.QueryIPWithTTL(ctx, domain, c.clientIP, queryOption, disableCache)
+		ips, expireAt, err = serverWithTTL.QueryIPWithTTL(ctx, domain, c.clientIP, queryOption, disableCache)
 	} else {
 		ips, err = server.QueryIP(ctx, domain, c.clientIP, queryOption, disableCache)
 	}
 	cancel()
 
 	if err != nil || queryOption.FakeEnable {
-		return ips, ttl, expireAt, err
+		return ips, expireAt, err
 	}
 	ips, err = c.MatchExpectedIPs(domain, ips)
-	return ips, ttl, expireAt, err
+	return ips, expireAt, err
 }
 
 func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {

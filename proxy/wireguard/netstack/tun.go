@@ -161,13 +161,9 @@ func (tun *netTun) Close() error {
 	// workaround close(tun.events) panic: close of closed channel
 	tun.closeOnce.Do(func() {
 		tun.stack.RemoveNIC(1)
-		if tun.events != nil {
-			close(tun.events)
-		}
+		close(tun.events)
 		tun.ep.Close()
-		if tun.incomingPacket != nil {
-			close(tun.incomingPacket)
-		}
+		close(tun.incomingPacket)
 	})
 	return nil
 }

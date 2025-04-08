@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/sagernet/sing-shadowtls"
+	shadowtls "github.com/sagernet/sing-shadowtls"
 	"github.com/sagernet/sing/common/bufio"
 
 	"github.com/v2fly/v2ray-core/v5/common"

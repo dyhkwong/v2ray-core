@@ -274,12 +274,12 @@ func (s *DNS) LookupIPv6(domain string) ([]net.IP, error) {
 }
 
 // LookupIPv4WithTTL implements dns.IPv4LookupWithTTL.
-func (s *DNS) LookupIPv4WithTTL(domain string) ([]net.IP, uint32, time.Time, error) {
+func (s *DNS) LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv4Enable: true, FakeEnable: false})
 }
 
 // LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
-func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, uint32, time.Time, error) {
+func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
 }
 
@@ -319,42 +319,41 @@ func (s *DNS) QueryRaw(requestBytes []byte) ([]byte, error) {
 }
 
 func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {
-	ips, _, _, err := s.lookupIPInternalWithTTL(domain, option)
+	ips, _, err := s.lookupIPInternalWithTTL(domain, option)
 	return ips, err
 }
 
-func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net.IP, uint32, time.Time, error) {
+func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
 	if domain == "" {
-		return nil, 0, time.Time{}, newError("empty domain name")
+		return nil, time.Time{}, newError("empty domain name")
 	}
 
 	// Normalize the FQDN form query
 	domain = strings.TrimSuffix(domain, ".")
 
-	ttl := uint32(600)
-	expireAt := time.Now().Add(time.Duration(ttl) * time.Second)
+	expireAt := time.Now().Add(time.Duration(600) * time.Second)
 
 	// Static host lookup
 	switch addrs := s.hosts.Lookup(domain, option); {
 	case addrs == nil: // Domain not recorded in static host
 		break
 	case len(addrs) == 0: // Domain recorded, but no valid IP returned (e.g. IPv4 address with only IPv6 enabled)
-		return nil, ttl, expireAt, dns.ErrEmptyResponse
+		return nil, expireAt, dns.ErrEmptyResponse
 	case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Domain replacement
 		newError("domain replaced: ", domain, " -> ", addrs[0].Domain()).WriteToLog()
 		domain = addrs[0].Domain()
 	default: // Successfully found ip records in static host
 		newError("returning ", len(addrs), " IP(s) for domain ", domain, " -> ", addrs).WriteToLog()
 		ips, err := toNetIP(addrs)
-		return ips, ttl, expireAt, err
+		return ips, expireAt, err
 	}
 
 	// Name servers lookup
 	errs := []error{}
 	for _, client := range s.sortClients(domain, option) {
-		ips, ttl, expireAt, err := client.QueryIPWithTTL(s.ctx, domain, option)
+		ips, expireAt, err := client.QueryIPWithTTL(s.ctx, domain, option)
 		if len(ips) > 0 {
-			return ips, ttl, expireAt, nil
+			return ips, expireAt, nil
 		}
 		if err != nil {
 			errs = append(errs, err)
@@ -363,14 +362,14 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 			newError("failed to lookup ip for domain ", domain, " at server ", client.Name()).Base(err).WriteToLog()
 		}
 		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch {
-			return nil, ttl, expireAt, err // Only continue lookup for certain errors
+			return nil, expireAt, err // Only continue lookup for certain errors
 		}
 	}
 
 	if len(errs) == 0 {
-		return nil, ttl, expireAt, dns.ErrEmptyResponse
+		return nil, expireAt, dns.ErrEmptyResponse
 	}
-	return nil, ttl, expireAt, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
+	return nil, expireAt, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
 }
 
 func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {

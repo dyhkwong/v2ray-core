@@ -129,7 +129,7 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 		} else {
 			hello.SessionId[0] = 25 // Version_x
 			hello.SessionId[1] = 3  // Version_y
-			hello.SessionId[2] = 6  // Version_z
+			hello.SessionId[2] = 31 // Version_z
 		}
 		hello.SessionId[3] = 0 // reserved
 		binary.BigEndian.PutUint32(hello.SessionId[4:], uint32(time.Now().Unix()))

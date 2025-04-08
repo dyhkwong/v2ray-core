@@ -52,7 +52,17 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 				Port: 0,
 			}
 		}
-		packetConn, err := ListenSystemPacket(ctx, srcAddr, sockopt)
+		var lc net.ListenConfig
+		if sockopt != nil {
+			lc.Control = func(network, address string, c syscall.RawConn) error {
+				return c.Control(func(fd uintptr) {
+					if err := applyOutboundSocketOptions(network, address, fd, sockopt); err != nil {
+						newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
+					}
+				})
+			}
+		}
+		packetConn, err := lc.ListenPacket(ctx, srcAddr.Network(), srcAddr.String())
 		if err != nil {
 			return nil, err
 		}
@@ -70,15 +80,6 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 		destAddr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
 		if err != nil {
 			return nil, err
-		}
-		if sockopt != nil {
-			if rawConn, err := packetConn.(*net.UDPConn).SyscallConn(); err == nil {
-				rawConn.Control(func(fd uintptr) {
-					if err := applyOutboundSocketOptions(srcAddr.Network(), srcAddr.String(), fd, sockopt); err != nil {
-						newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
-					}
-				})
-			}
 		}
 		return &PacketConnWrapper{
 			Conn: packetConn,
