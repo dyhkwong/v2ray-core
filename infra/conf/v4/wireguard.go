@@ -25,9 +25,11 @@ func (c *WireGuardPeerConfig) Build() (proto.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	config.PreSharedKey, err = parseWireGuardKey(c.PreSharedKey)
-	if err != nil {
-		return nil, err
+	if len(c.PreSharedKey) > 0 {
+		config.PreSharedKey, err = parseWireGuardKey(c.PreSharedKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 	config.Endpoint = c.Endpoint
 	// default 0
