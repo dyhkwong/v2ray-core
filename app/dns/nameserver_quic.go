@@ -319,15 +319,15 @@ func (s *QUICNameServer) QueryIP(ctx context.Context, domain string, clientIP ne
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
-		ips, err := s.findIPsForDomain(fqdn, option)
-		if err != errRecordNotFound {
-			return ips, err
-		}
-
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-done:
+		}
+
+		ips, err := s.findIPsForDomain(fqdn, option)
+		if err != errRecordNotFound {
+			return ips, err
 		}
 	}
 }
