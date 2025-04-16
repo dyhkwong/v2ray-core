@@ -66,11 +66,13 @@ func ReadClientHello(data []byte, h *SniffHeader) error {
 		return errNotClientHello
 	}
 
-	extensionsLength := int(data[0])<<8 | int(data[1])
+	// extensionsLength := int(data[0])<<8 | int(data[1])
 	data = data[2:]
-	if extensionsLength != len(data) {
-		return errNotClientHello
-	}
+	/*
+		if extensionsLength != len(data) {
+			return errNotClientHello
+		}
+	*/
 
 	for len(data) != 0 {
 		if len(data) < 4 {
