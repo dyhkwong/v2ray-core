@@ -67,11 +67,13 @@ func ReadClientHello(data []byte, h *SniffHeader, validRange *rangelist.RangeLis
 		return errNotClientHello
 	}
 
-	extensionsLength := int(data[0])<<8 | int(data[1])
+	// extensionsLength := int(data[0])<<8 | int(data[1])
 	data = data[2:]
-	if extensionsLength != len(data) {
-		return errNotClientHello
-	}
+	/*
+		if extensionsLength != len(data) {
+			return errNotClientHello
+		}
+	*/
 
 	offset := 44 + sessionIDLen + cipherSuiteLen + compressionMethodsLen
 	for len(data) != 0 {
