@@ -56,25 +56,21 @@ func applyOutboundSocketOptions(network string, address string, fd uintptr, conf
 			var bytes [4]byte
 			binary.BigEndian.PutUint32(bytes[:], uint32(iface.Index))
 			index := *(*uint32)(unsafe.Pointer(&bytes[0]))
+			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index)); err != nil {
+				return newError("failed to set IP_UNICAST_IF", err)
+			}
 			if network == "udp4" || multiCast {
 				if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, windows.IP_MULTICAST_IF, int(index)); err != nil {
 					return newError("failed to set IP_MULTICAST_IF", err)
 				}
 			}
-			if network == "udp4" || !multiCast {
-				if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IP, IP_UNICAST_IF, int(index)); err != nil {
-					return newError("failed to set IP_UNICAST_IF", err)
-				}
-			}
 		case "tcp6", "udp6":
+			if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index); err != nil {
+				return newError("failed to set IPV6_UNICAST_IF", err)
+			}
 			if network == "udp6" || multiCast {
 				if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, windows.IPV6_MULTICAST_IF, iface.Index); err != nil {
 					return newError("failed to set IPV6_MULTICAST_IF", err)
-				}
-			}
-			if network == "udp6" || !multiCast {
-				if err := windows.SetsockoptInt(windows.Handle(fd), windows.IPPROTO_IPV6, IPV6_UNICAST_IF, iface.Index); err != nil {
-					return newError("failed to set IPV6_UNICAST_IF", err)
 				}
 			}
 		}

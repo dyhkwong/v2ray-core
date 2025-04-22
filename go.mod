@@ -1,12 +1,12 @@
 module github.com/v2fly/v2ray-core/v5
 
-go 1.23.1
+go 1.24.0
 
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/anytls/sing-anytls v0.0.8
 	github.com/apernet/hysteria/extras/v2 v2.6.1
-	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0
+	github.com/apernet/quic-go v0.51.1-0.20250420202007-25ded0c7e74c
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
@@ -16,8 +16,8 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
-	github.com/quic-go/quic-go v0.50.1
-	github.com/refraction-networking/utls v1.6.7
+	github.com/quic-go/quic-go v0.51.0
+	github.com/refraction-networking/utls v1.7.0
 	github.com/sagernet/sing v0.6.6
 	github.com/sagernet/sing-quic v0.4.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
@@ -38,9 +38,9 @@ require (
 	golang.org/x/sync v0.13.0
 	golang.org/x/sys v0.32.0
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
-	google.golang.org/grpc v1.71.1
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
-	gvisor.dev/gvisor v0.0.0-20250402222442-ae48befd1d56
+	gvisor.dev/gvisor v0.0.0-20250411210754-2be36b44316d
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.4.0
 )
@@ -49,7 +49,7 @@ require (
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
-	github.com/cloudflare/circl v1.3.9 // indirect
+	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -82,6 +82,6 @@ require (
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

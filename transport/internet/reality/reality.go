@@ -138,10 +138,10 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 		if err != nil {
 			return nil, newError("REALITY: publicKey == nil")
 		}
-		if uConn.HandshakeState.State13.EcdheKey == nil {
+		if uConn.HandshakeState.State13.KeyShareKeys == nil {
 			return nil, newError("Current fingerprint ", uConn.ClientHelloID.Client, uConn.ClientHelloID.Version, " does not support TLS 1.3, REALITY handshake cannot establish.")
 		}
-		uConn.AuthKey, _ = uConn.HandshakeState.State13.EcdheKey.ECDH(publicKey)
+		uConn.AuthKey, _ = uConn.HandshakeState.State13.KeyShareKeys.Ecdhe.ECDH(publicKey)
 		if uConn.AuthKey == nil {
 			return nil, newError("REALITY: SharedKey == nil")
 		}
