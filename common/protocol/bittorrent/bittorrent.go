@@ -55,6 +55,9 @@ func SniffUTP(b []byte) (*SniffHeader, error) {
 		if binary.Read(buffer, binary.BigEndian, &extension) != nil {
 			return nil, common.ErrNoClue
 		}
+		if extension > 0x04 {
+			return nil, common.ErrNoClue
+		}
 		var length uint8
 		if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
 			return nil, common.ErrNoClue

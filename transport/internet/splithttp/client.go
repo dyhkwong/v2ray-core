@@ -58,15 +58,23 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 	if body != nil {
 		method = "POST" // stream-up/one
 	}
-	req, _ := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
-	req.Header = c.transportConfig.GetRequestHeader(url)
+	var req *http.Request
+	req, err = http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
+	if err != nil {
+		return
+	}
+	req.Header, err = c.transportConfig.GetRequestHeader(url)
+	if err != nil {
+		return
+	}
 	if method == "POST" && !c.transportConfig.NoGRPCHeader {
 		req.Header.Set("Content-Type", "application/grpc")
 	}
 
 	wrc = &WaitReadCloser{Wait: make(chan struct{})}
 	go func() {
-		resp, err := c.client.Do(req)
+		var resp *http.Response
+		resp, err = c.client.Do(req)
 		if err != nil {
 			if !uploadOnly { // stream-down is enough
 				c.closed = true
@@ -77,12 +85,13 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 			return
 		}
 		if resp.StatusCode != 200 && !uploadOnly {
-			newError("unexpected status ", resp.StatusCode).Base(err).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+			newError("unexpected status ", resp.StatusCode).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
 		if resp.StatusCode != 200 || uploadOnly { // stream-up
 			io.Copy(io.Discard, resp.Body)
 			resp.Body.Close() // if it is called immediately, the upload will be interrupted also
 			wrc.Close()
+			err = newError("unexpected status ", resp.StatusCode)
 			return
 		}
 		wrc.(*WaitReadCloser).Set(resp.Body)
@@ -98,7 +107,10 @@ func (c *DefaultDialerClient) PostPacket(ctx context.Context, url string, body i
 		return err
 	}
 	req.ContentLength = contentLength
-	req.Header = c.transportConfig.GetRequestHeader(url)
+	req.Header, err = c.transportConfig.GetRequestHeader(url)
+	if err != nil {
+		return err
+	}
 
 	if c.httpVersion != "1.1" {
 		resp, err := c.client.Do(req)

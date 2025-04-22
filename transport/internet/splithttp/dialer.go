@@ -48,47 +48,37 @@ type dialerConf struct {
 	*internet.MemoryStreamConfig
 }
 
-type clientConf struct {
-	DialerClient
-	counter *atomic.Int32
-}
-
 var (
-	globalDialerMap    map[dialerConf]*clientConf
+	globalDialerMap    map[dialerConf]DialerClient
 	globalDialerAccess sync.Mutex
 )
 
-func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, *atomic.Int32) {
+func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
 	config := streamSettings.ProtocolSettings.(*Config)
 	if reality.ConfigFromStreamSettings(streamSettings) == nil && config.UseBrowserForwarding {
 		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
 		return &BrowserDialerClient{
 			dialer:          core.MustFromContext(ctx).GetFeature(extension.BrowserDialerType()).(extension.BrowserDialer),
 			transportConfig: config,
-		}, nil
+		}
 	}
 
 	globalDialerAccess.Lock()
 	defer globalDialerAccess.Unlock()
 
 	if globalDialerMap == nil {
-		globalDialerMap = make(map[dialerConf]*clientConf)
+		globalDialerMap = make(map[dialerConf]DialerClient)
 	}
 
-	c, found := globalDialerMap[dialerConf{dest, streamSettings}]
+	client, found := globalDialerMap[dialerConf{dest, streamSettings}]
 
-	if !found || c.DialerClient.IsClosed() || c.counter.Load() <= 0 {
-		dialerClient := createHTTPClient(ctx, dest, streamSettings)
-		counter := new(atomic.Int32)
-		counter.Store(newRandRangeConfig(600, 900, "600-900").rand()) // hMaxRequestTimes
-		globalDialerMap[dialerConf{dest, streamSettings}] = &clientConf{
-			DialerClient: dialerClient,
-			counter:      counter,
-		}
-		return dialerClient, counter
+	if !found || client.IsClosed() {
+		client = createHTTPClient(ctx, dest, streamSettings)
+		globalDialerMap[dialerConf{dest, streamSettings}] = client
+		return client
 	}
 
-	return c.DialerClient, c.counter
+	return client
 }
 
 func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) string {
@@ -250,7 +240,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
 	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
 
-	httpClient, counter := getHTTPClient(ctx, dest, streamSettings)
+	httpClient := getHTTPClient(ctx, dest, streamSettings)
 
 	mode := transportConfiguration.Mode
 	if mode == "" || mode == "auto" {
@@ -268,7 +258,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	var closed atomic.Int32
 
 	reader, writer := io.Pipe()
-	conn := splitConn{
+	conn := &splitConn{
 		writer: writer,
 		onClose: func() {
 			if closed.Add(1) > 1 {
@@ -280,32 +270,23 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	var err error
 	if mode == "stream-one" {
 		requestURL.Path = transportConfiguration.GetNormalizedPath()
-		if counter != nil {
-			counter.Add(-1)
-		}
 		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), reader, false)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
-		return internet.Connection(&conn), nil
+		return internet.Connection(conn), nil
 	} else { // stream-down
-		if counter != nil {
-			counter.Add(-1)
-		}
 		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), nil, false)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
 	}
 	if mode == "stream-up" {
-		if counter != nil {
-			counter.Add(-1)
-		}
 		_, _, _, err = httpClient.OpenStream(ctx, requestURL.String(), reader, true)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
-		return internet.Connection(&conn), nil
+		return internet.Connection(conn), nil
 	}
 
 	scMaxEachPostBytes := transportConfiguration.GetNormalizedScMaxEachPostBytes()
@@ -318,7 +299,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	// uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - 1))
 	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - buf.Size))
 
-	conn.writer = uploadWriter{
+	conn.writer = &uploadWriter{
 		uploadPipeWriter,
 		maxUploadSize,
 	}
@@ -359,10 +340,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 			lastWrite = time.Now()
 
-			httpClient, counter = getHTTPClient(ctx, dest, streamSettings)
-			if counter != nil {
-				counter.Add(-1)
-			}
+			httpClient = getHTTPClient(ctx, dest, streamSettings)
 
 			go func() {
 				err := httpClient.PostPacket(
@@ -384,7 +362,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		}
 	}()
 
-	return internet.Connection(&conn), nil
+	return internet.Connection(conn), nil
 }
 
 // A wrapper around pipe that ensures the size limit is exactly honored.

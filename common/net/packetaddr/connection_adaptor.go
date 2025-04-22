@@ -91,7 +91,6 @@ func (c *packetConnectionAdaptor) WriteTo(p []byte, addr gonet.Addr) (n int, err
 	var buffer *buf.Buffer
 	buffer, err = AttachAddressToPacket(buf.FromBytes(p), addr)
 	if err != nil {
-		buffer.Release()
 		return 0, err
 	}
 	mb := buf.MultiBuffer{buffer}

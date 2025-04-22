@@ -53,11 +53,18 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 			}
 		}
 		var lc net.ListenConfig
-		if sockopt != nil {
+		if sockopt != nil || len(d.controllers) > 0 {
 			lc.Control = func(network, address string, c syscall.RawConn) error {
 				return c.Control(func(fd uintptr) {
-					if err := applyOutboundSocketOptions(network, address, fd, sockopt); err != nil {
-						newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
+					if sockopt != nil {
+						if err := applyOutboundSocketOptions(network, address, fd, sockopt); err != nil {
+							newError("failed to apply socket options").Base(err).WriteToLog(session.ExportIDToError(ctx))
+						}
+					}
+					for _, ctl := range d.controllers {
+						if err := ctl(network, address, fd); err != nil {
+							newError("failed to apply external controller").Base(err).WriteToLog(session.ExportIDToError(ctx))
+						}
 					}
 				})
 			}

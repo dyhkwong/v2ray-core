@@ -92,19 +92,23 @@ func (c *Config) GetNormalizedQuery() string {
 	if len(pathAndQuery) > 1 {
 		query = pathAndQuery[1]
 	}
-	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
-		query += "&x_padding=" + strings.Repeat("0", int(paddingLen))
+	if query != "" {
+		query += "&"
 	}
+	query += "x_padding=" + strings.Repeat("X", int(c.GetNormalizedXPaddingBytes().From))
 	return query
 }
 
-func (c *Config) GetRequestHeader(rawURL string) http.Header {
+func (c *Config) GetRequestHeader(rawURL string) (http.Header, error) {
 	header := http.Header{}
 	for k, v := range c.Headers {
 		header.Add(k, v)
 	}
 	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
-		u, _ := url.Parse(rawURL)
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			return nil, err
+		}
 		// https://www.rfc-editor.org/rfc/rfc7541.html#appendix-B
 		// h2's HPACK Header Compression feature employs a huffman encoding using a static table.
 		// 'X' is assigned an 8 bit code, so HPACK compression won't change actual padding length on the wire.
@@ -113,7 +117,7 @@ func (c *Config) GetRequestHeader(rawURL string) http.Header {
 		u.RawQuery = "x_padding=" + strings.Repeat("X", int(c.GetNormalizedXPaddingBytes().rand()))
 		header.Set("Referer", u.String())
 	}
-	return header
+	return header, nil
 }
 
 func (c *Config) WriteResponseHeader(writer http.ResponseWriter) {

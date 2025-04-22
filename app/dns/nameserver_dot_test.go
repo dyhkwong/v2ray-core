@@ -14,10 +14,10 @@ import (
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
-func TestTCPLocalNameServer(t *testing.T) {
-	url, err := url.Parse("tcp+local://8.8.8.8")
+func TestDOTLocalNameServer(t *testing.T) {
+	url, err := url.Parse("tls+local://8.8.8.8")
 	common.Must(err)
-	s, err := NewTCPLocalNameServer(url)
+	s, err := NewDoTLocalNameServer(url)
 	common.Must(err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	ips, err := s.QueryIP(ctx, "google.com", net.IP(nil), dns_feature.IPOption{
@@ -31,10 +31,10 @@ func TestTCPLocalNameServer(t *testing.T) {
 	}
 }
 
-func TestTCPLocalNameServerWithCache(t *testing.T) {
-	url, err := url.Parse("tcp+local://8.8.8.8")
+func TestDOTLocalNameServerWithCache(t *testing.T) {
+	url, err := url.Parse("tls+local://8.8.8.8")
 	common.Must(err)
-	s, err := NewTCPLocalNameServer(url)
+	s, err := NewDoTLocalNameServer(url)
 	common.Must(err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	ips, err := s.QueryIP(ctx, "google.com", net.IP(nil), dns_feature.IPOption{

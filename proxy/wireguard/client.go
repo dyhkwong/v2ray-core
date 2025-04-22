@@ -52,11 +52,27 @@ func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 	}, nil
 }
 
-func (h *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (err error) {
-	h.wgLock.Lock()
-	defer h.wgLock.Unlock()
+func (c *Client) Close() (err error) {
+	go func() {
+		c.wgLock.Lock()
+		defer c.wgLock.Unlock()
+		if c.net != nil {
+			_ = c.net.Close()
+			c.net = nil
+		}
+		if c.bind != nil {
+			_ = c.bind.Close()
+			c.bind = nil
+		}
+	}()
+	return nil
+}
 
-	if h.bind != nil && h.bind.dialer == dialer && h.net != nil {
+func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (err error) {
+	c.wgLock.Lock()
+	defer c.wgLock.Unlock()
+
+	if c.bind != nil && c.bind.dialer == dialer && c.net != nil {
 		return nil
 	}
 
@@ -65,36 +81,36 @@ func (h *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (
 		Content:  "switching dialer",
 	})
 
-	if h.net != nil {
-		_ = h.net.Close()
-		h.net = nil
+	if c.net != nil {
+		_ = c.net.Close()
+		c.net = nil
 	}
-	if h.bind != nil {
-		_ = h.bind.Close()
-		h.bind = nil
+	if c.bind != nil {
+		_ = c.bind.Close()
+		c.bind = nil
 	}
 
 	// bind := conn.NewStdNetBind() // TODO: conn.Bind wrapper for dialer
-	h.bind = &netBindClient{
+	c.bind = &netBindClient{
 		netBind: netBind{
-			dns: h.dns,
+			dns: c.dns,
 			dnsOption: dns.IPOption{
-				IPv4Enable: h.hasIPv4,
-				IPv6Enable: h.hasIPv6,
+				IPv4Enable: c.hasIPv4,
+				IPv6Enable: c.hasIPv6,
 			},
-			workers: int(h.conf.NumWorkers),
+			workers: int(c.conf.NumWorkers),
 		},
 		ctx:      core.ToBackgroundDetachedContext(ctx),
 		dialer:   dialer,
-		reserved: h.conf.Reserved,
+		reserved: c.conf.Reserved,
 	}
 	defer func() {
 		if err != nil {
-			_ = h.bind.Close()
+			_ = c.bind.Close()
 		}
 	}()
 
-	h.net, err = h.makeVirtualTun()
+	c.net, err = c.makeVirtualTun()
 	if err != nil {
 		return newError("failed to create virtual tun interface").Base(err)
 	}
@@ -102,13 +118,13 @@ func (h *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (
 }
 
 // Process implements OutboundHandler.Dispatch().
-func (h *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+func (c *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified")
 	}
 
-	if err := h.processWireGuard(ctx, dialer); err != nil {
+	if err := c.processWireGuard(ctx, dialer); err != nil {
 		return err
 	}
 
@@ -122,18 +138,18 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	// resolve dns
 	addr := destination.Address
 	if addr.Family().IsDomain() {
-		ips, err := dns.LookupIPWithOption(h.dns, addr.Domain(), dns.IPOption{
-			IPv4Enable: h.hasIPv4 && h.conf.DomainStrategy != ClientConfig_USE_IP6,
-			IPv6Enable: h.hasIPv6 && h.conf.DomainStrategy != ClientConfig_USE_IP4,
+		ips, err := dns.LookupIPWithOption(c.dns, addr.Domain(), dns.IPOption{
+			IPv4Enable: c.hasIPv4 && c.conf.DomainStrategy != ClientConfig_USE_IP6,
+			IPv6Enable: c.hasIPv6 && c.conf.DomainStrategy != ClientConfig_USE_IP4,
 		})
 		if err != nil {
 			return newError("failed to lookup DNS").Base(err)
 		} else if len(ips) == 0 {
 			return dns.ErrEmptyResponse
 		}
-		if h.conf.DomainStrategy == ClientConfig_PREFER_IP4 || h.conf.DomainStrategy == ClientConfig_PREFER_IP6 {
+		if c.conf.DomainStrategy == ClientConfig_PREFER_IP4 || c.conf.DomainStrategy == ClientConfig_PREFER_IP6 {
 			for _, ip := range ips {
-				if ip.To4() != nil == (h.conf.DomainStrategy == ClientConfig_PREFER_IP4) {
+				if ip.To4() != nil == (c.conf.DomainStrategy == ClientConfig_PREFER_IP4) {
 					addr = net.IPAddress(ip)
 				}
 			}
@@ -142,7 +158,7 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
-	p := h.policyManager.ForLevel(0)
+	p := c.policyManager.ForLevel(0)
 
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, p.Timeouts.ConnectionIdle)
@@ -152,7 +168,7 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	var responseFunc func() error
 
 	if command == protocol.RequestCommandTCP {
-		conn, err := h.net.DialContextTCPAddrPort(ctx, addrPort)
+		conn, err := c.net.DialContextTCPAddrPort(ctx, addrPort)
 		if err != nil {
 			return newError("failed to create TCP connection").Base(err)
 		}
@@ -167,7 +183,7 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 		}
 	} else if command == protocol.RequestCommandUDP {
-		conn, err := h.net.DialUDPAddrPort(netip.AddrPort{}, addrPort)
+		conn, err := c.net.DialUDPAddrPort(netip.AddrPort{}, addrPort)
 		if err != nil {
 			return newError("failed to create UDP connection").Base(err)
 		}
@@ -194,16 +210,16 @@ func (h *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 // creates a tun interface on netstack given a configuration
-func (h *Client) makeVirtualTun() (Tunnel, error) {
-	t, err := createTun(h.addresses, int(h.conf.Mtu), nil)
+func (c *Client) makeVirtualTun() (Tunnel, error) {
+	t, err := createTun(c.addresses, int(c.conf.Mtu), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	h.bind.dnsOption.IPv4Enable = h.hasIPv4
-	h.bind.dnsOption.IPv6Enable = h.hasIPv6
+	c.bind.dnsOption.IPv4Enable = c.hasIPv4
+	c.bind.dnsOption.IPv6Enable = c.hasIPv6
 
-	if err = t.BuildDevice(createIPCRequest(h.conf.SecretKey, h.conf.Peers, false), h.bind); err != nil {
+	if err = t.BuildDevice(createIPCRequest(c.conf.SecretKey, c.conf.Peers, false), c.bind); err != nil {
 		_ = t.Close()
 		return nil, err
 	}

@@ -22,7 +22,12 @@ func (c *BrowserDialerClient) OpenStream(ctx context.Context, url string, body i
 		return nil, nil, nil, newError("bidirectional streaming for browser dialer not implemented yet")
 	}
 
-	conn, err := c.dialer.DialGet(url, c.transportConfig.GetRequestHeader(url))
+	requestHeader, err := c.transportConfig.GetRequestHeader(url)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	conn, err := c.dialer.DialGet(url, requestHeader)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -36,7 +41,12 @@ func (c *BrowserDialerClient) PostPacket(ctx context.Context, url string, body i
 		return err
 	}
 
-	err = c.dialer.DialPost(url, c.transportConfig.GetRequestHeader(url), bytes)
+	requestHeader, err := c.transportConfig.GetRequestHeader(url)
+	if err != nil {
+		return err
+	}
+
+	err = c.dialer.DialPost(url, requestHeader, bytes)
 	if err != nil {
 		return err
 	}

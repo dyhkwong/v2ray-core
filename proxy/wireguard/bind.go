@@ -116,7 +116,6 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 // Close implements conn.Bind
 func (bind *netBind) Close() error {
 	if bind.readQueue != nil {
-		// workaround close(bind.readQueue) panic: close of closed channel
 		bind.closeOnce.Do(func() {
 			close(bind.readQueue)
 		})
