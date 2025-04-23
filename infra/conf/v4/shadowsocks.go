@@ -86,9 +86,6 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 	config.UdpEnabled = v.UDP
 	config.Network = v.NetworkList.Build()
 
-	if v.Password == "" {
-		return nil, newError("Shadowsocks password is not specified.")
-	}
 	account := &shadowsocks.Account{
 		Password: v.Password,
 		IvCheck:  v.IVCheck,
@@ -144,9 +141,6 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 		if server.Port == 0 {
 			return nil, newError("Invalid Shadowsocks port.")
 		}
-		if server.Password == "" {
-			return nil, newError("Shadowsocks password is not specified.")
-		}
 
 		if strings.HasPrefix(server.Cipher, strings.ToLower("2022-blake3-")) {
 			config := new(shadowsocks_2022.ClientConfig)
@@ -170,9 +164,6 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 		}
 		if server.Port == 0 {
 			return nil, newError("Invalid Shadowsocks port.")
-		}
-		if server.Password == "" {
-			return nil, newError("Shadowsocks password is not specified.")
 		}
 		account := &shadowsocks.Account{
 			Password: server.Password,
