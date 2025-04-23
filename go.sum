@@ -26,8 +26,8 @@ github.com/anytls/sing-anytls v0.0.8 h1:1u/fnH1HoeeMV5mX7/eUOjLBvPdkd1UJRmXiRi6V
 github.com/anytls/sing-anytls v0.0.8/go.mod h1:7rjN6IukwysmdusYsrV51Fgu1uW6vsrdd6ctjnEAln8=
 github.com/apernet/hysteria/extras/v2 v2.6.1 h1:Da57xlUD6SeGIsT4bYVRgIDYaUT8GlxTT7CiU3JaeS0=
 github.com/apernet/hysteria/extras/v2 v2.6.1/go.mod h1:CeYpLqY2uuTmLwtzSXIXWldHm8oOd+B/y2S5j/VTd18=
-github.com/apernet/quic-go v0.51.1-0.20250420202007-25ded0c7e74c h1:C3a7C/cvdMmgZ1nGc+ctPwVfWlPhcE7J2C63bmlAOD8=
-github.com/apernet/quic-go v0.51.1-0.20250420202007-25ded0c7e74c/go.mod h1:I/47OIGG5H/IfAm+nz2c6hm6b/NkEhpvptAoiPcY7jQ=
+github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0 h1:oc6//C91pY9gGOBioHeyJrmmpKv/nS8fvTeDpKNPLnI=
+github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0/go.mod h1:/mMPNt1MHqduzaVB2qFHnJwam3BR5r5b35GvYouJs/o=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
