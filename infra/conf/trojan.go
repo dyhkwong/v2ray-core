@@ -48,9 +48,6 @@ func (c *TrojanClientConfig) Build() (proto.Message, error) {
 		if rec.Port == 0 {
 			return nil, newError("Invalid Trojan port.")
 		}
-		if rec.Password == "" {
-			return nil, newError("Trojan password is not specified.")
-		}
 		account := &trojan.Account{
 			Password: rec.Password,
 		}
