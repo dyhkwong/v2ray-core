@@ -18,17 +18,18 @@ const (
 )
 
 type ServerConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Level         int32                  `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"`
-	Network       []net.Network          `protobuf:"varint,5,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin        string                 `protobuf:"bytes,6,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts    string                 `protobuf:"bytes,7,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs    []string               `protobuf:"bytes,8,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Method           string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key              string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Email            string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Level            int32                  `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"`
+	Network          []net.Network          `protobuf:"varint,5,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin           string                 `protobuf:"bytes,6,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                 `protobuf:"bytes,7,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string               `protobuf:"bytes,8,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                 `protobuf:"bytes,9,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -117,17 +118,25 @@ func (x *ServerConfig) GetPluginArgs() []string {
 	return nil
 }
 
+func (x *ServerConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 type MultiUserServerConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Users         []*User                `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
-	Network       []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Method           string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key              string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Users            []*User                `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
+	Network          []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin           string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MultiUserServerConfig) Reset() {
@@ -209,6 +218,13 @@ func (x *MultiUserServerConfig) GetPluginArgs() []string {
 	return nil
 }
 
+func (x *MultiUserServerConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 type RelayDestination struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -286,16 +302,17 @@ func (x *RelayDestination) GetLevel() int32 {
 }
 
 type RelayServerConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Destinations  []*RelayDestination    `protobuf:"bytes,3,rep,name=destinations,proto3" json:"destinations,omitempty"`
-	Network       []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
-	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Method           string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Key              string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Destinations     []*RelayDestination    `protobuf:"bytes,3,rep,name=destinations,proto3" json:"destinations,omitempty"`
+	Network          []net.Network          `protobuf:"varint,4,rep,packed,name=network,proto3,enum=v2ray.core.common.net.Network" json:"network,omitempty"`
+	Plugin           string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *RelayServerConfig) Reset() {
@@ -377,6 +394,13 @@ func (x *RelayServerConfig) GetPluginArgs() []string {
 	return nil
 }
 
+func (x *RelayServerConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -438,16 +462,17 @@ func (x *User) GetLevel() int32 {
 }
 
 type ClientConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Method        string                 `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
-	Key           string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
-	Plugin        string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
-	PluginOpts    string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
-	PluginArgs    []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Address          *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port             uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Method           string                 `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
+	Key              string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	Plugin           string                 `protobuf:"bytes,5,opt,name=plugin,proto3" json:"plugin,omitempty"`
+	PluginOpts       string                 `protobuf:"bytes,6,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
+	PluginArgs       []string               `protobuf:"bytes,7,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
+	PluginWorkingDir string                 `protobuf:"bytes,8,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -529,11 +554,18 @@ func (x *ClientConfig) GetPluginArgs() []string {
 	return nil
 }
 
+func (x *ClientConfig) GetPluginWorkingDir() string {
+	if x != nil {
+		return x.PluginWorkingDir
+	}
+	return ""
+}
+
 var File_proxy_shadowsocks_2022_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\n" +
-	"#proxy/shadowsocks_2022/config.proto\x12!v2ray.core.proxy.shadowsocks_2022\x1a common/protoext/extensions.proto\x1a\x18common/net/network.proto\x1a\x18common/net/address.proto\"\x99\x02\n" +
+	"#proxy/shadowsocks_2022/config.proto\x12!v2ray.core.proxy.shadowsocks_2022\x1a common/protoext/extensions.proto\x1a\x18common/net/network.proto\x1a\x18common/net/address.proto\"\xc7\x02\n" +
 	"\fServerConfig\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x14\n" +
@@ -544,8 +576,9 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\vplugin_opts\x18\a \x01(\tR\n" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\b \x03(\tR\n" +
-	"pluginArgs:\x1f\x82\xb5\x18\x1b\n" +
-	"\ainbound\x12\x10shadowsocks-2022\"\xbb\x02\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\t \x01(\tR\x10pluginWorkingDir:\x1f\x82\xb5\x18\x1b\n" +
+	"\ainbound\x12\x10shadowsocks-2022\"\xe9\x02\n" +
 	"\x15MultiUserServerConfig\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12=\n" +
@@ -555,14 +588,15 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\vplugin_opts\x18\x06 \x01(\tR\n" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
-	"pluginArgs:%\x82\xb5\x18!\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir:%\x82\xb5\x18!\n" +
 	"\ainbound\x12\x16shadowsocks-2022-multi\"\xa1\x01\n" +
 	"\x10RelayDestination\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12;\n" +
 	"\aaddress\x18\x02 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x03 \x01(\rR\x04port\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x14\n" +
-	"\x05level\x18\x05 \x01(\x05R\x05level\"\xd1\x02\n" +
+	"\x05level\x18\x05 \x01(\x05R\x05level\"\xff\x02\n" +
 	"\x11RelayServerConfig\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12W\n" +
@@ -572,12 +606,13 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\vplugin_opts\x18\x06 \x01(\tR\n" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
-	"pluginArgs:%\x82\xb5\x18!\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir:%\x82\xb5\x18!\n" +
 	"\ainbound\x12\x16shadowsocks-2022-relay\"D\n" +
 	"\x04User\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x14\n" +
-	"\x05level\x18\x03 \x01(\x05R\x05level\"\x85\x02\n" +
+	"\x05level\x18\x03 \x01(\x05R\x05level\"\xb3\x02\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x16\n" +
@@ -587,7 +622,8 @@ const file_proxy_shadowsocks_2022_config_proto_rawDesc = "" +
 	"\vplugin_opts\x18\x06 \x01(\tR\n" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
-	"pluginArgs: \x82\xb5\x18\x1c\n" +
+	"pluginArgs\x12,\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir: \x82\xb5\x18\x1c\n" +
 	"\boutbound\x12\x10shadowsocks-2022B\x84\x01\n" +
 	"%com.v2ray.core.proxy.shadowsocks_2022P\x01Z5github.com/v2fly/v2ray-core/v5/proxy/shadowsocks_2022\xaa\x02!V2Ray.Core.Proxy.Shadowsocks_2022b\x06proto3"
 

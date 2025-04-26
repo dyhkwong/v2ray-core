@@ -23,6 +23,7 @@ message ServerConfig{
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message ClientConfig {
@@ -36,6 +37,7 @@ message ClientConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
   bool experiment_reduced_iv_head_entropy = 90001;
 }
 

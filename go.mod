@@ -1,6 +1,6 @@
 module github.com/v2fly/v2ray-core/v5
 
-go 1.24.0
+go 1.24
 
 require (
 	github.com/adrg/xdg v0.5.3
@@ -17,8 +17,8 @@ require (
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.0
 	github.com/quic-go/quic-go v0.51.0
-	github.com/refraction-networking/utls v1.7.0
-	github.com/sagernet/sing v0.6.6
+	github.com/refraction-networking/utls v1.7.1
+	github.com/sagernet/sing v0.6.7
 	github.com/sagernet/sing-quic v0.4.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
 	github.com/sagernet/sing-shadowsocks2 v0.2.0
@@ -40,7 +40,7 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
-	gvisor.dev/gvisor v0.0.0-20250411210754-2be36b44316d
+	gvisor.dev/gvisor v0.0.0-20250421082855-175fc78fa9bb
 	h12.io/socks v1.0.3
 	lukechampine.com/blake3 v1.4.0
 )

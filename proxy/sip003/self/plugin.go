@@ -43,7 +43,7 @@ type Plugin struct {
 	instance *core.Instance
 }
 
-func (v *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string) error {
+func (v *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, _ string) error {
 	opts := make(Args)
 
 	opts.Add("localAddr", localHost)

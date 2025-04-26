@@ -98,7 +98,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 			Address: net.LocalHostIP,
 			Port:    net.Port(port),
 		}
-		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs); err != nil {
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(port), s.Destination().Address.String(), s.Destination().Port.String(), config.PluginOpts, config.PluginArgs, config.PluginWorkingDir); err != nil {
 			return nil, newError("failed to start plugin").Base(err)
 		}
 		client.plugin = plugin

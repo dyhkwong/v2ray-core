@@ -1,13 +1,13 @@
 package external
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/platform"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
@@ -29,16 +29,16 @@ type Plugin struct {
 	done          *done.Instance
 }
 
-func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string) error {
+func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, workingDir string) error {
 	p.done = done.New()
 	path, err := exec.LookPath(p.Plugin)
-	if err != nil {
+	if err != nil && !errors.Is(err, exec.ErrDot) {
 		return newError("plugin ", p.Plugin, " not found").Base(err)
 	}
 	_, name := filepath.Split(path)
 	proc := &exec.Cmd{
 		Path: path,
-		Args: pluginArgs,
+		Args: append([]string{path}, pluginArgs...),
 		Env: []string{
 			"SS_REMOTE_HOST=" + remoteHost,
 			"SS_REMOTE_PORT=" + remotePort,
@@ -52,6 +52,9 @@ func (p *Plugin) Init(localHost string, localPort string, remoteHost string, rem
 			name: name,
 		},
 	}
+	if len(workingDir) > 0 {
+		proc.Dir = workingDir
+	}
 	if pluginOpts != "" {
 		proc.Env = append(proc.Env, "SS_PLUGIN_OPTIONS="+pluginOpts)
 	}
@@ -64,7 +67,7 @@ func (p *Plugin) Init(localHost string, localPort string, remoteHost string, rem
 	return nil
 }
 
-func (p *Plugin) startPlugin(oldProc *exec.Cmd) *errors.Error {
+func (p *Plugin) startPlugin(oldProc *exec.Cmd) error {
 	if p.done.Done() {
 		return newError("closed")
 	}
@@ -75,9 +78,10 @@ func (p *Plugin) startPlugin(oldProc *exec.Cmd) *errors.Error {
 		Stdout: oldProc.Stdout,
 		Stderr: oldProc.Stderr,
 		Env:    oldProc.Env,
+		Dir:    oldProc.Dir,
 	}
 
-	newError("start process ", proc.Path, " ", strings.Join(proc.Args, " ")).AtInfo().WriteToLog()
+	newError("start process ", strings.Join(proc.Args, " ")).AtInfo().WriteToLog()
 
 	err := proc.Start()
 	if err != nil {
@@ -114,8 +118,8 @@ func (p *Plugin) waitPlugin() {
 
 	time.Sleep(time.Second)
 
-	if restartErr := p.startPlugin(p.pluginProcess); restartErr != nil {
-		restartErr.WriteToLog()
+	if err := p.startPlugin(p.pluginProcess); err != nil {
+		newError(err).WriteToLog()
 	} else {
 		go p.waitPlugin()
 	}

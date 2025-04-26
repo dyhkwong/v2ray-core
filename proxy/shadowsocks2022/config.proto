@@ -22,4 +22,5 @@ message ClientConfig {
   string plugin = 7;
   string plugin_opts = 8;
   repeated string plugin_args = 9;
+  string plugin_working_dir = 10;
 }

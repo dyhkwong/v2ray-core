@@ -105,7 +105,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 			Address: net.LocalHostIP,
 			Port:    net.Port(port),
 		}
-		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(s.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs); err != nil {
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(s.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs, config.PluginWorkingDir); err != nil {
 			return nil, newError("failed to start plugin").Base(err)
 		}
 		s.plugin = plugin

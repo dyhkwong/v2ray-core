@@ -24,7 +24,7 @@ func RegisterPlugin(name string, creator func() Plugin) {
 }
 
 type Plugin interface {
-	Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string) error
+	Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, workingDir string) error
 	common.Closable
 }
 

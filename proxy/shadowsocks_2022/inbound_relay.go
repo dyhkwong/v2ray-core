@@ -135,7 +135,7 @@ func NewRelayServer(ctx context.Context, config *RelayServerConfig) (*RelayInbou
 			Address: net.LocalHostIP,
 			Port:    net.Port(port),
 		}
-		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(inbound.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs); err != nil {
+		if err := plugin.Init(net.LocalHostIP.String(), strconv.Itoa(inbound.receiverPort), net.LocalHostIP.String(), strconv.Itoa(port), config.PluginOpts, config.PluginArgs, config.PluginWorkingDir); err != nil {
 			return nil, newError("failed to start plugin").Base(err)
 		}
 		inbound.plugin = plugin

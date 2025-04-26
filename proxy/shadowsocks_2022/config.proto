@@ -22,6 +22,7 @@ message ServerConfig {
   string plugin = 6;
   string plugin_opts = 7;
   repeated string plugin_args = 8;
+  string plugin_working_dir = 9;
 }
 
 message MultiUserServerConfig {
@@ -35,6 +36,7 @@ message MultiUserServerConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message RelayDestination {
@@ -56,6 +58,7 @@ message RelayServerConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message User {
@@ -75,4 +78,5 @@ message ClientConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }

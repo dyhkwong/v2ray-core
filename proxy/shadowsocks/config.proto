@@ -75,6 +75,7 @@ message ServerConfig {
   string plugin = 5;
   string plugin_opts = 6;
   repeated string plugin_args = 7;
+  string plugin_working_dir = 8;
 }
 
 message ClientConfig {
@@ -82,4 +83,5 @@ message ClientConfig {
   string plugin = 2;
   string plugin_opts = 3;
   repeated string plugin_args = 4;
+  string plugin_working_dir = 5;
 }

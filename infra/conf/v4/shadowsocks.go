@@ -22,19 +22,20 @@ type ShadowsocksUserConfig struct {
 }
 
 type ShadowsocksServerConfig struct {
-	Cipher         string                   `json:"method"`
-	Password       string                   `json:"password"`
-	UDP            bool                     `json:"udp"`
-	Level          byte                     `json:"level"`
-	Email          string                   `json:"email"`
-	NetworkList    *cfgcommon.NetworkList   `json:"network"`
-	IVCheck        bool                     `json:"ivCheck"`
-	PacketEncoding string                   `json:"packetEncoding"`
-	Plugin         string                   `json:"plugin"`
-	PluginOpts     string                   `json:"pluginOpts"`
-	PluginArgs     *cfgcommon.StringList    `json:"pluginArgs"`
-	Clients        []*ShadowsocksUserConfig `json:"clients"`
-	Users          []*ShadowsocksUserConfig `json:"users"`
+	Cipher           string                   `json:"method"`
+	Password         string                   `json:"password"`
+	UDP              bool                     `json:"udp"`
+	Level            byte                     `json:"level"`
+	Email            string                   `json:"email"`
+	NetworkList      *cfgcommon.NetworkList   `json:"network"`
+	IVCheck          bool                     `json:"ivCheck"`
+	PacketEncoding   string                   `json:"packetEncoding"`
+	Plugin           string                   `json:"plugin"`
+	PluginOpts       string                   `json:"pluginOpts"`
+	PluginArgs       *cfgcommon.StringList    `json:"pluginArgs"`
+	PluginWorkingDir string                   `json:"pluginWorkingDir"`
+	Clients          []*ShadowsocksUserConfig `json:"clients"`
+	Users            []*ShadowsocksUserConfig `json:"users"`
 }
 
 func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
@@ -63,6 +64,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 				if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 					config.PluginArgs = *v.PluginArgs
 				}
+				config.PluginWorkingDir = v.PluginWorkingDir
 				return config, nil
 			} else {
 				config := new(shadowsocks_2022.RelayServerConfig)
@@ -83,6 +85,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 				if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 					config.PluginArgs = *v.PluginArgs
 				}
+				config.PluginWorkingDir = v.PluginWorkingDir
 				return config, nil
 			}
 		}
@@ -97,6 +100,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 		if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 			config.PluginArgs = *v.PluginArgs
 		}
+		config.PluginWorkingDir = v.PluginWorkingDir
 		return config, nil
 	}
 
@@ -131,6 +135,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 		config.PluginArgs = *v.PluginArgs
 	}
+	config.PluginWorkingDir = v.PluginWorkingDir
 
 	return config, nil
 }
@@ -148,10 +153,11 @@ type ShadowsocksServerTarget struct {
 }
 
 type ShadowsocksClientConfig struct {
-	Servers    []*ShadowsocksServerTarget `json:"servers"`
-	Plugin     string                     `json:"plugin"`
-	PluginOpts string                     `json:"pluginOpts"`
-	PluginArgs *cfgcommon.StringList      `json:"pluginArgs"`
+	Servers          []*ShadowsocksServerTarget `json:"servers"`
+	Plugin           string                     `json:"plugin"`
+	PluginOpts       string                     `json:"pluginOpts"`
+	PluginArgs       *cfgcommon.StringList      `json:"pluginArgs"`
+	PluginWorkingDir string                     `json:"pluginWorkingDir"`
 }
 
 func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
@@ -180,6 +186,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 			if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 				config.PluginArgs = *v.PluginArgs
 			}
+			config.PluginWorkingDir = v.PluginWorkingDir
 			return config, nil
 		}
 	}
@@ -229,6 +236,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
 		config.PluginArgs = *v.PluginArgs
 	}
+	config.PluginWorkingDir = v.PluginWorkingDir
 
 	return config, nil
 }

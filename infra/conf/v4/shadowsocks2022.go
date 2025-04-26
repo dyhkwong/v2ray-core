@@ -8,14 +8,15 @@ import (
 )
 
 type Shadowsocks2022Config struct {
-	Method     string                `json:"method"`
-	PSK        []byte                `json:"psk"`
-	IPSK       [][]byte              `json:"iPSK"`
-	Address    *cfgcommon.Address    `json:"address"`
-	Port       uint16                `json:"port"`
-	Plugin     string                `json:"plugin"`
-	PluginOpts string                `json:"pluginOpts"`
-	PluginArgs *cfgcommon.StringList `json:"pluginArgs"`
+	Method           string                `json:"method"`
+	PSK              []byte                `json:"psk"`
+	IPSK             [][]byte              `json:"iPSK"`
+	Address          *cfgcommon.Address    `json:"address"`
+	Port             uint16                `json:"port"`
+	Plugin           string                `json:"plugin"`
+	PluginOpts       string                `json:"pluginOpts"`
+	PluginArgs       *cfgcommon.StringList `json:"pluginArgs"`
+	PluginWorkingDir string                `json:"pluginWorkingDir"`
 }
 
 func (c *Shadowsocks2022Config) Build() (proto.Message, error) {
@@ -30,5 +31,6 @@ func (c *Shadowsocks2022Config) Build() (proto.Message, error) {
 	if c.PluginArgs != nil && len(*c.PluginArgs) > 0 {
 		config.PluginArgs = *c.PluginArgs
 	}
+	config.PluginWorkingDir = c.PluginWorkingDir
 	return config, nil
 }

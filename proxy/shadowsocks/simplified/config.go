@@ -42,11 +42,12 @@ func init() {
 					CipherType: simplifiedServer.Method.Value,
 				}),
 			},
-			Network:        simplifiedServer.Networks.GetNetwork(),
-			PacketEncoding: simplifiedServer.PacketEncoding,
-			Plugin:         simplifiedServer.Plugin,
-			PluginOpts:     simplifiedServer.PluginOpts,
-			PluginArgs:     simplifiedServer.PluginArgs,
+			Network:          simplifiedServer.Networks.GetNetwork(),
+			PacketEncoding:   simplifiedServer.PacketEncoding,
+			Plugin:           simplifiedServer.Plugin,
+			PluginOpts:       simplifiedServer.PluginOpts,
+			PluginArgs:       simplifiedServer.PluginArgs,
+			PluginWorkingDir: simplifiedServer.PluginWorkingDir,
 		}
 
 		return common.CreateObject(ctx, fullServer)
@@ -70,9 +71,10 @@ func init() {
 					},
 				},
 			},
-			Plugin:     simplifiedClient.Plugin,
-			PluginOpts: simplifiedClient.PluginOpts,
-			PluginArgs: simplifiedClient.PluginArgs,
+			Plugin:           simplifiedClient.Plugin,
+			PluginOpts:       simplifiedClient.PluginOpts,
+			PluginArgs:       simplifiedClient.PluginArgs,
+			PluginWorkingDir: simplifiedClient.PluginWorkingDir,
 		}
 
 		return common.CreateObject(ctx, fullClient)
