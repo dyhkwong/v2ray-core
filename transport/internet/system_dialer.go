@@ -139,11 +139,11 @@ func (d *DefaultSystemDialer) Dial(ctx context.Context, src net.Address, dest ne
 }
 
 // SagerNet private
-func ApplySockopt(network net.Network, address net.Address, fd uintptr, sockopt *SocketConfig) {
-	if err := applyOutboundSocketOptions(network.String(), address.String(), fd, sockopt); err != nil {
+func ApplySockopt(network, address string, fd uintptr, sockopt *SocketConfig) {
+	if err := applyOutboundSocketOptions(network, address, fd, sockopt); err != nil {
 		newError("failed to apply socket options").Base(err).WriteToLog()
 	}
-	if network == net.Network_UDP && hasBindAddr(sockopt) {
+	if network == "udp4" || network == "udp6" && hasBindAddr(sockopt) {
 		if err := bindAddr(fd, sockopt.BindAddress, sockopt.BindPort); err != nil {
 			newError("failed to bind source address to ", sockopt.BindAddress).Base(err).WriteToLog()
 		}

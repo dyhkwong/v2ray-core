@@ -12,15 +12,9 @@ import (
 
 func toNetIpAddr(addr net.Address) netip.Addr {
 	if addr.Family().IsIPv4() {
-		ip := addr.IP()
-		return netip.AddrFrom4([4]byte{ip[0], ip[1], ip[2], ip[3]})
+		return netip.AddrFrom4([4]byte(addr.IP()))
 	} else {
-		ip := addr.IP()
-		arr := [16]byte{}
-		for i := 0; i < 16; i++ {
-			arr[i] = ip[i]
-		}
-		return netip.AddrFrom16(arr)
+		return netip.AddrFrom16([16]byte(addr.IP()))
 	}
 }
 

@@ -408,7 +408,7 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if destAddr == nil {
 			continue
 		}
-		if w.dest.Address.Family().IsDomain() && w.dest.Address == originalDest.Address && !w.addrPort.Addr.IsValid() {
+		if w.dest.Address.Family().IsDomain() && w.dest.Address == originalDest.Address && !w.addrPort.IsValid() {
 			w.addrPort.Addr = destAddr.AddrPort().Addr()
 			w.addrPort.Port = net.Port(destAddr.Port)
 		}

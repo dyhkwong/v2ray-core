@@ -121,7 +121,7 @@ func (t securityEngineAuthInfo) AuthType() string {
 func (t securityEngineAuthInfo) GetSecurityValue() credentials.ChannelzSecurityValue {
 	switch conn := t.conn.(type) {
 	case utls.UTLSClientConnection:
-		state := conn.UConn.ConnectionState()
+		state := conn.ConnectionState()
 		v := &credentials.TLSChannelzSecurityValue{
 			StandardName: cipherSuiteLookup(state.CipherSuite),
 		}

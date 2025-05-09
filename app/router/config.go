@@ -113,12 +113,12 @@ func (rr *RoutingRule) BuildCondition() (Condition, error) {
 		conds.Add(NewProtocolMatcher(rr.Protocol))
 	}
 
-	if rr.UidList != nil && len(rr.UidList.Uid) > 0 {
-		conds.Add(NewUidMatcher(rr.UidList))
+	if len(rr.Uid) > 0 {
+		conds.Add(NewUidMatcher(rr.Uid))
 	}
 
-	if len(rr.WifiSsidList) > 0 {
-		conds.Add(NewWifiSSIDMatcher(rr.WifiSsidList))
+	if len(rr.Ssid) > 0 {
+		conds.Add(NewWifiSSIDMatcher(rr.Ssid))
 	}
 
 	if len(rr.NetworkType) > 0 {

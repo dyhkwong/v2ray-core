@@ -240,11 +240,3 @@ func (v *User) Build() *protocol.User {
 		Level: uint32(v.LevelByte),
 	}
 }
-
-type UidList []uint32 // nolint: stylecheck
-
-func (l UidList) Build() *net.UidList {
-	return &net.UidList{
-		Uid: l,
-	}
-}

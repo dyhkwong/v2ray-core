@@ -151,7 +151,7 @@ func (i *RelayInbound) Network() []net.Network {
 func (i *RelayInbound) Process(ctx context.Context, network net.Network, connection internet.Connection, dispatcher routing.Dispatcher) error {
 	inbound := session.InboundFromContext(ctx)
 
-	if i.plugin != nil {
+	if network == net.Network_TCP && i.plugin != nil {
 		if inbound.Tag != i.pluginTag {
 			dest, err := internet.Dial(ctx, i.pluginOverride, nil)
 			if err != nil {

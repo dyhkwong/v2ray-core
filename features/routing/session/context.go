@@ -122,19 +122,19 @@ func (ctx *Context) GetSkipDNSResolve() bool {
 	return ctx.Content.SkipDNSResolve
 }
 
-// GetUid implements routing.Context.
+// GetUID implements routing.Context.
 func (ctx *Context) GetUid() uint32 { // nolint: stylecheck
 	if ctx.Inbound == nil {
 		return 0
 	}
-	return ctx.Inbound.Uid
+	return ctx.Inbound.UID
 }
 
-func (ctx *Context) GetWifiSsid() string {
+func (ctx *Context) GetSsid() string {
 	if ctx.Inbound == nil {
 		return ""
 	}
-	return ctx.Inbound.WifiSSID
+	return ctx.Inbound.SSID
 }
 
 func (ctx *Context) GetNetworkType() string {

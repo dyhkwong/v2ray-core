@@ -26,7 +26,7 @@ message RoutingContext {
   repeated string OutboundGroupTags = 11;
   string OutboundTag = 12;
   uint32 uid = 13;
-  string wifi_ssid = 14;
+  string ssid = 14;
   string network_type = 15;
 }
 

@@ -43,7 +43,7 @@ type Context interface {
 
 	// SagerNet private
 	GetUid() uint32
-	GetWifiSsid() string
+	GetSsid() string
 	GetNetworkType() string
 }
 

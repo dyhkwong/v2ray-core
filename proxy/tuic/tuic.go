@@ -151,7 +151,7 @@ func (w *packetConnWrapper) WritePacket(buffer *B.Buffer, destination M.Socksadd
 	vBuf.Write(buffer.Bytes())
 	endpoint := toDestination(destination, net.Network_UDP)
 	vBuf.Endpoint = &endpoint
-	return w.Writer.WriteMultiBuffer(buf.MultiBuffer{vBuf})
+	return w.WriteMultiBuffer(buf.MultiBuffer{vBuf})
 }
 
 func (w *packetConnWrapper) Close() error {

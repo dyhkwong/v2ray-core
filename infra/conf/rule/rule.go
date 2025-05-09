@@ -204,21 +204,21 @@ func toCidrList(ctx context.Context, ips cfgcommon.StringList) ([]*routercommon.
 func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRule, error) {
 	type RawFieldRule struct {
 		RouterRule
-		Domain       *cfgcommon.StringList  `json:"domain"`
-		Domains      *cfgcommon.StringList  `json:"domains"`
-		IP           *cfgcommon.StringList  `json:"ip"`
-		Port         *cfgcommon.PortList    `json:"port"`
-		Network      *cfgcommon.NetworkList `json:"network"`
-		SourceIP     *cfgcommon.StringList  `json:"source"`
-		SourcePort   *cfgcommon.PortList    `json:"sourcePort"`
-		User         *cfgcommon.StringList  `json:"user"`
-		InboundTag   *cfgcommon.StringList  `json:"inboundTag"`
-		Protocols    *cfgcommon.StringList  `json:"protocol"`
-		Attributes   string                 `json:"attrs"`
-		UidList      *cfgcommon.UidList     `json:"uidList"` // nolint: stylecheck
-		WifiSSIDList *cfgcommon.StringList  `json:"ssidList"`
-		NetworkType  string                 `json:"networkType"`
-		SkipDomain   bool                   `json:"skipDomain"`
+		Domain      *cfgcommon.StringList  `json:"domain"`
+		Domains     *cfgcommon.StringList  `json:"domains"`
+		IP          *cfgcommon.StringList  `json:"ip"`
+		Port        *cfgcommon.PortList    `json:"port"`
+		Network     *cfgcommon.NetworkList `json:"network"`
+		SourceIP    *cfgcommon.StringList  `json:"source"`
+		SourcePort  *cfgcommon.PortList    `json:"sourcePort"`
+		User        *cfgcommon.StringList  `json:"user"`
+		InboundTag  *cfgcommon.StringList  `json:"inboundTag"`
+		Protocols   *cfgcommon.StringList  `json:"protocol"`
+		Attributes  string                 `json:"attrs"`
+		UID         []uint32               `json:"uid"`
+		SSID        []string               `json:"ssid"`
+		NetworkType []string               `json:"networkType"`
+		SkipDomain  bool                   `json:"skipDomain"`
 	}
 	rawFieldRule := new(RawFieldRule)
 	err := json.Unmarshal(msg, rawFieldRule)
@@ -314,12 +314,12 @@ func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRu
 		rule.Attributes = rawFieldRule.Attributes
 	}
 
-	if rawFieldRule.UidList != nil && len(*rawFieldRule.UidList) > 0 {
-		rule.UidList = rawFieldRule.UidList.Build()
+	if len(rawFieldRule.UID) > 0 {
+		rule.Uid = rawFieldRule.UID
 	}
 
-	if rawFieldRule.WifiSSIDList != nil && rawFieldRule.WifiSSIDList.Len() > 0 {
-		rule.WifiSsidList = *rawFieldRule.WifiSSIDList
+	if len(rawFieldRule.SSID) > 0 {
+		rule.Ssid = rawFieldRule.SSID
 	}
 
 	if len(rawFieldRule.NetworkType) > 0 {

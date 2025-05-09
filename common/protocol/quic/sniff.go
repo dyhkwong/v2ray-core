@@ -13,6 +13,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	ptls "github.com/v2fly/v2ray-core/v5/common/protocol/tls"
+	"github.com/v2fly/v2ray-core/v5/common/rangelist"
 )
 
 type SniffHeader struct {
@@ -63,6 +64,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 	cache := buf.New()
 	defer cache.Release()
 
+	validRange := rangelist.NewRangeList()
 	// Parse QUIC packets
 	for len(b) > 0 {
 		buffer := buf.FromBytes(b)
@@ -162,7 +164,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 
 		cache.Clear()
 		mask := cache.Extend(int32(block.BlockSize()))
-		block.Encrypt(mask, b[hdrLen+4:hdrLen+4+16])
+		block.Encrypt(mask, b[hdrLen+4:hdrLen+4+block.BlockSize()])
 		b[0] ^= mask[0] & 0xf
 		for i := range b[hdrLen : hdrLen+4] {
 			b[hdrLen+i] ^= mask[i+1]
@@ -269,6 +271,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 				if _, err := buffer.Read(cryptoDataBuf.BytesRange(int32(offset), int32(offset+length))); err != nil { // Field: Crypto Data
 					return nil, io.ErrUnexpectedEOF
 				}
+				validRange.Add(int(offset), int(offset+length))
 			case 0x1c: // CONNECTION_CLOSE frame, only 0x1c is permitted in initial packet
 				if _, err = readUvarint(buffer); err != nil { // Field: Error Code
 					return nil, io.ErrUnexpectedEOF
@@ -291,7 +294,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 		}
 
 		tlsHdr := &ptls.SniffHeader{}
-		err = ptls.ReadClientHello(cryptoDataBuf.BytesRange(0, int32(cryptoLen)), tlsHdr)
+		err = ptls.ReadClientHello(cryptoDataBuf.BytesRange(0, int32(cryptoLen)), tlsHdr, validRange)
 		if err != nil {
 			// The crypto data may have not been fully recovered in current packets,
 			// So we continue to sniff rest packets.

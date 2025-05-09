@@ -93,11 +93,6 @@ func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (
 	// bind := conn.NewStdNetBind() // TODO: conn.Bind wrapper for dialer
 	c.bind = &netBindClient{
 		netBind: netBind{
-			dns: c.dns,
-			dnsOption: dns.IPOption{
-				IPv4Enable: c.hasIPv4,
-				IPv6Enable: c.hasIPv6,
-			},
 			workers: int(c.conf.NumWorkers),
 		},
 		ctx:      core.ToBackgroundDetachedContext(ctx),
@@ -215,9 +210,6 @@ func (c *Client) makeVirtualTun() (Tunnel, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	c.bind.dnsOption.IPv4Enable = c.hasIPv4
-	c.bind.dnsOption.IPv6Enable = c.hasIPv6
 
 	if err = t.BuildDevice(createIPCRequest(c.conf.SecretKey, c.conf.Peers, false), c.bind); err != nil {
 		_ = t.Close()

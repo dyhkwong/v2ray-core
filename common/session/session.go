@@ -50,9 +50,9 @@ type Inbound struct {
 	Conn net.Conn
 
 	// SagerNet private
-	Uid         uint32 // nolint: stylecheck
+	UID         uint32
+	SSID        string
 	NetworkType string
-	WifiSSID    string
 }
 
 // Outbound is the metadata of an outbound connection.

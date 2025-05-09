@@ -13,7 +13,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
-	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -30,7 +29,7 @@ type Server struct {
 func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 	v := core.MustFromContext(ctx)
 
-	addresses, hasIPv4, hasIPv6, err := parseEndpoints(conf.Address)
+	addresses, _, _, err := parseEndpoints(conf.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +37,6 @@ func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 	server := &Server{
 		bind: &netBindServer{
 			netBind: netBind{
-				dns: v.GetFeature(dns.ClientType()).(dns.Client),
-				dnsOption: dns.IPOption{
-					IPv4Enable: hasIPv4,
-					IPv6Enable: hasIPv6,
-				},
 				workers: int(conf.NumWorkers),
 			},
 		},

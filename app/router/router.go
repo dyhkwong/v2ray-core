@@ -249,8 +249,8 @@ func init() {
 			rule.InboundTag = v.InboundTag
 			rule.DomainMatcher = v.DomainMatcher
 
-			rule.UidList = v.UidList
-			rule.WifiSsidList = v.WifiSsidList
+			rule.Uid = v.Uid
+			rule.Ssid = v.Ssid
 			rule.NetworkType = v.NetworkType
 
 			rule.SkipDomain = v.SkipDomain

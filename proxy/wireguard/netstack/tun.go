@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT
  *
- * Copyright (C) 2017-2023 WireGuard LLC. All Rights Reserved.
+ * Copyright (C) 2017-2025 WireGuard LLC. All Rights Reserved.
  */
 
 package netstack
@@ -30,10 +30,12 @@ type netTun struct {
 	ep             *channel.Endpoint
 	stack          *stack.Stack
 	events         chan tun.Event
+	notifyHandle   *channel.NotificationHandle
 	incomingPacket chan *buffer.View
 	mtu            int
 	hasV4, hasV6   bool
-	closeOnce      *sync.Once
+	isClosed       bool
+	closeOnce      sync.Once
 }
 
 type Net netTun
@@ -50,14 +52,13 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int, promiscuousMode bool) (t
 		events:         make(chan tun.Event, 1),
 		incomingPacket: make(chan *buffer.View),
 		mtu:            mtu,
-		closeOnce:      &sync.Once{},
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true) // TCP SACK is disabled by default
 	tcpipErr := dev.stack.SetTransportProtocolOption(tcp.ProtocolNumber, &sackEnabledOpt)
 	if tcpipErr != nil {
 		return nil, nil, dev.stack, fmt.Errorf("could not enable TCP SACK: %v", tcpipErr)
 	}
-	dev.ep.AddNotify(dev)
+	dev.notifyHandle = dev.ep.AddNotify(dev)
 	tcpipErr = dev.stack.CreateNIC(1, dev.ep)
 	if tcpipErr != nil {
 		return nil, nil, dev.stack, fmt.Errorf("CreateNIC: %v", tcpipErr)
@@ -160,9 +161,17 @@ func (tun *netTun) WriteNotify() {
 func (tun *netTun) Close() error {
 	tun.closeOnce.Do(func() {
 		tun.stack.RemoveNIC(1)
-		close(tun.events)
+		tun.stack.Close()
+		tun.ep.RemoveNotify(tun.notifyHandle)
 		tun.ep.Close()
-		close(tun.incomingPacket)
+
+		if tun.events != nil {
+			close(tun.events)
+		}
+
+		if tun.incomingPacket != nil {
+			close(tun.incomingPacket)
+		}
 	})
 	return nil
 }

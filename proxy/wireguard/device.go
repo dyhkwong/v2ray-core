@@ -2,7 +2,6 @@ package wireguard
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/netip"
 	"sync"
@@ -40,7 +39,7 @@ func (t *tunnel) BuildDevice(ipc string, bind conn.Bind) (err error) {
 	defer t.rw.Unlock()
 
 	if t.device != nil {
-		return errors.New("device is already initialized")
+		return newError("device is already initialized")
 	}
 
 	logger := &device.Logger{

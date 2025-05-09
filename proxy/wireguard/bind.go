@@ -5,13 +5,13 @@ import (
 	"errors"
 	"io"
 	"net/netip"
-	"strconv"
 	"sync"
 
 	"golang.zx2c4.com/wireguard/conn"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -28,12 +28,9 @@ type netReadInfo struct {
 
 // reduce duplicated code
 type netBind struct {
-	dns       dns.Client
-	dnsOption dns.IPOption
-
 	workers   int
 	readQueue chan *netReadInfo
-	closeOnce *sync.Once
+	closeOnce sync.Once
 }
 
 // SetMark implements conn.Bind
@@ -43,34 +40,32 @@ func (bind *netBind) SetMark(mark uint32) error {
 
 // ParseEndpoint implements conn.Bind
 func (n *netBind) ParseEndpoint(s string) (conn.Endpoint, error) {
-	ipStr, port, err := net.SplitHostPort(s)
+	host, portStr, err := net.SplitHostPort(s)
 	if err != nil {
 		return nil, err
 	}
-	portNum, err := strconv.Atoi(port)
+	port, err := net.PortFromString(portStr)
 	if err != nil {
 		return nil, err
 	}
-
-	addr := net.ParseAddress(ipStr)
-	if addr.Family() == net.AddressFamilyDomain {
-		ips, err := dns.LookupIPWithOption(n.dns, addr.Domain(), n.dnsOption)
-		if err != nil {
-			return nil, err
-		} else if len(ips) == 0 {
-			return nil, dns.ErrEmptyResponse
-		}
-		addr = net.IPAddress(ips[0])
-	}
-
-	dst := net.Destination{
-		Address: addr,
-		Port:    net.Port(portNum),
+	dest := net.Destination{
+		Address: net.ParseAddress(host),
+		Port:    port,
 		Network: net.Network_UDP,
 	}
-
+	if dest.Address.Family().IsDomain() {
+		// SagerNet private
+		ips, err := localdns.New().LookupIP(dest.Address.Domain())
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, dns.ErrEmptyResponse
+		}
+		dest.Address = net.IPAddress(ips[0])
+	}
 	return &netEndpoint{
-		dst: dst,
+		dest: dest,
 	}, nil
 }
 
@@ -82,22 +77,14 @@ func (bind *netBind) BatchSize() int {
 // Open implements conn.Bind
 func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 	bind.readQueue = make(chan *netReadInfo)
-	bind.closeOnce = &sync.Once{}
 
-	fun := func(bufs [][]byte, sizes []int, eps []conn.Endpoint) (n int, err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				n = 0
-				err = errors.New("channel closed")
-			}
-		}()
-
+	fn := func(bufs [][]byte, sizes []int, eps []conn.Endpoint) (n int, err error) {
 		r := &netReadInfo{
 			buff: bufs[0],
 		}
 		r.waiter.Add(1)
 		bind.readQueue <- r
-		r.waiter.Wait() // wait read goroutine done, or we will miss the result
+		r.waiter.Wait()
 		sizes[0], eps[0] = r.bytes, r.endpoint
 		return 1, r.err
 	}
@@ -107,7 +94,7 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 	}
 	arr := make([]conn.ReceiveFunc, workers)
 	for i := 0; i < workers; i++ {
-		arr[i] = fun
+		arr[i] = fn
 	}
 
 	return arr, uint16(uport), nil
@@ -115,11 +102,11 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 
 // Close implements conn.Bind
 func (bind *netBind) Close() error {
-	if bind.readQueue != nil {
-		bind.closeOnce.Do(func() {
+	bind.closeOnce.Do(func() {
+		if bind.readQueue != nil {
 			close(bind.readQueue)
-		})
-	}
+		}
+	})
 	return nil
 }
 
@@ -132,7 +119,7 @@ type netBindClient struct {
 }
 
 func (bind *netBindClient) connectTo(endpoint *netEndpoint) error {
-	c, err := bind.dialer.Dial(bind.ctx, endpoint.dst)
+	c, err := bind.dialer.Dial(bind.ctx, endpoint.dest)
 	if err != nil {
 		return err
 	}
@@ -205,7 +192,7 @@ func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
 	}
 
 	if nend.conn == nil {
-		return errors.New("connection not open yet")
+		return newError("connection not open yet")
 	}
 
 	for _, buff := range buff {
@@ -218,7 +205,7 @@ func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
 }
 
 type netEndpoint struct {
-	dst  net.Destination
+	dest net.Destination
 	conn net.Conn
 }
 
@@ -233,18 +220,18 @@ func (e netEndpoint) SrcIP() netip.Addr {
 }
 
 func (e netEndpoint) DstToBytes() []byte {
-	var dat []byte
-	if e.dst.Address.Family().IsIPv4() {
-		dat = e.dst.Address.IP().To4()[:]
+	var b []byte
+	if e.dest.Address.Family().IsIPv4() {
+		b = e.dest.Address.IP()
 	} else {
-		dat = e.dst.Address.IP().To16()[:]
+		b = e.dest.Address.IP()
 	}
-	dat = append(dat, byte(e.dst.Port), byte(e.dst.Port>>8))
-	return dat
+	b = append(b, byte(e.dest.Port), byte(e.dest.Port>>8))
+	return b
 }
 
 func (e netEndpoint) DstToString() string {
-	return e.dst.NetAddr()
+	return e.dest.NetAddr()
 }
 
 func (e netEndpoint) SrcToString() string {

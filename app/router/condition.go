@@ -283,12 +283,14 @@ type UidMatcher struct { // nolint: stylecheck
 	uidList map[uint32]bool
 }
 
-func NewUidMatcher(list *net.UidList) *UidMatcher { // nolint: stylecheck
-	m := UidMatcher{uidList: map[uint32]bool{}}
-	for _, uid := range list.Uid {
+func NewUidMatcher(uidList []uint32) *UidMatcher { // nolint: stylecheck
+	m := &UidMatcher{
+		uidList: map[uint32]bool{},
+	}
+	for _, uid := range uidList {
 		m.uidList[uid] = true
 	}
-	return &m
+	return m
 }
 
 // Apply implements Condition.
@@ -297,38 +299,39 @@ func (u UidMatcher) Apply(ctx routing.Context) bool {
 }
 
 type WifiSSIDMatcher struct {
-	ssid map[string]bool
+	ssidList map[string]bool
 }
 
-func NewWifiSSIDMatcher(ssid []string) *WifiSSIDMatcher {
+func NewWifiSSIDMatcher(ssidList []string) *WifiSSIDMatcher {
 	m := &WifiSSIDMatcher{
-		ssid: map[string]bool{},
+		ssidList: map[string]bool{},
 	}
-
-	for _, status := range ssid {
-		m.ssid[status] = true
+	for _, ssid := range ssidList {
+		m.ssidList[ssid] = true
 	}
-
 	return m
 }
 
 // Apply implements Condition.
 func (m *WifiSSIDMatcher) Apply(ctx routing.Context) bool {
-	return m.ssid[ctx.GetWifiSsid()]
+	return m.ssidList[ctx.GetSsid()]
 }
 
 type NetworkTypeMatcher struct {
-	networkType string
+	networkTypeList map[string]bool
 }
 
-func NewNetworkTypeMatcher(networkType string) *NetworkTypeMatcher {
+func NewNetworkTypeMatcher(networkTypeList []string) *NetworkTypeMatcher {
 	m := &NetworkTypeMatcher{
-		networkType: networkType,
+		networkTypeList: map[string]bool{},
+	}
+	for _, networkType := range networkTypeList {
+		m.networkTypeList[networkType] = true
 	}
 	return m
 }
 
 // Apply implements Condition.
 func (m *NetworkTypeMatcher) Apply(ctx routing.Context) bool {
-	return m.networkType == ctx.GetNetworkType()
+	return m.networkTypeList[ctx.GetNetworkType()]
 }

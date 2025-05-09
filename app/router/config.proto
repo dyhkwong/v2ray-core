@@ -9,7 +9,6 @@ option java_multiple_files = true;
 import "google/protobuf/any.proto";
 import "common/net/port.proto";
 import "common/net/network.proto";
-import "common/net/uid.proto";
 import "common/protoext/extensions.proto";
 import "app/router/routercommon/common.proto";
 
@@ -67,9 +66,9 @@ message RoutingRule {
 
   string domain_matcher = 17;
 
-  v2ray.core.common.net.UidList uid_list = 18;
-  repeated string wifi_ssid_list = 19;
-  string network_type = 20;
+  repeated uint32 uid = 18;
+  repeated string ssid = 19;
+  repeated string network_type = 20;
 
   bool skip_domain = 21;
 
@@ -190,9 +189,9 @@ message SimplifiedRoutingRule {
 
   string domain_matcher = 17;
 
-  v2ray.core.common.net.UidList uid_list = 18;
-  repeated string wifi_ssid_list = 19;
-  string network_type = 20;
+  repeated uint32 uid = 18;
+  repeated string ssid = 19;
+  repeated string network_type = 20;
 
   bool skip_domain = 21;
 
