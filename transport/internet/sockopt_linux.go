@@ -76,7 +76,7 @@ func applyOutboundSocketOptions(network string, _ string, fd uintptr, config *So
 		}
 	}
 
-	if config.Tproxy.IsEnabled() {
+	if isUDPSocket(network) && config.Tproxy.IsEnabled() || config.Tproxy == SocketConfig_TProxy {
 		if err := syscall.SetsockoptInt(int(fd), syscall.SOL_IP, syscall.IP_TRANSPARENT, 1); err != nil {
 			return newError("failed to set IP_TRANSPARENT").Base(err)
 		}
@@ -146,7 +146,7 @@ func applyInboundSocketOptions(network string, _ string, fd uintptr, config *Soc
 		}
 	}
 
-	if config.Tproxy.IsEnabled() {
+	if isUDPSocket(network) && config.Tproxy.IsEnabled() || config.Tproxy == SocketConfig_TProxy {
 		if err := syscall.SetsockoptInt(int(fd), syscall.SOL_IP, syscall.IP_TRANSPARENT, 1); err != nil {
 			return newError("failed to set IP_TRANSPARENT").Base(err)
 		}
