@@ -393,9 +393,7 @@ func (c *Connection) writeMultiBufferInternal(reader io.Reader) error {
 	}()
 
 	var b *buf.Buffer
-	defer func() {
-		b.Release()
-	}()
+	defer b.Release()
 
 	for {
 		for {
@@ -542,7 +540,6 @@ func (c *Connection) Terminate() {
 	c.closer.Close()
 	c.sendingWorker.Release()
 	c.receivingWorker.Release()
-	c.output.Release()
 }
 
 func (c *Connection) HandleOption(opt SegmentOption) {
