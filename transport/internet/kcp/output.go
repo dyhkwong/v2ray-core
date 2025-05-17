@@ -13,6 +13,7 @@ import (
 
 type SegmentWriter interface {
 	Write(seg Segment) error
+	Release()
 }
 
 type SimpleSegmentWriter struct {
@@ -39,6 +40,10 @@ func (w *SimpleSegmentWriter) Write(seg Segment) error {
 	return err
 }
 
+func (w *SimpleSegmentWriter) Release() {
+	w.buffer.Release()
+}
+
 type RetryableWriter struct {
 	writer SegmentWriter
 }
@@ -53,4 +58,8 @@ func (w *RetryableWriter) Write(seg Segment) error {
 	return retry.Timed(5, 100).On(func() error {
 		return w.writer.Write(seg)
 	})
+}
+
+func (w *RetryableWriter) Release() {
+	w.writer.Release()
 }
