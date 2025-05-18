@@ -110,7 +110,7 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 	if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
 		switch conn := rawConn.(type) {
 		case *PacketConnWrapper:
-			noisePacketConn, err := NewNoisePacketConn(conn.Conn, sockopt.Noises)
+			noisePacketConn, err := NewNoisePacketConn(conn.Conn, sockopt.Noises, sockopt.NoiseKeepAlive)
 			if err != nil {
 				rawConn.Close()
 				return nil, err
@@ -118,7 +118,7 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 			conn.Conn = noisePacketConn
 			return conn, nil
 		case net.PacketConn:
-			noisePacketConn, err := NewNoisePacketConn(conn, sockopt.Noises)
+			noisePacketConn, err := NewNoisePacketConn(conn, sockopt.Noises, sockopt.NoiseKeepAlive)
 			if err != nil {
 				rawConn.Close()
 				return nil, err
@@ -128,7 +128,7 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 				Dest: rawConn.RemoteAddr(),
 			}, nil
 		default:
-			noiseConn, err := NewNoiseConn(conn, sockopt.Noises)
+			noiseConn, err := NewNoiseConn(conn, sockopt.Noises, sockopt.NoiseKeepAlive)
 			if err != nil {
 				rawConn.Close()
 				return nil, err

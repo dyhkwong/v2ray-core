@@ -17,7 +17,7 @@ require (
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.1
 	github.com/quic-go/quic-go v0.51.0
-	github.com/refraction-networking/utls v1.7.1
+	github.com/refraction-networking/utls v1.7.3
 	github.com/sagernet/sing v0.6.9
 	github.com/sagernet/sing-quic v0.4.1
 	github.com/sagernet/sing-shadowsocks v0.2.7
@@ -30,19 +30,19 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
-	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463
+	github.com/xtls/reality v0.0.0-20250516070713-4df2ec9a5b47
 	go.uber.org/mock v0.5.2
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.38.0
 	golang.org/x/net v0.40.0
 	golang.org/x/sync v0.14.0
 	golang.org/x/sys v0.33.0
-	golang.zx2c4.com/wireguard v0.0.0-20250505131008-436f7fdc1670
-	google.golang.org/grpc v1.72.0
+	golang.zx2c4.com/wireguard v0.0.0-20250515145403-1571e0fbae8e
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 	h12.io/socks v1.0.3
-	lukechampine.com/blake3 v1.4.0
+	lukechampine.com/blake3 v1.4.1
 )
 
 require (

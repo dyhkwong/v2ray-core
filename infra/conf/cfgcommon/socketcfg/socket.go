@@ -24,6 +24,7 @@ type SocketConfig struct {
 	DialerProxy          string    `json:"dialerProxy"`
 	Fragment             *Fragment `json:"fragment"`
 	Noises               []*Noise  `json:"noises"`
+	NoiseKeepalive       uint32    `json:"noiseKeepAlive"`
 }
 
 type Fragment struct {
@@ -65,6 +66,7 @@ type Noise struct {
 	Type   string          `json:"type"`
 	Packet string          `json:"packet"`
 	Delay  json.RawMessage `json:"delay"`
+	Count  json.RawMessage `json:"count"`
 }
 
 func (c *Noise) Build() *internet.SocketConfig_Noise {
@@ -76,10 +78,17 @@ func (c *Noise) Build() *internet.SocketConfig_Noise {
 	} else if err := json.Unmarshal(c.Delay, &i); err == nil {
 		delay = fmt.Sprint(i)
 	}
+	var count string
+	if err := json.Unmarshal(c.Delay, &s); err == nil {
+		count = s
+	} else if err := json.Unmarshal(c.Delay, &i); err == nil {
+		count = fmt.Sprint(i)
+	}
 	return &internet.SocketConfig_Noise{
 		Type:   c.Type,
 		Packet: c.Packet,
 		Delay:  delay,
+		Count:  count,
 	}
 }
 
@@ -142,6 +151,7 @@ func (c *SocketConfig) Build() (*internet.SocketConfig, error) {
 			config.Noises = append(config.Noises, noise.Build())
 		}
 	}
+	c.NoiseKeepalive = uint32(config.NoiseKeepAlive)
 
 	return config, nil
 }

@@ -17,20 +17,22 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Dest          string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Xver          uint64                 `protobuf:"varint,3,opt,name=xver,proto3" json:"xver,omitempty"`
-	ServerNames   []string               `protobuf:"bytes,4,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
-	PrivateKey    []byte                 `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
-	ShortIds      [][]byte               `protobuf:"bytes,6,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
-	Fingerprint   string                 `protobuf:"bytes,21,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	ServerName    string                 `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
-	PublicKey     []byte                 `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	ShortId       []byte                 `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
-	Version       []byte                 `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	Dest                     string                 `protobuf:"bytes,1,opt,name=dest,proto3" json:"dest,omitempty"`
+	Type                     string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Xver                     uint64                 `protobuf:"varint,3,opt,name=xver,proto3" json:"xver,omitempty"`
+	ServerNames              []string               `protobuf:"bytes,4,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
+	PrivateKey               []byte                 `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	ShortIds                 [][]byte               `protobuf:"bytes,6,rep,name=short_ids,json=shortIds,proto3" json:"short_ids,omitempty"`
+	Fingerprint              string                 `protobuf:"bytes,21,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	ServerName               string                 `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	PublicKey                []byte                 `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	ShortId                  []byte                 `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
+	Version                  []byte                 `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
+	DisableX25519Mlkem768    bool                   `protobuf:"varint,100,opt,name=disable_x25519mlkem768,json=disableX25519mlkem768,proto3" json:"disable_x25519mlkem768,omitempty"`
+	ReenableChacha20Poly1305 bool                   `protobuf:"varint,101,opt,name=reenable_chacha20poly1305,json=reenableChacha20poly1305,proto3" json:"reenable_chacha20poly1305,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -140,11 +142,25 @@ func (x *Config) GetVersion() []byte {
 	return nil
 }
 
+func (x *Config) GetDisableX25519Mlkem768() bool {
+	if x != nil {
+		return x.DisableX25519Mlkem768
+	}
+	return false
+}
+
+func (x *Config) GetReenableChacha20Poly1305() bool {
+	if x != nil {
+		return x.ReenableChacha20Poly1305
+	}
+	return false
+}
+
 var File_transport_internet_reality_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"\n" +
-	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\xd5\x02\n" +
+	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\xc9\x03\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -159,7 +175,9 @@ const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"\n" +
 	"public_key\x18\x17 \x01(\fR\tpublicKey\x12\x19\n" +
 	"\bshort_id\x18\x18 \x01(\fR\ashortId\x12\x18\n" +
-	"\aversion\x18c \x01(\fR\aversion:\x17\x82\xb5\x18\x13\n" +
+	"\aversion\x18c \x01(\fR\aversion\x125\n" +
+	"\x16disable_x25519mlkem768\x18d \x01(\bR\x15disableX25519mlkem768\x12;\n" +
+	"\x19reenable_chacha20poly1305\x18e \x01(\bR\x18reenableChacha20poly1305:\x17\x82\xb5\x18\x13\n" +
 	"\bsecurity\x12\arealityB\x90\x01\n" +
 	")com.v2ray.core.transport.internet.realityP\x01Z9github.com/v2fly/v2ray-core/v5/transport/internet/reality\xaa\x02%V2Ray.Core.Transport.Internet.Realityb\x06proto3"
 

@@ -197,7 +197,7 @@ func (f *fragmentConn) Write(b []byte) (int, error) {
 		data := b[5:recordLen]
 		buf := make([]byte, 1024)
 		queue := make([]byte, 2048)
-		n_queue := int(randBetween(int64(1), int64(4)))
+		n_queue := int(randBetween(int64(2), int64(4)))
 		L_queue := 0
 		c_queue := 0
 		for from := 0; ; {
@@ -277,6 +277,6 @@ func randBetween(left int64, right int64) int64 {
 	if left == right {
 		return left
 	}
-	bigInt, _ := rand.Int(rand.Reader, big.NewInt(right-left))
+	bigInt, _ := rand.Int(rand.Reader, big.NewInt(right-left+1))
 	return left + bigInt.Int64()
 }

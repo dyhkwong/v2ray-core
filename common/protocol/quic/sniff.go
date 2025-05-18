@@ -118,7 +118,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 		}
 
 		packetLen, err := readUvarint(buffer)
-		if err != nil {
+		if err != nil || packetLen < 4 {
 			return nil, errNotQuic
 		}
 

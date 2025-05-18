@@ -43,6 +43,7 @@ func init() {
 			ProtocolReplacement: simplifiedServer.ProtocolReplacement,
 			Fragment:            simplifiedServer.Fragment,
 			Noises:              simplifiedServer.Noises,
+			NoiseKeepAlive:      simplifiedServer.NoiseKeepAlive,
 		}
 		return common.CreateObject(ctx, fullConfig)
 	}))
@@ -177,7 +178,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 		switch c := iConn.(type) {
 		case *internet.PacketConnWrapper:
-			noisePacketConn, err := internet.NewNoisePacketConn(c.Conn, h.config.Noises)
+			noisePacketConn, err := internet.NewNoisePacketConn(c.Conn, h.config.Noises, h.config.NoiseKeepAlive)
 			if err != nil {
 				return err
 			}
@@ -194,7 +195,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 				conn = internet.UpdateTrackedConn(trackedConn, conn)
 			}
 		case net.PacketConn:
-			noisePacketConn, err := internet.NewNoisePacketConn(c, h.config.Noises)
+			noisePacketConn, err := internet.NewNoisePacketConn(c, h.config.Noises, h.config.NoiseKeepAlive)
 			if err != nil {
 				return err
 			}
@@ -213,7 +214,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 				conn = internet.UpdateTrackedConn(trackedConn, conn)
 			}
 		default:
-			noiseConn, err := internet.NewNoiseConn(conn, h.config.Noises)
+			noiseConn, err := internet.NewNoiseConn(conn, h.config.Noises, h.config.NoiseKeepAlive)
 			if err != nil {
 				return err
 			}

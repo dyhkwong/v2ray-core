@@ -197,18 +197,16 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	}
 
 	if err == errTruncated {
-		newError("truncated, retry over tcp").AtError().WriteToLog()
-		tcpRequestMsg := *req.msg
-		tcpRequestMsg.ID = s.tcpServer.NewReqID()
-		b, err := dns.PackMessage(&tcpRequestMsg)
-		if err != nil {
-			newError(err).AtError().WriteToLog()
+		newError("truncated, retry over TCP").AtError().WriteToLog()
+		b, packErr := dns.PackMessage(req.msg)
+		if packErr != nil {
+			newError(packErr).AtError().WriteToLog()
 			return
 		}
 		defer b.Release()
-		response, err := s.tcpServer.QueryRaw(ctx, b.Bytes())
-		if err != nil {
-			newError("failed to send DNS query over TCP").Base(err).AtError().WriteToLog()
+		response, tcpErr := s.tcpServer.QueryRaw(context.WithoutCancel(ctx), b.Bytes())
+		if tcpErr != nil {
+			newError("failed to send DNS query over TCP").Base(tcpErr).AtError().WriteToLog()
 			return
 		}
 		ipRec, err = parseResponse(response)
@@ -300,7 +298,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 	}
 }
 
-func (s *ClassicNameServer) QueryRaw(originCtx context.Context, request []byte) ([]byte, error) {
+func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
 	requestMsg := new(dnsmessage.Message)
 	if err := requestMsg.Unpack(request); err != nil {
 		return nil, err
@@ -311,13 +309,13 @@ func (s *ClassicNameServer) QueryRaw(originCtx context.Context, request []byte) 
 	s.channel[id] = ch
 	s.Unlock()
 	var deadline time.Time
-	if d, ok := originCtx.Deadline(); ok {
+	if d, ok := ctx.Deadline(); ok {
 		deadline = d
 	} else {
 		deadline = time.Now().Add(time.Second * 5)
 	}
-	dnsCtx := core.ToBackgroundDetachedContext(originCtx)
-	if inbound := session.InboundFromContext(originCtx); inbound != nil {
+	dnsCtx := core.ToBackgroundDetachedContext(ctx)
+	if inbound := session.InboundFromContext(ctx); inbound != nil {
 		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
 	}
 	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
@@ -341,21 +339,8 @@ func (s *ClassicNameServer) QueryRaw(originCtx context.Context, request []byte) 
 		delete(s.channel, id)
 		s.Unlock()
 		if responseMsg.Truncated {
-			newError("truncated, retry over tcp").AtError().WriteToLog()
-			requestMsg.ID = s.tcpServer.NewReqID()
-			request, err := requestMsg.Pack()
-			if err != nil {
-				return nil, err
-			}
-			response, err := s.tcpServer.QueryRaw(originCtx, request)
-			if err != nil {
-				return nil, err
-			}
-			if err := responseMsg.Unpack(response); err != nil {
-				return nil, err
-			}
-			responseMsg.ID = id
-			return responseMsg.Pack()
+			newError("truncated, retry over TCP").AtError().WriteToLog()
+			return s.tcpServer.QueryRaw(context.WithoutCancel(ctx), request)
 		}
 		return responseMsg.Pack()
 	}

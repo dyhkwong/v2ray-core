@@ -179,6 +179,7 @@ type Config struct {
 	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive      uint64                          `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -263,12 +264,20 @@ func (x *Config) GetNoises() []*internet.SocketConfig_Noise {
 	return nil
 }
 
+func (x *Config) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
 type SimplifiedConfig struct {
 	state               protoimpl.MessageState          `protogen:"open.v1"`
 	DestinationOverride *DestinationOverride            `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
 	ProtocolReplacement ProtocolReplacement             `protobuf:"varint,5,opt,name=protocol_replacement,json=protocolReplacement,proto3,enum=v2ray.core.proxy.freedom.ProtocolReplacement" json:"protocol_replacement,omitempty"`
 	Fragment            *internet.SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises              []*internet.SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive      uint64                          `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -331,13 +340,20 @@ func (x *SimplifiedConfig) GetNoises() []*internet.SocketConfig_Noise {
 	return nil
 }
 
+func (x *SimplifiedConfig) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
 var File_proxy_freedom_config_proto protoreflect.FileDescriptor
 
 const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\x1a\x1ftransport/internet/config.proto\"Y\n" +
 	"\x13DestinationOverride\x12B\n" +
-	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xe3\x04\n" +
+	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\x8d\x05\n" +
 	"\x06Config\x12X\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2/.v2ray.core.proxy.freedom.Config.DomainStrategyR\x0edomainStrategy\x12\x1c\n" +
 	"\atimeout\x18\x02 \x01(\rB\x02\x18\x01R\atimeout\x12`\n" +
@@ -346,7 +362,8 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"user_level\x18\x04 \x01(\rR\tuserLevel\x12`\n" +
 	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\x12P\n" +
 	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
-	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\"a\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -356,12 +373,13 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"PREFER_IP4\x10\x04\x12\x0e\n" +
 	"\n" +
-	"PREFER_IP6\x10\x05\"\x8c\x03\n" +
+	"PREFER_IP6\x10\x05\"\xb6\x03\n" +
 	"\x10SimplifiedConfig\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12`\n" +
 	"\x14protocol_replacement\x18\x05 \x01(\x0e2-.v2ray.core.proxy.freedom.ProtocolReplacementR\x13protocolReplacement\x12P\n" +
 	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
-	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises:\x17\x82\xb5\x18\x13\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive:\x17\x82\xb5\x18\x13\n" +
 	"\boutbound\x12\afreedom*A\n" +
 	"\x13ProtocolReplacement\x12\f\n" +
 	"\bIDENTITY\x10\x00\x12\r\n" +

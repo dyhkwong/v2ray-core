@@ -468,6 +468,7 @@ type SocketConfig struct {
 	DialerProxy                string                 `protobuf:"bytes,97,opt,name=dialer_proxy,json=dialerProxy,proto3" json:"dialer_proxy,omitempty"`
 	Fragment                   *SocketConfig_Fragment `protobuf:"bytes,98,opt,name=fragment,proto3" json:"fragment,omitempty"`
 	Noises                     []*SocketConfig_Noise  `protobuf:"bytes,99,rep,name=noises,proto3" json:"noises,omitempty"`
+	NoiseKeepAlive             uint64                 `protobuf:"varint,100,opt,name=noise_keep_alive,json=noiseKeepAlive,proto3" json:"noise_keep_alive,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -628,6 +629,13 @@ func (x *SocketConfig) GetNoises() []*SocketConfig_Noise {
 	return nil
 }
 
+func (x *SocketConfig) GetNoiseKeepAlive() uint64 {
+	if x != nil {
+		return x.NoiseKeepAlive
+	}
+	return 0
+}
+
 type SocketConfig_Fragment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Packets       string                 `protobuf:"bytes,1,opt,name=packets,proto3" json:"packets,omitempty"`
@@ -725,6 +733,7 @@ type SocketConfig_Noise struct {
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	Packet        string                 `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
 	Delay         string                 `protobuf:"bytes,3,opt,name=delay,proto3" json:"delay,omitempty"`
+	Count         string                 `protobuf:"bytes,4,opt,name=count,proto3" json:"count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -780,6 +789,13 @@ func (x *SocketConfig_Noise) GetDelay() string {
 	return ""
 }
 
+func (x *SocketConfig_Noise) GetCount() string {
+	if x != nil {
+		return x.Count
+	}
+	return ""
+}
+
 var File_transport_internet_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_config_proto_rawDesc = "" +
@@ -798,7 +814,7 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\x0fsocket_settings\x18\x06 \x01(\v2+.v2ray.core.transport.internet.SocketConfigR\x0esocketSettings\"Q\n" +
 	"\vProxyConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x120\n" +
-	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\xb0\n" +
+	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\xf0\n" +
 	"\n" +
 	"\fSocketConfig\x12\x12\n" +
 	"\x04mark\x18\x01 \x01(\rR\x04mark\x12N\n" +
@@ -819,7 +835,8 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\x05mptcp\x18\x0f \x01(\x0e2).v2ray.core.transport.internet.MPTCPStateR\x05mptcp\x12!\n" +
 	"\fdialer_proxy\x18a \x01(\tR\vdialerProxy\x12P\n" +
 	"\bfragment\x18b \x01(\v24.v2ray.core.transport.internet.SocketConfig.FragmentR\bfragment\x12I\n" +
-	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x1a\xe4\x01\n" +
+	"\x06noises\x18c \x03(\v21.v2ray.core.transport.internet.SocketConfig.NoiseR\x06noises\x12(\n" +
+	"\x10noise_keep_alive\x18d \x01(\x04R\x0enoiseKeepAlive\x1a\xe4\x01\n" +
 	"\bFragment\x12\x18\n" +
 	"\apackets\x18\x01 \x01(\tR\apackets\x12\x16\n" +
 	"\x06length\x18\x02 \x01(\tR\x06length\x12\x1a\n" +
@@ -827,11 +844,12 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\fhost1_header\x18\x04 \x01(\tR\vhost1Header\x12!\n" +
 	"\fhost1_domain\x18\x05 \x01(\tR\vhost1Domain\x12!\n" +
 	"\fhost2_header\x18\x06 \x01(\tR\vhost2Header\x12!\n" +
-	"\fhost2_domain\x18\a \x01(\tR\vhost2Domain\x1aI\n" +
+	"\fhost2_domain\x18\a \x01(\tR\vhost2Domain\x1a_\n" +
 	"\x05Noise\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06packet\x18\x02 \x01(\tR\x06packet\x12\x14\n" +
-	"\x05delay\x18\x03 \x01(\tR\x05delay\"5\n" +
+	"\x05delay\x18\x03 \x01(\tR\x05delay\x12\x14\n" +
+	"\x05count\x18\x04 \x01(\tR\x05count\"5\n" +
 	"\x10TCPFastOpenState\x12\b\n" +
 	"\x04AsIs\x10\x00\x12\n" +
 	"\n" +

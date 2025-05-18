@@ -37,6 +37,7 @@ message Config {
 
   v2ray.core.transport.internet.SocketConfig.Fragment fragment = 98;
   repeated v2ray.core.transport.internet.SocketConfig.Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }
 
 message SimplifiedConfig {
@@ -48,4 +49,5 @@ message SimplifiedConfig {
 
   v2ray.core.transport.internet.SocketConfig.Fragment fragment = 98;
   repeated v2ray.core.transport.internet.SocketConfig.Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }

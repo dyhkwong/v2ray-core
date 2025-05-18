@@ -134,8 +134,10 @@ message SocketConfig {
     string type = 1;
     string packet = 2;
     string delay = 3;
+    string count = 4;
   }
 
   Fragment fragment = 98;
   repeated Noise noises = 99;
+  uint64 noise_keep_alive = 100;
 }

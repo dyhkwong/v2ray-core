@@ -26,11 +26,13 @@ type REALITYConfig struct {
 	PrivateKey  string          `json:"privateKey"`
 	ShortIds    []string        `json:"shortIds"`
 
-	Fingerprint string `json:"fingerprint"`
-	ServerName  string `json:"serverName"`
-	PublicKey   string `json:"publicKey"`
-	ShortId     string `json:"shortId"`
-	Version     string `json:"version"`
+	Fingerprint              string `json:"fingerprint"`
+	ServerName               string `json:"serverName"`
+	PublicKey                string `json:"publicKey"`
+	ShortId                  string `json:"shortId"`
+	Version                  string `json:"version"`
+	DisableX25519MLKEM768    bool   `json:"disableX25519MLKEM768"`
+	ReenableCHACHA20POLY1305 bool   `json:"reenableCHACHA20POLY1305"`
 }
 
 // Build implements Buildable.
@@ -101,12 +103,6 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		config.ServerNames = c.ServerNames
 	} else {
 		config.Fingerprint = strings.ToLower(c.Fingerprint)
-		if config.Fingerprint == "unsafe" || config.Fingerprint == "hellogolang" {
-			return nil, newError(`invalid "fingerprint": `, config.Fingerprint)
-		}
-		if config.Fingerprint = strings.ToLower(c.Fingerprint); reality.GetFingerprint(config.Fingerprint) == nil {
-			return nil, newError(`unknown "fingerprint": `, config.Fingerprint)
-		}
 		if len(c.ServerNames) != 0 {
 			return nil, newError(`non-empty "serverNames", please use "serverName" instead`)
 		}
@@ -139,6 +135,8 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 				}
 			}
 		}
+		config.DisableX25519Mlkem768 = c.DisableX25519MLKEM768
+		config.ReenableChacha20Poly1305 = c.ReenableCHACHA20POLY1305
 	}
 	return config, nil
 }

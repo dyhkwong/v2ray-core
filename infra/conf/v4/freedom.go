@@ -20,6 +20,7 @@ type FreedomConfig struct {
 	ProtocolReplacement string              `json:"protocolReplacement"`
 	Fragment            *socketcfg.Fragment `json:"fragment"`
 	Noises              []*socketcfg.Noise  `json:"noises"`
+	NoiseKeepalive      uint32              `json:"noiseKeepAlive"`
 }
 
 // Build implements Buildable
@@ -81,6 +82,7 @@ func (c *FreedomConfig) Build() (proto.Message, error) {
 			config.Noises = append(config.Noises, noise.Build())
 		}
 	}
+	config.NoiseKeepAlive = uint64(c.NoiseKeepalive)
 
 	return config, nil
 }

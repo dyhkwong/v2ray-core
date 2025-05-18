@@ -17,6 +17,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 	"unsafe"
@@ -114,50 +115,68 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 	uConn.ServerName = utlsConfig.ServerName
 	fingerprint := GetFingerprint(config.Fingerprint)
 	if fingerprint == nil {
-		return nil, newError("REALITY: failed to get fingerprint").AtError()
+		return nil, newError("REALITY: failed to get fingerprint")
 	}
 	uConn.UConn = utls.UClient(c, utlsConfig, *fingerprint)
-	{
-		uConn.BuildHandshakeState()
-		hello := uConn.HandshakeState.Hello
-		hello.SessionId = make([]byte, 32)
-		copy(hello.Raw[39:], hello.SessionId) // the fixed location of `Session ID`
-		if len(config.Version) == 3 {
-			hello.SessionId[0] = config.Version[0] // Version_x
-			hello.SessionId[1] = config.Version[1] // Version_y
-			hello.SessionId[2] = config.Version[2] // Version_z
-		} else {
-			hello.SessionId[0] = 25 // Version_x
-			hello.SessionId[1] = 4  // Version_y
-			hello.SessionId[2] = 30 // Version_z
-		}
-		hello.SessionId[3] = 0 // reserved
-		binary.BigEndian.PutUint32(hello.SessionId[4:], uint32(time.Now().Unix()))
-		copy(hello.SessionId[8:], config.ShortId)
-		publicKey, err := ecdh.X25519().NewPublicKey(config.PublicKey)
-		if err != nil {
-			return nil, newError("REALITY: publicKey == nil")
-		}
-		if uConn.HandshakeState.State13.KeyShareKeys == nil {
-			return nil, newError("Current fingerprint ", uConn.ClientHelloID.Client, uConn.ClientHelloID.Version, " does not support TLS 1.3, REALITY handshake cannot establish.")
-		}
-		uConn.AuthKey, _ = uConn.HandshakeState.State13.KeyShareKeys.Ecdhe.ECDH(publicKey)
-		if uConn.AuthKey == nil {
-			return nil, newError("REALITY: SharedKey == nil")
-		}
-		if _, err := hkdf.New(sha256.New, uConn.AuthKey, hello.Random[:20], []byte("REALITY")).Read(uConn.AuthKey); err != nil {
-			return nil, err
-		}
-		var aead cipher.AEAD
-		if aesgcmPreferred(hello.CipherSuites) {
-			block, _ := aes.NewCipher(uConn.AuthKey)
-			aead, _ = cipher.NewGCM(block)
-		} else {
-			aead, _ = chacha20poly1305.New(uConn.AuthKey)
-		}
-		aead.Seal(hello.SessionId[:0], hello.Random[20:], hello.SessionId[:16], hello.Raw)
-		copy(hello.Raw[39:], hello.SessionId)
+	if err := uConn.BuildHandshakeState(); err != nil {
+		return nil, newError("REALITY: unable to build client hello")
 	}
+	if config.DisableX25519Mlkem768 {
+		for _, extension := range uConn.Extensions {
+			if ext, ok := extension.(*utls.SupportedCurvesExtension); ok {
+				ext.Curves = slices.DeleteFunc(ext.Curves, func(curveID utls.CurveID) bool {
+					return curveID == utls.X25519MLKEM768
+				})
+			}
+			if ext, ok := extension.(*utls.KeyShareExtension); ok {
+				ext.KeyShares = slices.DeleteFunc(ext.KeyShares, func(share utls.KeyShare) bool {
+					return share.Group == utls.X25519MLKEM768
+				})
+			}
+		}
+	}
+	if err := uConn.BuildHandshakeState(); err != nil {
+		return nil, newError("REALITY: unable to build client hello")
+	}
+	hello := uConn.HandshakeState.Hello
+	if len(hello.Raw) < 39 || len(hello.SessionId) < 8 || len(hello.Random) < 20 {
+		return nil, newError("REALITY: invalid client hello")
+	}
+	hello.SessionId = make([]byte, 32)
+	copy(hello.Raw[39:], hello.SessionId) // the fixed location of `Session ID`
+	version := config.Version
+	if len(version) != 3 {
+		version = []byte{25, 5, 16}
+	}
+	hello.SessionId[0] = version[0] // Version_x
+	hello.SessionId[1] = version[1] // Version_y
+	hello.SessionId[2] = version[2] // Version_z
+	hello.SessionId[3] = 0          // reserved
+	binary.BigEndian.PutUint32(hello.SessionId[4:], uint32(time.Now().Unix()))
+	copy(hello.SessionId[8:], config.ShortId)
+	publicKey, err := ecdh.X25519().NewPublicKey(config.PublicKey)
+	if err != nil {
+		return nil, newError("REALITY: publicKey == nil")
+	}
+	if uConn.HandshakeState.State13.KeyShareKeys == nil || uConn.HandshakeState.State13.KeyShareKeys.Ecdhe == nil {
+		return nil, newError("Current fingerprint ", uConn.ClientHelloID.Client, uConn.ClientHelloID.Version, " does not support TLS 1.3, REALITY handshake cannot establish.")
+	}
+	uConn.AuthKey, _ = uConn.HandshakeState.State13.KeyShareKeys.Ecdhe.ECDH(publicKey)
+	if uConn.AuthKey == nil {
+		return nil, newError("REALITY: SharedKey == nil")
+	}
+	if _, err := hkdf.New(sha256.New, uConn.AuthKey, hello.Random[:20], []byte("REALITY")).Read(uConn.AuthKey); err != nil {
+		return nil, err
+	}
+	var aead cipher.AEAD
+	if !config.ReenableChacha20Poly1305 || aesgcmPreferred(hello.CipherSuites) {
+		block, _ := aes.NewCipher(uConn.AuthKey)
+		aead, _ = cipher.NewGCM(block)
+	} else {
+		aead, _ = chacha20poly1305.New(uConn.AuthKey)
+	}
+	aead.Seal(hello.SessionId[:0], hello.Random[20:], hello.SessionId[:16], hello.Raw)
+	copy(hello.Raw[39:], hello.SessionId)
 	if err := uConn.HandshakeContext(ctx); err != nil {
 		return nil, err
 	}
@@ -184,7 +203,7 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 			defer resp.Body.Close()
 			_, _ = io.Copy(io.Discard, resp.Body)
 		}()
-		return nil, newError("REALITY: processed invalid connection").AtWarning()
+		return nil, newError("REALITY: processed invalid connection")
 	}
 	return uConn, nil
 }
