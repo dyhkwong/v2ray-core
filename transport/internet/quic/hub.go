@@ -16,7 +16,7 @@ import (
 
 // Listener is an internet.Listener that listens for TCP connections.
 type Listener struct {
-	rawConn  *sysConn
+	rawConn  net.PacketConn
 	listener *quic.Listener
 	done     *done.Instance
 	addConn  internet.ConnHandler
@@ -109,7 +109,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		KeepAlivePeriod:       time.Second * 15,
 	}
 
-	conn, err := wrapSysConn(rawConn.(*net.UDPConn), config)
+	conn, err := wrapSysConn(rawConn, config)
 	if err != nil {
 		conn.Close()
 		return nil, err
