@@ -16,12 +16,25 @@ import (
 )
 
 type sysConn struct {
-	conn   *net.UDPConn
+	net.PacketConn
 	header internet.PacketHeader
 	auth   cipher.AEAD
 }
 
-func wrapSysConn(rawConn *net.UDPConn, config *Config) (*sysConn, error) {
+type setBufferConn struct {
+	*sysConn
+	setWriteBufferFn interface{ SetWriteBuffer(int) error }
+	setReadBufferFn  interface{ SetReadBuffer(int) error }
+}
+
+type syscallConn struct {
+	*setBufferConn
+	syscallConnFn interface {
+		SyscallConn() (syscall.RawConn, error)
+	}
+}
+
+func wrapSysConn(rawConn net.PacketConn, config *Config) (net.PacketConn, error) {
 	header, err := getHeader(config)
 	if err != nil {
 		return nil, err
@@ -30,11 +43,34 @@ func wrapSysConn(rawConn *net.UDPConn, config *Config) (*sysConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &sysConn{
-		conn:   rawConn,
-		header: header,
-		auth:   auth,
-	}, nil
+
+	setWriteBufferFn, canSetWriteBuffer := rawConn.(interface{ SetWriteBuffer(int) error })
+	setReadBufferFn, canSetReadBuffer := rawConn.(interface{ SetReadBuffer(int) error })
+	syscallConnFn, isSyscallConn := rawConn.(interface {
+		SyscallConn() (syscall.RawConn, error)
+	})
+
+	sysConn := &sysConn{
+		PacketConn: rawConn,
+		header:     header,
+		auth:       auth,
+	}
+
+	if canSetWriteBuffer && canSetReadBuffer {
+		setBufferConn := &setBufferConn{
+			sysConn:          sysConn,
+			setWriteBufferFn: setWriteBufferFn,
+			setReadBufferFn:  setReadBufferFn,
+		}
+		if isSyscallConn {
+			return &syscallConn{
+				setBufferConn: setBufferConn,
+				syscallConnFn: syscallConnFn,
+			}, nil
+		}
+		return setBufferConn, nil
+	}
+	return sysConn, nil
 }
 
 var errInvalidPacket = errors.New("invalid packet")
@@ -43,7 +79,7 @@ func (c *sysConn) readFromInternal(p []byte) (int, net.Addr, error) {
 	buffer := getBuffer()
 	defer putBuffer(buffer)
 
-	nBytes, addr, err := c.conn.ReadFrom(buffer)
+	nBytes, addr, err := c.PacketConn.ReadFrom(buffer)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -78,7 +114,7 @@ func (c *sysConn) readFromInternal(p []byte) (int, net.Addr, error) {
 
 func (c *sysConn) ReadFrom(p []byte) (int, net.Addr, error) {
 	if c.header == nil && c.auth == nil {
-		return c.conn.ReadFrom(p)
+		return c.PacketConn.ReadFrom(p)
 	}
 
 	for {
@@ -94,7 +130,7 @@ func (c *sysConn) ReadFrom(p []byte) (int, net.Addr, error) {
 
 func (c *sysConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 	if c.header == nil && c.auth == nil {
-		return c.conn.WriteTo(p, addr)
+		return c.PacketConn.WriteTo(p, addr)
 	}
 
 	buffer := getBuffer()
@@ -118,39 +154,19 @@ func (c *sysConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 		n = len(pp)
 	}
 
-	return c.conn.WriteTo(payload[:n], addr)
+	return c.PacketConn.WriteTo(payload[:n], addr)
 }
 
-func (c *sysConn) Close() error {
-	return c.conn.Close()
+func (c *setBufferConn) SetReadBuffer(bytes int) error {
+	return c.setReadBufferFn.SetReadBuffer(bytes)
 }
 
-func (c *sysConn) LocalAddr() net.Addr {
-	return c.conn.LocalAddr()
+func (c *setBufferConn) SetWriteBuffer(bytes int) error {
+	return c.setWriteBufferFn.SetWriteBuffer(bytes)
 }
 
-func (c *sysConn) SetReadBuffer(bytes int) error {
-	return c.conn.SetReadBuffer(bytes)
-}
-
-func (c *sysConn) SetWriteBuffer(bytes int) error {
-	return c.conn.SetWriteBuffer(bytes)
-}
-
-func (c *sysConn) SetDeadline(t time.Time) error {
-	return c.conn.SetDeadline(t)
-}
-
-func (c *sysConn) SetReadDeadline(t time.Time) error {
-	return c.conn.SetReadDeadline(t)
-}
-
-func (c *sysConn) SetWriteDeadline(t time.Time) error {
-	return c.conn.SetWriteDeadline(t)
-}
-
-func (c *sysConn) SyscallConn() (syscall.RawConn, error) {
-	return c.conn.SyscallConn()
+func (c *syscallConn) SyscallConn() (syscall.RawConn, error) {
+	return c.syscallConnFn.SyscallConn()
 }
 
 type interConn struct {
