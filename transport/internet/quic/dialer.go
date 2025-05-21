@@ -2,11 +2,13 @@ package quic
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/quic-go/quic-go"
 
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -15,25 +17,25 @@ import (
 )
 
 type connectionContext struct {
-	rawConn *sysConn
+	rawConn net.PacketConn
 	conn    *quic.Conn
 }
 
 var errConnectionClosed = newError("connection closed")
 
-func (c *connectionContext) openStream(destAddr net.Addr) (*interConn, error) {
-	if !isActive(c.conn) {
+func (cc *connectionContext) openStream(destAddr net.Addr) (*interConn, error) {
+	if !isActive(cc.conn) {
 		return nil, errConnectionClosed
 	}
 
-	stream, err := c.conn.OpenStream()
+	stream, err := cc.conn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
 
 	conn := &interConn{
 		stream: stream,
-		local:  c.conn.LocalAddr(),
+		local:  cc.conn.LocalAddr(),
 		remote: destAddr,
 	}
 
@@ -47,48 +49,41 @@ type dialerConf struct {
 
 type clientConnections struct {
 	access  sync.Mutex
-	conns   map[dialerConf][]*connectionContext
+	conns   []*connectionContext
 	cleanup *task.Periodic
 }
 
-func isActive(s *quic.Conn) bool {
+func isActive(c *quic.Conn) bool {
 	select {
-	case <-s.Context().Done():
+	case <-c.Context().Done():
 		return false
 	default:
 		return true
 	}
 }
 
-func removeInactiveConnections(conns []*connectionContext) []*connectionContext {
-	activeConnections := make([]*connectionContext, 0, len(conns))
-	for _, s := range conns {
-		if isActive(s.conn) {
-			activeConnections = append(activeConnections, s)
-			continue
+func (c *clientConnections) removeInactiveConnections() {
+	c.conns = slices.DeleteFunc(c.conns, func(cc *connectionContext) bool {
+		if isActive(cc.conn) {
+			return false
 		}
-		if err := s.conn.CloseWithError(0, ""); err != nil {
+		if err := cc.conn.CloseWithError(0, ""); err != nil {
 			newError("failed to close connection").Base(err).WriteToLog()
 		}
-		if err := s.rawConn.Close(); err != nil {
+		if err := cc.rawConn.Close(); err != nil {
 			newError("failed to close raw connection").Base(err).WriteToLog()
 		}
-	}
-
-	if len(activeConnections) < len(conns) {
-		return activeConnections
-	}
-
-	return conns
+		return true
+	})
 }
 
-func openStream(conns []*connectionContext, destAddr net.Addr) *interConn {
-	for _, s := range conns {
-		if !isActive(s.conn) {
+func (c *clientConnections) openStream(destAddr net.Addr) *interConn {
+	for _, c := range c.conns {
+		if !isActive(c.conn) {
 			continue
 		}
 
-		conn, err := s.openStream(destAddr)
+		conn, err := c.openStream(destAddr)
 		if err != nil {
 			continue
 		}
@@ -99,59 +94,42 @@ func openStream(conns []*connectionContext, destAddr net.Addr) *interConn {
 	return nil
 }
 
-func (s *clientConnections) cleanConnections() error {
-	s.access.Lock()
-	defer s.access.Unlock()
-
-	if len(s.conns) == 0 {
-		return nil
-	}
-
-	newConnMap := make(map[dialerConf][]*connectionContext)
-
-	for dialerConf, conns := range s.conns {
-		conns = removeInactiveConnections(conns)
-		if len(conns) > 0 {
-			newConnMap[dialerConf] = conns
-		}
-	}
-
-	s.conns = newConnMap
+func (c *clientConnections) cleanConnections() error {
+	c.access.Lock()
+	c.removeInactiveConnections()
+	c.access.Unlock()
 	return nil
 }
 
-func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
-	s.access.Lock()
-	defer s.access.Unlock()
-
-	if s.conns == nil {
-		s.conns = make(map[dialerConf][]*connectionContext)
-	}
-
-	dest := net.DestinationFromAddr(destAddr)
-
-	var conns []*connectionContext
-	if s, found := s.conns[dialerConf{dest, streamSettings}]; found {
-		conns = s
-	}
-
-	{
-		conn := openStream(conns, destAddr)
-		if conn != nil {
-			return conn, nil
+func (c *clientConnections) openConnection(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
+	var destAddr *net.UDPAddr
+	if dest.Address.Family().IsIP() {
+		destAddr = &net.UDPAddr{
+			IP:   dest.Address.IP(),
+			Port: int(dest.Port),
 		}
+	} else {
+		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
+		if err != nil {
+			return nil, err
+		}
+		destAddr = addr
 	}
 
-	conns = removeInactiveConnections(conns)
+	if conn := c.openStream(destAddr); conn != nil {
+		return conn, nil
+	}
+
+	c.access.Lock()
+	c.removeInactiveConnections()
+	c.access.Unlock()
 
 	newError("dialing QUIC to ", dest).WriteToLog()
 
-	rawConn, err := internet.ListenSystemPacket(context.Background(), &net.UDPAddr{
-		IP:   []byte{0, 0, 0, 0},
-		Port: 0,
-	}, streamSettings.SocketSettings)
+	detachedContext := core.ToBackgroundDetachedContext(ctx)
+	rawConn, err := internet.DialSystem(detachedContext, dest, streamSettings.SocketSettings)
 	if err != nil {
-		return nil, err
+		return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
 	}
 
 	quicConfig := &quic.Config{
@@ -160,7 +138,17 @@ func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *in
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	sysConn, err := wrapSysConn(rawConn.(*net.UDPConn), streamSettings.ProtocolSettings.(*Config))
+	var pc net.PacketConn
+	switch rc := rawConn.(type) {
+	case *internet.PacketConnWrapper:
+		pc = rc.Conn
+	case net.PacketConn:
+		pc = rc
+	default:
+		pc = internet.NewConnWrapper(rc)
+	}
+
+	sysConn, err := wrapSysConn(pc, streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
@@ -179,48 +167,46 @@ func (s *clientConnections) openConnection(destAddr net.Addr, streamSettings *in
 		}
 	}
 
-	conn, err := tr.Dial(context.Background(), destAddr, tlsConfig.GetTLSConfig(tls.WithDestination(dest)), quicConfig)
+	conn, err := tr.DialEarly(detachedContext, destAddr, tlsConfig.GetTLSConfig(tls.WithDestination(dest)), quicConfig)
 	if err != nil {
 		sysConn.Close()
 		return nil, err
 	}
 
-	context := &connectionContext{
+	cc := &connectionContext{
 		conn:    conn,
 		rawConn: sysConn,
 	}
 
-	s.conns[dialerConf{dest, streamSettings}] = append(conns, context)
-	return context.openStream(destAddr)
+	c.access.Lock()
+	c.conns = append(c.conns, cc)
+	c.access.Unlock()
+	return cc.openStream(destAddr)
 }
 
-var client clientConnections
-
-func init() {
-	client.conns = make(map[dialerConf][]*connectionContext)
-	client.cleanup = &task.Periodic{
-		Interval: time.Minute,
-		Execute:  client.cleanConnections,
-	}
-	common.Must(client.cleanup.Start())
-}
+var (
+	globalDialerMap    map[dialerConf]*clientConnections
+	globalDialerAccess sync.Mutex
+)
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
-	var destAddr *net.UDPAddr
-	if dest.Address.Family().IsIP() {
-		destAddr = &net.UDPAddr{
-			IP:   dest.Address.IP(),
-			Port: int(dest.Port),
-		}
-	} else {
-		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
-		if err != nil {
-			return nil, err
-		}
-		destAddr = addr
+	dest.Network = net.Network_UDP
+	globalDialerAccess.Lock()
+	if globalDialerMap == nil {
+		globalDialerMap = make(map[dialerConf]*clientConnections)
 	}
-
-	return client.openConnection(destAddr, streamSettings)
+	client, found := globalDialerMap[dialerConf{dest, streamSettings}]
+	if !found {
+		client = new(clientConnections)
+		client.cleanup = &task.Periodic{
+			Interval: time.Minute,
+			Execute:  client.cleanConnections,
+		}
+		common.Must(client.cleanup.Start())
+		globalDialerMap[dialerConf{dest, streamSettings}] = client
+	}
+	globalDialerAccess.Unlock()
+	return client.openConnection(ctx, dest, streamSettings)
 }
 
 func init() {
