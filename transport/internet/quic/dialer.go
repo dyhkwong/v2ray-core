@@ -10,6 +10,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
@@ -213,11 +214,14 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			Port: int(dest.Port),
 		}
 	} else {
-		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
+		addr, err := localdns.New().LookupIP(dest.Address.Domain())
 		if err != nil {
 			return nil, err
 		}
-		destAddr = addr
+		destAddr = &net.UDPAddr{
+			IP:   addr[0],
+			Port: int(dest.Port),
+		}
 	}
 
 	return client.openConnection(destAddr, streamSettings)
