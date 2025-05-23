@@ -1,9 +1,26 @@
 package localdns
 
 import (
+	"context"
+	"time"
+
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
+
+var lookupFunc = func(network, host string) ([]net.IP, error) {
+	resolver := &net.Resolver{PreferGo: false}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	ips, err := resolver.LookupIP(ctx, network, host)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, dns.ErrEmptyResponse
+	}
+	return ips, nil
+}
 
 // Client is an implementation of dns.Client, which queries localhost for DNS.
 type Client struct{}
@@ -21,57 +38,17 @@ func (*Client) Close() error { return nil }
 
 // LookupIP implements Client.
 func (*Client) LookupIP(host string) ([]net.IP, error) {
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	parsedIPs := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
-		parsed := net.IPAddress(ip)
-		if parsed != nil {
-			parsedIPs = append(parsedIPs, parsed.IP())
-		}
-	}
-	if len(parsedIPs) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	return parsedIPs, nil
+	return lookupFunc("ip", host)
 }
 
 // LookupIPv4 implements IPv4Lookup.
-func (c *Client) LookupIPv4(host string) ([]net.IP, error) {
-	ips, err := c.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	ipv4 := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
-		if len(ip) == net.IPv4len {
-			ipv4 = append(ipv4, ip)
-		}
-	}
-	if len(ipv4) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	return ipv4, nil
+func (*Client) LookupIPv4(host string) ([]net.IP, error) {
+	return lookupFunc("ip4", host)
 }
 
 // LookupIPv6 implements IPv6Lookup.
-func (c *Client) LookupIPv6(host string) ([]net.IP, error) {
-	ips, err := c.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	ipv6 := make([]net.IP, 0, len(ips))
-	for _, ip := range ips {
-		if len(ip) == net.IPv6len {
-			ipv6 = append(ipv6, ip)
-		}
-	}
-	if len(ipv6) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	return ipv6, nil
+func (*Client) LookupIPv6(host string) ([]net.IP, error) {
+	return lookupFunc("ip6", host)
 }
 
 // New create a new dns.Client that queries localhost for DNS.
