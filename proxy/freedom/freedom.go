@@ -19,6 +19,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
+	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
 	"github.com/v2fly/v2ray-core/v4/features/stats"
 	"github.com/v2fly/v2ray-core/v4/transport"
@@ -304,9 +305,17 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				return newError("failed to resolve domain ", dest.Address.Domain())
 			}
 		}
-		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
-		if destAddr == nil {
-			continue
+		destAddr := &net.UDPAddr{
+			Port: int(dest.Port),
+		}
+		if dest.Address.Family().IsIP() {
+			destAddr.IP = dest.Address.IP()
+		} else {
+			addr, err := localdns.New().LookupIP(dest.Address.Domain())
+			if err != nil {
+				return err
+			}
+			destAddr.IP = addr[0]
 		}
 		if originalDest.Address.Family().IsDomain() {
 			w.ipToDomain.LoadOrStore(destAddr.AddrPort().Addr(), originalDest.Address)
