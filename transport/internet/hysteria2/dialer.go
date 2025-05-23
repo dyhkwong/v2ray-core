@@ -13,6 +13,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
+	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tls"
 )
@@ -51,11 +52,14 @@ func ResolveAddress(dest net.Destination) (net.Addr, error) {
 			Port: int(dest.Port),
 		}
 	} else {
-		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
+		addr, err := localdns.New().LookupIP(dest.Address.Domain())
 		if err != nil {
 			return nil, err
 		}
-		destAddr = addr
+		destAddr = &net.UDPAddr{
+			IP:   addr[0],
+			Port: int(dest.Port),
+		}
 	}
 	return destAddr, nil
 }
