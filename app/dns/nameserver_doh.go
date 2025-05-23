@@ -41,12 +41,6 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	s := baseDOHNameServer(url, "DOH")
 
-	// Dispatched connection will be closed (interrupted) after each request
-	// This makes DOH inefficient without a keep-alived connection
-	// See: core/app/proxyman/outbound/handler.go:113
-	// Using mux (https request wrapped in a stream layer) improves the situation.
-	// Recommend to use NewDoHLocalNameServer (DOHL:) if v2ray instance is running on
-	//  a normal network eg. the server side of v2ray
 	tr := &http.Transport{
 		MaxIdleConns:        30,
 		IdleConnTimeout:     90 * time.Second,
@@ -229,9 +223,6 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 				Protocol:       "tls",
 				SkipDNSResolve: true,
 			})
-
-			// forced to use mux for DOH
-			dnsCtx = session.ContextWithMuxPrefered(dnsCtx, true)
 
 			var cancel context.CancelFunc
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
