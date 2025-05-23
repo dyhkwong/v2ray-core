@@ -16,7 +16,7 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.1
-	github.com/quic-go/quic-go v0.51.0
+	github.com/quic-go/quic-go v0.52.0
 	github.com/refraction-networking/utls v1.7.3
 	github.com/sagernet/sing v0.6.9
 	github.com/sagernet/sing-quic v0.4.1
@@ -37,7 +37,7 @@ require (
 	golang.org/x/net v0.40.0
 	golang.org/x/sync v0.14.0
 	golang.org/x/sys v0.33.0
-	golang.zx2c4.com/wireguard v0.0.0-20250515145403-1571e0fbae8e
+	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c

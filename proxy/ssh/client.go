@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -80,7 +82,7 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 
 	var keys []ssh.PublicKey
 	if config.PublicKey != "" {
-		for _, str := range strings.Split(config.PublicKey, "\n") {
+		for str := range strings.SplitSeq(config.PublicKey, "\n") {
 			str = strings.TrimSpace(str)
 			if str == "" {
 				continue
@@ -117,36 +119,27 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("target not specified")
 	}
 	destination := outbound.Target
-	network := destination.Network
-	if network != net.Network_TCP {
+	if destination.Network != net.Network_TCP {
 		return newError("only TCP is supported in SSH proxy")
 	}
 
-	sc := c.client
-	if sc == nil {
-		c.Lock()
-		sc = c.client
-		if c.client == nil {
-			client, err := c.connect(ctx, dialer)
-			if err != nil {
-				return err
-			}
-			go func() {
-				err = client.Wait()
-				if err != nil {
-					newError("ssh client closed").Base(err).AtDebug().WriteToLog()
-				}
-				c.Lock()
-				c.client = nil
-				c.Unlock()
-			}()
-			sc = client
-		}
-		c.Unlock()
+	newError("tunneling request to ", destination, " via ", c.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
+
+	client, err := c.connect(ctx, dialer)
+	if err != nil {
+		return err
 	}
 
-	conn, err := sc.Dial("tcp", destination.NetAddr())
+	dialCtx, dialCancel := context.WithDeadline(ctx, time.Now().Add(time.Second*5))
+	defer dialCancel()
+	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.Lock()
+			client.Close()
+			c.client = nil
+			c.Unlock()
+		}
 		return newError("failed to open ssh proxy connection").Base(err)
 	}
 	defer conn.Close()
@@ -168,24 +161,15 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
-	config := &ssh.ClientConfig{
-		User:              c.config.User,
-		Auth:              c.auth,
-		ClientVersion:     c.config.ClientVersion,
-		HostKeyAlgorithms: c.config.HostKeyAlgorithms,
-		HostKeyCallback:   c.hostKeyCallback,
-		BannerCallback: func(message string) error {
-			for _, line := range strings.Split(message, "\n") {
-				newError("| ", line).AtDebug().WriteToLog(session.ExportIDToError(ctx))
-			}
-			return nil
-		},
+	c.Lock()
+	defer c.Unlock()
+	if c.client != nil {
+		return c.client, nil
 	}
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
-
 	var conn internet.Connection
-	err := retry.ExponentialBackoff(2, 100).On(func() error {
+	err := retry.ExponentialBackoff(5, 100).On(func() error {
 		rawConn, err := dialer.Dial(ctx, c.server)
 		if err != nil {
 			return err
@@ -194,23 +178,47 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		return nil
 	})
 	if err != nil {
-		return nil, newError("failed to connect to ssh server").AtWarning().Base(err)
+		return nil, err
 	}
 
-	clientConn, chans, reqs, err := ssh.NewClientConn(conn, c.server.Address.String(), config)
+	clientConn, chans, reqs, err := ssh.NewClientConn(conn, c.server.Address.String(), &ssh.ClientConfig{
+		User:              c.config.User,
+		Auth:              c.auth,
+		ClientVersion:     c.config.ClientVersion,
+		HostKeyAlgorithms: c.config.HostKeyAlgorithms,
+		HostKeyCallback:   c.hostKeyCallback,
+		BannerCallback: func(message string) error {
+			for line := range strings.SplitSeq(message, "\n") {
+				newError("| ", line).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+			}
+			return nil
+		},
+	})
 	if err != nil {
+		conn.Close()
 		return nil, newError("failed to create ssh connection").Base(err)
 	}
 
 	client := ssh.NewClient(clientConn, chans, reqs)
+
 	c.client = client
+	go func() {
+		err := client.Wait()
+		newError("ssh client closed").Base(err).AtDebug().WriteToLog()
+		client.Close()
+		c.Lock()
+		c.client = nil
+		c.Unlock()
+	}()
 	return client, nil
 }
 
 func (c *Client) Close() error {
-	sc := c.client
-	if sc != nil {
-		return sc.Close()
+	c.Lock()
+	if c.client != nil {
+		c.client.Close()
 	}
+	c.client = nil
+	c.Unlock()
 	return nil
 }

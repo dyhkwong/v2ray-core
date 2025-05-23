@@ -122,7 +122,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 			return nil, errNotQuic
 		}
 		// packet is impossible to shorter than this
-		if packetLen < 4 {
+		if packetLen < 4 /* length of origPNBytes */ {
 			return nil, errNotQuic
 		}
 
@@ -168,12 +168,18 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 
 		cache.Clear()
 		mask := cache.Extend(int32(block.BlockSize()))
+		if int(packetLen) < 4+block.BlockSize() {
+			return nil, errNotQuic
+		}
 		block.Encrypt(mask, b[hdrLen+4:hdrLen+4+block.BlockSize()])
 		b[0] ^= mask[0] & 0xf
 		for i := range b[hdrLen : hdrLen+4] {
 			b[hdrLen+i] ^= mask[i+1]
 		}
 		packetNumberLength := b[0]&0x3 + 1
+		if int(packetLen) < int(packetNumberLength) {
+			return nil, errNotQuic
+		}
 		var packetNumber uint32
 		switch packetNumberLength {
 		case 1:
@@ -216,7 +222,10 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 		for i := 0; !buffer.IsEmpty(); i++ {
 			frameType := byte(0x0) // Default to PADDING frame
 			for frameType == 0x0 && !buffer.IsEmpty() {
-				frameType, _ = buffer.ReadByte()
+				frameType, err = buffer.ReadByte()
+				if err != nil {
+					return nil, io.ErrUnexpectedEOF
+				}
 			}
 			switch frameType {
 			case 0x00: // PADDING frame
