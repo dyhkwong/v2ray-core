@@ -1,4 +1,4 @@
-//go:build !(android && cgo)
+//go:build !android
 
 package localdns
 
@@ -14,7 +14,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
-var rawQueryFunc = func(request []byte) ([]byte, error) {
+var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	requestMsg := new(dnsmessage.Message)
 	err := requestMsg.Unpack(request)
 	if err != nil {
