@@ -10,18 +10,71 @@ import (
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
-var lookupFunc = func(network, host string) ([]net.IP, error) {
-	resolver := &net.Resolver{PreferGo: false}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	ips, err := resolver.LookupIP(ctx, network, host)
-	if err != nil {
-		return nil, err
+var (
+	defaultLookupFunc = func(network, host string) ([]net.IP, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		resolver := &net.Resolver{PreferGo: false}
+		ips, err := resolver.LookupIP(ctx, network, host)
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, dns.ErrEmptyResponse
+		}
+		return ips, nil
 	}
-	if len(ips) == 0 {
-		return nil, dns.ErrEmptyResponse
+	lookupFunc = defaultLookupFunc
+
+	rawQueryFunc = defaultRawQueryFunc
+)
+
+// SagerNet private
+func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
+	if fn == nil {
+		lookupFunc = defaultLookupFunc
+	} else {
+		lookupFunc = func(network, host string) (ips []net.IP, err error) {
+			done := make(chan any)
+			go func() {
+				ips, err = fn(network, host)
+				close(done)
+			}()
+			select {
+			case <-time.After(time.Second * 5):
+				return nil, context.DeadlineExceeded
+			case <-done:
+				if err != nil {
+					return nil, err
+				}
+				if len(ips) == 0 {
+					return nil, dns.ErrEmptyResponse
+				}
+				return
+			}
+		}
 	}
-	return ips, nil
+}
+
+// SagerNet private
+func SetRawQueryFunc(fn func(request []byte) ([]byte, error)) {
+	if fn == nil {
+		rawQueryFunc = defaultRawQueryFunc
+	} else {
+		rawQueryFunc = func(request []byte) (response []byte, err error) {
+			done := make(chan any)
+			go func() {
+				response, err = fn(request)
+				close(done)
+			}()
+			select {
+			case <-time.After(time.Second * 5):
+				return nil, context.DeadlineExceeded
+			case <-done:
+				return
+			}
+		}
+	}
 }
 
 // Client is an implementation of dns.Client, which queries localhost for DNS.
