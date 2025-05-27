@@ -57,6 +57,7 @@ var errUnknownContent = newError("unknown content")
 
 func (s *Sniffer) Sniff(c context.Context, payload []byte, network net.Network) (SniffResult, error) {
 	var pendingSniffer []protocolSnifferWithMetadata
+	var sniffErr error
 	for _, si := range s.sniffer {
 		sniffer := si.protocolSniffer
 		if si.metadataSniffer {
@@ -67,11 +68,17 @@ func (s *Sniffer) Sniff(c context.Context, payload []byte, network net.Network) 
 		}
 		result, err := sniffer(c, payload)
 		if err == common.ErrNoClue {
+			if sniffErr != protocol.ErrProtoNeedMoreData {
+				// protocol.ErrProtoNeedMoreData has higher priority than common.ErrNoClue
+				sniffErr = err
+			}
 			pendingSniffer = append(pendingSniffer, si)
 			continue
-		} else if err == protocol.ErrProtoNeedMoreData { // Sniffer protocol matched, but need more data to complete sniffing
-			s.sniffer = []protocolSnifferWithMetadata{si}
-			return nil, protocol.ErrProtoNeedMoreData
+		}
+		if err == protocol.ErrProtoNeedMoreData { // Sniffer protocol matched, but need more data to complete sniffing
+			sniffErr = err
+			pendingSniffer = append(pendingSniffer, si)
+			continue
 		}
 
 		if err == nil && result != nil {
@@ -81,7 +88,7 @@ func (s *Sniffer) Sniff(c context.Context, payload []byte, network net.Network) 
 
 	if len(pendingSniffer) > 0 {
 		s.sniffer = pendingSniffer
-		return nil, common.ErrNoClue
+		return nil, sniffErr
 	}
 
 	return nil, errUnknownContent
