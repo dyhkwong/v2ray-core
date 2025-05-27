@@ -3,9 +3,12 @@ package tls
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 	"strings"
 
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/rangelist"
 )
 
@@ -34,83 +37,97 @@ func IsValidTLSVersion(major, minor byte) bool {
 // https://github.com/golang/go/blob/master/src/crypto/tls/handshake_messages.go#L300
 func ReadClientHello(data []byte, h *SniffHeader, validRange *rangelist.RangeList) error {
 	if len(data) < 42 {
-		return common.ErrNoClue
+		return protocol.ErrProtoNeedMoreData
 	}
 	sessionIDLen := int(data[38])
 	if sessionIDLen > 32 || len(data) < 39+sessionIDLen {
-		return common.ErrNoClue
+		return protocol.ErrProtoNeedMoreData
 	}
 	data = data[39+sessionIDLen:]
 	if len(data) < 2 {
-		return common.ErrNoClue
+		return protocol.ErrProtoNeedMoreData
 	}
 	// cipherSuiteLen is the number of bytes of cipher suite numbers. Since
 	// they are uint16s, the number must be even.
 	cipherSuiteLen := int(data[0])<<8 | int(data[1])
-	if cipherSuiteLen%2 == 1 || len(data) < 2+cipherSuiteLen {
+	if cipherSuiteLen%2 == 1 {
 		return errNotClientHello
+	}
+	if len(data) < 2+cipherSuiteLen {
+		return protocol.ErrProtoNeedMoreData
 	}
 	data = data[2+cipherSuiteLen:]
 	if len(data) < 1 {
-		return common.ErrNoClue
+		return protocol.ErrProtoNeedMoreData
 	}
 	compressionMethodsLen := int(data[0])
 	if len(data) < 1+compressionMethodsLen {
-		return common.ErrNoClue
+		return protocol.ErrProtoNeedMoreData
 	}
 	data = data[1+compressionMethodsLen:]
 
-	if len(data) == 0 {
-		return errNotClientHello
-	}
 	if len(data) < 2 {
-		return errNotClientHello
+		return protocol.ErrProtoNeedMoreData
 	}
 
-	// extensionsLength := int(data[0])<<8 | int(data[1])
+	extensionsLength := int(data[0])<<8 | int(data[1])
 	data = data[2:]
-	/*
-		if extensionsLength != len(data) {
-			return errNotClientHello
-		}
-	*/
+	dataLen := len(data)
 
 	offset := 44 + sessionIDLen + cipherSuiteLen + compressionMethodsLen
 	for len(data) != 0 {
 		if len(data) < 4 {
-			return errNotClientHello
+			if dataLen == extensionsLength {
+				return errNotClientHello
+			}
+			return protocol.ErrProtoNeedMoreData
 		}
 		extension := uint16(data[0])<<8 | uint16(data[1])
 		length := int(data[2])<<8 | int(data[3])
 		data = data[4:]
 		offset += 4
 		if len(data) < length {
-			return errNotClientHello
+			if dataLen == extensionsLength {
+				return errNotClientHello
+			}
+			return protocol.ErrProtoNeedMoreData
 		}
 
 		if extension == 0x00 { /* extensionServerName */
 			d := data[:length]
 			if len(d) < 2 {
-				return errNotClientHello
+				if dataLen == extensionsLength {
+					return errNotClientHello
+				}
+				return protocol.ErrProtoNeedMoreData
 			}
 			namesLen := int(d[0])<<8 | int(d[1])
 			d = d[2:]
 			if len(d) != namesLen {
-				return errNotClientHello
+				if dataLen == extensionsLength {
+					return errNotClientHello
+				}
+				return protocol.ErrProtoNeedMoreData
 			}
 			for len(d) > 0 {
 				if len(d) < 3 {
-					return errNotClientHello
+					if dataLen == extensionsLength {
+						return errNotClientHello
+					}
+					return protocol.ErrProtoNeedMoreData
 				}
 				nameType := d[0]
 				nameLen := int(d[1])<<8 | int(d[2])
 				d = d[3:]
 				if len(d) < nameLen {
-					return errNotClientHello
+					if dataLen == extensionsLength {
+						return errNotClientHello
+					}
+					return protocol.ErrProtoNeedMoreData
 				}
 				if nameType == 0 {
 					if validRange != nil && !validRange.In(offset+5, offset+5+nameLen) {
-						return errNotClientHello
+						return protocol.ErrProtoNeedMoreData
 					}
 					serverName := string(d[:nameLen])
 					// An SNI value may not include a
@@ -129,7 +146,10 @@ func ReadClientHello(data []byte, h *SniffHeader, validRange *rangelist.RangeLis
 		offset += length
 	}
 
-	return errNotTLS
+	if dataLen == extensionsLength {
+		return nil
+	}
+	return protocol.ErrProtoNeedMoreData
 }
 
 func SniffTLS(b []byte) (*SniffHeader, error) {
@@ -144,14 +164,45 @@ func SniffTLS(b []byte) (*SniffHeader, error) {
 		return nil, errNotTLS
 	}
 	headerLen := int(binary.BigEndian.Uint16(b[3:5]))
-	if 5+headerLen > len(b) {
-		return nil, common.ErrNoClue
+	if headerLen == 0 || headerLen >= 16384 {
+		// Implementations MUST NOT send zero-length fragments
+		// The length MUST NOT exceed 2^14
+		return nil, errNotTLS
 	}
 
 	h := &SniffHeader{}
-	err := ReadClientHello(b[5:5+headerLen], h, nil)
-	if err == nil {
-		return h, nil
+	data := buf.NewWithSize(32767)
+	defer data.Release()
+	for len(b) > 0 {
+		if data.Cap() < int32(len(b)) {
+			return nil, io.ErrShortBuffer
+		}
+		data.Write(b[5:min(5+headerLen, len(b))])
+		err := ReadClientHello(data.Bytes(), h, nil)
+		if err == nil {
+			return h, nil
+		}
+		if err == errNotTLS || err == errNotClientHello {
+			return nil, err
+		}
+		b = b[min(5+headerLen, len(b)):]
+
+		if len(b) < 5 {
+			return nil, protocol.ErrProtoNeedMoreData
+		}
+
+		if b[0] != 0x16 /* TLS Handshake */ {
+			return nil, errNotTLS
+		}
+		if !IsValidTLSVersion(b[1], b[2]) {
+			return nil, errNotTLS
+		}
+		headerLen := int(binary.BigEndian.Uint16(b[3:5]))
+		if headerLen == 0 || headerLen >= 16384 {
+			// Implementations MUST NOT send zero-length fragments
+			// The length MUST NOT exceed 2^14
+			return nil, errNotTLS
+		}
 	}
-	return nil, err
+	return nil, protocol.ErrProtoNeedMoreData
 }
