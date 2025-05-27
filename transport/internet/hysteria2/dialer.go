@@ -2,14 +2,15 @@ package hysteria2
 
 import (
 	"context"
+	gotls "crypto/tls"
 	"sync"
 	"time"
 
-	"github.com/apernet/hysteria/extras/v2/obfs"
-	"github.com/apernet/hysteria/extras/v2/transport/udphop"
-	"github.com/apernet/quic-go/quicvarint"
-	hyClient "github.com/v2fly/hysteria/core/v2/client"
-	hyProtocol "github.com/v2fly/hysteria/core/v2/international/protocol"
+	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
+	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
+	"github.com/dyhkwong/hysteria/extras/v2/obfs"
+	"github.com/dyhkwong/hysteria/extras/v2/transport/udphop"
+	"github.com/sagernet/quic-go/quicvarint"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -31,19 +32,13 @@ var (
 	MBps          uint64 = 1000000 / 8 // MByte
 )
 
-func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*hyClient.TLSConfig, error) {
+func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	tlsConfig := config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3"))
 
-	return &hyClient.TLSConfig{
-		RootCAs:               tlsConfig.RootCAs,
-		ServerName:            tlsConfig.ServerName,
-		InsecureSkipVerify:    tlsConfig.InsecureSkipVerify,
-		VerifyPeerCertificate: tlsConfig.VerifyPeerCertificate,
-	}, nil
+	return config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
 func ResolveAddress(dest net.Destination) (net.Addr, error) {
@@ -104,7 +99,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 	config := streamSettings.ProtocolSettings.(*Config)
 	hyConfig := &hyClient.Config{
 		Auth:            config.GetPassword(),
-		TLSConfig:       *tlsConfig,
+		TLSConfig:       tlsConfig,
 		ServerAddr:      serverAddr,
 		BandwidthConfig: hyClient.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
 	}
