@@ -24,6 +24,12 @@ message Config {
   bytes public_key = 23;
   bytes short_id = 24;
 
+  // ECH Config in bytes format
+  bytes ech_config = 25;
+
+  // DOH server to query HTTPS record for ECH
+  string ech_DOHserver = 26;
+
   bytes version = 99;
   bool disable_x25519mlkem768 = 100;
   bool reenable_chacha20poly1305 = 101;

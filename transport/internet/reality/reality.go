@@ -112,6 +112,11 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 	if utlsConfig.ServerName == "" {
 		utlsConfig.ServerName = dest.Address.String()
 	}
+	if len(config.EchConfig) > 0 || len(config.Ech_DOHserver) > 0 {
+		if err := ApplyECH(config, utlsConfig); err != nil {
+			newError("unable to set ECH").AtError().Base(err).WriteToLog()
+		}
+	}
 	uConn.ServerName = utlsConfig.ServerName
 	fingerprint := GetFingerprint(config.Fingerprint)
 	if fingerprint == nil {

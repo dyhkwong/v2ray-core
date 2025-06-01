@@ -283,9 +283,9 @@ func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
 }
 
-func (s *DNS) QueryRaw(requestBytes []byte) ([]byte, error) {
+func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 	requestMsg := new(dnsmessage.Message)
-	if err := requestMsg.Unpack(requestBytes); err != nil || len(requestMsg.Questions) == 0 {
+	if err := requestMsg.Unpack(request); err != nil || len(requestMsg.Questions) == 0 {
 		return nil, newError("failed to parse dns request").Base(err)
 	}
 	clients := s.sortClients(strings.TrimSuffix(strings.ToLower(requestMsg.Questions[0].Name.String()), "."), dns.IPOption{
@@ -296,17 +296,20 @@ func (s *DNS) QueryRaw(requestBytes []byte) ([]byte, error) {
 			newError("querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog()
 		}
 		newError("no qualified server").AtError().WriteToLog()
-		responseMsg := new(dnsmessage.Message)
-		responseMsg.ID = requestMsg.ID
-		responseMsg.RCode = dnsmessage.RCodeNotImplemented
-		responseMsg.RecursionAvailable = true
-		responseMsg.RecursionDesired = true
-		responseMsg.Response = true
-		return responseMsg.Pack()
+		/*
+			responseMsg := new(dnsmessage.Message)
+			responseMsg.ID = requestMsg.ID
+			responseMsg.RCode = dnsmessage.RCodeNotImplemented
+			responseMsg.RecursionAvailable = true
+			responseMsg.RecursionDesired = true
+			responseMsg.Response = true
+			fmt.Println(responseMsg.Pack())
+		*/
+		return []byte{request[0], request[1], 0x81, 0x84, 0, 0, 0, 0, 0, 0, 0, 0}, nil
 	}
 	errs := []error{}
 	for _, client := range clients {
-		respBytes, err := client.QueryRaw(s.ctx, requestBytes)
+		respBytes, err := client.QueryRaw(s.ctx, request)
 		if err == nil {
 			return respBytes, nil
 		}

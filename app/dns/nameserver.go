@@ -2,6 +2,7 @@ package dns
 
 import (
 	"context"
+	"encoding/binary"
 	"net/url"
 	"strings"
 	"time"
@@ -249,40 +250,37 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 
 func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
 	if serverRaw, ok := c.server.(ServerRaw); ok {
-		requestMsg := new(dnsmessage.Message)
-		if err := requestMsg.Unpack(request); err != nil {
+		msg := new(dnsmessage.Message)
+		if err := msg.Unpack(request); err != nil {
 			return nil, newError("failed to parse dns request").Base(err)
 		}
-		for _, question := range requestMsg.Questions {
+		for _, question := range msg.Questions {
 			newError(c.Name(), " querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
 
-		id := requestMsg.ID
-		requestMsg.ID = serverRaw.NewReqID()
+		id := binary.BigEndian.Uint16(request[:2])
+		binary.BigEndian.PutUint16(request[:2], serverRaw.NewReqID())
+
 		ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
-		request, err := requestMsg.Pack()
-		if err != nil {
-			return nil, err
-		}
-
+		ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 		response, err := serverRaw.QueryRaw(ctx, request)
+		cancel()
 		if err != nil {
 			return nil, err
 		}
 
-		responseMsg := new(dnsmessage.Message)
-		if err := responseMsg.Unpack(response); err != nil {
+		if err := msg.Unpack(response); err != nil {
 			return nil, err
 		}
-		for _, answer := range responseMsg.Answers {
+		for _, answer := range msg.Answers {
 			newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
-		for _, authority := range responseMsg.Authorities {
+		for _, authority := range msg.Authorities {
 			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
 
-		responseMsg.ID = id
-		return responseMsg.Pack()
+		binary.BigEndian.PutUint16(response[:2], id)
+		return response, nil
 	}
 	return nil, newError("not implemented")
 }

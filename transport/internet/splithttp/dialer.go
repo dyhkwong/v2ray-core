@@ -118,15 +118,15 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 	}
 
 	dialContext := func(_ context.Context) (net.Conn, error) {
-		ctx = core.ToBackgroundDetachedContext(ctx)
+		detachedCtx := core.ToBackgroundDetachedContext(ctx)
 		if realityConfig != nil {
-			conn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
+			conn, err := internet.DialSystem(detachedCtx, dest, streamSettings.SocketSettings)
 			if err != nil {
 				return nil, err
 			}
-			return reality.UClient(conn, realityConfig, ctx, dest)
+			return reality.UClient(conn, realityConfig, detachedCtx, dest)
 		}
-		return transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings)
+		return transportcommon.DialWithSecuritySettings(detachedCtx, dest, streamSettings)
 	}
 
 	var transport http.RoundTripper
@@ -143,8 +143,8 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 			},
 			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
 			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
-				ctx = core.ToBackgroundDetachedContext(ctx)
-				rawConn, err := internet.DialSystem(ctx, dest, streamSettings.SocketSettings)
+				detachedCtx := core.ToBackgroundDetachedContext(ctx)
+				rawConn, err := internet.DialSystem(detachedCtx, dest, streamSettings.SocketSettings)
 				if err != nil {
 					return nil, err
 				}
@@ -157,7 +157,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				default:
 					pc = internet.NewConnWrapper(rc)
 				}
-				return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(detachedCtx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	} else if httpVersion == "2" {

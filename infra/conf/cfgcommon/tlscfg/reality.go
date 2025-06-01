@@ -30,6 +30,8 @@ type REALITYConfig struct {
 	ServerName               string `json:"serverName"`
 	PublicKey                string `json:"publicKey"`
 	ShortId                  string `json:"shortId"`
+	ECHConfig                string `json:"echConfig"`
+	ECHDOHServer             string `json:"echDohServer"`
 	Version                  string `json:"version"`
 	DisableX25519MLKEM768    bool   `json:"disableX25519MLKEM768"`
 	ReenableCHACHA20POLY1305 bool   `json:"reenableCHACHA20POLY1305"`
@@ -120,6 +122,15 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 			return nil, newError(`invalid "shortId": `, c.ShortId)
 		}
 		config.ServerName = c.ServerName
+
+		if c.ECHConfig != "" {
+			ECHConfig, err := base64.StdEncoding.DecodeString(c.ECHConfig)
+			if err != nil {
+				return nil, newError("invalid ECH Config", c.ECHConfig)
+			}
+			config.EchConfig = ECHConfig
+		}
+		config.Ech_DOHserver = c.ECHDOHServer
 
 		if c.Version != "" {
 			config.Version = make([]byte, 3)

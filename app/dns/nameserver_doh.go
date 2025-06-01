@@ -13,7 +13,6 @@ import (
 
 	"golang.org/x/net/dns/dnsmessage"
 
-	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
@@ -51,35 +50,20 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 		TLSHandshakeTimeout: 30 * time.Second,
 		ForceAttemptHTTP2:   true,
 		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dispatcherCtx := context.Background()
-
 			dest, err := net.ParseDestination(network + ":" + addr)
 			if err != nil {
 				return nil, err
 			}
 
-			dispatcherCtx = session.ContextWithContent(dispatcherCtx, session.ContentFromContext(ctx))
-			dispatcherCtx = session.ContextWithInbound(dispatcherCtx, session.InboundFromContext(ctx))
-			dispatcherCtx = core.WithContext(dispatcherCtx, core.FromContext(ctx))
-
-			link, err := dispatcher.Dispatch(dispatcherCtx, dest)
+			link, err := dispatcher.Dispatch(ctx, dest)
 			if err != nil {
 				return nil, err
 			}
 
-			cc := common.ChainedClosable{}
-			if cw, ok := link.Writer.(common.Closable); ok {
-				cc = append(cc, cw)
-			}
-			if cr, ok := link.Reader.(common.Closable); ok {
-				cc = append(cc, cr)
-			}
-			conn := cnc.NewConnection(
+			return tls.Client(cnc.NewConnection(
 				cnc.ConnectionInputMulti(link.Writer),
 				cnc.ConnectionOutputMulti(link.Reader),
-				cnc.ConnectionOnClose(cc),
-			)
-			return tls.Client(conn, &tls.Config{
+			), &tls.Config{
 				ServerName: func() string {
 					switch dest.Address.Family() {
 					case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
@@ -93,9 +77,10 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 			}), nil
 		},
 	}
+
 	dispatchedClient := &http.Client{
 		Transport: tr,
-		Timeout:   180 * time.Second,
+		Timeout:   60 * time.Second,
 	}
 
 	s.httpClient = dispatchedClient
@@ -287,30 +272,30 @@ func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	} else {
 		deadline = time.Now().Add(time.Second * 5)
 	}
+
+	// generate new context for each req, using same context
+	// may cause reqs all aborted if any one encounter an error
 	dnsCtx := ctx
+
+	// reserve internal dns server requested Inbound
 	if inbound := session.InboundFromContext(ctx); inbound != nil {
 		dnsCtx = session.ContextWithInbound(dnsCtx, inbound)
 	}
+
 	dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
 		Protocol:       s.protocol,
 		SkipDNSResolve: true,
 	})
+
 	var cancel context.CancelFunc
 	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 	defer cancel()
-	done := make(chan interface{})
-	var response []byte
-	var retErr error
-	go func() {
-		response, retErr = s.dohHTTPSContext(ctx, request)
-		close(done)
-	}()
-	select {
-	case <-dnsCtx.Done():
-		return nil, dnsCtx.Err()
-	case <-done:
-		return response, retErr
+
+	resp, err := s.dohHTTPSContext(dnsCtx, request)
+	if err != nil {
+		return nil, newError("failed to retrieve response").Base(err)
 	}
+	return resp, nil
 }
 
 func (s *DoHNameServer) dohHTTPSContext(ctx context.Context, b []byte) ([]byte, error) {

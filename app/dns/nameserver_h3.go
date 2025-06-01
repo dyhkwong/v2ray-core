@@ -27,8 +27,8 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 				if err != nil {
 					return nil, err
 				}
-				ctx = core.ToBackgroundDetachedContext(ctx)
-				link, err := dispatcher.Dispatch(ctx, dest)
+				detachedCtx := core.ToBackgroundDetachedContext(ctx)
+				link, err := dispatcher.Dispatch(detachedCtx, dest)
 				if err != nil {
 					return nil, err
 				}
@@ -36,7 +36,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 					cnc.ConnectionInputMulti(link.Writer),
 					cnc.ConnectionOutputMultiUDP(link.Reader),
 				)
-				return quic.DialEarly(ctx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		},
 	}

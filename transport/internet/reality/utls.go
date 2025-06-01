@@ -8,9 +8,7 @@ import (
 	utls "github.com/refraction-networking/utls"
 )
 
-var (
-	once sync.Once
-)
+var once sync.Once
 
 func GetFingerprint(name string) (fingerprint *utls.ClientHelloID) {
 	once.Do(func() {

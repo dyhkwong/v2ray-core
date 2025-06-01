@@ -2,12 +2,13 @@ package hysteria2
 
 import (
 	"context"
+	gotls "crypto/tls"
 	"strings"
 
-	"github.com/apernet/hysteria/extras/v2/obfs"
-	"github.com/apernet/quic-go"
-	"github.com/apernet/quic-go/http3"
-	hyServer "github.com/v2fly/hysteria/core/v2/server"
+	hyServer "github.com/dyhkwong/hysteria/core/v2/server"
+	"github.com/dyhkwong/hysteria/extras/v2/obfs"
+	"github.com/sagernet/quic-go"
+	"github.com/sagernet/quic-go/http3"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -87,7 +88,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 
 	hyConfig := &hyServer.Config{
 		Conn:                  rawConn,
-		TLSConfig:             *tlsConfig,
+		TLSConfig:             tlsConfig,
 		DisableUDP:            !config.GetUseUdpExtension(),
 		StreamHijacker:        listener.StreamHijacker, // acceptStreams
 		BandwidthConfig:       hyServer.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
@@ -125,14 +126,13 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 	return listener, nil
 }
 
-func GetServerTLSConfig(streamSettings *internet.MemoryStreamConfig) (*hyServer.TLSConfig, error) {
+func GetServerTLSConfig(streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	tlsConfig := config.GetTLSConfig()
 
-	return &hyServer.TLSConfig{Certificates: tlsConfig.Certificates, GetCertificate: tlsConfig.GetCertificate}, nil
+	return config.GetTLSConfig(tls.WithNextProto("h3")), nil
 }
 
 type Authenticator struct {

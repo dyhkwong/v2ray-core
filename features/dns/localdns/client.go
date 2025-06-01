@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
-
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 )
@@ -14,8 +12,10 @@ import (
 
 var (
 	defaultLookupFunc = func(network, host string) ([]net.IP, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 		resolver := &net.Resolver{PreferGo: false}
-		ips, err := resolver.LookupIP(context.Background(), network, host)
+		ips, err := resolver.LookupIP(ctx, network, host)
 		if err != nil {
 			return nil, err
 		}
@@ -26,20 +26,6 @@ var (
 	}
 	lookupFunc = defaultLookupFunc
 
-	defaultRawQueryFunc = func(b []byte) ([]byte, error) {
-		newError("localhost does not support raw query").AtError().WriteToLog()
-		requestMsg := new(dnsmessage.Message)
-		if err := requestMsg.Unpack(b); err != nil {
-			return nil, newError("failed to parse dns request").Base(err)
-		}
-		responseMsg := new(dnsmessage.Message)
-		responseMsg.ID = requestMsg.ID
-		responseMsg.RCode = dnsmessage.RCodeNotImplemented
-		responseMsg.RecursionAvailable = true
-		responseMsg.RecursionDesired = true
-		responseMsg.Response = true
-		return responseMsg.Pack()
-	}
 	rawQueryFunc = defaultRawQueryFunc
 )
 
@@ -48,16 +34,46 @@ func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
 	if fn == nil {
 		lookupFunc = defaultLookupFunc
 	} else {
-		lookupFunc = fn
+		lookupFunc = func(network, host string) (ips []net.IP, err error) {
+			done := make(chan any)
+			go func() {
+				ips, err = fn(network, host)
+				close(done)
+			}()
+			select {
+			case <-time.After(time.Second * 5):
+				return nil, context.DeadlineExceeded
+			case <-done:
+				if err != nil {
+					return nil, err
+				}
+				if len(ips) == 0 {
+					return nil, dns.ErrEmptyResponse
+				}
+				return
+			}
+		}
 	}
 }
 
 // SagerNet private
-func SetRawQueryFunc(fn func(reqBytes []byte) ([]byte, error)) {
+func SetRawQueryFunc(fn func(request []byte) ([]byte, error)) {
 	if fn == nil {
 		rawQueryFunc = defaultRawQueryFunc
 	} else {
-		rawQueryFunc = fn
+		rawQueryFunc = func(request []byte) (response []byte, err error) {
+			done := make(chan any)
+			go func() {
+				response, err = fn(request)
+				close(done)
+			}()
+			select {
+			case <-time.After(time.Second * 5):
+				return nil, context.DeadlineExceeded
+			case <-done:
+				return
+			}
+		}
 	}
 }
 
@@ -103,8 +119,8 @@ func (c *Client) LookupIPv6WithTTL(host string) ([]net.IP, time.Time, error) {
 }
 
 // QueryRaw implements RawQuery.
-func (c *Client) QueryRaw(reqBytes []byte) ([]byte, error) {
-	return rawQueryFunc(reqBytes)
+func (c *Client) QueryRaw(request []byte) ([]byte, error) {
+	return rawQueryFunc(request)
 }
 
 // New create a new dns.Client that queries localhost for DNS.

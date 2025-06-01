@@ -124,12 +124,11 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 	destination := outbound.Target
 
-	ctx = core.ToBackgroundDetachedContext(ctx)
-
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
+	detachedCtx := core.ToBackgroundDetachedContext(ctx)
 	if destination.Network == net.Network_TCP {
-		serverConn, err := tuicClient.DialConn(ctx, toSocksaddr(destination))
+		serverConn, err := tuicClient.DialConn(detachedCtx, toSocksaddr(destination))
 		if err != nil {
 			return err
 		}
@@ -141,17 +140,17 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		} else {
 			conn.R = &buf.BufferedReader{Reader: link.Reader}
 		}
-		return returnError(bufio.CopyConn(ctx, conn, serverConn))
+		return returnError(bufio.CopyConn(detachedCtx, conn, serverConn))
 	} else {
 		packetConn := &packetConnWrapper{
 			Reader: link.Reader,
 			Writer: link.Writer,
 			Dest:   destination,
 		}
-		serverConn, err := tuicClient.ListenPacket(ctx)
+		serverConn, err := tuicClient.ListenPacket(detachedCtx)
 		if err != nil {
 			return err
 		}
-		return returnError(bufio.CopyPacketConn(ctx, packetConn, serverConn.(N.PacketConn)))
+		return returnError(bufio.CopyPacketConn(detachedCtx, packetConn, serverConn.(N.PacketConn)))
 	}
 }

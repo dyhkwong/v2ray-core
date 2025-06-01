@@ -75,10 +75,6 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 		src = outbound.Gateway
 	}
 
-	if transportLayerOutgoingTag := session.GetTransportLayerProxyTagFromContext(ctx); transportLayerOutgoingTag != "" {
-		return DialTaggedOutbound(ctx, dest, transportLayerOutgoingTag)
-	}
-
 	originalAddr := dest.Address
 	if outbound != nil && outbound.Resolver != nil && dest.Address.Family().IsDomain() {
 		if addr := outbound.Resolver(ctx, dest.Address.Domain()); addr != nil {
@@ -93,6 +89,30 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 		newError("dialing to ", dest, " via ", src).WriteToLog(session.ExportIDToError(ctx))
 	case dest.Address != originalAddr:
 		newError("dialing to ", dest, " resolved from ", originalAddr).WriteToLog(session.ExportIDToError(ctx))
+	}
+
+	if transportLayerOutgoingTag := session.GetTransportLayerProxyTagFromContext(ctx); transportLayerOutgoingTag != "" {
+		detourConn, err := DialTaggedOutbound(ctx, dest, transportLayerOutgoingTag)
+		if err != nil {
+			return nil, err
+		}
+		if dest.Network == net.Network_TCP && sockopt != nil && sockopt.Fragment != nil {
+			fragmentConn, err := NewFragmentConn(detourConn, sockopt.Fragment)
+			if err != nil {
+				detourConn.Close()
+				return nil, err
+			}
+			return fragmentConn, nil
+		}
+		if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
+			noiseConn, err := NewNoiseConn(detourConn, sockopt.Noises, sockopt.NoiseKeepAlive)
+			if err != nil {
+				detourConn.Close()
+				return nil, err
+			}
+			return noiseConn, nil
+		}
+		return detourConn, nil
 	}
 
 	rawConn, err := effectiveSystemDialer.Dial(ctx, src, dest, sockopt)
