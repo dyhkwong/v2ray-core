@@ -4,6 +4,7 @@ package grpc
 
 import (
 	"context"
+	gotls "crypto/tls"
 	gonet "net"
 	"sync"
 	"time"
@@ -90,7 +91,12 @@ func getGrpcClient(ctx context.Context, dest net.Destination, streamSettings *in
 	switch streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		if tlsConfig := tls.ConfigFromStreamSettings(streamSettings); tlsConfig != nil {
-			transportCredentials = credentials.NewTLS(tlsConfig.GetTLSConfig(tls.WithDestination(dest)))
+			config := tlsConfig.GetTLSConfig(tls.WithDestination(dest))
+			// https://github.com/grpc/grpc-go/blob/98959d9a4904e98bbf8b423ce6a3cb5d36f90ee1/credentials/tls.go#L205-L210
+			if config.EncryptedClientHelloConfigList != nil && config.MinVersion == 0 && (config.MaxVersion == 0 || config.MaxVersion >= gotls.VersionTLS13) {
+				config.MinVersion = gotls.VersionTLS13
+			}
+			transportCredentials = credentials.NewTLS(config)
 		}
 	case *utls.Config:
 		if creds, err := newSecurityEngineCreds(ctx, dest, streamSettings); err == nil {
