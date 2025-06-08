@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/sagernet/sing-quic/tuic"
 	"github.com/sagernet/sing/common/bufio"
@@ -95,6 +96,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		CongestionControl: config.CongestionControl,
 		UDPStream:         config.UdpRelayMode == "quic",
 		ZeroRTTHandshake:  config.ZeroRttHandshake,
+		Heartbeat:         time.Second * time.Duration(config.Heartbeat),
 	}
 
 	o.tuicClients = make(map[internet.Dialer]*tuic.Client)

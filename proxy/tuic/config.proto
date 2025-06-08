@@ -21,6 +21,7 @@ message ClientConfig {
   string congestion_control = 5;
   string udp_relay_mode = 6;
   bool zero_rtt_handshake = 7;
-  v2ray.core.transport.internet.tls.Config tls_settings = 8;
+  uint32 heartbeat = 8;
   bool disable_sni = 9;
+  v2ray.core.transport.internet.tls.Config tls_settings = 10;
 }

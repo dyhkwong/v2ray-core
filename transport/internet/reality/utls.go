@@ -35,7 +35,7 @@ func GetFingerprint(name string) (fingerprint *utls.ClientHelloID) {
 		PresetFingerprints["randomizednoalpn"] = &randomizednoalpn
 	})
 	if name == "" {
-		return &utls.HelloChrome_Auto
+		return &utls.HelloGolang
 	}
 	if fingerprint = PresetFingerprints[name]; fingerprint != nil {
 		return
@@ -90,7 +90,7 @@ var ModernFingerprints = map[string]*utls.ClientHelloID{
 
 var OtherFingerprints = map[string]*utls.ClientHelloID{
 	// Golang, randomized, auto, and fingerprints that are too old
-	// "hellogolang": &utls.HelloGolang,
+	"hellogolang":           &utls.HelloGolang,
 	"hellorandomized":       &utls.HelloRandomized,
 	"hellorandomizedalpn":   &utls.HelloRandomizedALPN,
 	"hellorandomizednoalpn": &utls.HelloRandomizedNoALPN,

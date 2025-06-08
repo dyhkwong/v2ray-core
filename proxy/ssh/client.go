@@ -162,10 +162,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
 	c.Lock()
-	defer c.Unlock()
 	if c.client != nil {
+		c.Unlock()
 		return c.client, nil
 	}
+	c.Unlock()
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	var conn internet.Connection
@@ -201,7 +202,9 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 
 	client := ssh.NewClient(clientConn, chans, reqs)
 
+	c.Lock()
 	c.client = client
+	c.Unlock()
 	go func() {
 		err := client.Wait()
 		newError("ssh client closed").Base(err).AtDebug().WriteToLog()

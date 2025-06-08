@@ -74,7 +74,7 @@ func (i *Inbound) Process(ctx context.Context, network net.Network, conn interne
 	return returnError(i.service.NewConnection(ctx, conn, source, nil))
 }
 
-func (i *Inbound) NewConnectionEx(ctx context.Context, conn net.Conn, source metadata.Socksaddr, destination metadata.Socksaddr, _ network.CloseHandlerFunc) {
+func (i *Inbound) NewConnectionEx(ctx context.Context, conn net.Conn, source metadata.Socksaddr, destination metadata.Socksaddr, onClose network.CloseHandlerFunc) {
 	inbound := session.InboundFromContext(ctx)
 	inbound.User = &protocol.MemoryUser{
 		Email: i.email,
@@ -85,17 +85,29 @@ func (i *Inbound) NewConnectionEx(ctx context.Context, conn net.Conn, source met
 		request, err := uot.ReadRequest(conn)
 		if err != nil {
 			newError(err).WriteToLog(session.ExportIDToError(ctx))
+			if onClose != nil {
+				onClose(err)
+			}
 			return
 		}
 		if err := i.handleUDP(ctx, uot.NewConn(conn, *request), source, request.Destination); err != nil {
 			newError(err).WriteToLog(session.ExportIDToError(ctx))
+			if onClose != nil {
+				onClose(err)
+			}
 			return
 		}
 	} else {
 		if err := i.handleTCP(ctx, conn, source, destination); err != nil {
 			newError(err).WriteToLog(session.ExportIDToError(ctx))
+			if onClose != nil {
+				onClose(err)
+			}
 			return
 		}
+	}
+	if onClose != nil {
+		onClose(nil)
 	}
 }
 

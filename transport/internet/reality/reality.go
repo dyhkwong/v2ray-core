@@ -144,14 +144,23 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 		return nil, newError("REALITY: unable to build client hello")
 	}
 	hello := uConn.HandshakeState.Hello
-	if len(hello.Raw) < 39 || len(hello.SessionId) < 8 || len(hello.Random) < 20 {
+	raw := hello.Raw
+	if len(raw) == 0 {
+		// utls.HelloGolang
+		var err error
+		raw, err = hello.Marshal()
+		if err != nil {
+			return nil, newError("REALITY: invalid client hello")
+		}
+	}
+	if len(raw) < 39 || len(hello.Random) < 20 {
 		return nil, newError("REALITY: invalid client hello")
 	}
 	hello.SessionId = make([]byte, 32)
-	copy(hello.Raw[39:], hello.SessionId) // the fixed location of `Session ID`
+	copy(raw[39:], hello.SessionId) // the fixed location of `Session ID`
 	version := config.Version
 	if len(version) != 3 {
-		version = []byte{25, 5, 16}
+		version = []byte{25, 6, 7}
 	}
 	hello.SessionId[0] = version[0] // Version_x
 	hello.SessionId[1] = version[1] // Version_y
@@ -180,8 +189,8 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 	} else {
 		aead, _ = chacha20poly1305.New(uConn.AuthKey)
 	}
-	aead.Seal(hello.SessionId[:0], hello.Random[20:], hello.SessionId[:16], hello.Raw)
-	copy(hello.Raw[39:], hello.SessionId)
+	aead.Seal(hello.SessionId[:0], hello.Random[20:], hello.SessionId[:16], raw)
+	copy(raw[39:], hello.SessionId)
 	if err := uConn.HandshakeContext(ctx); err != nil {
 		return nil, err
 	}

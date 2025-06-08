@@ -16,9 +16,10 @@ type TuicClientConfig struct {
 	Password          string             `json:"password"`
 	CongestionControl string             `json:"congestionControl"`
 	UDPRelayMode      string             `json:"udpRelayMode"`
+	Heartbeat         uint32             `json:"heartbeat"`
 	ZeroRTTHandshake  bool               `json:"zeroRTTHandshake"`
-	TLSSettings       *tlscfg.TLSConfig  `json:"tlsSettings"`
 	DisableSni        bool               `json:"disableSNI"`
+	TLSSettings       *tlscfg.TLSConfig  `json:"tlsSettings"`
 }
 
 func (c *TuicClientConfig) Build() (proto.Message, error) {
@@ -32,6 +33,7 @@ func (c *TuicClientConfig) Build() (proto.Message, error) {
 		Password:          c.Password,
 		CongestionControl: c.CongestionControl,
 		UdpRelayMode:      c.UDPRelayMode,
+		Heartbeat:         c.Heartbeat,
 		ZeroRttHandshake:  c.ZeroRTTHandshake,
 		DisableSni:        c.DisableSni,
 	}

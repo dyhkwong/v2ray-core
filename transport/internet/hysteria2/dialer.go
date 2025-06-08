@@ -102,6 +102,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		TLSConfig:       tlsConfig,
 		ServerAddr:      serverAddr,
 		BandwidthConfig: hyClient.BandwidthConfig{MaxTx: config.Congestion.GetUpMbps() * MBps, MaxRx: config.GetCongestion().GetDownMbps() * MBps},
+		FastOpen:        true,
 	}
 
 	if len(config.HopPorts) > 0 {
