@@ -32,6 +32,7 @@ type REALITYConfig struct {
 	ShortId                  string `json:"shortId"`
 	ECHConfig                string `json:"echConfig"`
 	ECHDOHServer             string `json:"echDohServer"`
+	ECHQueryDomain           string `json:"echQueryDomain"`
 	Version                  string `json:"version"`
 	DisableX25519MLKEM768    bool   `json:"disableX25519MLKEM768"`
 	ReenableCHACHA20POLY1305 bool   `json:"reenableCHACHA20POLY1305"`

@@ -4,8 +4,8 @@ import (
 	"io"
 	"math/rand"
 
+	"github.com/apernet/quic-go/quicvarint"
 	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
-	"github.com/sagernet/quic-go/quicvarint"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"

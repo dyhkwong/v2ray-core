@@ -262,23 +262,11 @@ func (b *Buffer) ReadFrom(reader io.Reader) (int64, error) {
 func (b *Buffer) ReadFromPacketConn(reader net.PacketConn) (int64, error) {
 	n, addr, err := reader.ReadFrom(b.v[b.end:])
 	if addr != nil {
-		switch address := addr.(type) {
-		case *net.UDPAddr:
+		if address, ok := addr.(*net.UDPAddr); ok {
 			b.Endpoint = &net.Destination{
 				Network: net.Network_UDP,
 				Address: net.IPAddress(address.IP),
 				Port:    net.Port(address.Port),
-			}
-		case *net.TCPAddr:
-			b.Endpoint = &net.Destination{
-				Network: net.Network_TCP,
-				Address: net.IPAddress(address.IP),
-				Port:    net.Port(address.Port),
-			}
-		case *net.UnixAddr:
-			b.Endpoint = &net.Destination{
-				Network: net.Network_UNIX,
-				Address: net.DomainAddress(address.Name),
 			}
 		}
 	}

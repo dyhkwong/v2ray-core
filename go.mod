@@ -4,13 +4,19 @@ go 1.24
 
 require (
 	github.com/adrg/xdg v0.5.3
+	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/anytls/sing-anytls v0.0.8
-	github.com/dyhkwong/hysteria/core/v2 v2.6.1-1
-	github.com/dyhkwong/hysteria/extras/v2 v2.6.1-1
+	github.com/apernet/quic-go v0.52.1-0.20250607183305-9320c9d14431
+	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
+	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152
+	github.com/dyhkwong/hysteria/core/v2 v2.6.2-1
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.2-1
+	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/kierdavis/cfb8 v0.0.0-20180105024805-3a17c36ee2f8
 	github.com/miekg/dns v1.1.66
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
@@ -18,7 +24,6 @@ require (
 	github.com/pires/go-proxyproto v0.8.1
 	github.com/quic-go/quic-go v0.52.0
 	github.com/refraction-networking/utls v1.7.3
-	github.com/sagernet/quic-go v0.52.0-beta.1
 	github.com/sagernet/sing v0.6.11
 	github.com/sagernet/sing-quic v0.5.0-beta.2
 	github.com/sagernet/sing-shadowsocks v0.2.8
@@ -30,7 +35,7 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
-	github.com/xtls/reality v0.0.0-20250607105625-90e738a94c8c
+	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130
 	go.uber.org/mock v0.5.2
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.39.0
@@ -47,16 +52,17 @@ require (
 
 require (
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
-	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
-	github.com/cloudflare/circl v1.5.0 // indirect
+	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
+	github.com/ebfe/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/pprof v0.0.0-20231101202521-4ca4178f5c7a // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
@@ -71,6 +77,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
+	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect

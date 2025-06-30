@@ -21,7 +21,13 @@ func ApplyECH(c *Config, config *utls.Config) error {
 		return nil
 	}
 	// ECH config > DOH lookup
-	addr := net.ParseAddress(config.ServerName)
+	var domain string
+	if c.EchQueryDomain == "" {
+		domain = config.ServerName
+	} else {
+		domain = c.EchQueryDomain
+	}
+	addr := net.ParseAddress(domain)
 	if !addr.Family().IsDomain() {
 		return newError("Using DOH for ECH needs SNI")
 	}

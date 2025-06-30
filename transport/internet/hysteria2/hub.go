@@ -5,10 +5,10 @@ import (
 	gotls "crypto/tls"
 	"strings"
 
+	"github.com/apernet/quic-go"
+	"github.com/apernet/quic-go/http3"
 	hyServer "github.com/dyhkwong/hysteria/core/v2/server"
 	"github.com/dyhkwong/hysteria/extras/v2/obfs"
-	"github.com/sagernet/quic-go"
-	"github.com/sagernet/quic-go/http3"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"

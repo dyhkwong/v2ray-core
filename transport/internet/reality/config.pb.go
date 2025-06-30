@@ -31,7 +31,9 @@ type Config struct {
 	// ECH Config in bytes format
 	EchConfig []byte `protobuf:"bytes,25,opt,name=ech_config,json=echConfig,proto3" json:"ech_config,omitempty"`
 	// DOH server to query HTTPS record for ECH
-	Ech_DOHserver            string `protobuf:"bytes,26,opt,name=ech_DOHserver,json=echDOHserver,proto3" json:"ech_DOHserver,omitempty"`
+	Ech_DOHserver string `protobuf:"bytes,26,opt,name=ech_DOHserver,json=echDOHserver,proto3" json:"ech_DOHserver,omitempty"`
+	// domain to query for https record
+	EchQueryDomain           string `protobuf:"bytes,27,opt,name=ech_query_domain,json=echQueryDomain,proto3" json:"ech_query_domain,omitempty"`
 	Version                  []byte `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
 	DisableX25519Mlkem768    bool   `protobuf:"varint,100,opt,name=disable_x25519mlkem768,json=disableX25519mlkem768,proto3" json:"disable_x25519mlkem768,omitempty"`
 	ReenableChacha20Poly1305 bool   `protobuf:"varint,101,opt,name=reenable_chacha20poly1305,json=reenableChacha20poly1305,proto3" json:"reenable_chacha20poly1305,omitempty"`
@@ -153,6 +155,13 @@ func (x *Config) GetEch_DOHserver() string {
 	return ""
 }
 
+func (x *Config) GetEchQueryDomain() string {
+	if x != nil {
+		return x.EchQueryDomain
+	}
+	return ""
+}
+
 func (x *Config) GetVersion() []byte {
 	if x != nil {
 		return x.Version
@@ -178,7 +187,7 @@ var File_transport_internet_reality_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"\n" +
-	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\x8d\x04\n" +
+	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\xb7\x04\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -195,7 +204,8 @@ const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"\bshort_id\x18\x18 \x01(\fR\ashortId\x12\x1d\n" +
 	"\n" +
 	"ech_config\x18\x19 \x01(\fR\techConfig\x12#\n" +
-	"\rech_DOHserver\x18\x1a \x01(\tR\fechDOHserver\x12\x18\n" +
+	"\rech_DOHserver\x18\x1a \x01(\tR\fechDOHserver\x12(\n" +
+	"\x10ech_query_domain\x18\x1b \x01(\tR\x0eechQueryDomain\x12\x18\n" +
 	"\aversion\x18c \x01(\fR\aversion\x125\n" +
 	"\x16disable_x25519mlkem768\x18d \x01(\bR\x15disableX25519mlkem768\x12;\n" +
 	"\x19reenable_chacha20poly1305\x18e \x01(\bR\x18reenableChacha20poly1305:\x17\x82\xb5\x18\x13\n" +

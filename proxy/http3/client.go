@@ -192,22 +192,8 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		readCounter, writeCounter := cachedConn.readCounter, cachedConn.writeCounter
 		select {
 		case <-h3Conn.Context().Done():
-			h3Conn.CloseWithError(0, "")
-			rawConn.Close()
-			cachedH3Mutex.Lock()
-			delete(cachedH3Conns, dest)
-			cachedH3Mutex.Unlock()
 		default:
-			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
-			if err != nil {
-				h3Conn.CloseWithError(0, "")
-				rawConn.Close()
-				cachedH3Mutex.Lock()
-				delete(cachedH3Conns, dest)
-				cachedH3Mutex.Unlock()
-				return nil, err
-			}
-			return proxyConn, nil
+			return connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
 		}
 	}
 
