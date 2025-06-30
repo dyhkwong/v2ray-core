@@ -19,7 +19,7 @@ import (
 
 type connectionContext struct {
 	rawConn *sysConn
-	conn    quic.Connection
+	conn    *quic.Conn
 }
 
 var errConnectionClosed = newError("connection closed")
@@ -49,7 +49,7 @@ type clientConnections struct {
 	cleanup *task.Periodic
 }
 
-func isActive(s quic.Connection) bool {
+func isActive(s *quic.Conn) bool {
 	select {
 	case <-s.Context().Done():
 		return false
