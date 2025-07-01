@@ -31,6 +31,7 @@ type MixedServerConfig struct {
 	UserLevel      uint32             `json:"userLevel"`
 	Transparent    bool               `json:"allowTransparent"`
 	PacketEncoding string             `json:"packetEncoding"`
+	DeferLastReply bool               `json:"deferLastReply"`
 }
 
 func (v *MixedServerConfig) Build() (proto.Message, error) {
@@ -65,6 +66,8 @@ func (v *MixedServerConfig) Build() (proto.Message, error) {
 	case "", "none":
 		config.PacketEncoding = packetaddr.PacketAddrType_None
 	}
+
+	config.DeferLastReply = v.DeferLastReply
 
 	return config, nil
 }

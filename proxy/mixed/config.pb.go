@@ -132,8 +132,9 @@ type ServerConfig struct {
 	UdpEnabled     bool                      `protobuf:"varint,5,opt,name=udp_enabled,json=udpEnabled,proto3" json:"udp_enabled,omitempty"`
 	Address        *net.IPOrDomain           `protobuf:"bytes,6,opt,name=address,proto3" json:"address,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,7,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	DeferLastReply bool                      `protobuf:"varint,8,opt,name=defer_last_reply,json=deferLastReply,proto3" json:"defer_last_reply,omitempty"`
 	// HTTP
-	AllowTransparent bool `protobuf:"varint,8,opt,name=allow_transparent,json=allowTransparent,proto3" json:"allow_transparent,omitempty"`
+	AllowTransparent bool `protobuf:"varint,9,opt,name=allow_transparent,json=allowTransparent,proto3" json:"allow_transparent,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -219,6 +220,13 @@ func (x *ServerConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 	return packetaddr.PacketAddrType(0)
 }
 
+func (x *ServerConfig) GetDeferLastReply() bool {
+	if x != nil {
+		return x.DeferLastReply
+	}
+	return false
+}
+
 func (x *ServerConfig) GetAllowTransparent() bool {
 	if x != nil {
 		return x.AllowTransparent
@@ -233,7 +241,7 @@ const file_proxy_mixed_config_proto_rawDesc = "" +
 	"\x18proxy/mixed/config.proto\x12\x16v2ray.core.proxy.mixed\x1a\x18common/net/address.proto\x1a\"common/net/packetaddr/config.proto\"A\n" +
 	"\aAccount\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xfa\x03\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xa4\x04\n" +
 	"\fServerConfig\x12A\n" +
 	"\tauth_type\x18\x01 \x01(\x0e2 .v2ray.core.proxy.mixed.AuthTypeB\x02\x18\x01R\bauthType\x12N\n" +
 	"\baccounts\x18\x02 \x03(\v22.v2ray.core.proxy.mixed.ServerConfig.AccountsEntryR\baccounts\x12\x1c\n" +
@@ -243,8 +251,9 @@ const file_proxy_mixed_config_proto_rawDesc = "" +
 	"\vudp_enabled\x18\x05 \x01(\bR\n" +
 	"udpEnabled\x12;\n" +
 	"\aaddress\x18\x06 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12R\n" +
-	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12+\n" +
-	"\x11allow_transparent\x18\b \x01(\bR\x10allowTransparent\x1a;\n" +
+	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12(\n" +
+	"\x10defer_last_reply\x18\b \x01(\bR\x0edeferLastReply\x12+\n" +
+	"\x11allow_transparent\x18\t \x01(\bR\x10allowTransparent\x1a;\n" +
 	"\rAccountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*%\n" +

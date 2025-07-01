@@ -54,6 +54,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 			Timeout:        config.Timeout,
 			UserLevel:      config.UserLevel,
 			PacketEncoding: config.PacketEncoding,
+			DeferLastReply: config.DeferLastReply,
 		})
 	if err != nil {
 		return nil, newError("Errors in socks config").Base(err).AtError()

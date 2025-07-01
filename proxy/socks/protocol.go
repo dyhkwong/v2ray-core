@@ -87,13 +87,15 @@ func (s *ServerSession) handshake4(cmd byte, reader io.Reader, writer io.Writer)
 			Port:    port,
 			Version: socks4Version,
 		}
-		s.setupLastReply(func(ok bool) error {
+		if err := s.setupLastReply(func(ok bool) error {
 			if ok {
 				return writeSocks4Response(writer, socks4RequestGranted, net.AnyIP, net.Port(0))
 			} else {
 				return writeSocks4Response(writer, socks4RequestRejected, net.AnyIP, net.Port(0))
 			}
-		})
+		}); err != nil {
+			return nil, err
+		}
 		return request, nil
 	default:
 		writeSocks4Response(writer, socks4RequestRejected, net.AnyIP, net.Port(0))
@@ -209,19 +211,21 @@ func (s *ServerSession) handshake5(nMethod byte, reader io.Reader, writer io.Wri
 			responseAddress = s.address
 		}
 	}
-	s.setupLastReply(func(ok bool) error {
+	if err := s.setupLastReply(func(ok bool) error {
 		if ok {
 			return writeSocks5Response(writer, statusSuccess, responseAddress, responsePort)
 		} else {
 			return writeSocks5Response(writer, statusConnRefused, net.AnyIP, net.Port(0))
 		}
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	return request, nil
 }
 
 // Sets the callback and calls or postpones it based on the boolean field
-func (s *ServerSession) setupLastReply(callback func(bool) error) {
+func (s *ServerSession) setupLastReply(callback func(bool) error) error {
 	noOpCallback := func(bool) error {
 		return nil
 	}
@@ -231,6 +235,11 @@ func (s *ServerSession) setupLastReply(callback func(bool) error) {
 		s.flushLastReply = noOpCallback
 		return callback(ok)
 	}
+
+	if s.config.GetDeferLastReply() {
+		return nil
+	}
+	return s.flushLastReply(true)
 }
 
 // Handshake performs a Socks4/4a/5 handshake.
