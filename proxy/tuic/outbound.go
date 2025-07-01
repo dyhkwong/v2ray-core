@@ -68,14 +68,17 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		// TUIC does not send ALPN if not explicitly set
 		tlsConfig.NextProtos = nil
 	}
+	serverName := tlsConfig.ServerName
 	if config.DisableSni {
-		serverName := tlsConfig.ServerName
 		tlsConfig.ServerName = "127.0.0.1"
+	}
+	if !tlsConfig.InsecureSkipVerify && config.DisableSni {
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
 			verifyOptions := x509.VerifyOptions{
 				DNSName:       serverName,
 				Intermediates: x509.NewCertPool(),
+				Roots:         tlsConfig.RootCAs,
 			}
 			for _, cert := range state.PeerCertificates[1:] {
 				verifyOptions.Intermediates.AddCert(cert)

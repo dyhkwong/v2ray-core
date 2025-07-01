@@ -22,7 +22,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 	s := baseDOHNameServer(url, "H3", "quic")
 	s.httpClient = &http.Client{
 		Transport: &http3.Transport{
-			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 				dest, err := net.ParseDestination("udp:" + addr)
 				if err != nil {
 					return nil, err
@@ -50,7 +50,7 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	s := baseDOHNameServer(url, "H3L", "quic")
 	s.httpClient = &http.Client{
 		Transport: &http3.Transport{
-			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 				dest, err := net.ParseDestination("udp:" + addr)
 				if err != nil {
 					return nil, err

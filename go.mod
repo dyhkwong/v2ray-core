@@ -22,7 +22,7 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.1
-	github.com/quic-go/quic-go v0.52.0
+	github.com/quic-go/quic-go v0.53.0
 	github.com/refraction-networking/utls v1.7.3
 	github.com/sagernet/sing v0.6.11
 	github.com/sagernet/sing-quic v0.5.0-beta.2

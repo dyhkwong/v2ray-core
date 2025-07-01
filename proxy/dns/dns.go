@@ -187,12 +187,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := reader.ReadMessage()
 			if err == io.EOF {
-				b.Release()
 				return nil
 			}
 
 			if err != nil {
-				b.Release()
 				return err
 			}
 
@@ -205,8 +203,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 					b.Release()
 					continue
 				} else {
-					go h.handleRawQuery(b.Bytes(), writer)
-					b.Release()
+					go func() {
+						h.handleRawQuery(b.Bytes(), writer)
+						b.Release()
+					}()
 					continue
 				}
 			}
@@ -221,12 +221,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 		for {
 			b, err := connReader.ReadMessage()
 			if err == io.EOF {
-				b.Release()
 				return nil
 			}
 
 			if err != nil {
-				b.Release()
 				return err
 			}
 

@@ -23,6 +23,7 @@ type ServerConfig struct {
 	Address        *net.IPOrDomain           `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	UdpEnabled     bool                      `protobuf:"varint,4,opt,name=udp_enabled,json=udpEnabled,proto3" json:"udp_enabled,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,7,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	DeferLastReply bool                      `protobuf:"varint,8,opt,name=defer_last_reply,json=deferLastReply,proto3" json:"defer_last_reply,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -76,6 +77,13 @@ func (x *ServerConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 		return x.PacketEncoding
 	}
 	return packetaddr.PacketAddrType(0)
+}
+
+func (x *ServerConfig) GetDeferLastReply() bool {
+	if x != nil {
+		return x.DeferLastReply
+	}
+	return false
 }
 
 type ClientConfig struct {
@@ -134,12 +142,13 @@ var File_proxy_socks_simplified_config_proto protoreflect.FileDescriptor
 
 const file_proxy_socks_simplified_config_proto_rawDesc = "" +
 	"\n" +
-	"#proxy/socks/simplified/config.proto\x12!v2ray.core.proxy.socks.simplified\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\x1a\"common/net/packetaddr/config.proto\"\xd6\x01\n" +
+	"#proxy/socks/simplified/config.proto\x12!v2ray.core.proxy.socks.simplified\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\x1a\"common/net/packetaddr/config.proto\"\x80\x02\n" +
 	"\fServerConfig\x12;\n" +
 	"\aaddress\x18\x03 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x1f\n" +
 	"\vudp_enabled\x18\x04 \x01(\bR\n" +
 	"udpEnabled\x12R\n" +
-	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding:\x14\x82\xb5\x18\x10\n" +
+	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12(\n" +
+	"\x10defer_last_reply\x18\b \x01(\bR\x0edeferLastReply:\x14\x82\xb5\x18\x10\n" +
 	"\ainbound\x12\x05socks\"v\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +

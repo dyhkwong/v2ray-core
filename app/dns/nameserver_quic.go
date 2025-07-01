@@ -39,7 +39,7 @@ type QUICNameServer struct {
 	cleanup     *task.Periodic
 	name        string
 	destination net.Destination
-	connection  quic.EarlyConnection
+	connection  *quic.Conn
 	dispatcher  routing.Dispatcher
 }
 
@@ -440,7 +440,7 @@ func (s *QUICNameServer) QueryIP(ctx context.Context, domain string, clientIP ne
 	return ips, err
 }
 
-func isActive(s quic.EarlyConnection) bool {
+func isActive(s *quic.Conn) bool {
 	select {
 	case <-s.Context().Done():
 		return false
@@ -449,8 +449,8 @@ func isActive(s quic.EarlyConnection) bool {
 	}
 }
 
-func (s *QUICNameServer) getConnection(ctx context.Context) (quic.EarlyConnection, error) {
-	var conn quic.EarlyConnection
+func (s *QUICNameServer) getConnection(ctx context.Context) (*quic.Conn, error) {
+	var conn *quic.Conn
 	s.RLock()
 	conn = s.connection
 	if conn != nil && isActive(conn) {
@@ -483,7 +483,7 @@ func (s *QUICNameServer) getConnection(ctx context.Context) (quic.EarlyConnectio
 	return conn, nil
 }
 
-func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnection, error) {
+func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error) {
 	tlsConfig := tls.Config{
 		ServerName: func() string {
 			switch s.destination.Address.Family() {
@@ -530,7 +530,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (quic.EarlyConnecti
 	return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
 }
 
-func (s *QUICNameServer) openStream(ctx context.Context) (quic.Stream, error) {
+func (s *QUICNameServer) openStream(ctx context.Context) (*quic.Stream, error) {
 	conn, err := s.getConnection(ctx)
 	if err != nil {
 		return nil, err

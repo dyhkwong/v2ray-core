@@ -18,7 +18,7 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 		responseMsg.RecursionAvailable = true
 		responseMsg.RecursionDesired = true
 		responseMsg.Response = true
-		fmt.Println(responseMsg.Pack())
+		return responseMsg.Pack()
 	*/
 	return []byte{request[0], request[1], 0x81, 0x84, 0, 0, 0, 0, 0, 0, 0, 0}, nil
 }

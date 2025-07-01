@@ -180,6 +180,7 @@ type ServerConfig struct {
 	Timeout        uint32                    `protobuf:"varint,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	UserLevel      uint32                    `protobuf:"varint,6,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
 	PacketEncoding packetaddr.PacketAddrType `protobuf:"varint,7,opt,name=packet_encoding,json=packetEncoding,proto3,enum=v2ray.core.net.packetaddr.PacketAddrType" json:"packet_encoding,omitempty"`
+	DeferLastReply bool                      `protobuf:"varint,8,opt,name=defer_last_reply,json=deferLastReply,proto3" json:"defer_last_reply,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -264,6 +265,13 @@ func (x *ServerConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 	return packetaddr.PacketAddrType(0)
 }
 
+func (x *ServerConfig) GetDeferLastReply() bool {
+	if x != nil {
+		return x.DeferLastReply
+	}
+	return false
+}
+
 // ClientConfig is the protobuf config for Socks client.
 type ClientConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -333,7 +341,7 @@ const file_proxy_socks_config_proto_rawDesc = "" +
 	"\x18proxy/socks/config.proto\x12\x16v2ray.core.proxy.socks\x1a\x18common/net/address.proto\x1a\"common/net/packetaddr/config.proto\x1a!common/protocol/server_spec.proto\"A\n" +
 	"\aAccount\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xc9\x03\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xf3\x03\n" +
 	"\fServerConfig\x12=\n" +
 	"\tauth_type\x18\x01 \x01(\x0e2 .v2ray.core.proxy.socks.AuthTypeR\bauthType\x12N\n" +
 	"\baccounts\x18\x02 \x03(\v22.v2ray.core.proxy.socks.ServerConfig.AccountsEntryR\baccounts\x12;\n" +
@@ -343,7 +351,8 @@ const file_proxy_socks_config_proto_rawDesc = "" +
 	"\atimeout\x18\x05 \x01(\rB\x02\x18\x01R\atimeout\x12\x1d\n" +
 	"\n" +
 	"user_level\x18\x06 \x01(\rR\tuserLevel\x12R\n" +
-	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x1a;\n" +
+	"\x0fpacket_encoding\x18\a \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\x12(\n" +
+	"\x10defer_last_reply\x18\b \x01(\bR\x0edeferLastReply\x1a;\n" +
 	"\rAccountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb7\x01\n" +
