@@ -49,4 +49,5 @@ const TrafficGeneratorManagedConnectionContextKey = "TrafficGeneratorManagedConn
 type TrafficGeneratorManagedConnection interface {
 	RecallTrafficGenerator() error
 	WaitConnectionReady() context.Context
+	IsConnectionInvalidated() bool
 }
