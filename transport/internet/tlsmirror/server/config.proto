@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package v2ray.core.transport.internet.tlsmirror.server;
+option csharp_namespace = "V2Ray.Core.Transport.Internet.Tlsmirror.Server";
+option go_package = "github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/server";
+option java_package = "com.v2ray.core.transport.internet.tlsmirror.server";
+option java_multiple_files = true;
+
+import "transport/internet/tlsmirror/tlstrafficgen/config.proto";
+
+message Config {
+  string forward_address = 1;
+  uint32 forward_port = 2;
+  string forward_tag = 3;
+
+  string carrier_connection_tag = 4;
+
+  v2ray.core.transport.internet.tlsmirror.tlstrafficgen.Config embedded_traffic_generator = 5;
+
+  bytes primary_key = 6;
+}
