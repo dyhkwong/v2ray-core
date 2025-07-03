@@ -51,6 +51,8 @@ type Handler struct {
 	timeout         time.Duration
 
 	config *Config
+
+	nonIPQuery string
 }
 
 func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager policy.Manager) error {
@@ -82,6 +84,8 @@ func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager polic
 	}
 
 	h.config = config
+
+	h.nonIPQuery = config.Non_IPQuery
 	return nil
 }
 
@@ -194,15 +198,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 
 			if !h.isOwnLink(ctx) {
 				isIPQuery, domain, id, qType := parseIPQuery(b.Bytes())
-				if isIPQuery {
+				if isIPQuery || h.nonIPQuery != "drop" {
 					if domain, err := strmatcher.ToDomain(domain); err == nil {
 						go h.handleIPQuery(id, qType, domain, writer)
-						continue
+					} else {
+						h.handleDNSError(id, dnsmessage.RCodeFormatError, writer)
 					}
+				} else {
+					h.handleDNSError(id, dnsmessage.RCodeNotImplemented, writer)
 				}
-			}
-
-			if err := connWriter.WriteMessage(b); err != nil {
+			} else if err := connWriter.WriteMessage(b); err != nil {
 				return err
 			}
 		}
@@ -286,6 +291,35 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 			common.Must(builder.AAAAResource(rHeader, r))
 		}
 	}
+	msgBytes, err := builder.Finish()
+	if err != nil {
+		newError("pack message").Base(err).WriteToLog()
+		b.Release()
+		return
+	}
+	b.Resize(0, int32(len(msgBytes)))
+
+	if err := writer.WriteMessage(b); err != nil {
+		newError("write IP answer").Base(err).WriteToLog()
+	}
+}
+
+func (h *Handler) handleDNSError(id uint16, rCode dnsmessage.RCode, writer dns_proto.MessageWriter) {
+	var err error
+
+	b := buf.New()
+	rawBytes := b.Extend(buf.Size)
+	builder := dnsmessage.NewBuilder(rawBytes[:0], dnsmessage.Header{
+		ID:                 id,
+		RCode:              rCode,
+		RecursionAvailable: true,
+		RecursionDesired:   true,
+		Response:           true,
+	})
+	builder.EnableCompression()
+	common.Must(builder.StartQuestions())
+	common.Must(builder.StartAnswers())
+
 	msgBytes, err := builder.Finish()
 	if err != nil {
 		newError("pack message").Base(err).WriteToLog()
