@@ -8,6 +8,11 @@ option java_multiple_files = true;
 
 import "transport/internet/tlsmirror/tlstrafficgen/config.proto";
 
+message TimeSpec {
+  uint64 base_nanoseconds = 1;
+  uint64 uniform_random_multiplier_nanoseconds = 2;
+}
+
 message Config {
   string forward_address = 1;
   uint32 forward_port = 2;
@@ -20,4 +25,6 @@ message Config {
   bytes primary_key = 6;
 
   repeated uint32 explicit_nonce_ciphersuites = 7;
+
+  TimeSpec defer_first_payload_write_time = 8;
 }
