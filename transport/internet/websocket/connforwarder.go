@@ -28,21 +28,37 @@ func (c *connectionForwarder) Read(p []byte) (n int, err error) {
 
 func (c *connectionForwarder) Write(p []byte) (n int, err error) {
 	if c.shouldWait {
+		var readWriteCloser io.ReadWriteCloser
 		var err error
-		c.ReadWriteCloser, err = c.dialer.Dial(p)
-		c.finishedDial()
-		if err != nil {
-			return 0, newError("Unable to proceed with delayed write").Base(err)
+		done := make(chan interface{})
+		go func() {
+			readWriteCloser, err = c.dialer.Dial(p)
+			close(done)
+		}()
+		select {
+		case <-c.delayedDialFinish.Done():
+			return 0, newError("Unable to proceed with delayed write").Base(c.delayedDialFinish.Err())
+		case <-done:
+			if err != nil {
+				c.finishedDial()
+				return 0, newError("Unable to proceed with delayed write").Base(err)
+			}
+			c.ReadWriteCloser = readWriteCloser
+			c.shouldWait = false
+			c.finishedDial()
+			return len(p), nil
 		}
-		c.shouldWait = false
-		return len(p), nil
 	}
 	return c.ReadWriteCloser.Write(p)
 }
 
 func (c *connectionForwarder) Close() error {
 	if c.shouldWait {
-		<-c.delayedDialFinish.Done()
+		select {
+		case <-c.delayedDialFinish.Done():
+		default:
+			c.finishedDial()
+		}
 		if c.ReadWriteCloser == nil {
 			return newError("unable to close delayed dial websocket connection as it do not exist")
 		}
