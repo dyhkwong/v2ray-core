@@ -22,7 +22,7 @@ import (
 func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
 	transportConfiguration := streamSettings.ProtocolSettings.(*Config)
 
-	dialer := func(earlyData []byte) (net.Conn, io.Reader, error) {
+	dialer := func(ctx context.Context, earlyData []byte) (net.Conn, io.Reader, error) {
 		conn, err := transportcommon.DialWithSecuritySettings(ctx, dest, streamSettings,
 			security.OptionWithDestination{Dest: dest},
 			security.OptionWithALPN{ALPNs: []string{"http/1.1"}},
@@ -30,7 +30,7 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 		if err != nil {
 			return nil, nil, newError("failed to dial request to ", dest).Base(err)
 		}
-		req, err := http.NewRequest("GET", transportConfiguration.GetNormalizedPath(), nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", transportConfiguration.GetNormalizedPath(), nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -86,7 +86,7 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 	}
 
 	if transportConfiguration.MaxEarlyData == 0 {
-		conn, earlyReplyReader, err := dialer(nil)
+		conn, earlyReplyReader, err := dialer(ctx, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func dialhttpUpgrade(ctx context.Context, dest net.Destination, streamSettings *
 		return newConnectionWithPendingRead(conn, remoteAddr, earlyReplyReader), nil
 	}
 
-	return newConnectionWithDelayedDial(dialer), nil
+	return newConnectionWithDelayedDial(ctx, dialer), nil
 }
 
 func dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
