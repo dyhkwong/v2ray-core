@@ -84,7 +84,7 @@ func dialWebsocket(ctx context.Context, dest net.Destination, streamSettings *in
 			return nil, newError("cannot find browser forwarder service")
 		}
 		if wsSettings.MaxEarlyData != 0 {
-			return newRelayedConnectionWithDelayedDial(&dialerWithEarlyDataRelayed{
+			return newRelayedConnectionWithDelayedDial(ctx, &dialerWithEarlyDataRelayed{
 				forwarder: forwarder,
 				uriBase:   uri,
 				config:    wsSettings,
@@ -98,14 +98,14 @@ func dialWebsocket(ctx context.Context, dest net.Destination, streamSettings *in
 	}
 
 	if wsSettings.MaxEarlyData != 0 {
-		return newConnectionWithDelayedDial(&dialerWithEarlyData{
+		return newConnectionWithDelayedDial(ctx, &dialerWithEarlyData{
 			dialer:  dialer,
 			uriBase: uri,
 			config:  wsSettings,
 		}), nil
 	}
 
-	conn, resp, err := dialer.Dial(uri, wsSettings.GetRequestHeader()) // nolint: bodyclose
+	conn, resp, err := dialer.DialContext(ctx, uri, wsSettings.GetRequestHeader()) // nolint: bodyclose
 	if err != nil {
 		var reason string
 		if resp != nil {
@@ -123,7 +123,7 @@ type dialerWithEarlyData struct {
 	config  *Config
 }
 
-func (d dialerWithEarlyData) Dial(earlyData []byte) (*websocket.Conn, error) {
+func (d dialerWithEarlyData) Dial(ctx context.Context, earlyData []byte) (*websocket.Conn, error) {
 	earlyDataBuf := bytes.NewBuffer(nil)
 	base64EarlyDataEncoder := base64.NewEncoder(base64.RawURLEncoding, earlyDataBuf)
 
@@ -138,20 +138,20 @@ func (d dialerWithEarlyData) Dial(earlyData []byte) (*websocket.Conn, error) {
 		return nil, newError("websocket delayed dialer cannot encode early data tail").Base(errc)
 	}
 
-	dialFunction := func() (*websocket.Conn, *http.Response, error) {
-		return d.dialer.Dial(d.uriBase+earlyDataBuf.String(), d.config.GetRequestHeader())
+	dialFunction := func(ctx context.Context) (*websocket.Conn, *http.Response, error) {
+		return d.dialer.DialContext(ctx, d.uriBase+earlyDataBuf.String(), d.config.GetRequestHeader())
 	}
 
 	if d.config.EarlyDataHeaderName != "" {
-		dialFunction = func() (*websocket.Conn, *http.Response, error) {
+		dialFunction = func(ctx context.Context) (*websocket.Conn, *http.Response, error) {
 			earlyDataStr := earlyDataBuf.String()
 			currentHeader := d.config.GetRequestHeader()
 			currentHeader.Set(d.config.EarlyDataHeaderName, earlyDataStr)
-			return d.dialer.Dial(d.uriBase, currentHeader)
+			return d.dialer.DialContext(ctx, d.uriBase, currentHeader)
 		}
 	}
 
-	conn, resp, err := dialFunction() // nolint: bodyclose
+	conn, resp, err := dialFunction(ctx) // nolint: bodyclose
 	if err != nil {
 		var reason string
 		if resp != nil {
