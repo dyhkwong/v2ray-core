@@ -13,6 +13,10 @@ message TimeSpec {
   uint64 uniform_random_multiplier_nanoseconds = 2;
 }
 
+message TransportLayerPadding {
+  bool enabled = 1;
+}
+
 message Config {
   string forward_address = 1;
   uint32 forward_port = 2;
@@ -27,4 +31,6 @@ message Config {
   repeated uint32 explicit_nonce_ciphersuites = 7;
 
   TimeSpec defer_first_payload_write_time = 8;
+
+  TransportLayerPadding transport_layer_padding = 9;
 }
