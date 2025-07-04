@@ -28,7 +28,7 @@ type connection struct {
 }
 
 type DelayedDialer interface {
-	Dial(earlyData []byte) (*websocket.Conn, error)
+	Dial(ctx context.Context, earlyData []byte) (*websocket.Conn, error)
 }
 
 func newConnection(conn *websocket.Conn, remoteAddr net.Addr) *connection {
@@ -46,8 +46,8 @@ func newConnectionWithEarlyData(conn *websocket.Conn, remoteAddr net.Addr, early
 	}
 }
 
-func newConnectionWithDelayedDial(dialer DelayedDialer) *connection {
-	delayedDialContext, cancelFunc := context.WithCancel(context.Background())
+func newConnectionWithDelayedDial(ctx context.Context, dialer DelayedDialer) *connection {
+	delayedDialContext, cancelFunc := context.WithCancel(ctx)
 	return &connection{
 		shouldWait:        true,
 		delayedDialFinish: delayedDialContext,
@@ -56,8 +56,8 @@ func newConnectionWithDelayedDial(dialer DelayedDialer) *connection {
 	}
 }
 
-func newRelayedConnectionWithDelayedDial(dialer DelayedDialerForwarded) *connectionForwarder {
-	delayedDialContext, cancelFunc := context.WithCancel(context.Background())
+func newRelayedConnectionWithDelayedDial(ctx context.Context, dialer DelayedDialerForwarded) *connectionForwarder {
+	delayedDialContext, cancelFunc := context.WithCancel(ctx)
 	return &connectionForwarder{
 		shouldWait:        true,
 		delayedDialFinish: delayedDialContext,
@@ -112,14 +112,15 @@ func (c *connection) getReader() (io.Reader, error) {
 // Write implements io.Writer.
 func (c *connection) Write(b []byte) (int, error) {
 	if c.shouldWait {
-		var err error
-		c.conn, err = c.dialer.Dial(b)
-		c.finishedDial()
+		conn, err := c.dialer.Dial(c.delayedDialFinish, b)
 		if err != nil {
+			c.finishedDial()
 			return 0, newError("Unable to proceed with delayed write").Base(err)
 		}
+		c.conn = conn
 		c.remoteAddr = c.conn.RemoteAddr()
 		c.shouldWait = false
+		c.finishedDial()
 		return len(b), nil
 	}
 	if err := c.conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
@@ -137,7 +138,11 @@ func (c *connection) WriteMultiBuffer(mb buf.MultiBuffer) error {
 
 func (c *connection) Close() error {
 	if c.shouldWait {
-		<-c.delayedDialFinish.Done()
+		select {
+		case <-c.delayedDialFinish.Done():
+		default:
+			c.finishedDial()
+		}
 		if c.conn == nil {
 			return newError("unable to close delayed dial websocket connection as it do not exist")
 		}
@@ -170,6 +175,16 @@ func (c *connection) LocalAddr() net.Addr {
 }
 
 func (c *connection) RemoteAddr() net.Addr {
+	if c.shouldWait {
+		<-c.delayedDialFinish.Done()
+		if c.conn == nil {
+			newError("websocket transport is not materialized when RemoteAddr() is called").AtWarning().WriteToLog()
+			return &net.UnixAddr{
+				Name: "@placeholder",
+				Net:  "unix",
+			}
+		}
+	}
 	return c.remoteAddr
 }
 
