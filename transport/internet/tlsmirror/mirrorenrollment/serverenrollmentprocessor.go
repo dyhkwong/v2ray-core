@@ -15,13 +15,8 @@ func NewServerEnrollmentProcessor(primaryKey []byte) (tlsmirror.ConnectionEnroll
 		return nil, newError("primary key cannot be empty")
 	}
 
-	serverID, err := DeriveEnrollmentServerIdentifier(primaryKey)
-	if err != nil {
-		return nil, newError("failed to derive server identifier").Base(err).AtError()
-	}
-
 	return &serverEnrollmentProcessor{
-		primaryKey: serverID,
+		primaryKey: primaryKey,
 	}, nil
 }
 
