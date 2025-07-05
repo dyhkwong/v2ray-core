@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -40,8 +39,10 @@ type DNS struct {
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
 
-	closed    bool
-	taskCount atomic.Int64
+	closed      bool
+	taskMutex   sync.Mutex
+	taskCount   uint64
+	taskAllDone chan any
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -105,6 +106,8 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 	if err := establishFakeDNS(s, config, nsClientMap); err != nil {
 		return nil, err
 	}
+
+	s.taskAllDone = make(chan any)
 
 	return s, nil
 }
@@ -238,9 +241,13 @@ func (s *DNS) Start() error {
 // Close implements common.Closable.
 func (s *DNS) Close() error {
 	s.closed = true
+	s.taskMutex.Lock()
+	if s.taskCount == 0 {
+		close(s.taskAllDone)
+	}
+	s.taskMutex.Unlock()
 	go func() {
-		for s.taskCount.Load() > 0 {
-		}
+		<-s.taskAllDone
 		for _, c := range s.clients {
 			c.domains = nil
 			c.expectIPs = nil
@@ -298,8 +305,17 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 	if s.closed {
 		return nil, newError("dns client closed")
 	}
-	s.taskCount.Add(1)
-	defer s.taskCount.Add(-1)
+	s.taskMutex.Lock()
+	s.taskCount++
+	s.taskMutex.Unlock()
+	defer func() {
+		s.taskMutex.Lock()
+		s.taskCount--
+		if s.taskCount == 0 && s.closed {
+			close(s.taskAllDone)
+		}
+		s.taskMutex.Unlock()
+	}()
 
 	requestMsg := new(dnsmessage.Message)
 	if err := requestMsg.Unpack(request); err != nil || len(requestMsg.Questions) == 0 {
@@ -350,8 +366,17 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	if s.closed {
 		return nil, time.Time{}, newError("dns client closed")
 	}
-	s.taskCount.Add(1)
-	defer s.taskCount.Add(-1)
+	s.taskMutex.Lock()
+	s.taskCount++
+	s.taskMutex.Unlock()
+	defer func() {
+		s.taskMutex.Lock()
+		s.taskCount--
+		if s.taskCount == 0 && s.closed {
+			close(s.taskAllDone)
+		}
+		s.taskMutex.Unlock()
+	}()
 
 	if domain == "" {
 		return nil, time.Time{}, newError("empty domain name")
