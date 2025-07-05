@@ -59,7 +59,6 @@ type ConnectionEnrollmentConfirmation interface {
 const EnrollmentVerificationControlConnectionPostfix = ".tlsmirror-controlconnection.v2fly.arpa"
 
 type InsertableTLSConnForEnrollment interface {
-	InsertableTLSConn
 	InsertableTLSConnEnrollmentEventReceiver
 }
 
@@ -71,5 +70,5 @@ type RemoveConnectionFunc func() error
 
 type ConnectionEnrollmentConfirmationProcessor interface {
 	ConnectionEnrollmentConfirmation
-	AddConnection(ctx context.Context, conn InsertableTLSConnForEnrollment) (RemoveConnectionFunc, error)
+	AddConnection(ctx context.Context, clientRandom, ServerRandom []byte, conn InsertableTLSConnForEnrollment) (RemoveConnectionFunc, error)
 }

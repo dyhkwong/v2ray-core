@@ -21,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorbase"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorenrollment"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/tlstrafficgen"
 )
 
@@ -58,6 +59,8 @@ type persistentMirrorTLSDialer struct {
 	obm outbound.Manager
 
 	explicitNonceCiphersuiteLookup *ciphersuiteLookuper
+
+	enrollmentConfirmationClient *mirrorenrollment.EnrollmentConfirmationClient
 }
 
 func (d *persistentMirrorTLSDialer) init(ctx context.Context, config *Config) error {
@@ -100,10 +103,7 @@ func (d *persistentMirrorTLSDialer) init(ctx context.Context, config *Config) er
 			newError("failed to remove existing handler").WriteToLog()
 		}
 
-		err = d.obm.AddHandler(context.Background(), &Outbound{
-			tag:      d.config.CarrierConnectionTag,
-			listener: d.listener,
-		})
+		err = d.obm.AddHandler(context.Background(), d.outbound)
 		if err != nil {
 			newError("failed to add outbound handler").Base(err).AtWarning().WriteToLog()
 			return
@@ -144,6 +144,18 @@ func (d *persistentMirrorTLSDialer) init(ctx context.Context, config *Config) er
 			return nil
 		}
 	}
+
+	if d.config.ConnectionEnrollment != nil {
+		enrollmentServerIdentifier, err := mirrorenrollment.DeriveEnrollmentServerIdentifier(d.config.PrimaryKey)
+		if err != nil {
+			return newError("failed to derive enrollment server identifier").Base(err).AtError()
+		}
+		d.enrollmentConfirmationClient, err = mirrorenrollment.NewEnrollmentConfirmationClient(d.ctx, d.config.ConnectionEnrollment, enrollmentServerIdentifier)
+		if err != nil {
+			return newError("failed to create enrollment confirmation client").Base(err).AtError()
+		}
+	}
+
 	return nil
 }
 
@@ -194,8 +206,29 @@ type connectionContextGetter interface {
 	GetConnectionContext() context.Context
 }
 
+type verifyConnectionEnrollment interface {
+	VerifyConnectionEnrollmentWithProcessor(connectionEnrollmentConfirmationClient tlsmirror.ConnectionEnrollmentConfirmation) error
+}
+
 func (d *persistentMirrorTLSDialer) handleIncomingReadyConnection(conn internet.Connection) {
 	go func() {
+		if d.config.ConnectionEnrollment != nil {
+			if enrollableConn, ok := conn.(verifyConnectionEnrollment); ok {
+				if d.enrollmentConfirmationClient != nil {
+					err := enrollableConn.VerifyConnectionEnrollmentWithProcessor(d.enrollmentConfirmationClient)
+					if err != nil {
+						newError("failed to verify connection enrollment").Base(err).AtWarning().WriteToLog()
+						return
+					}
+				} else {
+					newError("enrollment confirmation client is not set, connection rejected").AtWarning().WriteToLog()
+					return
+				}
+			} else {
+				newError("connection does not implement verifyConnectionEnrollment, connection rejected").AtWarning().WriteToLog()
+				return
+			}
+		}
 		var waitedForReady bool
 		if getter, ok := conn.(connectionContextGetter); ok {
 			ctx := getter.GetConnectionContext()

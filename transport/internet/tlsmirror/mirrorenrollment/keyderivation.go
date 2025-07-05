@@ -4,22 +4,12 @@
 package mirrorenrollment
 
 import (
-	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorcrypto"
 )
 
 type EnrollmentKey struct {
 	EnrollmentRequestKey  []byte
 	EnrollmentResponseKey []byte
-}
-
-func DeriveEnrollmentKey(primaryKey []byte, conn tlsmirror.InsertableTLSConn) (*EnrollmentKey, error) {
-	clientRandom, serverRandom, err := conn.GetHandshakeRandom()
-	if err != nil {
-		return nil, newError("failed to get handshake random").Base(err).AtError()
-	}
-
-	return DeriveEnrollmentKeyWithClientAndServerRandom(primaryKey, clientRandom, serverRandom)
 }
 
 func DeriveEnrollmentKeyWithClientAndServerRandom(primaryKey []byte, clientRandom []byte, serverRandom []byte) (*EnrollmentKey, error) {
