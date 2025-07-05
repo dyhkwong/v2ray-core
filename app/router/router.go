@@ -4,7 +4,6 @@ package router
 
 import (
 	"context"
-	"sync/atomic"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -23,9 +22,6 @@ type Router struct {
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
-
-	closed    bool
-	taskCount atomic.Int64
 }
 
 // Route is an implementation of routing.Route.
@@ -88,12 +84,6 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
-	if r.closed {
-		return nil, nil, newError("router closed")
-	}
-	r.taskCount.Add(1)
-	defer r.taskCount.Add(-1)
-
 	// SkipDNSResolve is set from DNS module.
 	// the DOH remote server maybe a domain name,
 	// this prevents cycle resolving dead loop
@@ -132,14 +122,6 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
-	r.closed = true
-	go func() {
-		for r.taskCount.Load() > 0 {
-		}
-		r.balancers = nil
-		r.rules = nil
-		r.dns = nil
-	}()
 	return nil
 }
 

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -39,9 +38,6 @@ type DNS struct {
 	fakeDNSEngine *FakeDNSEngine
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
-
-	closed    bool
-	taskCount atomic.Int64
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -237,19 +233,6 @@ func (s *DNS) Start() error {
 
 // Close implements common.Closable.
 func (s *DNS) Close() error {
-	s.closed = true
-	go func() {
-		for s.taskCount.Load() > 0 {
-		}
-		for _, c := range s.clients {
-			c.domains = nil
-			c.expectIPs = nil
-			c.fakeDNS = nil
-		}
-		s.hosts = nil
-		s.domainMatcher = nil
-		s.clients = nil
-	}()
 	return nil
 }
 
@@ -295,12 +278,6 @@ func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 }
 
 func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
-	if s.closed {
-		return nil, newError("dns client closed")
-	}
-	s.taskCount.Add(1)
-	defer s.taskCount.Add(-1)
-
 	requestMsg := new(dnsmessage.Message)
 	if err := requestMsg.Unpack(request); err != nil || len(requestMsg.Questions) == 0 {
 		return nil, newError("failed to parse dns request").Base(err)
@@ -326,9 +303,6 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 	}
 	errs := []error{}
 	for _, client := range clients {
-		if s.closed {
-			return nil, newError("dns client closed")
-		}
 		respBytes, err := client.QueryRaw(s.ctx, request)
 		if err == nil {
 			return respBytes, nil
@@ -347,12 +321,6 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 }
 
 func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
-	if s.closed {
-		return nil, time.Time{}, newError("dns client closed")
-	}
-	s.taskCount.Add(1)
-	defer s.taskCount.Add(-1)
-
 	if domain == "" {
 		return nil, time.Time{}, newError("empty domain name")
 	}
@@ -380,9 +348,6 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	// Name servers lookup
 	errs := []error{}
 	for _, client := range s.sortClients(domain, option) {
-		if s.closed {
-			return nil, time.Time{}, newError("dns client closed")
-		}
 		ips, expireAt, err := client.QueryIPWithTTL(s.ctx, domain, option)
 		if len(ips) > 0 {
 			return ips, expireAt, nil
