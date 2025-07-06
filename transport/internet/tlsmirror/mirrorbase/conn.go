@@ -18,7 +18,11 @@ import (
 
 // NewMirroredTLSConn creates a new mirrored TLS connection.
 // No stable interface
-func NewMirroredTLSConn(ctx context.Context, clientConn net.Conn, serverConn net.Conn, onC2SMessage, onS2CMessage tlsmirror.MessageHook, closable common.Closable, explicitNonceDetection tlsmirror.ExplicitNonceDetection) tlsmirror.InsertableTLSConn {
+func NewMirroredTLSConn(ctx context.Context, clientConn net.Conn,
+	serverConn net.Conn, onC2SMessage, onS2CMessage tlsmirror.MessageHook,
+	closable common.Closable, explicitNonceDetection tlsmirror.ExplicitNonceDetection,
+	onC2SMessageTx, onS2CMessageTx tlsmirror.MessageHook,
+) tlsmirror.InsertableTLSConn {
 	explicitNonceDetectionReady, explicitNonceDetectionOver := context.WithCancel(ctx)
 	c := &conn{
 		ctx:                         ctx,
@@ -31,6 +35,8 @@ func NewMirroredTLSConn(ctx context.Context, clientConn net.Conn, serverConn net
 		explicitNonceDetection:      explicitNonceDetection,
 		explicitNonceDetectionReady: explicitNonceDetectionReady,
 		explicitNonceDetectionOver:  explicitNonceDetectionOver,
+		OnC2SMessageTx:              onC2SMessageTx,
+		OnS2CMessageTx:              onS2CMessageTx,
 	}
 	c.ctx, c.done = context.WithCancel(ctx)
 	go c.c2sWorker()
@@ -56,6 +62,9 @@ type conn struct {
 	OnC2SMessage           tlsmirror.MessageHook
 	OnS2CMessage           tlsmirror.MessageHook
 	explicitNonceDetection tlsmirror.ExplicitNonceDetection
+
+	OnC2SMessageTx tlsmirror.MessageHook
+	OnS2CMessageTx tlsmirror.MessageHook
 
 	c2sInsert chan *tlsmirror.TLSRecord
 	s2cInsert chan *tlsmirror.TLSRecord
@@ -183,6 +192,17 @@ func (c *conn) c2sWorker() {
 						nonce := c.c2sExplicitNonceCounterGenerator()
 						copy(record.Fragment, nonce)
 					}
+				}
+			}
+			if c.OnC2SMessageTx != nil {
+				drop, err := c.OnC2SMessageTx(record)
+				if err != nil {
+					c.done()
+					newError("failed to process C2S message").Base(err).AtWarning().WriteToLog()
+					return
+				}
+				if drop {
+					continue
 				}
 			}
 			err := recordWriter.WriteRecord(record, false)
@@ -328,6 +348,17 @@ func (c *conn) s2cWorker() {
 						nonce := c.s2cExplicitNonceCounterGenerator()
 						copy(record.Fragment, nonce)
 					}
+				}
+			}
+			if c.OnS2CMessageTx != nil {
+				drop, err := c.OnS2CMessageTx(record)
+				if err != nil {
+					c.done()
+					newError("failed to process S2C message").Base(err).AtWarning().WriteToLog()
+					return
+				}
+				if drop {
+					continue
 				}
 			}
 			err := recordWriter.WriteRecord(record, false)
