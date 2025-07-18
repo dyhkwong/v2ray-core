@@ -13,24 +13,28 @@ import (
 )
 
 type RequestConfig struct {
-	Assembler    AssemblerConfig    `json:"assembler"`
-	RoundTripper RoundTripperConfig `json:"roundTripper"`
+	Assembler    *AssemblerConfig    `json:"assembler"`
+	RoundTripper *RoundTripperConfig `json:"roundTripper"`
 }
 
 // Build implements Buildable.
 func (c *RequestConfig) Build() (proto.Message, error) {
-	assembler, err := c.Assembler.Build()
-	if err != nil {
-		return nil, err
+	config := new(assembly.Config)
+	if c.Assembler != nil {
+		assembler, err := c.Assembler.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Assembler = serial.ToTypedMessage(assembler)
 	}
-	roundTripper, err := c.RoundTripper.Build()
-	if err != nil {
-		return nil, err
+	if c.RoundTripper != nil {
+		roundTripper, err := c.RoundTripper.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Roundtripper = serial.ToTypedMessage(roundTripper)
 	}
-	return &assembly.Config{
-		Assembler:    serial.ToTypedMessage(assembler),
-		Roundtripper: serial.ToTypedMessage(roundTripper),
-	}, nil
+	return config, nil
 }
 
 type AssemblerConfig struct {
@@ -51,8 +55,9 @@ func (c *AssemblerConfig) Build() (proto.Message, error) {
 		return c.SimpleClientSettings.Build()
 	case "simple.server":
 		return c.SimpleServerSettings.Build()
+	default:
+		return nil, newError("unknown assembler type: ", c.Type)
 	}
-	return nil, newError("unknown assembler type: ", c.Type)
 }
 
 type RoundTripperConfig struct {
@@ -67,8 +72,9 @@ func (c *RoundTripperConfig) Build() (proto.Message, error) {
 		return c.HttprtClientSettings.Build()
 	case "httprt.server":
 		return c.HttprtServerSettings.Build()
+	default:
+		return nil, newError("unknown roundTripper type: ", c.Type)
 	}
-	return nil, newError("unknown roundTripper type: ", c.Type)
 }
 
 type PacketConnClientConfig struct {
@@ -77,8 +83,8 @@ type PacketConnClientConfig struct {
 	MaxRequestSize         int32  `json:"maxRequestSize"`
 	PollingIntervalInitial int32  `json:"pollingIntervalInitial"`
 
-	KCPSettings  KCPConfig  `json:"kcpSettings"`
-	DTLSSettings DTLSConfig `json:"dtlsSettings"`
+	KCPSettings  *KCPConfig  `json:"kcpSettings"`
+	DTLSSettings *DTLSConfig `json:"dtlsSettings"`
 }
 
 func (c *PacketConnClientConfig) Build() (proto.Message, error) {
@@ -88,20 +94,26 @@ func (c *PacketConnClientConfig) Build() (proto.Message, error) {
 		MaxRequestSize:          c.MaxRequestSize,
 		PollingIntervalInitial:  c.PollingIntervalInitial,
 	}
-	var underlyingTransportSettings proto.Message
-	var err error
 	switch strings.ToLower(c.UnderlyingNetwork) {
 	case "kcp", "mkcp":
-		underlyingTransportSettings, err = c.KCPSettings.Build()
+		if c.KCPSettings != nil {
+			underlyingTransportSettings, err := c.KCPSettings.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
+		}
 	case "dtls":
-		underlyingTransportSettings, err = c.DTLSSettings.Build()
+		if c.DTLSSettings != nil {
+			underlyingTransportSettings, err := c.DTLSSettings.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
+		}
 	default:
 		return nil, newError("unknown underlyingNetwork: ", c.UnderlyingNetwork)
 	}
-	if err != nil {
-		return nil, err
-	}
-	config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
 	return config, nil
 }
 
@@ -112,8 +124,8 @@ type PacketConnServerConfig struct {
 	MaxSimultaneousWriteConnection int32  `json:"maxSimultaneousWriteConnection"`
 	PacketWritingBuffer            int32  `json:"packetWritingBuffer"`
 
-	KCPSettings  KCPConfig  `json:"kcpSettings"`
-	DTLSSettings DTLSConfig `json:"dtlsSettings"`
+	KCPSettings  *KCPConfig  `json:"kcpSettings"`
+	DTLSSettings *DTLSConfig `json:"dtlsSettings"`
 }
 
 func (c *PacketConnServerConfig) Build() (proto.Message, error) {
@@ -124,20 +136,26 @@ func (c *PacketConnServerConfig) Build() (proto.Message, error) {
 		MaxSimultaneousWriteConnection: c.MaxSimultaneousWriteConnection,
 		PacketWritingBuffer:            c.PacketWritingBuffer,
 	}
-	var underlyingTransportSettings proto.Message
-	var err error
 	switch strings.ToLower(c.UnderlyingNetwork) {
 	case "kcp", "mkcp":
-		underlyingTransportSettings, err = c.KCPSettings.Build()
+		if c.KCPSettings != nil {
+			underlyingTransportSettings, err := c.KCPSettings.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
+		}
 	case "dtls":
-		underlyingTransportSettings, err = c.DTLSSettings.Build()
+		if c.DTLSSettings != nil {
+			underlyingTransportSettings, err := c.DTLSSettings.Build()
+			if err != nil {
+				return nil, err
+			}
+			config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
+		}
 	default:
 		return nil, newError("unknown underlyingNetwork: ", c.UnderlyingNetwork)
 	}
-	if err != nil {
-		return nil, err
-	}
-	config.UnderlyingTransportSetting = serial.ToTypedMessage(underlyingTransportSettings)
 	return config, nil
 }
 
@@ -176,35 +194,39 @@ func (c *SimpleServerConfig) Build() (proto.Message, error) {
 }
 
 type HTTPRTClientConfig struct {
-	HTTP       HTTPRTConfig `json:"http"`
-	AllowHTTP  bool         `json:"allowHTTP"`
-	H2PoolSize int32        `json:"h2PoolSize"`
+	HTTP       *HTTPRTConfig `json:"http"`
+	AllowHTTP  bool          `json:"allowHTTP"`
+	H2PoolSize int32         `json:"h2PoolSize"`
 }
 
 func (c *HTTPRTClientConfig) Build() (proto.Message, error) {
 	config := &httprt.ClientConfig{
 		AllowHttp:  c.AllowHTTP,
 		H2PoolSize: c.H2PoolSize,
-		Http: &httprt.HTTPConfig{
+	}
+	if c.HTTP != nil {
+		config.Http = &httprt.HTTPConfig{
 			Path:      c.HTTP.Path,
 			UrlPrefix: c.HTTP.URLPrefix,
-		},
+		}
 	}
 	return config, nil
 }
 
 type HTTPRTServerConfig struct {
-	HTTP                 HTTPRTConfig `json:"http"`
-	NoDecodingSessionTag bool         `json:"noDecodingSessionTag"`
+	HTTP                 *HTTPRTConfig `json:"http"`
+	NoDecodingSessionTag bool          `json:"noDecodingSessionTag"`
 }
 
 func (c *HTTPRTServerConfig) Build() (proto.Message, error) {
 	config := &httprt.ServerConfig{
 		NoDecodingSessionTag: c.NoDecodingSessionTag,
-		Http: &httprt.HTTPConfig{
+	}
+	if c.HTTP != nil {
+		config.Http = &httprt.HTTPConfig{
 			Path:      c.HTTP.Path,
 			UrlPrefix: c.HTTP.URLPrefix,
-		},
+		}
 	}
 	return config, nil
 }

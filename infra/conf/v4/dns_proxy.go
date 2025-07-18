@@ -15,6 +15,7 @@ type DNSOutboundConfig struct {
 	UserLevel           uint32             `json:"userLevel"`
 	OverrideResponseTTL bool               `json:"overrideResponseTTL"`
 	ResponseTTL         uint32             `json:"responseTTL"`
+	NonIPQuery          string             `json:"nonIPQuery"`
 }
 
 func (c *DNSOutboundConfig) Build() (proto.Message, error) {
@@ -26,6 +27,7 @@ func (c *DNSOutboundConfig) Build() (proto.Message, error) {
 		UserLevel:           c.UserLevel,
 		OverrideResponseTtl: c.OverrideResponseTTL,
 		ResponseTtl:         c.ResponseTTL,
+		Non_IPQuery:         c.NonIPQuery,
 	}
 	if c.Address != nil {
 		config.Server.Address = c.Address.Build()

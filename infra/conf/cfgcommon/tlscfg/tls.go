@@ -28,6 +28,7 @@ type TLSConfig struct {
 	MinVersion                           string                `json:"minVersion"`
 	MaxVersion                           string                `json:"maxVersion"`
 	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
+	Ciphersuites                         []uint32              `json:"ciphersuites"`
 	Fingerprint                          string                `json:"fingerprint"`
 }
 
@@ -99,6 +100,8 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 	}
 
 	config.AllowInsecureIfPinnedPeerCertificate = c.AllowInsecureIfPinnedPeerCertificate
+
+	config.Ciphersuites = c.Ciphersuites
 
 	return config, nil
 }

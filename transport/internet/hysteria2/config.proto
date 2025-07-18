@@ -31,5 +31,5 @@ message Config {
   OBFS obfs = 7;
   repeated string passwords = 8;
   string hop_ports = 9;
-  uint32 hop_interval = 10;
+  uint64 hop_interval = 10;
 }

@@ -137,7 +137,7 @@ type Config struct {
 	Obfs                  *OBFS                  `protobuf:"bytes,7,opt,name=obfs,proto3" json:"obfs,omitempty"`
 	Passwords             []string               `protobuf:"bytes,8,rep,name=passwords,proto3" json:"passwords,omitempty"`
 	HopPorts              string                 `protobuf:"bytes,9,opt,name=hop_ports,json=hopPorts,proto3" json:"hop_ports,omitempty"`
-	HopInterval           uint32                 `protobuf:"varint,10,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
+	HopInterval           uint64                 `protobuf:"varint,10,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -221,7 +221,7 @@ func (x *Config) GetHopPorts() string {
 	return ""
 }
 
-func (x *Config) GetHopInterval() uint32 {
+func (x *Config) GetHopInterval() uint64 {
 	if x != nil {
 		return x.HopInterval
 	}
@@ -252,7 +252,7 @@ const file_transport_internet_hysteria2_config_proto_rawDesc = "" +
 	"\tpasswords\x18\b \x03(\tR\tpasswords\x12\x1b\n" +
 	"\thop_ports\x18\t \x01(\tR\bhopPorts\x12!\n" +
 	"\fhop_interval\x18\n" +
-	" \x01(\rR\vhopInterval:\x1a\x82\xb5\x18\x16\n" +
+	" \x01(\x04R\vhopInterval:\x1a\x82\xb5\x18\x16\n" +
 	"\ttransport\x12\thysteria2B\x96\x01\n" +
 	"+com.v2ray.core.transport.internet.hysteria2P\x01Z;github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2\xaa\x02'V2Ray.Core.Transport.Internet.Hysteria2b\x06proto3"
 

@@ -162,7 +162,7 @@ type Hy2Config struct {
 	IgnoreClientBandwidth bool                `json:"ignore_client_bandwidth"`
 	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
 	HopPorts              string              `json:"hopPorts"`
-	HopInterval           uint32              `json:"hopInterval"`
+	HopInterval           uint64              `json:"hopInterval"`
 }
 
 // Build implements Buildable.
@@ -349,26 +349,21 @@ func (c *MeekConfig) Build() (proto.Message, error) {
 }
 
 type MekyaConfig struct {
-	KCP                            KCPConfig `json:"kcp"`
-	MaxWriteDelay                  int32     `json:"maxWriteDelay"`
-	MaxRequestSize                 int32     `json:"maxRequestSize"`
-	PollingIntervalInitial         int32     `json:"pollingIntervalInitial"`
-	MaxWriteSize                   int32     `json:"maxWriteSize"`
-	MaxWriteDurationMs             int32     `json:"maxWriteDurationMs"`
-	MaxSimultaneousWriteConnection int32     `json:"maxSimultaneousWriteConnection"`
-	PacketWritingBuffer            int32     `json:"packetWritingBuffer"`
-	URL                            string    `json:"url"`
-	H2PoolSize                     int32     `json:"h2PoolSize"`
+	KCP                            *KCPConfig `json:"kcp"`
+	MaxWriteDelay                  int32      `json:"maxWriteDelay"`
+	MaxRequestSize                 int32      `json:"maxRequestSize"`
+	PollingIntervalInitial         int32      `json:"pollingIntervalInitial"`
+	MaxWriteSize                   int32      `json:"maxWriteSize"`
+	MaxWriteDurationMs             int32      `json:"maxWriteDurationMs"`
+	MaxSimultaneousWriteConnection int32      `json:"maxSimultaneousWriteConnection"`
+	PacketWritingBuffer            int32      `json:"packetWritingBuffer"`
+	URL                            string     `json:"url"`
+	H2PoolSize                     int32      `json:"h2PoolSize"`
 }
 
 // Build implements Buildable.
 func (c *MekyaConfig) Build() (proto.Message, error) {
-	kcpConfig, err := c.KCP.Build()
-	if err != nil {
-		return nil, err
-	}
-	return &mekya.Config{
-		Kcp:                            kcpConfig.(*kcp.Config),
+	config := &mekya.Config{
 		MaxWriteDelay:                  c.MaxWriteDelay,
 		MaxRequestSize:                 c.MaxRequestSize,
 		PollingIntervalInitial:         c.PollingIntervalInitial,
@@ -378,7 +373,15 @@ func (c *MekyaConfig) Build() (proto.Message, error) {
 		PacketWritingBuffer:            c.PacketWritingBuffer,
 		Url:                            c.URL,
 		H2PoolSize:                     c.H2PoolSize,
-	}, nil
+	}
+	if c.KCP != nil {
+		kcpConfig, err := c.KCP.Build()
+		if err != nil {
+			return nil, err
+		}
+		config.Kcp = kcpConfig.(*kcp.Config)
+	}
+	return config, nil
 }
 
 type DTLSConfig struct {
@@ -471,6 +474,8 @@ func (p TransportProtocol) Build() (string, error) {
 		return "dtls", nil
 	case "request":
 		return "request", nil
+	case "tlsmirror":
+		return "tlsmirror", nil
 	case "xhttp", "splithttp":
 		return "splithttp", nil
 	default:
@@ -498,6 +503,7 @@ type StreamConfig struct {
 	MekyaSettings       *MekyaConfig            `json:"mekyaSettings"`
 	DTLSSettings        *DTLSConfig             `json:"dtlsSettings"`
 	RequestSettings     *RequestConfig          `json:"requestSettings"`
+	TLSMirrorSettings   *TLSMirrorConfig        `json:"tlsmirrorSettings"`
 	SplitHTTPSettings   *SplitHTTPConfig        `json:"splithttpSettings"`
 	XHTTPSettings       *SplitHTTPConfig        `json:"xhttpSettings"`
 	SocketSettings      *socketcfg.SocketConfig `json:"sockopt"`
@@ -715,6 +721,16 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "request",
 			Settings:     serial.ToTypedMessage(rs),
+		})
+	}
+	if c.TLSMirrorSettings != nil {
+		ts, err := c.TLSMirrorSettings.Build()
+		if err != nil {
+			return nil, newError("Failed to build TLSMirror config.").Base(err)
+		}
+		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
+			ProtocolName: "tlsmirror",
+			Settings:     serial.ToTypedMessage(ts),
 		})
 	}
 	if c.SplitHTTPSettings == nil {
