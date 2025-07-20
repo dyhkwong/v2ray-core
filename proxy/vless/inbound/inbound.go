@@ -444,7 +444,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	sessionPolicy = h.policyManager.ForLevel(request.User.Level)
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
-	inbound.Timer = timer
 	ctx = policy.ContextWithBufferPolicy(ctx, sessionPolicy.Buffer)
 
 	link, err := dispatcher.Dispatch(ctx, request.Destination())
@@ -465,9 +464,8 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 
 		var err error
 		if requestAddons.Flow == vless.XRV {
-			ctx1 := session.ContextWithInbound(ctx, nil) // TODO enable splice
-			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx1)
-			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx1)
+			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx)
+			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx)
 		} else {
 			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
 			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
@@ -491,9 +489,9 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		// default: clientWriter := bufferWriter
 		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, false, ctx)
 		{
-			multiBuffer, err1 := serverReader.ReadMultiBuffer()
-			if err1 != nil {
-				return err1 // ...
+			multiBuffer, err := serverReader.ReadMultiBuffer()
+			if err != nil {
+				return err // ...
 			}
 			if err := clientWriter.WriteMultiBuffer(multiBuffer); err != nil {
 				return err // ...

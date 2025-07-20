@@ -259,8 +259,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 					return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, utlsConn.ConnectionState().Version).AtWarning()
 				}
 			}
-			ctx1 := session.ContextWithOutbound(ctx, nil) // TODO enable splice
-			err = encoding.XtlsWrite(clientReader, serverWriter, timer, conn, trafficState, true, ctx1)
+			err = encoding.XtlsWrite(clientReader, serverWriter, timer, conn, trafficState, true, ctx)
 		} else {
 			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
 			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))

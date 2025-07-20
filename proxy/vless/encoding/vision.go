@@ -6,13 +6,10 @@ import (
 	"crypto/rand"
 	"io"
 	"math/big"
-	"runtime"
 	"strconv"
-	"time"
 
 	"github.com/pires/go-proxyproto"
 
-	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -506,66 +503,17 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 	return conn, readCounter, writerCounter
 }
 
-// CopyRawConnIfExist use the most efficient copy method.
-// - If caller don't want to turn on splice, do not pass in both reader conn and writer conn
-// - writer are from *transport.Link
-func CopyRawConnIfExist(ctx context.Context, readerConn net.Conn, writerConn net.Conn, writer buf.Writer, timer *signal.ActivityTimer, inTimer *signal.ActivityTimer) error {
-	readerConn, readCounter, _ := UnwrapRawConn(readerConn)
-	writerConn, _, writeCounter := UnwrapRawConn(writerConn)
-	reader := buf.NewReader(readerConn)
-	if runtime.GOOS != "linux" && runtime.GOOS != "android" {
-		return readV(ctx, reader, writer, timer, readCounter)
-	}
-	tc, ok := writerConn.(*net.TCPConn)
-	if !ok || readerConn == nil || writerConn == nil {
-		return readV(ctx, reader, writer, timer, readCounter)
-	}
-
-	for {
-		newError("CopyRawConn splice").WriteToLog(session.ExportIDToError(ctx))
-		statWriter, _ := writer.(*dispatcher.SizeStatWriter)
-		//runtime.Gosched() // necessary
-		timer.SetTimeout(8 * time.Hour) // prevent leak, just in case
-		if inTimer != nil {
-			inTimer.SetTimeout(8 * time.Hour)
-		}
-		w, err := tc.ReadFrom(readerConn)
-		if readCounter != nil {
-			readCounter.Add(w) // outbound stats
-		}
-		if writeCounter != nil {
-			writeCounter.Add(w) // inbound stats
-		}
-		if statWriter != nil {
-			statWriter.Counter.Add(w) // user stats
-		}
-		if err != nil && errors.Cause(err) != io.EOF {
-			return err
-		}
-		return nil
-	}
-}
-
-func readV(ctx context.Context, reader buf.Reader, writer buf.Writer, timer signal.ActivityUpdater, readCounter stats.Counter) error {
-	newError("CopyRawConn readv").WriteToLog(session.ExportIDToError(ctx))
-	if err := buf.Copy(reader, writer, buf.UpdateActivity(timer), buf.AddToStatCounter(readCounter)); err != nil {
-		return newError("failed to process response").Base(err)
-	}
-	return nil
-}
-
 // XtlsRead filter and read xtls protocol
 func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer, conn net.Conn, input *bytes.Reader, rawInput *bytes.Buffer, trafficState *TrafficState, isUplink bool, ctx context.Context) error {
 	err := func() error {
 		for {
 			if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
-				var writerConn net.Conn
-				var inTimer *signal.ActivityTimer
-				if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Conn != nil {
-					writerConn = inbound.Conn
-					inTimer = inbound.Timer
+				rawConn, readCounter, _ := UnwrapRawConn(conn)
+				reader := buf.NewReader(rawConn)
+				if err := buf.Copy(reader, writer, buf.UpdateActivity(timer), buf.AddToStatCounter(readCounter)); err != nil {
+					return newError("failed to process response").Base(err)
 				}
-				return CopyRawConnIfExist(ctx, conn, writerConn, writer, timer, inTimer)
+				return nil
 			}
 			buffer, err := reader.ReadMultiBuffer()
 			if !buffer.IsEmpty() {

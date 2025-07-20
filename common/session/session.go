@@ -8,7 +8,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/signal"
 )
 
 // ID of a session.
@@ -44,10 +43,6 @@ type Inbound struct {
 	Tag string
 	// User is the user that authencates for the inbound. May be nil if the protocol allows anounymous traffic.
 	User *protocol.MemoryUser
-	// Timer of the inbound buf copier. May be nil.
-	Timer *signal.ActivityTimer
-	// Conn is actually internet.Connection. May be nil.
-	Conn net.Conn
 
 	// SagerNet private
 	UID         uint32
