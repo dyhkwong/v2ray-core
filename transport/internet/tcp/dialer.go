@@ -28,7 +28,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			return nil, newError("unable to create security protocol client from security engine").Base(err)
 		}
 	} else if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
-		if conn, err = reality.UClient(conn, config, ctx, dest); err != nil {
+		if conn, err = reality.UClient(ctx, conn, dest, config); err != nil {
 			return nil, err
 		}
 	}

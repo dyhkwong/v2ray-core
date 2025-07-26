@@ -6,7 +6,6 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common/errors"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
-	"github.com/v2fly/v2ray-core/v5/features/stats"
 )
 
 type dataHandler func(MultiBuffer)
@@ -37,17 +36,6 @@ func CountSize(sc *SizeCounter) CopyOption {
 	return func(handler *copyHandler) {
 		handler.onData = append(handler.onData, func(b MultiBuffer) {
 			sc.Size += int64(b.Len())
-		})
-	}
-}
-
-// AddToStatCounter a CopyOption add to stat counter
-func AddToStatCounter(sc stats.Counter) CopyOption {
-	return func(handler *copyHandler) {
-		handler.onData = append(handler.onData, func(b MultiBuffer) {
-			if sc != nil {
-				sc.Add(int64(b.Len()))
-			}
 		})
 	}
 }

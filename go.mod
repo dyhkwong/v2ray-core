@@ -22,8 +22,8 @@ require (
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pires/go-proxyproto v0.8.1
-	github.com/quic-go/quic-go v0.53.0
-	github.com/refraction-networking/utls v1.7.3
+	github.com/quic-go/quic-go v0.54.0
+	github.com/refraction-networking/utls v1.8.0
 	github.com/sagernet/sing v0.6.11
 	github.com/sagernet/sing-quic v0.5.0-beta.3
 	github.com/sagernet/sing-shadowsocks v0.2.8
@@ -43,7 +43,7 @@ require (
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.34.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
-	google.golang.org/grpc v1.73.0
+	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.6
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 	h12.io/socks v1.0.3
@@ -54,7 +54,6 @@ require (
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
-	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/ebfe/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
@@ -86,6 +85,6 @@ require (
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

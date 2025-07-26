@@ -22,11 +22,11 @@ type TLSMirrorConfig struct {
 	ExplicitNonceCiphersuites     []uint32                        `json:"explicitNonceCiphersuites"`
 	DeferInstanceDerivedWriteTime *TLSMirrorTimeSpecConfig        `json:"deferInstanceDerivedWriteTime"`
 	TransportLayerPadding         *TransportLayerPaddingConfig    `json:"transportLayerPadding"`
-	ConnectionEnrollment          *TLSMirrorEnrollmentConfig      `json:"connectionEnrollment"`
+	ConnectionEnrolment           *TLSMirrorEnrolmentConfig       `json:"connectionEnrolment"`
 	SequenceWatermarkingEnabled   bool                            `json:"sequenceWatermarkingEnabled"`
 }
 
-type TLSMirrorEnrollmentConfig struct {
+type TLSMirrorEnrolmentConfig struct {
 	PrimaryIngressOutbound string `json:"primaryIngressOutbound"`
 	PrimaryEgressOutbound  string `json:"primaryEgressOutbound"`
 }
@@ -168,10 +168,10 @@ func (c *TLSMirrorConfig) Build() (proto.Message, error) {
 			Enabled: c.TransportLayerPadding.Enabled,
 		}
 	}
-	if c.ConnectionEnrollment != nil {
-		config.ConnectionEnrollment = &mirrorenrollment.Config{
-			PrimaryIngressOutbound: c.ConnectionEnrollment.PrimaryIngressOutbound,
-			PrimaryEgressOutbound:  c.ConnectionEnrollment.PrimaryEgressOutbound,
+	if c.ConnectionEnrolment != nil {
+		config.ConnectionEnrolment = &mirrorenrollment.Config{
+			PrimaryIngressOutbound: c.ConnectionEnrolment.PrimaryIngressOutbound,
+			PrimaryEgressOutbound:  c.ConnectionEnrolment.PrimaryEgressOutbound,
 		}
 	}
 	return config, nil

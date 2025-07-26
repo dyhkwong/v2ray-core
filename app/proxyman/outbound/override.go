@@ -12,9 +12,9 @@ type EndpointOverrideReader struct {
 	buf.Reader
 	Dest         net.Address
 	OriginalDest net.Address
-	Handler      *Handler
-	mutex        *sync.Mutex
-	ipToDomain   map[net.Address]net.Address
+	ipToDomain   *sync.Map
+	fakedns      dns.FakeDNSEngine
+	usedFakeIPs  *sync.Map
 }
 
 func (r *EndpointOverrideReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
@@ -26,30 +26,19 @@ func (r *EndpointOverrideReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		if b.Endpoint == nil {
 			continue
 		}
-		if b.Endpoint.Address == r.OriginalDest && r.Dest != nil {
+		if b.Endpoint.Address == r.OriginalDest {
 			b.Endpoint.Address = r.Dest
 			continue
 		}
-		if b.Endpoint.Address.Family().IsIP() && r.ipToDomain != nil {
-			r.mutex.Lock()
-			domain, ok := r.ipToDomain[b.Endpoint.Address]
-			r.mutex.Unlock()
-			if ok {
-				b.Endpoint.Address = domain
+		if r.ipToDomain != nil && b.Endpoint.Address.Family().IsIP() {
+			if domain, ok := r.ipToDomain.Load(b.Endpoint.Address); ok {
+				b.Endpoint.Address = domain.(net.Address)
 			}
 		}
-		if b.Endpoint.Address.Family().IsDomain() && r.OriginalDest != nil && r.OriginalDest.Family().IsIP() && r.Handler.fakedns != nil {
-			if fakedns, ok := r.Handler.fakedns.(dns.FakeDNSEngineRev0); ok {
-				if ips := fakedns.GetFakeIPForDomain3(b.Endpoint.Address.Domain(),
-					r.OriginalDest.Family().IsIPv4(),
-					r.OriginalDest.Family().IsIPv6(),
-				); len(ips) > 0 {
-					b.Endpoint.Address = ips[0]
-				}
-			} else {
-				ips := r.Handler.fakedns.GetFakeIPForDomain(b.Endpoint.Address.Domain())
+		if r.fakedns != nil && r.usedFakeIPs != nil && b.Endpoint.Address.Family().IsDomain() {
+			if ips := r.fakedns.GetFakeIPForDomain(b.Endpoint.Address.Domain()); len(ips) > 0 {
 				for _, ip := range ips {
-					if ip.Family().IsIPv4() == r.OriginalDest.Family().IsIPv4() {
+					if _, ok := r.usedFakeIPs.Load(ip); ok {
 						b.Endpoint.Address = ip
 						break
 					}
@@ -64,9 +53,10 @@ type EndpointOverrideWriter struct {
 	buf.Writer
 	Dest         net.Address
 	OriginalDest net.Address
-	Handler      *Handler
-	mutex        *sync.Mutex
-	ipToDomain   map[net.Address]net.Address
+	fakedns      dns.FakeDNSEngine
+	usedFakeIPs  *sync.Map
+	resolveIP    func(domain string) net.Address
+	ipToDomain   *sync.Map
 }
 
 func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
@@ -78,35 +68,16 @@ func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			b.Endpoint.Address = w.OriginalDest
 			continue
 		}
-		if b.Endpoint.Address.Family().IsIP() && w.Handler.fakedns != nil {
-			if domain := w.Handler.fakedns.GetDomainFromFakeDNS(b.Endpoint.Address); len(domain) > 0 {
+		if w.fakedns != nil && w.usedFakeIPs != nil && b.Endpoint.Address.Family().IsIP() {
+			if domain := w.fakedns.GetDomainFromFakeDNS(b.Endpoint.Address); len(domain) > 0 {
+				w.usedFakeIPs.LoadOrStore(b.Endpoint.Address, true)
 				b.Endpoint.Address = net.DomainAddress(domain)
 			}
 		}
-		if w.ipToDomain != nil {
-			switch b.Endpoint.Address.Family() {
-			case net.AddressFamilyDomain:
-				if ip := w.Handler.resolveIP(w.Handler.ctx, b.Endpoint.Address.Domain(), w.Handler.Address()); ip != nil {
-					w.mutex.Lock()
-					domain, ok := w.ipToDomain[ip]
-					if !ok {
-						w.ipToDomain[ip] = b.Endpoint.Address
-						w.mutex.Unlock()
-						b.Endpoint.Address = ip
-					} else {
-						w.mutex.Unlock()
-						if domain != b.Endpoint.Address {
-							newError("ignored mapping conflict for ", ip, ", existing: ", domain, ", new: ", b.Endpoint.Address).AtDebug().WriteToLog()
-						}
-					}
-				}
-			case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
-				w.mutex.Lock()
-				domain, ok := w.ipToDomain[b.Endpoint.Address]
-				w.mutex.Unlock()
-				if ok {
-					newError("ignored mapping conflict for ", b.Endpoint.Address, ", existing: ", domain).AtDebug().WriteToLog()
-				}
+		if w.resolveIP != nil && w.ipToDomain != nil && b.Endpoint.Address.Family().IsDomain() {
+			if ip := w.resolveIP(b.Endpoint.Address.Domain()); ip != nil {
+				w.ipToDomain.LoadOrStore(ip, b.Endpoint.Address)
+				b.Endpoint.Address = ip
 			}
 		}
 	}

@@ -70,15 +70,15 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	}
 	serverName := tlsConfig.ServerName
 	if config.DisableSni {
-		tlsConfig.ServerName = "127.0.0.1"
+		tlsConfig.ServerName = ""
 	}
 	if !tlsConfig.InsecureSkipVerify && config.DisableSni {
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
 			verifyOptions := x509.VerifyOptions{
+				Roots:         tlsConfig.RootCAs,
 				DNSName:       serverName,
 				Intermediates: x509.NewCertPool(),
-				Roots:         tlsConfig.RootCAs,
 			}
 			for _, cert := range state.PeerCertificates[1:] {
 				verifyOptions.Intermediates.AddCert(cert)

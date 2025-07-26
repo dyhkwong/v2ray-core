@@ -510,7 +510,11 @@ func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer,
 			if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
 				rawConn, readCounter, _ := UnwrapRawConn(conn)
 				reader := buf.NewReader(rawConn)
-				if err := buf.Copy(reader, writer, buf.UpdateActivity(timer), buf.AddToStatCounter(readCounter)); err != nil {
+				sizeCounter := &buf.SizeCounter{
+					Size: 0,
+				}
+				defer readCounter.Add(sizeCounter.Size)
+				if err := buf.Copy(reader, writer, buf.UpdateActivity(timer), buf.CountSize(sizeCounter)); err != nil {
 					return newError("failed to process response").Base(err)
 				}
 				return nil

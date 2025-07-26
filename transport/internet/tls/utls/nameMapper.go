@@ -31,6 +31,7 @@ var clientHelloIDMap = map[string]*utls.ClientHelloID{
 	"chrome_120":         &utls.HelloChrome_120,
 	"chrome_120_pq":      &utls.HelloChrome_120_PQ,
 	"chrome_131":         &utls.HelloChrome_131,
+	"chrome_133":         &utls.HelloChrome_133,
 	"ios_auto":           &utls.HelloIOS_Auto,
 	"ios_11_1":           &utls.HelloIOS_11_1,
 	"ios_12_1":           &utls.HelloIOS_12_1,

@@ -13,7 +13,6 @@ import (
 	gotls "crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -24,19 +23,14 @@ import (
 
 	utls "github.com/refraction-networking/utls"
 	"github.com/xtls/reality"
-	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/net/http2"
 
 	"github.com/v2fly/v2ray-core/v5/common/dice"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/session"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
-
-//go:linkname aesgcmPreferred github.com/refraction-networking/utls.aesgcmPreferred
-func aesgcmPreferred(ciphers []uint16) bool
 
 type Conn struct {
 	*reality.Conn
@@ -53,9 +47,12 @@ func (c *Conn) HandshakeAddress() net.Address {
 	return net.ParseAddress(state.ServerName)
 }
 
-func Server(c net.Conn, config *reality.Config) (net.Conn, error) {
-	realityConn, err := reality.Server(context.Background(), c, config)
-	return &Conn{Conn: realityConn}, err
+func Server(conn net.Conn, config *reality.Config) (net.Conn, error) {
+	realityConn, err := reality.Server(context.Background(), conn, config)
+	if err != nil {
+		return nil, err
+	}
+	return &Conn{Conn: realityConn}, nil
 }
 
 type UConn struct {
@@ -100,8 +97,7 @@ func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x50
 	return nil
 }
 
-func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destination) (net.Conn, error) {
-	localAddr := c.LocalAddr().String()
+func UClient(ctx context.Context, conn net.Conn, dest net.Destination, config *Config) (net.Conn, error) {
 	uConn := &UConn{}
 	utlsConfig := &utls.Config{
 		VerifyPeerCertificate:  uConn.VerifyPeerCertificate,
@@ -112,19 +108,14 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 	if utlsConfig.ServerName == "" {
 		utlsConfig.ServerName = dest.Address.String()
 	}
-	if len(config.EchConfig) > 0 || len(config.Ech_DOHserver) > 0 {
-		if err := ApplyECH(config, utlsConfig); err != nil {
-			newError("unable to set ECH").AtError().Base(err).WriteToLog()
-		}
-	}
 	uConn.ServerName = utlsConfig.ServerName
 	fingerprint := GetFingerprint(config.Fingerprint)
 	if fingerprint == nil {
-		return nil, newError("REALITY: failed to get fingerprint")
+		return nil, newError("REALITY: failed to get fingerprint").AtError()
 	}
-	uConn.UConn = utls.UClient(c, utlsConfig, *fingerprint)
+	uConn.UConn = utls.UClient(conn, utlsConfig, *fingerprint)
 	if err := uConn.BuildHandshakeState(); err != nil {
-		return nil, newError("REALITY: unable to build client hello")
+		return nil, newError("REALITY: unable to build client hello").Base(err)
 	}
 	if config.DisableX25519Mlkem768 {
 		for _, extension := range uConn.Extensions {
@@ -139,9 +130,9 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 				})
 			}
 		}
-	}
-	if err := uConn.BuildHandshakeState(); err != nil {
-		return nil, newError("REALITY: unable to build client hello")
+		if err := uConn.BuildHandshakeState(); err != nil {
+			return nil, newError("REALITY: unable to build client hello")
+		}
 	}
 	hello := uConn.HandshakeState.Hello
 	raw := hello.Raw
@@ -150,17 +141,14 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 		var err error
 		raw, err = hello.Marshal()
 		if err != nil {
-			return nil, newError("REALITY: invalid client hello")
+			return nil, err
 		}
-	}
-	if len(raw) < 39 || len(hello.Random) < 20 {
-		return nil, newError("REALITY: invalid client hello")
 	}
 	hello.SessionId = make([]byte, 32)
 	copy(raw[39:], hello.SessionId) // the fixed location of `Session ID`
 	version := config.Version
 	if len(version) != 3 {
-		version = []byte{25, 6, 8}
+		version = []byte{25, 7, 26}
 	}
 	hello.SessionId[0] = version[0] // Version_x
 	hello.SessionId[1] = version[1] // Version_y
@@ -170,24 +158,34 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 	copy(hello.SessionId[8:], config.ShortId)
 	publicKey, err := ecdh.X25519().NewPublicKey(config.PublicKey)
 	if err != nil {
-		return nil, newError("REALITY: publicKey == nil")
+		return nil, newError("REALITY: publicKey == nil").Base(err)
 	}
-	if uConn.HandshakeState.State13.KeyShareKeys == nil || uConn.HandshakeState.State13.KeyShareKeys.Ecdhe == nil {
+	var ecdhe *ecdh.PrivateKey
+	if keyShareKeys := uConn.HandshakeState.State13.KeyShareKeys; keyShareKeys != nil {
+		if keyShareKeys.Ecdhe != nil {
+			ecdhe = uConn.HandshakeState.State13.KeyShareKeys.Ecdhe
+		}
+		if !config.DisableX25519Mlkem768 && ecdhe == nil && keyShareKeys.MlkemEcdhe != nil {
+			ecdhe = uConn.HandshakeState.State13.KeyShareKeys.MlkemEcdhe
+		}
+	}
+	if ecdhe == nil {
 		return nil, newError("Current fingerprint ", uConn.ClientHelloID.Client, uConn.ClientHelloID.Version, " does not support TLS 1.3, REALITY handshake cannot establish.")
 	}
-	uConn.AuthKey, _ = uConn.HandshakeState.State13.KeyShareKeys.Ecdhe.ECDH(publicKey)
+	uConn.AuthKey, _ = ecdhe.ECDH(publicKey)
 	if uConn.AuthKey == nil {
 		return nil, newError("REALITY: SharedKey == nil")
 	}
 	if _, err := hkdf.New(sha256.New, uConn.AuthKey, hello.Random[:20], []byte("REALITY")).Read(uConn.AuthKey); err != nil {
 		return nil, err
 	}
-	var aead cipher.AEAD
-	if !config.ReenableChacha20Poly1305 || aesgcmPreferred(hello.CipherSuites) {
-		block, _ := aes.NewCipher(uConn.AuthKey)
-		aead, _ = cipher.NewGCM(block)
-	} else {
-		aead, _ = chacha20poly1305.New(uConn.AuthKey)
+	block, err := aes.NewCipher(uConn.AuthKey)
+	if err != nil {
+		return nil, err
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
 	}
 	aead.Seal(hello.SessionId[:0], hello.Random[20:], hello.SessionId[:16], raw)
 	copy(raw[39:], hello.SessionId)
@@ -199,12 +197,14 @@ func UClient(c net.Conn, config *Config, ctx context.Context, dest net.Destinati
 			client := &http.Client{
 				Transport: &http2.Transport{
 					DialTLSContext: func(ctx context.Context, network, addr string, cfg *gotls.Config) (net.Conn, error) {
-						newError(fmt.Sprintf("REALITY localAddr: %v\tDialTLSContext\n", localAddr)).WriteToLog(session.ExportIDToError(ctx))
 						return uConn, nil
 					},
 				},
 			}
-			req, _ := http.NewRequest("GET", "https://"+uConn.ServerName, nil)
+			req, err := http.NewRequest("GET", "https://"+uConn.ServerName, nil)
+			if err != nil {
+				return
+			}
 			req.Header.Set("User-Agent", fingerprint.Client)
 			req.AddCookie(&http.Cookie{
 				Name:  "padding",

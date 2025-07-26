@@ -124,7 +124,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 			if err != nil {
 				return nil, err
 			}
-			return reality.UClient(conn, realityConfig, detachedCtx, dest)
+			return reality.UClient(detachedCtx, conn, dest, realityConfig)
 		}
 		return transportcommon.DialWithSecuritySettings(detachedCtx, dest, streamSettings)
 	}

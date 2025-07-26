@@ -177,34 +177,40 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		}
 	}
 	if outbound.Target.Network == net.Network_UDP {
-		var mutex *sync.Mutex
-		var ipToDomain map[net.Address]net.Address
 		if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
 			if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 				if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address()); addr != nil {
-					mutex = &sync.Mutex{}
-					ipToDomain = make(map[net.Address]net.Address)
-					ipToDomain[addr] = outbound.Target.Address
 					outbound.Target.Address = addr
 				}
 			}
 		}
-		link.Reader = &EndpointOverrideReader{
+		reader := &EndpointOverrideReader{
 			Reader:       link.Reader,
 			Dest:         outbound.Target.Address,
 			OriginalDest: outbound.OriginalTarget.Address,
-			Handler:      h,
-			mutex:        mutex,
-			ipToDomain:   ipToDomain,
 		}
-		link.Writer = &EndpointOverrideWriter{
+		writer := &EndpointOverrideWriter{
 			Writer:       link.Writer,
 			Dest:         outbound.Target.Address,
 			OriginalDest: outbound.OriginalTarget.Address,
-			Handler:      h,
-			mutex:        mutex,
-			ipToDomain:   ipToDomain,
 		}
+		if h.fakedns != nil {
+			reader.fakedns = h.fakedns
+			writer.fakedns = h.fakedns
+			usedFakeIPs := new(sync.Map)
+			reader.usedFakeIPs = usedFakeIPs
+			writer.usedFakeIPs = usedFakeIPs
+		}
+		if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+			writer.resolveIP = func(domain string) net.Address {
+				return h.resolveIP(h.ctx, domain, h.Address())
+			}
+			ipToDomain := new(sync.Map)
+			reader.ipToDomain = ipToDomain
+			writer.ipToDomain = ipToDomain
+		}
+		link.Reader = reader
+		link.Writer = writer
 	}
 	if h.mux != nil && (h.mux.Enabled || session.MuxPreferedFromContext(ctx)) {
 		if outbound.Target.Network == net.Network_UDP {

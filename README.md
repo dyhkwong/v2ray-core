@@ -17,4 +17,4 @@ This project is a fork of [v2ray-core](https://github.com/v2fly/v2ray-core), whi
 
 This project incorporates some code originally licensed under GPL 3.0 or later, such as the code from [SagerNet/v2ray-core](https://github.com/SagerNet/v2ray-core).
 
-This project incorporates some code originally licensed under MPL 2.0 in the form of Section 3.3, such as the code from [Xray-core](https://github.com/XTLS/Xray-core)
+This project incorporates some code originally licensed under MPL 2.0 in the form of MPL 2.0 Section 3.3, such as the code from [Xray-core](https://github.com/XTLS/Xray-core).
