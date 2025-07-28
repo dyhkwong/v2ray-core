@@ -513,9 +513,14 @@ func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer,
 				sizeCounter := &buf.SizeCounter{
 					Size: 0,
 				}
-				defer readCounter.Add(sizeCounter.Size)
 				if err := buf.Copy(reader, writer, buf.UpdateActivity(timer), buf.CountSize(sizeCounter)); err != nil {
+					if readCounter != nil {
+						readCounter.Add(sizeCounter.Size)
+					}
 					return newError("failed to process response").Base(err)
+				}
+				if readCounter != nil {
+					readCounter.Add(sizeCounter.Size)
 				}
 				return nil
 			}
