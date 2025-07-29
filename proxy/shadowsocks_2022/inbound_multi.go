@@ -120,7 +120,7 @@ func NewMultiServer(ctx context.Context, config *MultiUserServerConfig) (*MultiU
 		handler, err := app_inbound.NewAlwaysOnInboundHandlerWithProxy(ctx, tag, &proxyman.ReceiverConfig{
 			Listen:    net.NewIPOrDomain(net.LocalHostIP),
 			PortRange: net.SinglePortRange(net.Port(inbound.receiverPort)),
-		}, inbound, true)
+		}, inbound, true, false)
 		if err != nil {
 			return nil, newError("failed to create sip003 plugin inbound").Base(err)
 		}
