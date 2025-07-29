@@ -2,6 +2,7 @@ package inbound
 
 import (
 	"context"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,6 +44,7 @@ type tcpWorker struct {
 	sniffingConfig  *proxyman.SniffingConfig
 	uplinkCounter   stats.Counter
 	downlinkCounter stats.Counter
+	dumpUid         bool
 
 	hub internet.Listener
 
@@ -80,11 +82,29 @@ func (w *tcpWorker) callback(conn internet.Connection) {
 			})
 		}
 	}
-	ctx = session.ContextWithInbound(ctx, &session.Inbound{
-		Source:  net.DestinationFromAddr(conn.RemoteAddr()),
-		Gateway: net.TCPDestination(w.address, w.port),
-		Tag:     w.tag,
-	})
+	source := net.DestinationFromAddr(conn.RemoteAddr())
+	dest := net.TCPDestination(w.address, w.port)
+
+	inbound := &session.Inbound{
+		Source:      source,
+		Gateway:     dest,
+		Tag:         w.tag,
+		SSID:        ssid,        // SagerNet private
+		NetworkType: networkType, // SagerNet private
+	}
+	if w.dumpUid && uidDumper != nil {
+		// SagerNet private
+		if uid, err := DumpUid(source, dest); err == nil && int(uid) != os.Getuid() {
+			if packageName, _ := uidDumper.GetPackageName(uid); len(packageName) == 0 {
+				newError("[TCP (", uid, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+			} else {
+				newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+			}
+			inbound.UID = uint32(uid)
+		}
+	}
+
+	ctx = session.ContextWithInbound(ctx, inbound)
 	content := new(session.Content)
 	if w.sniffingConfig != nil {
 		content.SniffingRequest.Enabled = w.sniffingConfig.Enabled
@@ -248,6 +268,7 @@ type udpWorker struct {
 	sniffingConfig  *proxyman.SniffingConfig
 	uplinkCounter   stats.Counter
 	downlinkCounter stats.Counter
+	dumpUid         bool
 
 	checker    *task.Periodic
 	activeConn map[connID]*udpConn
@@ -314,11 +335,30 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 					Target: originalDest,
 				})
 			}
-			ctx = session.ContextWithInbound(ctx, &session.Inbound{
-				Source:  source,
-				Gateway: net.UDPDestination(w.address, w.port),
-				Tag:     w.tag,
-			})
+
+			dest := net.UDPDestination(w.address, w.port)
+
+			inbound := &session.Inbound{
+				Source:      source,
+				Gateway:     dest,
+				Tag:         w.tag,
+				SSID:        ssid,        // SagerNet private
+				NetworkType: networkType, // SagerNet private
+			}
+
+			if w.dumpUid && uidDumper != nil {
+				// SagerNet private
+				if uid, err := DumpUid(source, dest); err == nil && int(uid) != os.Getuid() {
+					if packageName, _ := uidDumper.GetPackageName(uid); len(packageName) == 0 {
+						newError("[UDP (", uid, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					} else {
+						newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					}
+					inbound.UID = uint32(uid)
+				}
+			}
+
+			ctx = session.ContextWithInbound(ctx, inbound)
 			content := new(session.Content)
 			if w.sniffingConfig != nil {
 				content.SniffingRequest.Enabled = w.sniffingConfig.Enabled
