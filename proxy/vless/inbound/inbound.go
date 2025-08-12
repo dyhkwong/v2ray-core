@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"context"
 	gotls "crypto/tls"
+	"encoding/base64"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 	"unsafe"
@@ -32,6 +34,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
+	"github.com/v2fly/v2ray-core/v5/proxy/vless/encryption"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
@@ -56,7 +59,7 @@ func init() {
 				}
 				return
 			}(),
-			Decryption: "none",
+			Decryption: simplifiedServer.Decryption,
 		}
 
 		return common.CreateObject(ctx, fullConfig)
@@ -68,6 +71,7 @@ type Handler struct {
 	inboundHandlerManager feature_inbound.Manager
 	policyManager         policy.Manager
 	validator             *vless.Validator
+	decryption            *encryption.ServerInstance
 	fallbacks             map[string]map[string]map[string]*Fallback // or nil
 	// regexps               map[string]*regexp.Regexp       // or nil
 }
@@ -88,6 +92,65 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 		}
 		if err := handler.AddUser(ctx, u); err != nil {
 			return nil, newError("failed to initiate user").Base(err).AtError()
+		}
+	}
+
+	switch config.Decryption {
+	case "":
+		return nil, newError("empty decryption")
+	case "none":
+	default:
+		decryptionStr := config.Decryption
+		var xorMode, seconds uint32
+		var paddingStr string
+		s := strings.Split(decryptionStr, ".")
+		if len(s) < 4 || s[0] != "mlkem768x25519plus" {
+			return nil, newError("invalid decryption")
+		}
+		switch s[1] {
+		case "native":
+		case "xorpub":
+			xorMode = 1
+		case "random":
+			xorMode = 2
+		default:
+			return nil, newError("invalid decryption")
+		}
+		if s[2] != "1rtt" {
+			t := strings.TrimSuffix(s[2], "s")
+			if t == s[2] {
+				return nil, newError("invalid decryption")
+			}
+			i, err := strconv.Atoi(t)
+			if err != nil {
+				return nil, newError("invalid decryption")
+			}
+			seconds = uint32(i)
+		}
+		padding := 0
+		for _, r := range s[3:] {
+			if len(r) < 20 {
+				padding += len(r) + 1
+				continue
+			}
+			if b, _ := base64.RawURLEncoding.DecodeString(r); len(b) != 32 && len(b) != 64 {
+				return nil, newError("invalid decryption")
+			}
+		}
+		decryptionStr = decryptionStr[27+len(s[2]):]
+		if padding > 0 {
+			paddingStr = decryptionStr[:padding-1]
+			decryptionStr = decryptionStr[padding:]
+		}
+		var nfsSKeysBytes [][]byte
+		d := strings.Split(decryptionStr, ".")
+		for _, r := range d {
+			b, _ := base64.RawURLEncoding.DecodeString(r)
+			nfsSKeysBytes = append(nfsSKeysBytes, b)
+		}
+		handler.decryption = &encryption.ServerInstance{}
+		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, seconds, paddingStr); err != nil {
+			return nil, newError("failed to use decryption").Base(err).AtError()
 		}
 	}
 
@@ -156,6 +219,9 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 
 // Close implements common.Closable.Close().
 func (h *Handler) Close() error {
+	if h.decryption != nil {
+		h.decryption.Close()
+	}
 	return errors.Combine(common.Close(h.validator))
 }
 
@@ -187,6 +253,13 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	sessionPolicy := h.policyManager.ForLevel(0)
 	if err := connection.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake)); err != nil {
 		return newError("unable to set read deadline").Base(err).AtWarning()
+	}
+
+	if h.decryption != nil {
+		var err error
+		if connection, err = h.decryption.Handshake(connection, nil); err != nil {
+			return newError("ML-KEM-768 handshake failed").Base(err).AtInfo()
+		}
 	}
 
 	first := buf.FromBytes(make([]byte, buf.Size))
@@ -413,31 +486,36 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			case protocol.RequestCommandTCP:
 				var t reflect.Type
 				var p uintptr
-				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
-					iConn = httpupgradeConn.Conn
-				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
-					iConn = websocketConn.Conn.NetConn()
-				}
-				if tlsConn, ok := iConn.(*tls.Conn); ok {
-					if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
-						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
-					}
-					t = reflect.TypeOf(tlsConn.Conn).Elem()
-					p = uintptr(unsafe.Pointer(tlsConn.Conn))
-				} else if realityConn, ok := iConn.(*reality.Conn); ok {
-					t = reflect.TypeOf(realityConn.Conn).Elem()
-					p = uintptr(unsafe.Pointer(realityConn.Conn))
-				} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
-					if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
-						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
-					}
-					t = reflect.TypeOf(gotlsConn).Elem()
-					p = uintptr(unsafe.Pointer(gotlsConn))
-				} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
-					t = reflect.TypeOf(gorealityConn).Elem()
-					p = uintptr(unsafe.Pointer(gorealityConn))
+				if commonConn, ok := connection.(*encryption.CommonConn); ok {
+					t = reflect.TypeOf(commonConn).Elem()
+					p = uintptr(unsafe.Pointer(commonConn))
 				} else {
-					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+					if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+						iConn = httpupgradeConn.Conn
+					} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+						iConn = websocketConn.Conn.NetConn()
+					}
+					if tlsConn, ok := iConn.(*tls.Conn); ok {
+						if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+							return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
+						}
+						t = reflect.TypeOf(tlsConn.Conn).Elem()
+						p = uintptr(unsafe.Pointer(tlsConn.Conn))
+					} else if realityConn, ok := iConn.(*reality.Conn); ok {
+						t = reflect.TypeOf(realityConn.Conn).Elem()
+						p = uintptr(unsafe.Pointer(realityConn.Conn))
+					} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
+						if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+							return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
+						}
+						t = reflect.TypeOf(gotlsConn).Elem()
+						p = uintptr(unsafe.Pointer(gotlsConn))
+					} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
+						t = reflect.TypeOf(gorealityConn).Elem()
+						p = uintptr(unsafe.Pointer(gorealityConn))
+					} else {
+						return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+					}
 				}
 				i, _ := t.FieldByName("input")
 				r, _ := t.FieldByName("rawInput")

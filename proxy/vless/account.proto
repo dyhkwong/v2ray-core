@@ -11,6 +11,6 @@ message Account {
   string id = 1;
   // Flow settings.
   string flow = 2;
-  // Encryption settings. Only applies to client side, and only accepts "none" for now.
+  // Encryption settings. Only applies to client side.
   string encryption = 3;
 }

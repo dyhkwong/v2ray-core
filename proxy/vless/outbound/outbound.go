@@ -5,7 +5,9 @@ package outbound
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"reflect"
+	"strings"
 	"unsafe"
 
 	core "github.com/v2fly/v2ray-core/v5"
@@ -24,6 +26,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
+	"github.com/v2fly/v2ray-core/v5/proxy/vless/encryption"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
@@ -47,7 +50,10 @@ func init() {
 					Port:    simplifiedClient.Port,
 					User: []*protocol.User{
 						{
-							Account: serial.ToTypedMessage(&vless.Account{Id: simplifiedClient.Uuid, Encryption: "none"}),
+							Account: serial.ToTypedMessage(&vless.Account{
+								Id:         simplifiedClient.Uuid,
+								Encryption: simplifiedClient.Encryption,
+							}),
 						},
 					},
 				},
@@ -65,6 +71,7 @@ type Handler struct {
 	serverPicker   protocol.ServerPicker
 	policyManager  policy.Manager
 	packetEncoding packetaddr.PacketAddrType
+	encryption     *encryption.ClientInstance
 }
 
 // New creates a new VLess outbound handler.
@@ -84,6 +91,70 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 		serverPicker:   protocol.NewRoundRobinServerPicker(serverList),
 		policyManager:  v.GetFeature(policy.ManagerType()).(policy.Manager),
 		packetEncoding: config.PacketEncoding,
+	}
+
+	for i, rec := range config.Vnext {
+		for j, u := range rec.User {
+			mUser, _ := u.ToMemoryUser()
+			account := mUser.Account.(*vless.MemoryAccount)
+			switch account.Encryption {
+			case "":
+				return nil, newError("empty encryption").AtError()
+			case "none":
+			default:
+				if i > 0 || j > 0 {
+					return nil, newError("encryption should have one any only one user").AtError()
+				}
+				encryptionStr := account.Encryption
+				var xorMode, seconds uint32
+				var paddingStr string
+				s := strings.Split(encryptionStr, ".")
+				if len(s) < 4 || s[0] != "mlkem768x25519plus" {
+					return nil, newError("invalid encryption")
+				}
+				switch s[1] {
+				case "native":
+				case "xorpub":
+					xorMode = 1
+				case "random":
+					xorMode = 2
+				default:
+					return nil, newError("invalid encryption")
+				}
+				switch s[2] {
+				case "1rtt":
+				case "0rtt":
+					seconds = 1
+				default:
+					return nil, newError("invalid encryption")
+				}
+				padding := 0
+				for _, r := range s[3:] {
+					if len(r) < 20 {
+						padding += len(r) + 1
+						continue
+					}
+					if b, _ := base64.RawURLEncoding.DecodeString(r); len(b) != 32 && len(b) != 1184 {
+						return nil, newError("invalid encryption")
+					}
+				}
+				encryptionStr = encryptionStr[27+len(s[2]):]
+				if padding > 0 {
+					paddingStr = encryptionStr[:padding-1]
+					encryptionStr = encryptionStr[padding:]
+				}
+				e := strings.Split(encryptionStr, ".")
+				var nfsPKeysBytes [][]byte
+				for _, r := range e {
+					b, _ := base64.RawURLEncoding.DecodeString(r)
+					nfsPKeysBytes = append(nfsPKeysBytes, b)
+				}
+				handler.encryption = &encryption.ClientInstance{}
+				if err := handler.encryption.Init(nfsPKeysBytes, xorMode, seconds, paddingStr); err != nil {
+					return nil, newError("failed to use encryption").Base(err).AtError()
+				}
+			}
+		}
 	}
 
 	return handler, nil
@@ -120,6 +191,13 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	target := outbound.Target
 	newError("tunneling request to ", target, " via ", rec.Destination().NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+
+	if h.encryption != nil {
+		var err error
+		if conn, err = h.encryption.Handshake(conn); err != nil {
+			return newError("ML-KEM-768 handshake failed").Base(err).AtInfo()
+		}
+	}
 
 	command := protocol.RequestCommandTCP
 	if target.Network == net.Network_UDP {
@@ -162,22 +240,27 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		case protocol.RequestCommandTCP:
 			var t reflect.Type
 			var p uintptr
-			if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
-				iConn = httpupgradeConn.Conn
-			} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
-				iConn = websocketConn.Conn.NetConn()
-			}
-			if tlsConn, ok := iConn.(*tls.Conn); ok {
-				t = reflect.TypeOf(tlsConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(tlsConn.Conn))
-			} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
-				t = reflect.TypeOf(utlsConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(utlsConn.Conn))
-			} else if realityConn, ok := iConn.(*reality.UConn); ok {
-				t = reflect.TypeOf(realityConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(realityConn.Conn))
+			if commonConn, ok := conn.(*encryption.CommonConn); ok {
+				t = reflect.TypeOf(commonConn).Elem()
+				p = uintptr(unsafe.Pointer(commonConn))
 			} else {
-				return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+					iConn = httpupgradeConn.Conn
+				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+					iConn = websocketConn.Conn.NetConn()
+				}
+				if tlsConn, ok := iConn.(*tls.Conn); ok {
+					t = reflect.TypeOf(tlsConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(tlsConn.Conn))
+				} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
+					t = reflect.TypeOf(utlsConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(utlsConn.Conn))
+				} else if realityConn, ok := iConn.(*reality.UConn); ok {
+					t = reflect.TypeOf(realityConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(realityConn.Conn))
+				} else {
+					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+				}
 			}
 			i, _ := t.FieldByName("input")
 			r, _ := t.FieldByName("rawInput")
