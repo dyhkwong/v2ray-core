@@ -104,8 +104,7 @@ func (x *Fallback) GetName() string {
 type Config struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Clients []*protocol.User       `protobuf:"bytes,1,rep,name=clients,proto3" json:"clients,omitempty"`
-	// Decryption settings. Only applies to server side, and only accepts "none"
-	// for now.
+	// Decryption settings. Only applies to server side.
 	Decryption    string      `protobuf:"bytes,2,opt,name=decryption,proto3" json:"decryption,omitempty"`
 	Fallbacks     []*Fallback `protobuf:"bytes,3,rep,name=fallbacks,proto3" json:"fallbacks,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -166,6 +165,7 @@ func (x *Config) GetFallbacks() []*Fallback {
 type SimplifiedConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Decryption    string                 `protobuf:"bytes,2,opt,name=decryption,proto3" json:"decryption,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -207,6 +207,13 @@ func (x *SimplifiedConfig) GetUsers() []string {
 	return nil
 }
 
+func (x *SimplifiedConfig) GetDecryption() string {
+	if x != nil {
+		return x.Decryption
+	}
+	return ""
+}
+
 var File_proxy_vless_inbound_config_proto protoreflect.FileDescriptor
 
 const file_proxy_vless_inbound_config_proto_rawDesc = "" +
@@ -224,9 +231,12 @@ const file_proxy_vless_inbound_config_proto_rawDesc = "" +
 	"\n" +
 	"decryption\x18\x02 \x01(\tR\n" +
 	"decryption\x12F\n" +
-	"\tfallbacks\x18\x03 \x03(\v2(.v2ray.core.proxy.vless.inbound.FallbackR\tfallbacks\">\n" +
+	"\tfallbacks\x18\x03 \x03(\v2(.v2ray.core.proxy.vless.inbound.FallbackR\tfallbacks\"^\n" +
 	"\x10SimplifiedConfig\x12\x14\n" +
-	"\x05users\x18\x01 \x03(\tR\x05users:\x14\x82\xb5\x18\x10\n" +
+	"\x05users\x18\x01 \x03(\tR\x05users\x12\x1e\n" +
+	"\n" +
+	"decryption\x18\x02 \x01(\tR\n" +
+	"decryption:\x14\x82\xb5\x18\x10\n" +
 	"\ainbound\x12\x05vlessB{\n" +
 	"\"com.v2ray.core.proxy.vless.inboundP\x01Z2github.com/v2fly/v2ray-core/v5/proxy/vless/inbound\xaa\x02\x1eV2Ray.Core.Proxy.Vless.Inboundb\x06proto3"
 
