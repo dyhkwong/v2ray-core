@@ -15,6 +15,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
+	"github.com/v2fly/v2ray-core/v5/proxy/vless/encryption"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
@@ -203,7 +204,7 @@ func (w *VisionReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	}
 
 	if *switchToDirectCopy {
-		// XTLS Vision processes struct TLS Conn's input and rawInput
+		// XTLS Vision processes TLS-like conn's input and rawInput
 		if inputBuffer, err := buf.ReadFrom(w.input); err == nil && !inputBuffer.IsEmpty() {
 			buffer, _ = buf.MergeMulti(buffer, inputBuffer)
 		}
@@ -531,29 +532,39 @@ func XtlsFilterTls(buffer buf.MultiBuffer, trafficState *TrafficState, ctx conte
 func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 	var readCounter, writerCounter stats.Counter
 	if conn != nil {
+		isEncryption := false
+		if commonConn, ok := conn.(*encryption.CommonConn); ok {
+			conn = commonConn.Conn
+			isEncryption = true
+		}
+		if xorConn, ok := conn.(*encryption.XorConn); ok {
+			return xorConn, nil, nil // full-random xorConn should not be penetrated
+		}
 		statConn, ok := conn.(*internet.StatCouterConnection)
 		if ok {
 			conn = statConn.Connection
 			readCounter = statConn.ReadCounter
 			writerCounter = statConn.WriteCounter
 		}
-		if httpupgradeConn, ok := conn.(*httpupgrade.Connection); ok {
-			conn = httpupgradeConn.Conn
-		} else if websocketConn, ok := conn.(*websocket.Connection); ok {
-			conn = websocketConn.Conn.NetConn()
-		}
-		if tlsConn, ok := conn.(*tls.Conn); ok {
-			conn = tlsConn.NetConn()
-		} else if utlsConn, ok := conn.(utls.UTLSClientConnection); ok {
-			conn = utlsConn.NetConn()
-		} else if realityConn, ok := conn.(*reality.Conn); ok {
-			conn = realityConn.NetConn()
-		} else if realityUConn, ok := conn.(*reality.UConn); ok {
-			conn = realityUConn.NetConn()
-		} else if gotlsConn, ok := conn.(*gotls.Conn); ok {
-			conn = gotlsConn.NetConn()
-		} else if gorealityConn, ok := conn.(*goreality.Conn); ok {
-			conn = gorealityConn.NetConn()
+		if !isEncryption { // avoids double penetration
+			if httpupgradeConn, ok := conn.(*httpupgrade.Connection); ok {
+				conn = httpupgradeConn.Conn
+			} else if websocketConn, ok := conn.(*websocket.Connection); ok {
+				conn = websocketConn.Conn.NetConn()
+			}
+			if tlsConn, ok := conn.(*tls.Conn); ok {
+				conn = tlsConn.NetConn()
+			} else if utlsConn, ok := conn.(utls.UTLSClientConnection); ok {
+				conn = utlsConn.NetConn()
+			} else if realityConn, ok := conn.(*reality.Conn); ok {
+				conn = realityConn.NetConn()
+			} else if realityUConn, ok := conn.(*reality.UConn); ok {
+				conn = realityUConn.NetConn()
+			} else if gotlsConn, ok := conn.(*gotls.Conn); ok {
+				conn = gotlsConn.NetConn()
+			} else if gorealityConn, ok := conn.(*goreality.Conn); ok {
+				conn = gorealityConn.NetConn()
+			}
 		}
 		if pc, ok := conn.(*proxyproto.Conn); ok {
 			conn = pc.Raw()
