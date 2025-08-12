@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"context"
 	gotls "crypto/tls"
+	"encoding/base64"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 	"unsafe"
@@ -32,6 +34,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
+	"github.com/v2fly/v2ray-core/v5/proxy/vless/encryption"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
@@ -56,7 +59,7 @@ func init() {
 				}
 				return
 			}(),
-			Decryption: "none",
+			Decryption: simplifiedServer.Decryption,
 		}
 
 		return common.CreateObject(ctx, fullConfig)
@@ -68,6 +71,7 @@ type Handler struct {
 	inboundHandlerManager feature_inbound.Manager
 	policyManager         policy.Manager
 	validator             *vless.Validator
+	decryption            *encryption.ServerInstance
 	fallbacks             map[string]map[string]map[string]*Fallback // or nil
 	// regexps               map[string]*regexp.Regexp       // or nil
 }
@@ -89,6 +93,51 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 		if err := handler.AddUser(ctx, u); err != nil {
 			return nil, newError("failed to initiate user").Base(err).AtError()
 		}
+	}
+
+	switch config.Decryption {
+	case "":
+		return nil, newError("empty decryption")
+	case "none":
+	default:
+		var xorMode, seconds uint32
+		s := strings.Split(config.Decryption, ".")
+		if len(s) < 4 || s[0] != "mlkem768x25519plus" {
+			return nil, newError("invalid decryption")
+		}
+		switch s[1] {
+		case "native":
+		case "xorpub":
+			xorMode = 1
+		case "random":
+			xorMode = 2
+		default:
+			return nil, newError("invalid decryption")
+		}
+		if s[2] != "1rtt" {
+			t := strings.TrimSuffix(s[2], "s")
+			if t == s[2] {
+				return nil, newError("invalid decryption")
+			}
+			i, err := strconv.Atoi(t)
+			if err != nil {
+				return nil, newError("invalid decryption")
+			}
+			seconds = uint32(i)
+		}
+		var nfsSKeysBytes [][]byte
+		for i := 3; i < len(s); i++ {
+			if b, _ := base64.RawURLEncoding.DecodeString(s[i]); len(b) != 32 && len(b) != 64 {
+				return nil, newError("invalid decryption")
+			} else {
+				nfsSKeysBytes = append(nfsSKeysBytes, b)
+			}
+		}
+		handler.decryption = &encryption.ServerInstance{}
+		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, seconds); err != nil {
+			return nil, newError("failed to use decryption").Base(err).AtError()
+		}
+
 	}
 
 	if config.Fallbacks != nil {
@@ -156,6 +205,9 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 
 // Close implements common.Closable.Close().
 func (h *Handler) Close() error {
+	if h.decryption != nil {
+		h.decryption.Close()
+	}
 	return errors.Combine(common.Close(h.validator))
 }
 
@@ -187,6 +239,14 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	sessionPolicy := h.policyManager.ForLevel(0)
 	if err := connection.SetReadDeadline(time.Now().Add(sessionPolicy.Timeouts.Handshake)); err != nil {
 		return newError("unable to set read deadline").Base(err).AtWarning()
+	}
+
+	if h.decryption != nil {
+		var err error
+		connection, err = h.decryption.Handshake(connection)
+		if err != nil {
+			return newError("ML-KEM-768 handshake failed").Base(err).AtInfo()
+		}
 	}
 
 	first := buf.FromBytes(make([]byte, buf.Size))
@@ -400,6 +460,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 
 	responseAddons := &encoding.Addons{}
 
+	var peerCache *[]byte
 	var input *bytes.Reader
 	var rawInput *bytes.Buffer
 	switch requestAddons.Flow {
@@ -411,6 +472,10 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			case protocol.RequestCommandMux:
 				fallthrough // we will break Mux connections that contain TCP requests
 			case protocol.RequestCommandTCP:
+				if serverConn, ok := connection.(*encryption.CommonConn); ok {
+					peerCache = &serverConn.PeerCache
+					break
+				}
 				var t reflect.Type
 				var p uintptr
 				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
@@ -483,7 +548,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		var err error
 		if requestAddons.Flow == vless.XRV {
 			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx)
-			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx)
+			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, peerCache, input, rawInput, trafficState, true, ctx)
 		} else {
 			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
 			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
