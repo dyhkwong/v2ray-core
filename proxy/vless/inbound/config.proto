@@ -20,8 +20,7 @@ message Fallback {
 
 message Config {
   repeated v2ray.core.common.protocol.User clients = 1;
-  // Decryption settings. Only applies to server side, and only accepts "none"
-  // for now.
+  // Decryption settings. Only applies to server side.
   string decryption = 2;
   repeated Fallback fallbacks = 3;
 }
@@ -31,4 +30,5 @@ message SimplifiedConfig {
   option (v2ray.core.common.protoext.message_opt).short_name = "vless";
 
   repeated string users = 1;
+  string decryption = 2;
 }
