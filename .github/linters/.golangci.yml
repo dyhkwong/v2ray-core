@@ -48,6 +48,7 @@ linters:
       - .pb.go
       - infra/conf/cfgcommon/tlscfg/reality.go
       - proxy/vless/encoding/vision.go
+      - proxy/vless/encryption/*.*
       - proxy/vless/inbound/inbound.go
       - proxy/vless/outbound/outbound.go
       - transport/internet/reality/*.*
