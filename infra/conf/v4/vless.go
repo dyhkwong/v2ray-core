@@ -58,9 +58,6 @@ func (c *VLessInboundConfig) Build() (proto.Message, error) {
 		config.Clients[idx] = user
 	}
 
-	if c.Decryption != "none" {
-		return nil, newError(`VLESS settings: please add/set "decryption":"none" to every settings`)
-	}
 	config.Decryption = c.Decryption
 
 	if c.Fallback != nil {
@@ -161,10 +158,6 @@ func (c *VLessOutboundConfig) Build() (proto.Message, error) {
 			account := new(vless.Account)
 			if err := json.Unmarshal(rawUser, account); err != nil {
 				return nil, newError(`VLESS users: invalid user`).Base(err)
-			}
-
-			if account.Encryption != "none" {
-				return nil, newError(`VLESS users: please add/set "encryption":"none" for every user`)
 			}
 
 			user.Account = serial.ToTypedMessage(account)
