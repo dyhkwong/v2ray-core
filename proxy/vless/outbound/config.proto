@@ -24,4 +24,5 @@ message SimplifiedConfig {
   uint32 port = 2;
   string uuid = 3;
   v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 4;
+  string encryption = 5;
 }
