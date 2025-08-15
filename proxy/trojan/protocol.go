@@ -1,6 +1,7 @@
 package trojan
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 	gonet "net"
@@ -36,9 +37,17 @@ type ConnWriter struct {
 // Write implements io.Writer
 func (c *ConnWriter) Write(p []byte) (n int, err error) {
 	if !c.headerSent {
-		if err := c.writeHeader(); err != nil {
-			return 0, newError("failed to write request header").Base(err)
+		c.headerSent = true
+		header, err := c.newHeader()
+		if err != nil {
+			return 0, err
 		}
+		n, err := c.Writer.Write(append(header, p...))
+		if err != nil {
+			return 0, err
+		}
+		c.headerSent = true
+		return n, nil
 	}
 
 	return c.Writer.Write(p)
@@ -61,14 +70,19 @@ func (c *ConnWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 
 func (c *ConnWriter) WriteHeader() error {
 	if !c.headerSent {
-		if err := c.writeHeader(); err != nil {
+		header, err := c.newHeader()
+		if err != nil {
 			return err
 		}
+		if _, err := c.Writer.Write(header); err != nil {
+			return err
+		}
+		c.headerSent = true
 	}
 	return nil
 }
 
-func (c *ConnWriter) writeHeader() error {
+func (c *ConnWriter) newHeader() ([]byte, error) {
 	buffer := buf.StackNew()
 	defer buffer.Release()
 
@@ -78,27 +92,22 @@ func (c *ConnWriter) writeHeader() error {
 	}
 
 	if _, err := buffer.Write(c.Account.Key); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := buffer.Write(crlf); err != nil {
-		return err
+		return nil, err
 	}
 	if err := buffer.WriteByte(command); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addrParser.WriteAddressPort(&buffer, c.Target.Address, c.Target.Port); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := buffer.Write(crlf); err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err := c.Writer.Write(buffer.Bytes())
-	if err == nil {
-		c.headerSent = true
-	}
-
-	return err
+	return bytes.Clone(buffer.Bytes()), nil
 }
 
 // PacketWriter UDP Connection Writer Wrapper for trojan protocol
