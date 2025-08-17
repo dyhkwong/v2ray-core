@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"encoding/binary"
+	"io"
 	"net/url"
 	"sync"
 	"time"
@@ -98,6 +99,18 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 	}
 
 	return s, nil
+}
+
+func (s *QUICNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name returns client name
@@ -313,14 +326,13 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	if err != nil {
 		return nil, newError("failed to parse response length").Base(err)
 	}
-	respBuf := buf.NewWithSize(int32(length))
-	defer respBuf.Release()
-	_, err = respBuf.ReadFullFrom(conn, int32(length))
+	response := make([]byte, length)
+	_, err = io.ReadFull(conn, response)
 	if err != nil {
 		return nil, newError("failed to read response length").Base(err)
 	}
 
-	return respBuf.Bytes(), nil
+	return response, nil
 }
 
 func (s *QUICNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {

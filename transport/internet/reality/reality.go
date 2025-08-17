@@ -148,7 +148,7 @@ func UClient(ctx context.Context, conn net.Conn, dest net.Destination, config *C
 	copy(raw[39:], hello.SessionId) // the fixed location of `Session ID`
 	version := config.Version
 	if len(version) != 3 {
-		version = []byte{25, 7, 26}
+		version = []byte{25, 8, 3}
 	}
 	hello.SessionId[0] = version[0] // Version_x
 	hello.SessionId[1] = version[1] // Version_y

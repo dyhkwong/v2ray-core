@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,60 +31,59 @@ import (
 // thus most of the DOH implementation is copied from udpns.go
 type DoHNameServer struct {
 	sync.RWMutex
-	ips        map[string]record
-	pub        *pubsub.Service
-	cleanup    *task.Periodic
-	httpClient *http.Client
-	dohURL     string
-	name       string
-	protocol   string
+	ips           map[string]record
+	pub           *pubsub.Service
+	cleanup       *task.Periodic
+	httpClient    *http.Client
+	dohURL        string
+	name          string
+	protocol      string
+	newHTTPClient func() *http.Client
+	resetAccess   sync.Mutex
+	resetAt       time.Time
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
 func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
-	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	s := baseDOHNameServer(url, "DOH", "tls")
-
-	tr := &http.Transport{
-		MaxIdleConns:        30,
-		IdleConnTimeout:     90 * time.Second,
-		TLSHandshakeTimeout: 30 * time.Second,
-		ForceAttemptHTTP2:   true,
-		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := net.ParseDestination(network + ":" + addr)
-			if err != nil {
-				return nil, err
-			}
-
-			link, err := dispatcher.Dispatch(ctx, dest)
-			if err != nil {
-				return nil, err
-			}
-
-			return tls.Client(cnc.NewConnection(
-				cnc.ConnectionInputMulti(link.Writer),
-				cnc.ConnectionOutputMulti(link.Reader),
-			), &tls.Config{
-				ServerName: func() string {
-					switch dest.Address.Family() {
-					case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
-						return dest.Address.IP().String()
-					case net.AddressFamilyDomain:
-						return dest.Address.Domain()
-					default:
-						panic("unknown address family")
+	s.newHTTPClient = func() *http.Client {
+		return &http.Client{
+			Timeout: 60 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        30,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 30 * time.Second,
+				ForceAttemptHTTP2:   true,
+				DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					dest, err := net.ParseDestination(network + ":" + addr)
+					if err != nil {
+						return nil, err
 					}
-				}(),
-			}), nil
-		},
+					link, err := dispatcher.Dispatch(ctx, dest)
+					if err != nil {
+						return nil, err
+					}
+					return tls.Client(cnc.NewConnection(
+						cnc.ConnectionInputMulti(link.Writer),
+						cnc.ConnectionOutputMulti(link.Reader),
+					), &tls.Config{
+						ServerName: func() string {
+							switch dest.Address.Family() {
+							case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
+								return dest.Address.IP().String()
+							case net.AddressFamilyDomain:
+								return dest.Address.Domain()
+							default:
+								panic("unknown address family")
+							}
+						}(),
+					}), nil
+				},
+			},
+		}
 	}
-
-	dispatchedClient := &http.Client{
-		Transport: tr,
-		Timeout:   60 * time.Second,
-	}
-
-	s.httpClient = dispatchedClient
+	s.httpClient = s.newHTTPClient()
+	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s, nil
 }
 
@@ -91,25 +91,29 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
 	s := baseDOHNameServer(url, "DOHL", "tls")
-	tr := &http.Transport{
-		IdleConnTimeout:   90 * time.Second,
-		ForceAttemptHTTP2: true,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := net.ParseDestination(network + ":" + addr)
-			if err != nil {
-				return nil, err
-			}
-			conn, err := internet.DialSystem(ctx, dest, nil)
-			if err != nil {
-				return nil, err
-			}
-			return conn, nil
-		},
+	s.newHTTPClient = func() *http.Client {
+		tr := &http.Transport{
+			IdleConnTimeout:   90 * time.Second,
+			ForceAttemptHTTP2: true,
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				dest, err := net.ParseDestination(network + ":" + addr)
+				if err != nil {
+					return nil, err
+				}
+				conn, err := internet.DialSystem(ctx, dest, nil)
+				if err != nil {
+					return nil, err
+				}
+				return conn, nil
+			},
+		}
+		return &http.Client{
+			Timeout:   time.Second * 180,
+			Transport: tr,
+		}
 	}
-	s.httpClient = &http.Client{
-		Timeout:   time.Second * 180,
-		Transport: tr,
-	}
+	s.httpClient = s.newHTTPClient()
+
 	newError("DNS: created Local DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }
@@ -127,6 +131,15 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 		Execute:  s.Cleanup,
 	}
 	return s
+}
+
+func (s *DoHNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.
@@ -291,8 +304,19 @@ func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 	defer cancel()
 
+	startAt := time.Now()
 	resp, err := s.dohHTTPSContext(dnsCtx, request)
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			s.resetAccess.Lock()
+			if s.resetAt.After(startAt) {
+				return nil, newError("failed to retrieve response").Base(ctx.Err())
+			}
+			s.httpClient.CloseIdleConnections()
+			s.httpClient = s.newHTTPClient()
+			s.resetAt = time.Now()
+			s.resetAccess.Unlock()
+		}
 		return nil, newError("failed to retrieve response").Base(err)
 	}
 	return resp, nil
@@ -417,11 +441,22 @@ func (s *DoHNameServer) QueryIPWithTTL(ctx context.Context, domain string, clien
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				s.resetAccess.Lock()
+				if s.resetAt.After(startAt) {
+					s.resetAccess.Unlock()
+					return nil, time.Time{}, ctx.Err()
+				}
+				s.httpClient = s.newHTTPClient()
+				s.resetAt = time.Now()
+				s.resetAccess.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}

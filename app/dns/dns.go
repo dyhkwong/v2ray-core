@@ -39,10 +39,9 @@ type DNS struct {
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
 
-	closed      bool
-	taskMutex   sync.Mutex
-	taskCount   uint64
-	taskAllDone chan any
+	closed bool
+	tasks  uint64
+	done   chan interface{}
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -107,7 +106,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		return nil, err
 	}
 
-	s.taskAllDone = make(chan any)
+	s.done = make(chan interface{})
 
 	return s, nil
 }
@@ -241,14 +240,15 @@ func (s *DNS) Start() error {
 // Close implements common.Closable.
 func (s *DNS) Close() error {
 	s.closed = true
-	s.taskMutex.Lock()
-	if s.taskCount == 0 {
-		close(s.taskAllDone)
+	s.Lock()
+	if s.tasks == 0 {
+		close(s.done)
 	}
-	s.taskMutex.Unlock()
+	s.Unlock()
 	go func() {
-		<-s.taskAllDone
+		<-s.done
 		for _, c := range s.clients {
+			common.Close(c.server)
 			c.domains = nil
 			c.expectIPs = nil
 			c.fakeDNS = nil
@@ -305,16 +305,16 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 	if s.closed {
 		return nil, newError("dns client closed")
 	}
-	s.taskMutex.Lock()
-	s.taskCount++
-	s.taskMutex.Unlock()
+	s.Lock()
+	s.tasks++
+	s.Unlock()
 	defer func() {
-		s.taskMutex.Lock()
-		s.taskCount--
-		if s.taskCount == 0 && s.closed {
-			close(s.taskAllDone)
+		s.Lock()
+		s.tasks--
+		if s.tasks == 0 && s.closed {
+			close(s.done)
 		}
-		s.taskMutex.Unlock()
+		s.Unlock()
 	}()
 
 	requestMsg := new(dnsmessage.Message)
@@ -366,16 +366,16 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	if s.closed {
 		return nil, time.Time{}, newError("dns client closed")
 	}
-	s.taskMutex.Lock()
-	s.taskCount++
-	s.taskMutex.Unlock()
+	s.Lock()
+	s.tasks++
+	s.Unlock()
 	defer func() {
-		s.taskMutex.Lock()
-		s.taskCount--
-		if s.taskCount == 0 && s.closed {
-			close(s.taskAllDone)
+		s.Lock()
+		s.tasks--
+		if s.tasks == 0 && s.closed {
+			close(s.done)
 		}
-		s.taskMutex.Unlock()
+		s.Unlock()
 	}()
 
 	if domain == "" {

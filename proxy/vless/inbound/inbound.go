@@ -5,6 +5,7 @@ package inbound
 import (
 	"bytes"
 	"context"
+	gotls "crypto/tls"
 	"io"
 	"reflect"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/pires/go-proxyproto"
+	goreality "github.com/xtls/reality"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -31,8 +33,10 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
 
 func init() {
@@ -409,6 +413,11 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			case protocol.RequestCommandTCP:
 				var t reflect.Type
 				var p uintptr
+				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+					iConn = httpupgradeConn.Conn
+				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+					iConn = websocketConn.Conn.NetConn()
+				}
 				if tlsConn, ok := iConn.(*tls.Conn); ok {
 					if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
 						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
@@ -418,6 +427,15 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 				} else if realityConn, ok := iConn.(*reality.Conn); ok {
 					t = reflect.TypeOf(realityConn.Conn).Elem()
 					p = uintptr(unsafe.Pointer(realityConn.Conn))
+				} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
+					if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
+					}
+					t = reflect.TypeOf(gotlsConn).Elem()
+					p = uintptr(unsafe.Pointer(gotlsConn))
+				} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
+					t = reflect.TypeOf(gorealityConn).Elem()
+					p = uintptr(unsafe.Pointer(gorealityConn))
 				} else {
 					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
 				}

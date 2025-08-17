@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	gotls "crypto/tls"
 	"io"
 	"math/big"
 	"strconv"
 
 	"github.com/pires/go-proxyproto"
+	goreality "github.com/xtls/reality"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
@@ -17,9 +19,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
 
 var (
@@ -486,6 +490,11 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 			readCounter = statConn.ReadCounter
 			writerCounter = statConn.WriteCounter
 		}
+		if httpupgradeConn, ok := conn.(*httpupgrade.Connection); ok {
+			conn = httpupgradeConn.Conn
+		} else if websocketConn, ok := conn.(*websocket.Connection); ok {
+			conn = websocketConn.Conn.NetConn()
+		}
 		if tlsConn, ok := conn.(*tls.Conn); ok {
 			conn = tlsConn.NetConn()
 		} else if utlsConn, ok := conn.(utls.UTLSClientConnection); ok {
@@ -494,6 +503,10 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 			conn = realityConn.NetConn()
 		} else if realityUConn, ok := conn.(*reality.UConn); ok {
 			conn = realityUConn.NetConn()
+		} else if gotlsConn, ok := conn.(*gotls.Conn); ok {
+			conn = gotlsConn.NetConn()
+		} else if gorealityConn, ok := conn.(*goreality.Conn); ok {
+			conn = gorealityConn.NetConn()
 		}
 		if pc, ok := conn.(*proxyproto.Conn); ok {
 			conn = pc.Raw()

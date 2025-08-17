@@ -142,7 +142,7 @@ func parseWireGuardKey(key string) (string, error) {
 	}
 	str, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return "", newError("invalid key: ", key)
+		return "", newError("invalid key")
 	}
 	return hex.EncodeToString(str), nil
 }

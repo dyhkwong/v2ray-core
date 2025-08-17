@@ -113,7 +113,7 @@ func (p *Plugin) waitPlugin() {
 	if err != nil {
 		newError("failed to get sip003 plugin status").Base(err).WriteToLog()
 	} else {
-		newError("sip003 plugin exited with code %d, try restart", status.ExitCode()).WriteToLog()
+		newError("sip003 plugin exited with code ", status.ExitCode(), ", try to restart").WriteToLog()
 	}
 
 	time.Sleep(time.Second)

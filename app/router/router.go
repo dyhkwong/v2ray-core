@@ -19,15 +19,15 @@ import (
 
 // Router is an implementation of routing.Router.
 type Router struct {
+	sync.Mutex
 	domainStrategy DomainStrategy
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
 
-	closed      bool
-	taskMutex   sync.Mutex
-	taskCount   uint64
-	taskAllDone chan any
+	closed    bool
+	taskCount uint64
+	done      chan interface{}
 }
 
 // Route is an implementation of routing.Route.
@@ -73,7 +73,7 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 		r.rules = append(r.rules, rr)
 	}
 
-	r.taskAllDone = make(chan any)
+	r.done = make(chan interface{})
 
 	return nil
 }
@@ -95,16 +95,16 @@ func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context,
 	if r.closed {
 		return nil, nil, newError("router closed")
 	}
-	r.taskMutex.Lock()
+	r.Lock()
 	r.taskCount++
-	r.taskMutex.Unlock()
+	r.Unlock()
 	defer func() {
-		r.taskMutex.Lock()
+		r.Lock()
 		r.taskCount--
 		if r.taskCount == 0 && r.closed {
-			close(r.taskAllDone)
+			close(r.done)
 		}
-		r.taskMutex.Unlock()
+		r.Unlock()
 	}()
 
 	// SkipDNSResolve is set from DNS module.
@@ -146,13 +146,13 @@ func (r *Router) Start() error {
 // Close implements common.Closable.
 func (r *Router) Close() error {
 	r.closed = true
-	r.taskMutex.Lock()
+	r.Lock()
 	if r.taskCount == 0 {
-		close(r.taskAllDone)
+		close(r.done)
 	}
-	r.taskMutex.Unlock()
+	r.Unlock()
 	go func() {
-		<-r.taskAllDone
+		<-r.done
 		r.balancers = nil
 		r.rules = nil
 		r.dns = nil

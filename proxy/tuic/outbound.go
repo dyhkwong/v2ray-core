@@ -46,7 +46,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
 	if err != nil {
-		return nil, newError(err, "invalid uuid: ", config.Uuid)
+		return nil, newError(err, "invalid uuid")
 	}
 
 	switch config.UdpRelayMode {

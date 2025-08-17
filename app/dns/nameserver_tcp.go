@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"encoding/binary"
+	"io"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -95,6 +96,15 @@ func baseTCPNameServer(url *url.URL, prefix string, port net.Port, protocol stri
 	}
 
 	return s, nil
+}
+
+func (s *TCPNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.
@@ -304,14 +314,12 @@ func (s *TCPNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	if err != nil {
 		return nil, newError("failed to parse response length").Base(err)
 	}
-	respBuf := buf.NewWithSize(int32(length))
-	defer respBuf.Release()
-	_, err = respBuf.ReadFullFrom(conn, int32(length))
+	response := make([]byte, length)
+	_, err = io.ReadFull(conn, response)
 	if err != nil {
 		return nil, newError("failed to read response length").Base(err)
 	}
-
-	return respBuf.Bytes(), nil
+	return response, nil
 }
 
 func (s *TCPNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {

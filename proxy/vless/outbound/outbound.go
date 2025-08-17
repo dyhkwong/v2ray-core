@@ -26,9 +26,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/vless/encoding"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/reality"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls/utls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/websocket"
 )
 
 func init() {
@@ -163,6 +165,11 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		case protocol.RequestCommandTCP:
 			var t reflect.Type
 			var p uintptr
+			if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+				iConn = httpupgradeConn.Conn
+			} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+				iConn = websocketConn.Conn.NetConn()
+			}
 			if tlsConn, ok := iConn.(*tls.Conn); ok {
 				t = reflect.TypeOf(tlsConn.Conn).Elem()
 				p = uintptr(unsafe.Pointer(tlsConn.Conn))

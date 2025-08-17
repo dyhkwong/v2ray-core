@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -41,7 +42,10 @@ type ClassicNameServer struct {
 	reqID      uint32
 	tcpServer  *TCPNameServer
 
-	channel map[uint16]chan []byte
+	channel      map[uint16]chan []byte
+	newUDPServer func() udp.DispatcherI
+	resetAccess  sync.Mutex
+	resetAt      time.Time
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -114,8 +118,22 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	s.newUDPServer = func() udp.DispatcherI {
+		return udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	}
+	s.udpServer = s.newUDPServer()
 	return s
+}
+
+func (s *ClassicNameServer) Close() error {
+	s.Lock()
+	s.cleanup.Close()
+	s.pub.Close()
+	s.ips = nil
+	s.requests = nil
+	s.tcpServer.Close()
+	s.Unlock()
+	return nil
 }
 
 // Name implements Server.
@@ -176,7 +194,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	id := binary.BigEndian.Uint16(payload[:2])
 	s.Lock()
 	if ch, found := s.channel[id]; found {
-		ch <- payload
+		ch <- bytes.Clone(payload)
 		s.Unlock()
 		return
 	}
@@ -340,6 +358,7 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	var cancel context.CancelFunc
 	udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
 	defer cancel()
+	startAt := time.Now()
 	s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, buf.FromBytes(request))
 
 	select {
@@ -347,8 +366,13 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 		s.Lock()
 		delete(s.channel, id)
 		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
-			// can't fix without refactoring routing.Dispatcher
-			s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
+			s.resetAccess.Lock()
+			if s.resetAt.After(startAt) {
+				return nil, ctx.Err()
+			}
+			s.udpServer = s.newUDPServer()
+			s.resetAt = time.Now()
+			s.resetAccess.Unlock()
 		}
 		s.Unlock()
 		return nil, udpCtx.Err()
@@ -458,16 +482,21 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
 		select {
 		case <-ctx.Done():
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				// can't fix without refactoring routing.Dispatcher
-				s.Lock()
-				s.udpServer = udp.NewSplitDispatcher(s.dispatcher, s.HandleResponse)
-				s.Unlock()
+				s.resetAccess.Lock()
+				if s.resetAt.After(startAt) {
+					s.resetAccess.Unlock()
+					return nil, time.Time{}, ctx.Err()
+				}
+				s.udpServer = s.newUDPServer()
+				s.resetAt = time.Now()
+				s.resetAccess.Unlock()
 			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
