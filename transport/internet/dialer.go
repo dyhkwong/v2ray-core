@@ -6,6 +6,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tagged"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsfragment"
 )
 
 // Dialer is the interface for dialing outbound connections.
@@ -92,10 +93,32 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 	}
 
 	if transportLayerOutgoingTag := session.GetTransportLayerProxyTagFromContext(ctx); transportLayerOutgoingTag != "" {
-		return DialTaggedOutbound(ctx, dest, transportLayerOutgoingTag)
+		detourConn, err := DialTaggedOutbound(ctx, dest, transportLayerOutgoingTag)
+		if err != nil {
+			return nil, err
+		}
+		if dest.Network == net.Network_TCP && sockopt != nil && sockopt.TlsFragmentation != nil && (sockopt.TlsFragmentation.TlsRecordFragmentation || sockopt.TlsFragmentation.TcpSegmentation) {
+			return tlsfragment.NewTLSFragmentConn(
+				detourConn,
+				sockopt.TlsFragmentation.TlsRecordFragmentation,
+				sockopt.TlsFragmentation.TcpSegmentation,
+			), nil
+		}
+		return detourConn, nil
 	}
 
-	return effectiveSystemDialer.Dial(ctx, src, dest, sockopt)
+	rawConn, err := effectiveSystemDialer.Dial(ctx, src, dest, sockopt)
+	if err != nil {
+		return nil, err
+	}
+	if dest.Network == net.Network_TCP && sockopt != nil && sockopt.TlsFragmentation != nil && (sockopt.TlsFragmentation.TlsRecordFragmentation || sockopt.TlsFragmentation.TcpSegmentation) {
+		return tlsfragment.NewTLSFragmentConn(
+			rawConn,
+			sockopt.TlsFragmentation.TlsRecordFragmentation,
+			sockopt.TlsFragmentation.TcpSegmentation,
+		), nil
+	}
+	return rawConn, nil
 }
 
 func DialTaggedOutbound(ctx context.Context, dest net.Destination, tag string) (net.Conn, error) {
