@@ -453,18 +453,19 @@ type SocketConfig struct {
 	Tproxy SocketConfig_TProxyMode `protobuf:"varint,3,opt,name=tproxy,proto3,enum=v2ray.core.transport.internet.SocketConfig_TProxyMode" json:"tproxy,omitempty"`
 	// ReceiveOriginalDestAddress is for enabling IP_RECVORIGDSTADDR socket
 	// option. This option is for UDP only.
-	ReceiveOriginalDestAddress bool       `protobuf:"varint,4,opt,name=receive_original_dest_address,json=receiveOriginalDestAddress,proto3" json:"receive_original_dest_address,omitempty"`
-	BindAddress                []byte     `protobuf:"bytes,5,opt,name=bind_address,json=bindAddress,proto3" json:"bind_address,omitempty"`
-	BindPort                   uint32     `protobuf:"varint,6,opt,name=bind_port,json=bindPort,proto3" json:"bind_port,omitempty"`
-	AcceptProxyProtocol        bool       `protobuf:"varint,7,opt,name=accept_proxy_protocol,json=acceptProxyProtocol,proto3" json:"accept_proxy_protocol,omitempty"`
-	TcpKeepAliveInterval       int32      `protobuf:"varint,8,opt,name=tcp_keep_alive_interval,json=tcpKeepAliveInterval,proto3" json:"tcp_keep_alive_interval,omitempty"`
-	TfoQueueLength             uint32     `protobuf:"varint,9,opt,name=tfo_queue_length,json=tfoQueueLength,proto3" json:"tfo_queue_length,omitempty"`
-	TcpKeepAliveIdle           int32      `protobuf:"varint,10,opt,name=tcp_keep_alive_idle,json=tcpKeepAliveIdle,proto3" json:"tcp_keep_alive_idle,omitempty"`
-	BindToDevice               string     `protobuf:"bytes,11,opt,name=bind_to_device,json=bindToDevice,proto3" json:"bind_to_device,omitempty"`
-	RxBufSize                  int64      `protobuf:"varint,12,opt,name=rx_buf_size,json=rxBufSize,proto3" json:"rx_buf_size,omitempty"`
-	TxBufSize                  int64      `protobuf:"varint,13,opt,name=tx_buf_size,json=txBufSize,proto3" json:"tx_buf_size,omitempty"`
-	ForceBufSize               bool       `protobuf:"varint,14,opt,name=force_buf_size,json=forceBufSize,proto3" json:"force_buf_size,omitempty"`
-	Mptcp                      MPTCPState `protobuf:"varint,15,opt,name=mptcp,proto3,enum=v2ray.core.transport.internet.MPTCPState" json:"mptcp,omitempty"`
+	ReceiveOriginalDestAddress bool              `protobuf:"varint,4,opt,name=receive_original_dest_address,json=receiveOriginalDestAddress,proto3" json:"receive_original_dest_address,omitempty"`
+	BindAddress                []byte            `protobuf:"bytes,5,opt,name=bind_address,json=bindAddress,proto3" json:"bind_address,omitempty"`
+	BindPort                   uint32            `protobuf:"varint,6,opt,name=bind_port,json=bindPort,proto3" json:"bind_port,omitempty"`
+	AcceptProxyProtocol        bool              `protobuf:"varint,7,opt,name=accept_proxy_protocol,json=acceptProxyProtocol,proto3" json:"accept_proxy_protocol,omitempty"`
+	TcpKeepAliveInterval       int32             `protobuf:"varint,8,opt,name=tcp_keep_alive_interval,json=tcpKeepAliveInterval,proto3" json:"tcp_keep_alive_interval,omitempty"`
+	TfoQueueLength             uint32            `protobuf:"varint,9,opt,name=tfo_queue_length,json=tfoQueueLength,proto3" json:"tfo_queue_length,omitempty"`
+	TcpKeepAliveIdle           int32             `protobuf:"varint,10,opt,name=tcp_keep_alive_idle,json=tcpKeepAliveIdle,proto3" json:"tcp_keep_alive_idle,omitempty"`
+	BindToDevice               string            `protobuf:"bytes,11,opt,name=bind_to_device,json=bindToDevice,proto3" json:"bind_to_device,omitempty"`
+	RxBufSize                  int64             `protobuf:"varint,12,opt,name=rx_buf_size,json=rxBufSize,proto3" json:"rx_buf_size,omitempty"`
+	TxBufSize                  int64             `protobuf:"varint,13,opt,name=tx_buf_size,json=txBufSize,proto3" json:"tx_buf_size,omitempty"`
+	ForceBufSize               bool              `protobuf:"varint,14,opt,name=force_buf_size,json=forceBufSize,proto3" json:"force_buf_size,omitempty"`
+	Mptcp                      MPTCPState        `protobuf:"varint,15,opt,name=mptcp,proto3,enum=v2ray.core.transport.internet.MPTCPState" json:"mptcp,omitempty"`
+	TlsFragmentation           *TLSFragmentation `protobuf:"bytes,99,opt,name=tlsFragmentation,proto3" json:"tlsFragmentation,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -604,6 +605,65 @@ func (x *SocketConfig) GetMptcp() MPTCPState {
 	return MPTCPState_AsIs
 }
 
+func (x *SocketConfig) GetTlsFragmentation() *TLSFragmentation {
+	if x != nil {
+		return x.TlsFragmentation
+	}
+	return nil
+}
+
+type TLSFragmentation struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	TlsRecordFragmentation bool                   `protobuf:"varint,1,opt,name=tls_record_fragmentation,json=tlsRecordFragmentation,proto3" json:"tls_record_fragmentation,omitempty"`
+	TcpSegmentation        bool                   `protobuf:"varint,2,opt,name=tcp_segmentation,json=tcpSegmentation,proto3" json:"tcp_segmentation,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *TLSFragmentation) Reset() {
+	*x = TLSFragmentation{}
+	mi := &file_transport_internet_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TLSFragmentation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TLSFragmentation) ProtoMessage() {}
+
+func (x *TLSFragmentation) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_internet_config_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TLSFragmentation.ProtoReflect.Descriptor instead.
+func (*TLSFragmentation) Descriptor() ([]byte, []int) {
+	return file_transport_internet_config_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *TLSFragmentation) GetTlsRecordFragmentation() bool {
+	if x != nil {
+		return x.TlsRecordFragmentation
+	}
+	return false
+}
+
+func (x *TLSFragmentation) GetTcpSegmentation() bool {
+	if x != nil {
+		return x.TcpSegmentation
+	}
+	return false
+}
+
 var File_transport_internet_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_config_proto_rawDesc = "" +
@@ -622,7 +682,7 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\x0fsocket_settings\x18\x06 \x01(\v2+.v2ray.core.transport.internet.SocketConfigR\x0esocketSettings\"Q\n" +
 	"\vProxyConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x120\n" +
-	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\xbe\x06\n" +
+	"\x13transportLayerProxy\x18\x02 \x01(\bR\x13transportLayerProxy\"\x9b\a\n" +
 	"\fSocketConfig\x12\x12\n" +
 	"\x04mark\x18\x01 \x01(\rR\x04mark\x12N\n" +
 	"\x03tfo\x18\x02 \x01(\x0e2<.v2ray.core.transport.internet.SocketConfig.TCPFastOpenStateR\x03tfo\x12N\n" +
@@ -639,7 +699,8 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\vrx_buf_size\x18\f \x01(\x03R\trxBufSize\x12\x1e\n" +
 	"\vtx_buf_size\x18\r \x01(\x03R\ttxBufSize\x12$\n" +
 	"\x0eforce_buf_size\x18\x0e \x01(\bR\fforceBufSize\x12?\n" +
-	"\x05mptcp\x18\x0f \x01(\x0e2).v2ray.core.transport.internet.MPTCPStateR\x05mptcp\"5\n" +
+	"\x05mptcp\x18\x0f \x01(\x0e2).v2ray.core.transport.internet.MPTCPStateR\x05mptcp\x12[\n" +
+	"\x10tlsFragmentation\x18c \x01(\v2/.v2ray.core.transport.internet.TLSFragmentationR\x10tlsFragmentation\"5\n" +
 	"\x10TCPFastOpenState\x12\b\n" +
 	"\x04AsIs\x10\x00\x12\n" +
 	"\n" +
@@ -650,7 +711,10 @@ const file_transport_internet_config_proto_rawDesc = "" +
 	"\x03Off\x10\x00\x12\n" +
 	"\n" +
 	"\x06TProxy\x10\x01\x12\f\n" +
-	"\bRedirect\x10\x02*Z\n" +
+	"\bRedirect\x10\x02\"w\n" +
+	"\x10TLSFragmentation\x128\n" +
+	"\x18tls_record_fragmentation\x18\x01 \x01(\bR\x16tlsRecordFragmentation\x12)\n" +
+	"\x10tcp_segmentation\x18\x02 \x01(\bR\x0ftcpSegmentation*Z\n" +
 	"\x11TransportProtocol\x12\a\n" +
 	"\x03TCP\x10\x00\x12\a\n" +
 	"\x03UDP\x10\x01\x12\b\n" +
@@ -679,7 +743,7 @@ func file_transport_internet_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_config_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_transport_internet_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_transport_internet_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_transport_internet_config_proto_goTypes = []any{
 	(TransportProtocol)(0),             // 0: v2ray.core.transport.internet.TransportProtocol
 	(MPTCPState)(0),                    // 1: v2ray.core.transport.internet.MPTCPState
@@ -689,23 +753,25 @@ var file_transport_internet_config_proto_goTypes = []any{
 	(*StreamConfig)(nil),               // 5: v2ray.core.transport.internet.StreamConfig
 	(*ProxyConfig)(nil),                // 6: v2ray.core.transport.internet.ProxyConfig
 	(*SocketConfig)(nil),               // 7: v2ray.core.transport.internet.SocketConfig
-	(*anypb.Any)(nil),                  // 8: google.protobuf.Any
+	(*TLSFragmentation)(nil),           // 8: v2ray.core.transport.internet.TLSFragmentation
+	(*anypb.Any)(nil),                  // 9: google.protobuf.Any
 }
 var file_transport_internet_config_proto_depIdxs = []int32{
-	0, // 0: v2ray.core.transport.internet.TransportConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
-	8, // 1: v2ray.core.transport.internet.TransportConfig.settings:type_name -> google.protobuf.Any
-	0, // 2: v2ray.core.transport.internet.StreamConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
-	4, // 3: v2ray.core.transport.internet.StreamConfig.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
-	8, // 4: v2ray.core.transport.internet.StreamConfig.security_settings:type_name -> google.protobuf.Any
-	7, // 5: v2ray.core.transport.internet.StreamConfig.socket_settings:type_name -> v2ray.core.transport.internet.SocketConfig
-	2, // 6: v2ray.core.transport.internet.SocketConfig.tfo:type_name -> v2ray.core.transport.internet.SocketConfig.TCPFastOpenState
-	3, // 7: v2ray.core.transport.internet.SocketConfig.tproxy:type_name -> v2ray.core.transport.internet.SocketConfig.TProxyMode
-	1, // 8: v2ray.core.transport.internet.SocketConfig.mptcp:type_name -> v2ray.core.transport.internet.MPTCPState
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	0,  // 0: v2ray.core.transport.internet.TransportConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
+	9,  // 1: v2ray.core.transport.internet.TransportConfig.settings:type_name -> google.protobuf.Any
+	0,  // 2: v2ray.core.transport.internet.StreamConfig.protocol:type_name -> v2ray.core.transport.internet.TransportProtocol
+	4,  // 3: v2ray.core.transport.internet.StreamConfig.transport_settings:type_name -> v2ray.core.transport.internet.TransportConfig
+	9,  // 4: v2ray.core.transport.internet.StreamConfig.security_settings:type_name -> google.protobuf.Any
+	7,  // 5: v2ray.core.transport.internet.StreamConfig.socket_settings:type_name -> v2ray.core.transport.internet.SocketConfig
+	2,  // 6: v2ray.core.transport.internet.SocketConfig.tfo:type_name -> v2ray.core.transport.internet.SocketConfig.TCPFastOpenState
+	3,  // 7: v2ray.core.transport.internet.SocketConfig.tproxy:type_name -> v2ray.core.transport.internet.SocketConfig.TProxyMode
+	1,  // 8: v2ray.core.transport.internet.SocketConfig.mptcp:type_name -> v2ray.core.transport.internet.MPTCPState
+	8,  // 9: v2ray.core.transport.internet.SocketConfig.tlsFragmentation:type_name -> v2ray.core.transport.internet.TLSFragmentation
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_transport_internet_config_proto_init() }
@@ -719,7 +785,7 @@ func file_transport_internet_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_internet_config_proto_rawDesc), len(file_transport_internet_config_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
