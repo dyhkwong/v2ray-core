@@ -54,6 +54,7 @@ linters:
       - proxy/wireguard/*.*
       - transport/internet/reality/*.*
       - transport/internet/splithttp/*.*
+      - transport/internet/tlsfragment/*.*
       - third_party$
       - builtin$
       - examples$
