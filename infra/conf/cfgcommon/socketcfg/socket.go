@@ -7,18 +7,24 @@ import (
 )
 
 type SocketConfig struct {
-	Mark                 uint32 `json:"mark"`
-	TFO                  *bool  `json:"tcpFastOpen"`
-	TProxy               string `json:"tproxy"`
-	AcceptProxyProtocol  bool   `json:"acceptProxyProtocol"`
-	TCPKeepAliveInterval int32  `json:"tcpKeepAliveInterval"`
-	TCPKeepAliveIdle     int32  `json:"tcpKeepAliveIdle"`
-	TFOQueueLength       uint32 `json:"tcpFastOpenQueueLength"`
-	BindToDevice         string `json:"bindToDevice"`
-	RxBufSize            uint64 `json:"rxBufSize"`
-	TxBufSize            uint64 `json:"txBufSize"`
-	ForceBufSize         bool   `json:"forceBufSize"`
-	MPTCP                *bool  `json:"mptcp"`
+	Mark                 uint32                  `json:"mark"`
+	TFO                  *bool                   `json:"tcpFastOpen"`
+	TProxy               string                  `json:"tproxy"`
+	AcceptProxyProtocol  bool                    `json:"acceptProxyProtocol"`
+	TCPKeepAliveInterval int32                   `json:"tcpKeepAliveInterval"`
+	TCPKeepAliveIdle     int32                   `json:"tcpKeepAliveIdle"`
+	TFOQueueLength       uint32                  `json:"tcpFastOpenQueueLength"`
+	BindToDevice         string                  `json:"bindToDevice"`
+	RxBufSize            uint64                  `json:"rxBufSize"`
+	TxBufSize            uint64                  `json:"txBufSize"`
+	ForceBufSize         bool                    `json:"forceBufSize"`
+	MPTCP                *bool                   `json:"mptcp"`
+	TLSFragmentation     *TLSFragmentationConfig `json:"tlsFragmentation"`
+}
+
+type TLSFragmentationConfig struct {
+	TLSRecordFragmentation bool `json:"tlsRecordFragmentation"`
+	TCPSegmentation        bool `json:"tcpSegmentation"`
 }
 
 // Build implements Buildable.
@@ -56,7 +62,7 @@ func (c *SocketConfig) Build() (*internet.SocketConfig, error) {
 		}
 	}
 
-	return &internet.SocketConfig{
+	config := &internet.SocketConfig{
 		Mark:                 c.Mark,
 		Tfo:                  tfoSettings,
 		TfoQueueLength:       tfoQueueLength,
@@ -69,5 +75,14 @@ func (c *SocketConfig) Build() (*internet.SocketConfig, error) {
 		ForceBufSize:         c.ForceBufSize,
 		BindToDevice:         c.BindToDevice,
 		Mptcp:                mptcpSettings,
-	}, nil
+	}
+
+	if c.TLSFragmentation != nil {
+		config.TlsFragmentation = &internet.TLSFragmentation{
+			TlsRecordFragmentation: c.TLSFragmentation.TLSRecordFragmentation,
+			TcpSegmentation:        c.TLSFragmentation.TCPSegmentation,
+		}
+	}
+
+	return config, nil
 }
