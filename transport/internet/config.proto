@@ -117,4 +117,12 @@ message SocketConfig {
 
 
   MPTCPState mptcp = 15;
+
+  TLSFragmentation tlsFragmentation = 99;
+
+}
+
+message TLSFragmentation {
+  bool tls_record_fragmentation = 1;
+  bool tcp_segmentation = 2;
 }
