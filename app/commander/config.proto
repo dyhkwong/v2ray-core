@@ -16,6 +16,7 @@ message Config {
   // Services that supported by this server. All services must implement Service
   // interface.
   repeated google.protobuf.Any service = 2;
+  string listen = 3;
 }
 
 // ReflectionConfig is the placeholder config for ReflectionService.
@@ -31,4 +32,5 @@ message SimplifiedConfig {
 
   string tag = 1;
   repeated string name = 2;
+  string listen = 3;
 }
