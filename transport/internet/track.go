@@ -36,19 +36,14 @@ func NewTrackedConn(conn net.Conn, pool *ConnectionPool) *TrackedConn {
 	}
 }
 
-func UpdateTrackedConn(trackedConn *TrackedConn, conn net.Conn) *TrackedConn {
-	trackedConn.pool.Lock()
-	trackedConn.pool.Remove(trackedConn.elem)
-	trackedConn.Conn = conn
-	trackedConn.elem = trackedConn.pool.PushBack(conn)
-	trackedConn.pool.Unlock()
-	return trackedConn
-}
-
 type TrackedConn struct {
 	net.Conn
 	elem *list.Element
 	pool *ConnectionPool
+}
+
+func (c *TrackedConn) NetConn() net.Conn {
+	return c.Conn
 }
 
 func (c *TrackedConn) Close() error {

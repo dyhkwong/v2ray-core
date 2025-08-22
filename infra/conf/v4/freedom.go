@@ -8,19 +8,15 @@ import (
 
 	v2net "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/infra/conf/cfgcommon/socketcfg"
 	"github.com/v2fly/v2ray-core/v5/proxy/freedom"
 )
 
 type FreedomConfig struct {
-	DomainStrategy      string              `json:"domainStrategy"`
-	Timeout             *uint32             `json:"timeout"`
-	Redirect            string              `json:"redirect"`
-	UserLevel           uint32              `json:"userLevel"`
-	ProtocolReplacement string              `json:"protocolReplacement"`
-	Fragment            *socketcfg.Fragment `json:"fragment"`
-	Noises              []*socketcfg.Noise  `json:"noises"`
-	NoiseKeepalive      uint32              `json:"noiseKeepAlive"`
+	DomainStrategy      string  `json:"domainStrategy"`
+	Timeout             *uint32 `json:"timeout"`
+	Redirect            string  `json:"redirect"`
+	UserLevel           uint32  `json:"userLevel"`
+	ProtocolReplacement string  `json:"protocolReplacement"`
 }
 
 // Build implements Buildable
@@ -73,16 +69,5 @@ func (c *FreedomConfig) Build() (proto.Message, error) {
 	default:
 		return nil, newError("invalid protocol replacement: ", c.ProtocolReplacement)
 	}
-
-	if c.Fragment != nil {
-		config.Fragment = c.Fragment.Build()
-	}
-	if c.Noises != nil {
-		for _, noise := range c.Noises {
-			config.Noises = append(config.Noises, noise.Build())
-		}
-	}
-	config.NoiseKeepAlive = uint64(c.NoiseKeepalive)
-
 	return config, nil
 }

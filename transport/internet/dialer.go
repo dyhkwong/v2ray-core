@@ -6,6 +6,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tagged"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsfragment"
 )
 
 // Dialer is the interface for dialing outbound connections.
@@ -96,21 +97,12 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 		if err != nil {
 			return nil, err
 		}
-		if dest.Network == net.Network_TCP && sockopt != nil && sockopt.Fragment != nil {
-			fragmentConn, err := NewFragmentConn(detourConn, sockopt.Fragment)
-			if err != nil {
-				detourConn.Close()
-				return nil, err
-			}
-			return fragmentConn, nil
-		}
-		if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
-			noiseConn, err := NewNoiseConn(detourConn, sockopt.Noises, sockopt.NoiseKeepAlive)
-			if err != nil {
-				detourConn.Close()
-				return nil, err
-			}
-			return noiseConn, nil
+		if dest.Network == net.Network_TCP && sockopt != nil && sockopt.TlsFragmentation != nil && (sockopt.TlsFragmentation.TlsRecordFragmentation || sockopt.TlsFragmentation.TcpSegmentation) {
+			return tlsfragment.NewTLSFragmentConn(
+				detourConn,
+				sockopt.TlsFragmentation.TlsRecordFragmentation,
+				sockopt.TlsFragmentation.TcpSegmentation,
+			), nil
 		}
 		return detourConn, nil
 	}
@@ -119,42 +111,12 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 	if err != nil {
 		return nil, err
 	}
-	if dest.Network == net.Network_TCP && sockopt != nil && sockopt.Fragment != nil {
-		fragmentConn, err := NewFragmentConn(rawConn, sockopt.Fragment)
-		if err != nil {
-			rawConn.Close()
-			return nil, err
-		}
-		return fragmentConn, nil
-	}
-	if dest.Network == net.Network_UDP && sockopt != nil && sockopt.Noises != nil {
-		switch conn := rawConn.(type) {
-		case *PacketConnWrapper:
-			noisePacketConn, err := NewNoisePacketConn(conn.Conn, sockopt.Noises, sockopt.NoiseKeepAlive)
-			if err != nil {
-				rawConn.Close()
-				return nil, err
-			}
-			conn.Conn = noisePacketConn
-			return conn, nil
-		case net.PacketConn:
-			noisePacketConn, err := NewNoisePacketConn(conn, sockopt.Noises, sockopt.NoiseKeepAlive)
-			if err != nil {
-				rawConn.Close()
-				return nil, err
-			}
-			return &PacketConnWrapper{
-				Conn: noisePacketConn,
-				Dest: rawConn.RemoteAddr(),
-			}, nil
-		default:
-			noiseConn, err := NewNoiseConn(conn, sockopt.Noises, sockopt.NoiseKeepAlive)
-			if err != nil {
-				rawConn.Close()
-				return nil, err
-			}
-			return noiseConn, nil
-		}
+	if dest.Network == net.Network_TCP && sockopt != nil && sockopt.TlsFragmentation != nil && (sockopt.TlsFragmentation.TlsRecordFragmentation || sockopt.TlsFragmentation.TcpSegmentation) {
+		return tlsfragment.NewTLSFragmentConn(
+			rawConn,
+			sockopt.TlsFragmentation.TlsRecordFragmentation,
+			sockopt.TlsFragmentation.TcpSegmentation,
+		), nil
 	}
 	return rawConn, nil
 }

@@ -41,9 +41,6 @@ func init() {
 		fullConfig := &Config{
 			DestinationOverride: simplifiedServer.DestinationOverride,
 			ProtocolReplacement: simplifiedServer.ProtocolReplacement,
-			Fragment:            simplifiedServer.Fragment,
-			Noises:              simplifiedServer.Noises,
-			NoiseKeepAlive:      simplifiedServer.NoiseKeepAlive,
 		}
 		return common.CreateObject(ctx, fullConfig)
 	}))
@@ -155,72 +152,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	if err != nil {
 		return newError("failed to open connection to ", destination).Base(err)
 	}
-	defer func() {
-		conn.Close()
-	}()
-
-	if destination.Network == net.Network_TCP && h.config.Fragment != nil {
-		fragmentConn, err := internet.NewFragmentConn(conn, h.config.Fragment)
-		if err != nil {
-			return err
-		}
-		conn = fragmentConn
-	}
-	if destination.Network == net.Network_UDP && h.config.Noises != nil {
-		iConn := conn
-		trackedConn, ok := iConn.(*internet.TrackedConn)
-		if ok {
-			iConn = trackedConn.Conn
-		}
-		statConn, ok := iConn.(*internet.StatCouterConnection)
-		if ok {
-			iConn = statConn.Connection
-		}
-		switch c := iConn.(type) {
-		case *internet.PacketConnWrapper:
-			noisePacketConn, err := internet.NewNoisePacketConn(c.Conn, h.config.Noises, h.config.NoiseKeepAlive)
-			if err != nil {
-				return err
-			}
-			c.Conn = noisePacketConn
-			conn = c
-			if statConn != nil {
-				conn = &internet.StatCouterConnection{
-					Connection:   conn,
-					ReadCounter:  statConn.ReadCounter,
-					WriteCounter: statConn.WriteCounter,
-				}
-			}
-			if trackedConn != nil {
-				conn = internet.UpdateTrackedConn(trackedConn, conn)
-			}
-		case net.PacketConn:
-			noisePacketConn, err := internet.NewNoisePacketConn(c, h.config.Noises, h.config.NoiseKeepAlive)
-			if err != nil {
-				return err
-			}
-			conn = &internet.PacketConnWrapper{
-				Conn: noisePacketConn,
-				Dest: conn.RemoteAddr(),
-			}
-			if statConn != nil {
-				conn = &internet.StatCouterConnection{
-					Connection:   conn,
-					ReadCounter:  statConn.ReadCounter,
-					WriteCounter: statConn.WriteCounter,
-				}
-			}
-			if trackedConn != nil {
-				conn = internet.UpdateTrackedConn(trackedConn, conn)
-			}
-		default:
-			noiseConn, err := internet.NewNoiseConn(conn, h.config.Noises, h.config.NoiseKeepAlive)
-			if err != nil {
-				return err
-			}
-			conn = noiseConn
-		}
-	}
+	defer conn.Close()
 
 	plcy := h.policy()
 	ctx, cancel := context.WithCancel(ctx)
@@ -282,7 +214,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 func NewPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
 	iConn := conn
 	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.Conn
+		iConn = trackedConn.NetConn()
 	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {
@@ -334,7 +266,7 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 func NewPacketWriter(ctx context.Context, h *Handler, conn net.Conn, dest net.Destination, ipToDomain *sync.Map) buf.Writer {
 	iConn := conn
 	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.Conn
+		iConn = trackedConn.NetConn()
 	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {

@@ -84,7 +84,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	var readCounter, writeCounter stats.Counter
 	iConn := conn
 	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.Conn
+		iConn = trackedConn.NetConn()
 	}
 	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
 		iConn = statConn.Connection

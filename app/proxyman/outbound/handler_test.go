@@ -112,7 +112,7 @@ func TestOutboundWithStatCounter(t *testing.T) {
 	conn, err := h.(*Handler).Dial(ctx, dest)
 	common.Must(err)
 	if trackedConn, ok := conn.(*internet.TrackedConn); ok {
-		conn = trackedConn.Conn
+		conn = trackedConn.NetConn()
 	}
 	_, ok := conn.(*internet.StatCouterConnection)
 	if !ok {
