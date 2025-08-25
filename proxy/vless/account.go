@@ -1,6 +1,8 @@
 package vless
 
 import (
+	"crypto/sha1"
+
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 )
@@ -9,7 +11,17 @@ import (
 func (a *Account) AsAccount() (protocol.Account, error) {
 	id, err := uuid.ParseString(a.Id)
 	if err != nil {
-		return nil, newError("failed to parse ID").Base(err).AtError()
+		hash := sha1.New()
+		if _, err = hash.Write(id[:]); err != nil {
+			return nil, err
+		}
+		if _, err = hash.Write([]byte(a.Id)); err != nil {
+			return nil, err
+		}
+		u := hash.Sum(nil)[:16]
+		u[6] = (u[6] & 0x0f) | (5 << 4)
+		u[8] = (u[8]&(0xff>>2) | (0x02 << 6))
+		copy(id[:], u)
 	}
 	return &MemoryAccount{
 		ID:         protocol.NewID(id),
