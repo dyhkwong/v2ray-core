@@ -280,6 +280,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		Buffer: buf.MultiBuffer{first},
 	}
 
+	var userSentID []byte // not MemoryAccount.ID
 	var request *protocol.RequestHeader
 	var requestAddons *encoding.Addons
 	var err error
@@ -290,7 +291,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	if isfb && firstLen < 18 {
 		err = newError("fallback directly")
 	} else {
-		request, requestAddons, isfb, err = encoding.DecodeRequestHeader(isfb, first, reader, h.validator)
+		userSentID, request, requestAddons, isfb, err = encoding.DecodeRequestHeader(isfb, first, reader, h.validator)
 	}
 
 	if err != nil {
@@ -557,7 +558,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	serverReader := link.Reader // .(*pipe.Reader)
 	serverWriter := link.Writer // .(*pipe.Writer)
 
-	trafficState := encoding.NewTrafficState(account.ID.Bytes())
+	trafficState := encoding.NewTrafficState(userSentID)
 
 	postRequest := func() error {
 		defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
