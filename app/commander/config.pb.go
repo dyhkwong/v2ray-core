@@ -25,6 +25,7 @@ type Config struct {
 	// Services that supported by this server. All services must implement Service
 	// interface.
 	Service       []*anypb.Any `protobuf:"bytes,2,rep,name=service,proto3" json:"service,omitempty"`
+	Listen        string       `protobuf:"bytes,3,opt,name=listen,proto3" json:"listen,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -73,6 +74,13 @@ func (x *Config) GetService() []*anypb.Any {
 	return nil
 }
 
+func (x *Config) GetListen() string {
+	if x != nil {
+		return x.Listen
+	}
+	return ""
+}
+
 // ReflectionConfig is the placeholder config for ReflectionService.
 type ReflectionConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -114,6 +122,7 @@ type SimplifiedConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"`
 	Name          []string               `protobuf:"bytes,2,rep,name=name,proto3" json:"name,omitempty"`
+	Listen        string                 `protobuf:"bytes,3,opt,name=listen,proto3" json:"listen,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,20 +171,29 @@ func (x *SimplifiedConfig) GetName() []string {
 	return nil
 }
 
+func (x *SimplifiedConfig) GetListen() string {
+	if x != nil {
+		return x.Listen
+	}
+	return ""
+}
+
 var File_app_commander_config_proto protoreflect.FileDescriptor
 
 const file_app_commander_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1aapp/commander/config.proto\x12\x18v2ray.core.app.commander\x1a\x19google/protobuf/any.proto\x1a common/protoext/extensions.proto\"J\n" +
+	"\x1aapp/commander/config.proto\x12\x18v2ray.core.app.commander\x1a\x19google/protobuf/any.proto\x1a common/protoext/extensions.proto\"b\n" +
 	"\x06Config\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12.\n" +
-	"\aservice\x18\x02 \x03(\v2\x14.google.protobuf.AnyR\aservice\"1\n" +
+	"\aservice\x18\x02 \x03(\v2\x14.google.protobuf.AnyR\aservice\x12\x16\n" +
+	"\x06listen\x18\x03 \x01(\tR\x06listen\"1\n" +
 	"\x10ReflectionConfig:\x1d\x82\xb5\x18\x19\n" +
 	"\vgrpcservice\x12\n" +
-	"reflection\"R\n" +
+	"reflection\"j\n" +
 	"\x10SimplifiedConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12\x12\n" +
-	"\x04name\x18\x02 \x03(\tR\x04name:\x18\x82\xb5\x18\x14\n" +
+	"\x04name\x18\x02 \x03(\tR\x04name\x12\x16\n" +
+	"\x06listen\x18\x03 \x01(\tR\x06listen:\x18\x82\xb5\x18\x14\n" +
 	"\aservice\x12\tcommanderBi\n" +
 	"\x1ccom.v2ray.core.app.commanderP\x01Z,github.com/v2fly/v2ray-core/v5/app/commander\xaa\x02\x18V2Ray.Core.App.Commanderb\x06proto3"
 

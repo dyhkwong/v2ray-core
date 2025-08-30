@@ -24,6 +24,5 @@ message Config {
   bytes public_key = 23;
   bytes short_id = 24;
 
-  bytes version = 99;
-  bool disable_x25519mlkem768 = 100;
+  bool disable_x25519mlkem768 = 99;
 }

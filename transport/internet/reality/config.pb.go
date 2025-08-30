@@ -28,8 +28,7 @@ type Config struct {
 	ServerName            string                 `protobuf:"bytes,22,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
 	PublicKey             []byte                 `protobuf:"bytes,23,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	ShortId               []byte                 `protobuf:"bytes,24,opt,name=short_id,json=shortId,proto3" json:"short_id,omitempty"`
-	Version               []byte                 `protobuf:"bytes,99,opt,name=version,proto3" json:"version,omitempty"`
-	DisableX25519Mlkem768 bool                   `protobuf:"varint,100,opt,name=disable_x25519mlkem768,json=disableX25519mlkem768,proto3" json:"disable_x25519mlkem768,omitempty"`
+	DisableX25519Mlkem768 bool                   `protobuf:"varint,99,opt,name=disable_x25519mlkem768,json=disableX25519mlkem768,proto3" json:"disable_x25519mlkem768,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -134,13 +133,6 @@ func (x *Config) GetShortId() []byte {
 	return nil
 }
 
-func (x *Config) GetVersion() []byte {
-	if x != nil {
-		return x.Version
-	}
-	return nil
-}
-
 func (x *Config) GetDisableX25519Mlkem768() bool {
 	if x != nil {
 		return x.DisableX25519Mlkem768
@@ -152,7 +144,7 @@ var File_transport_internet_reality_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"\n" +
-	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\x8c\x03\n" +
+	"'transport/internet/reality/config.proto\x12%v2ray.core.transport.internet.reality\x1a common/protoext/extensions.proto\"\xf2\x02\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04dest\x18\x01 \x01(\tR\x04dest\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x12\n" +
@@ -166,9 +158,8 @@ const file_transport_internet_reality_config_proto_rawDesc = "" +
 	"serverName\x12\x1d\n" +
 	"\n" +
 	"public_key\x18\x17 \x01(\fR\tpublicKey\x12\x19\n" +
-	"\bshort_id\x18\x18 \x01(\fR\ashortId\x12\x18\n" +
-	"\aversion\x18c \x01(\fR\aversion\x125\n" +
-	"\x16disable_x25519mlkem768\x18d \x01(\bR\x15disableX25519mlkem768:\x17\x82\xb5\x18\x13\n" +
+	"\bshort_id\x18\x18 \x01(\fR\ashortId\x125\n" +
+	"\x16disable_x25519mlkem768\x18c \x01(\bR\x15disableX25519mlkem768:\x17\x82\xb5\x18\x13\n" +
 	"\bsecurity\x12\arealityB\x90\x01\n" +
 	")com.v2ray.core.transport.internet.realityP\x01Z9github.com/v2fly/v2ray-core/v5/transport/internet/reality\xaa\x02%V2Ray.Core.Transport.Internet.Realityb\x06proto3"
 

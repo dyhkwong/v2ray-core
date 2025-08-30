@@ -120,21 +120,6 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 			return nil, newError(`invalid "shortId": `, c.ShortId)
 		}
 		config.ServerName = c.ServerName
-
-		if c.Version != "" {
-			config.Version = make([]byte, 3)
-			var u uint64
-			for i, s := range strings.Split(c.Version, ".") {
-				if i == 3 {
-					return nil, newError(`invalid "verion": `, c.Version)
-				}
-				if u, err = strconv.ParseUint(s, 10, 8); err != nil {
-					return nil, newError(`"verion[`, i, `]" should be lesser than 256`)
-				} else {
-					config.Version[i] = byte(u)
-				}
-			}
-		}
 		config.DisableX25519Mlkem768 = c.DisableX25519MLKEM768
 	}
 	return config, nil

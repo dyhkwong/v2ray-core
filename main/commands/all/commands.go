@@ -14,6 +14,7 @@ func init() {
 		tls.CmdTLS,
 		cmdUUID,
 		cmdX25519,
+		cmdMLKEM768,
 		cmdWG,
 
 		// documents

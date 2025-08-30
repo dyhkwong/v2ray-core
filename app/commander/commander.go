@@ -31,12 +31,14 @@ type Commander struct {
 	services []Service
 	ohm      outbound.Manager
 	tag      string
+	listen   string
 }
 
 // NewCommander creates a new Commander based on the given config.
 func NewCommander(ctx context.Context, config *Config) (*Commander, error) {
 	c := &Commander{
-		tag: config.Tag,
+		tag:    config.Tag,
+		listen: config.Listen,
 	}
 
 	common.Must(core.RequireFeatures(ctx, func(om outbound.Manager) {
@@ -76,16 +78,29 @@ func (c *Commander) Start() error {
 	}
 	c.Unlock()
 
+	listen := func(listener net.Listener) {
+		if err := c.server.Serve(listener); err != nil {
+			newError("failed to start grpc server").Base(err).AtError().WriteToLog()
+		}
+	}
+
+	if len(c.listen) > 0 {
+		if l, err := net.Listen("tcp", c.listen); err != nil {
+			newError("API server failed to listen on ", c.listen).Base(err).AtError().WriteToLog()
+			return err
+		} else {
+			newError("API server listening on ", l.Addr()).AtInfo().WriteToLog()
+			go listen(l)
+		}
+		return nil
+	}
+
 	listener := &OutboundListener{
 		buffer: make(chan net.Conn, 4),
 		done:   done.New(),
 	}
 
-	go func() {
-		if err := c.server.Serve(listener); err != nil {
-			newError("failed to start grpc server").Base(err).AtError().WriteToLog()
-		}
-	}()
+	go listen(listener)
 
 	if err := c.ohm.RemoveHandler(context.Background(), c.tag); err != nil {
 		newError("failed to remove existing handler").WriteToLog()
@@ -130,6 +145,7 @@ func init() {
 		fullConfig := &Config{
 			Tag:     simplifiedConfig.Tag,
 			Service: nil,
+			Listen:  simplifiedConfig.Listen,
 		}
 		for _, v := range simplifiedConfig.Name {
 			pack, err := v5cfg.LoadHeterogeneousConfigFromRawJSON(ctx, "grpcservice", v, []byte("{}"))

@@ -21,7 +21,7 @@ type Account struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Flow settings.
 	Flow string `protobuf:"bytes,2,opt,name=flow,proto3" json:"flow,omitempty"`
-	// Encryption settings. Only applies to client side, and only accepts "none" for now.
+	// Encryption settings. Only applies to client side.
 	Encryption    string `protobuf:"bytes,3,opt,name=encryption,proto3" json:"encryption,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
