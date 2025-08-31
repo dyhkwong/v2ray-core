@@ -528,7 +528,7 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 }
 
 // XtlsRead filter and read xtls protocol
-func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer, conn net.Conn, peerCache *[]byte, input *bytes.Reader, rawInput *bytes.Buffer, trafficState *TrafficState, isUplink bool, ctx context.Context) error {
+func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer, conn net.Conn, input *bytes.Reader, rawInput *bytes.Buffer, trafficState *TrafficState, isUplink bool, ctx context.Context) error {
 	err := func() error {
 		for {
 			if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
@@ -552,23 +552,17 @@ func XtlsRead(reader buf.Reader, writer buf.Writer, timer *signal.ActivityTimer,
 			if !buffer.IsEmpty() {
 				timer.Update()
 				if isUplink && trafficState.Inbound.UplinkReaderDirectCopy || !isUplink && trafficState.Outbound.DownlinkReaderDirectCopy {
-					// XTLS Vision processes struct Encryption Conn's peerCache or TLS Conn's input and rawInput
-					if peerCache != nil {
-						if len(*peerCache) != 0 {
-							buffer = buf.MergeBytes(buffer, *peerCache)
-						}
-					} else {
-						if inputBuffer, err := buf.ReadFrom(input); err == nil {
-							if !inputBuffer.IsEmpty() {
-								buffer, _ = buf.MergeMulti(buffer, inputBuffer)
-							}
-						}
-						if rawInputBuffer, err := buf.ReadFrom(rawInput); err == nil {
-							if !rawInputBuffer.IsEmpty() {
-								buffer, _ = buf.MergeMulti(buffer, rawInputBuffer)
-							}
-						}
+					// XTLS Vision processes TLS-like conn's input and rawInput
+					if inputBuffer, err := buf.ReadFrom(input); err == nil && !inputBuffer.IsEmpty() {
+						buffer, _ = buf.MergeMulti(buffer, inputBuffer)
 					}
+					if rawInputBuffer, err := buf.ReadFrom(rawInput); err == nil && !rawInputBuffer.IsEmpty() {
+						buffer, _ = buf.MergeMulti(buffer, rawInputBuffer)
+					}
+					*input = bytes.Reader{} // release memory
+					input = nil
+					*rawInput = bytes.Buffer{} // release memory
+					rawInput = nil
 				}
 				if werr := writer.WriteMultiBuffer(buffer); werr != nil {
 					return werr

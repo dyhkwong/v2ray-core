@@ -100,8 +100,10 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 		return nil, newError("empty decryption")
 	case "none":
 	default:
+		decryptionStr := config.Decryption
 		var xorMode, seconds uint32
-		s := strings.Split(config.Decryption, ".")
+		var paddingStr string
+		s := strings.Split(decryptionStr, ".")
 		if len(s) < 4 || s[0] != "mlkem768x25519plus" {
 			return nil, newError("invalid decryption")
 		}
@@ -125,19 +127,31 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 			}
 			seconds = uint32(i)
 		}
-		var nfsSKeysBytes [][]byte
-		for i := 3; i < len(s); i++ {
-			if b, _ := base64.RawURLEncoding.DecodeString(s[i]); len(b) != 32 && len(b) != 64 {
+		padding := 0
+		for _, r := range s[3:] {
+			if len(r) < 20 {
+				padding += len(r) + 1
+				continue
+			}
+			if b, _ := base64.RawURLEncoding.DecodeString(r); len(b) != 32 && len(b) != 64 {
 				return nil, newError("invalid decryption")
-			} else {
-				nfsSKeysBytes = append(nfsSKeysBytes, b)
 			}
 		}
+		decryptionStr = decryptionStr[27+len(s[2]):]
+		if padding > 0 {
+			paddingStr = decryptionStr[:padding-1]
+			decryptionStr = decryptionStr[padding:]
+		}
+		var nfsSKeysBytes [][]byte
+		d := strings.Split(decryptionStr, ".")
+		for _, r := range d {
+			b, _ := base64.RawURLEncoding.DecodeString(r)
+			nfsSKeysBytes = append(nfsSKeysBytes, b)
+		}
 		handler.decryption = &encryption.ServerInstance{}
-		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, seconds); err != nil {
+		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, seconds, paddingStr); err != nil {
 			return nil, newError("failed to use decryption").Base(err).AtError()
 		}
-
 	}
 
 	if config.Fallbacks != nil {
@@ -243,8 +257,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 
 	if h.decryption != nil {
 		var err error
-		connection, err = h.decryption.Handshake(connection)
-		if err != nil {
+		if connection, err = h.decryption.Handshake(connection, nil); err != nil {
 			return newError("ML-KEM-768 handshake failed").Base(err).AtInfo()
 		}
 	}
@@ -461,7 +474,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 
 	responseAddons := &encoding.Addons{}
 
-	var peerCache *[]byte
 	var input *bytes.Reader
 	var rawInput *bytes.Buffer
 	switch requestAddons.Flow {
@@ -473,37 +485,38 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			case protocol.RequestCommandMux:
 				fallthrough // we will break Mux connections that contain TCP requests
 			case protocol.RequestCommandTCP:
-				if serverConn, ok := connection.(*encryption.CommonConn); ok {
-					peerCache = &serverConn.PeerCache
-					break
-				}
 				var t reflect.Type
 				var p uintptr
-				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
-					iConn = httpupgradeConn.Conn
-				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
-					iConn = websocketConn.Conn.NetConn()
-				}
-				if tlsConn, ok := iConn.(*tls.Conn); ok {
-					if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
-						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
-					}
-					t = reflect.TypeOf(tlsConn.Conn).Elem()
-					p = uintptr(unsafe.Pointer(tlsConn.Conn))
-				} else if realityConn, ok := iConn.(*reality.Conn); ok {
-					t = reflect.TypeOf(realityConn.Conn).Elem()
-					p = uintptr(unsafe.Pointer(realityConn.Conn))
-				} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
-					if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
-						return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
-					}
-					t = reflect.TypeOf(gotlsConn).Elem()
-					p = uintptr(unsafe.Pointer(gotlsConn))
-				} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
-					t = reflect.TypeOf(gorealityConn).Elem()
-					p = uintptr(unsafe.Pointer(gorealityConn))
+				if commonConn, ok := connection.(*encryption.CommonConn); ok {
+					t = reflect.TypeOf(commonConn).Elem()
+					p = uintptr(unsafe.Pointer(commonConn))
 				} else {
-					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+					if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+						iConn = httpupgradeConn.Conn
+					} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+						iConn = websocketConn.Conn.NetConn()
+					}
+					if tlsConn, ok := iConn.(*tls.Conn); ok {
+						if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+							return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, tlsConn.ConnectionState().Version).AtWarning()
+						}
+						t = reflect.TypeOf(tlsConn.Conn).Elem()
+						p = uintptr(unsafe.Pointer(tlsConn.Conn))
+					} else if realityConn, ok := iConn.(*reality.Conn); ok {
+						t = reflect.TypeOf(realityConn.Conn).Elem()
+						p = uintptr(unsafe.Pointer(realityConn.Conn))
+					} else if gotlsConn, ok := iConn.(*gotls.Conn); ok {
+						if gotlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
+							return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, gotlsConn.ConnectionState().Version).AtWarning()
+						}
+						t = reflect.TypeOf(gotlsConn).Elem()
+						p = uintptr(unsafe.Pointer(gotlsConn))
+					} else if gorealityConn, ok := iConn.(*goreality.Conn); ok {
+						t = reflect.TypeOf(gorealityConn).Elem()
+						p = uintptr(unsafe.Pointer(gorealityConn))
+					} else {
+						return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+					}
 				}
 				i, _ := t.FieldByName("input")
 				r, _ := t.FieldByName("rawInput")
@@ -549,7 +562,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		var err error
 		if requestAddons.Flow == vless.XRV {
 			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx)
-			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, peerCache, input, rawInput, trafficState, true, ctx)
+			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx)
 		} else {
 			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
 			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))

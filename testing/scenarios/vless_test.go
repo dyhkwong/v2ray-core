@@ -535,11 +535,12 @@ func TestVlessEncryption(t *testing.T) {
 					Clients: []*protocol.User{
 						{
 							Account: serial.ToTypedMessage(&vless.Account{
-								Id: userID.String(),
+								Id:   userID.String(),
+								Flow: vless.XRV,
 							}),
 						},
 					},
-					Decryption: "mlkem768x25519plus.native.10s.jhrnUaNY1AOx9ebJY2QfxQ0Z_JakrcAG7_OVCaNC_me2Tu4v2qyFQDuRJ3C1HrPd7W1WvwEvPvq3r13jQMdK5w",
+					Decryption: "mlkem768x25519plus.native.10s.100-111-1111.75-0-111.50-0-3333.QEA3v0l-d6oG6yuRcPVXD5v8YSbwWYhgmpnvvIoD2lE.jhrnUaNY1AOx9ebJY2QfxQ0Z_JakrcAG7_OVCaNC_me2Tu4v2qyFQDuRJ3C1HrPd7W1WvwEvPvq3r13jQMdK5w",
 				}),
 			},
 		},
@@ -581,7 +582,106 @@ func TestVlessEncryption(t *testing.T) {
 								{
 									Account: serial.ToTypedMessage(&vless.Account{
 										Id:         userID.String(),
-										Encryption: "mlkem768x25519plus.native.0rtt.D5FmTnuOihl9YEcg6sxwAWOF2lU45xiZQPsuKZt6CUoJ-Bw5P4BZM7aEiAWwBUUBRRYk1JOJj3mgGJk8TDRnIpeEPzPOuBEf6FLBYiwTCwgsgsKpIhJBm3My6KdFGJiuSZREbVw1BppiYFMYOKmx4zSHdRCVoFmvmguKaBgmuEq4igRP3GVBEQVOikrJdUoHzKg5cixXqqHPnaZsy2yW06yMIYJScuynkjBSYkCHAhJYNdF2nea-P-SCr8SUKgl3f_c8awY2xOMXtDDBAirBpgld35YuqGcoiTGfv2xg8wO5fRS8VISuhdNdhvFS4VONv1C1qHsCerWnRoaiCkyEONdR_TYPVaKJasKafkpW2QSilooAkVDAdnOINcGEz-iRAdl0vUEr3jYcJBJ3e8YXx8uprWZt0FZimyheC8uF60g1mXmVL8xCVeKTvxDGo0ZuOtqqAiAB34pMtzyUdWdN4NVqOfrKwoY7lsIbCYBej3C4DVyiF6x2Zxo5JIfMryKHX6OYjhoJLTMz0pAJrsUcwck-8ddXpfKbpis-qwykbQwB9EE03lqMeZpl6HCoQ-yo4mgG7MPKE7N-bnuuYgK_ePsC2jQrqUtVZnFr89EtUoEcRrCLCssJoNeRZORtxcsNXUyp4vO8GMl0VUq9u6E9YjjKKKFTasy_1uULBvBw3usRoomWB_t-zxY1KmW2GvJxPCo-TgCNCNNVy4fOyNADXxweXFibTnNTj7wn5cxFIhOh7vi0NWCjrEOXlrUwB0oCxYwEXja7v2oRoENhpNcLHPI9wYFdBvqrBIMqF8ipBfKPZtsW_mJMe2phBogDZ8VF9UaZNtHHunCz-Fsm3zt2XZpn5_EvIxMlbwVru2sgkgGKNCO9lRZEgnDBMIEgPripx8aDkGVfRitFE_q7gpU9dCUTTvu9YbMJcmQ4AeAQPKSfWjao52ChD3BAu0U9r6erzVi8MZGKLeRz74dkmxKgj5SO2aUta_KNkJoXqpsTcUy1tdNSUPNZArIdgTRxsVUSMem2bCa1NxOl-NQEG1WHHPCHZXJp4fiRVFhOIyK0CuynfSwPh8odLIh3K8RyXaeAlAqWSfC4mLfPzFg3IgZasFAfFRohiwG09FkXTRVH7ETLMMLLoFQHApSzxhEfnqGo6uU0gDzLqkKye2RJU4CwiSakVVwQvKAMR4ttdSACmzGK1HQmPDe0nJjNBKbMWRJaOYGLEoys4cq--WYBi6agufoksZBrHHO01nWVEeOvNAW3asEbJcjN4_AeWtQss4x7dCwQTaWSnKC1o8k9KHTOatgektOcDBNuSpNUh8rAWAVcwjCRMTyvnJVtz7MUkEsHrXyDvRc4mWyHaLq16oeitAy3lfeZa8e2L3c4YPIEkOglHbXGQcQSTNdgtEcP83WawNG76qHBdZa1B7Zr4sqOc0NOGSgMoYkWBmwUyEekK6QSNAfNCOeJU1ZG5EutIJx-gcUT7dEEqaK8NuMlDjloSkMlXTyPjAyJEbwHjYtBK9aVa6Q2IixdqQuPYzqP51zBvA7okz9uhjDgHSoH12952S5veM6-8jxs7_hqGDhNmtg",
+										Flow:       vless.XRV,
+										Encryption: "mlkem768x25519plus.native.0rtt.100-111-1111.75-0-111.50-0-3333.5FyoJyuqEqzCDkBsuhQ4wXh8o_-MwlmzJtE98hVnCBw.D5FmTnuOihl9YEcg6sxwAWOF2lU45xiZQPsuKZt6CUoJ-Bw5P4BZM7aEiAWwBUUBRRYk1JOJj3mgGJk8TDRnIpeEPzPOuBEf6FLBYiwTCwgsgsKpIhJBm3My6KdFGJiuSZREbVw1BppiYFMYOKmx4zSHdRCVoFmvmguKaBgmuEq4igRP3GVBEQVOikrJdUoHzKg5cixXqqHPnaZsy2yW06yMIYJScuynkjBSYkCHAhJYNdF2nea-P-SCr8SUKgl3f_c8awY2xOMXtDDBAirBpgld35YuqGcoiTGfv2xg8wO5fRS8VISuhdNdhvFS4VONv1C1qHsCerWnRoaiCkyEONdR_TYPVaKJasKafkpW2QSilooAkVDAdnOINcGEz-iRAdl0vUEr3jYcJBJ3e8YXx8uprWZt0FZimyheC8uF60g1mXmVL8xCVeKTvxDGo0ZuOtqqAiAB34pMtzyUdWdN4NVqOfrKwoY7lsIbCYBej3C4DVyiF6x2Zxo5JIfMryKHX6OYjhoJLTMz0pAJrsUcwck-8ddXpfKbpis-qwykbQwB9EE03lqMeZpl6HCoQ-yo4mgG7MPKE7N-bnuuYgK_ePsC2jQrqUtVZnFr89EtUoEcRrCLCssJoNeRZORtxcsNXUyp4vO8GMl0VUq9u6E9YjjKKKFTasy_1uULBvBw3usRoomWB_t-zxY1KmW2GvJxPCo-TgCNCNNVy4fOyNADXxweXFibTnNTj7wn5cxFIhOh7vi0NWCjrEOXlrUwB0oCxYwEXja7v2oRoENhpNcLHPI9wYFdBvqrBIMqF8ipBfKPZtsW_mJMe2phBogDZ8VF9UaZNtHHunCz-Fsm3zt2XZpn5_EvIxMlbwVru2sgkgGKNCO9lRZEgnDBMIEgPripx8aDkGVfRitFE_q7gpU9dCUTTvu9YbMJcmQ4AeAQPKSfWjao52ChD3BAu0U9r6erzVi8MZGKLeRz74dkmxKgj5SO2aUta_KNkJoXqpsTcUy1tdNSUPNZArIdgTRxsVUSMem2bCa1NxOl-NQEG1WHHPCHZXJp4fiRVFhOIyK0CuynfSwPh8odLIh3K8RyXaeAlAqWSfC4mLfPzFg3IgZasFAfFRohiwG09FkXTRVH7ETLMMLLoFQHApSzxhEfnqGo6uU0gDzLqkKye2RJU4CwiSakVVwQvKAMR4ttdSACmzGK1HQmPDe0nJjNBKbMWRJaOYGLEoys4cq--WYBi6agufoksZBrHHO01nWVEeOvNAW3asEbJcjN4_AeWtQss4x7dCwQTaWSnKC1o8k9KHTOatgektOcDBNuSpNUh8rAWAVcwjCRMTyvnJVtz7MUkEsHrXyDvRc4mWyHaLq16oeitAy3lfeZa8e2L3c4YPIEkOglHbXGQcQSTNdgtEcP83WawNG76qHBdZa1B7Zr4sqOc0NOGSgMoYkWBmwUyEekK6QSNAfNCOeJU1ZG5EutIJx-gcUT7dEEqaK8NuMlDjloSkMlXTyPjAyJEbwHjYtBK9aVa6Q2IixdqQuPYzqP51zBvA7okz9uhjDgHSoH12952S5veM6-8jxs7_hqGDhNmtg",
+									}),
+								},
+							},
+						},
+					},
+				}),
+			},
+		},
+	}
+
+	servers, err := InitializeServerConfigs(serverConfig, clientConfig)
+	common.Must(err)
+	defer CloseAllServers(servers)
+
+	var errg errgroup.Group
+	for i := 0; i < 10; i++ {
+		errg.Go(testTCPConn(clientPort, 1024*1024, time.Second*30))
+	}
+	if err := errg.Wait(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestVlessEncryption(t *testing.T) {
+	tcpServer := tcp.Server{
+		MsgProcessor: xor,
+	}
+	dest, err := tcpServer.Start()
+	common.Must(err)
+	defer tcpServer.Close()
+
+	userID := protocol.NewID(uuid.New())
+	serverPort := tcp.PickPort()
+	serverConfig := &core.Config{
+		App: []*anypb.Any{
+			serial.ToTypedMessage(&log.Config{
+				Error: &log.LogSpecification{Level: clog.Severity_Debug, Type: log.LogType_Console},
+			}),
+		},
+		Inbound: []*core.InboundHandlerConfig{
+			{
+				ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{
+					PortRange: net.SinglePortRange(serverPort),
+					Listen:    net.NewIPOrDomain(net.LocalHostIP),
+				}),
+				ProxySettings: serial.ToTypedMessage(&inbound.Config{
+					Clients: []*protocol.User{
+						{
+							Account: serial.ToTypedMessage(&vless.Account{
+								Id:   userID.String(),
+								Flow: vless.XRV,
+							}),
+						},
+					},
+					Decryption: "mlkem768x25519plus.native.10s.100-111-1111.75-0-111.50-0-3333.QEA3v0l-d6oG6yuRcPVXD5v8YSbwWYhgmpnvvIoD2lE.jhrnUaNY1AOx9ebJY2QfxQ0Z_JakrcAG7_OVCaNC_me2Tu4v2qyFQDuRJ3C1HrPd7W1WvwEvPvq3r13jQMdK5w",
+				}),
+			},
+		},
+		Outbound: []*core.OutboundHandlerConfig{
+			{
+				ProxySettings: serial.ToTypedMessage(&freedom.Config{}),
+			},
+		},
+	}
+
+	clientPort := tcp.PickPort()
+	clientConfig := &core.Config{
+		App: []*anypb.Any{
+			serial.ToTypedMessage(&log.Config{
+				Error: &log.LogSpecification{Level: clog.Severity_Debug, Type: log.LogType_Console},
+			}),
+		},
+		Inbound: []*core.InboundHandlerConfig{
+			{
+				ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{
+					PortRange: net.SinglePortRange(clientPort),
+					Listen:    net.NewIPOrDomain(net.LocalHostIP),
+				}),
+				ProxySettings: serial.ToTypedMessage(&dokodemo.Config{
+					Address:  net.NewIPOrDomain(dest.Address),
+					Port:     uint32(dest.Port),
+					Networks: []net.Network{net.Network_TCP},
+				}),
+			},
+		},
+		Outbound: []*core.OutboundHandlerConfig{
+			{
+				ProxySettings: serial.ToTypedMessage(&outbound.Config{
+					Vnext: []*protocol.ServerEndpoint{
+						{
+							Address: net.NewIPOrDomain(net.LocalHostIP),
+							Port:    uint32(serverPort),
+							User: []*protocol.User{
+								{
+									Account: serial.ToTypedMessage(&vless.Account{
+										Id:         userID.String(),
+										Flow:       vless.XRV,
+										Encryption: "mlkem768x25519plus.native.0rtt.100-111-1111.75-0-111.50-0-3333.5FyoJyuqEqzCDkBsuhQ4wXh8o_-MwlmzJtE98hVnCBw.D5FmTnuOihl9YEcg6sxwAWOF2lU45xiZQPsuKZt6CUoJ-Bw5P4BZM7aEiAWwBUUBRRYk1JOJj3mgGJk8TDRnIpeEPzPOuBEf6FLBYiwTCwgsgsKpIhJBm3My6KdFGJiuSZREbVw1BppiYFMYOKmx4zSHdRCVoFmvmguKaBgmuEq4igRP3GVBEQVOikrJdUoHzKg5cixXqqHPnaZsy2yW06yMIYJScuynkjBSYkCHAhJYNdF2nea-P-SCr8SUKgl3f_c8awY2xOMXtDDBAirBpgld35YuqGcoiTGfv2xg8wO5fRS8VISuhdNdhvFS4VONv1C1qHsCerWnRoaiCkyEONdR_TYPVaKJasKafkpW2QSilooAkVDAdnOINcGEz-iRAdl0vUEr3jYcJBJ3e8YXx8uprWZt0FZimyheC8uF60g1mXmVL8xCVeKTvxDGo0ZuOtqqAiAB34pMtzyUdWdN4NVqOfrKwoY7lsIbCYBej3C4DVyiF6x2Zxo5JIfMryKHX6OYjhoJLTMz0pAJrsUcwck-8ddXpfKbpis-qwykbQwB9EE03lqMeZpl6HCoQ-yo4mgG7MPKE7N-bnuuYgK_ePsC2jQrqUtVZnFr89EtUoEcRrCLCssJoNeRZORtxcsNXUyp4vO8GMl0VUq9u6E9YjjKKKFTasy_1uULBvBw3usRoomWB_t-zxY1KmW2GvJxPCo-TgCNCNNVy4fOyNADXxweXFibTnNTj7wn5cxFIhOh7vi0NWCjrEOXlrUwB0oCxYwEXja7v2oRoENhpNcLHPI9wYFdBvqrBIMqF8ipBfKPZtsW_mJMe2phBogDZ8VF9UaZNtHHunCz-Fsm3zt2XZpn5_EvIxMlbwVru2sgkgGKNCO9lRZEgnDBMIEgPripx8aDkGVfRitFE_q7gpU9dCUTTvu9YbMJcmQ4AeAQPKSfWjao52ChD3BAu0U9r6erzVi8MZGKLeRz74dkmxKgj5SO2aUta_KNkJoXqpsTcUy1tdNSUPNZArIdgTRxsVUSMem2bCa1NxOl-NQEG1WHHPCHZXJp4fiRVFhOIyK0CuynfSwPh8odLIh3K8RyXaeAlAqWSfC4mLfPzFg3IgZasFAfFRohiwG09FkXTRVH7ETLMMLLoFQHApSzxhEfnqGo6uU0gDzLqkKye2RJU4CwiSakVVwQvKAMR4ttdSACmzGK1HQmPDe0nJjNBKbMWRJaOYGLEoys4cq--WYBi6agufoksZBrHHO01nWVEeOvNAW3asEbJcjN4_AeWtQss4x7dCwQTaWSnKC1o8k9KHTOatgektOcDBNuSpNUh8rAWAVcwjCRMTyvnJVtz7MUkEsHrXyDvRc4mWyHaLq16oeitAy3lfeZa8e2L3c4YPIEkOglHbXGQcQSTNdgtEcP83WawNG76qHBdZa1B7Zr4sqOc0NOGSgMoYkWBmwUyEekK6QSNAfNCOeJU1ZG5EutIJx-gcUT7dEEqaK8NuMlDjloSkMlXTyPjAyJEbwHjYtBK9aVa6Q2IixdqQuPYzqP51zBvA7okz9uhjDgHSoH12952S5veM6-8jxs7_hqGDhNmtg",
 									}),
 								},
 							},

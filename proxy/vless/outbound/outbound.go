@@ -105,8 +105,10 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 				if i > 0 || j > 0 {
 					return nil, newError("encryption should have one any only one user").AtError()
 				}
+				encryptionStr := account.Encryption
 				var xorMode, seconds uint32
-				s := strings.Split(account.Encryption, ".")
+				var paddingStr string
+				s := strings.Split(encryptionStr, ".")
 				if len(s) < 4 || s[0] != "mlkem768x25519plus" {
 					return nil, newError("invalid encryption")
 				}
@@ -126,16 +128,29 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 				default:
 					return nil, newError("invalid encryption")
 				}
-				var nfsPKeysBytes [][]byte
-				for i := 3; i < len(s); i++ {
-					if b, _ := base64.RawURLEncoding.DecodeString(s[i]); len(b) != 32 && len(b) != 1184 {
+				padding := 0
+				for _, r := range s[3:] {
+					if len(r) < 20 {
+						padding += len(r) + 1
+						continue
+					}
+					if b, _ := base64.RawURLEncoding.DecodeString(r); len(b) != 32 && len(b) != 1184 {
 						return nil, newError("invalid encryption")
-					} else {
-						nfsPKeysBytes = append(nfsPKeysBytes, b)
 					}
 				}
+				encryptionStr = encryptionStr[27+len(s[2]):]
+				if padding > 0 {
+					paddingStr = encryptionStr[:padding-1]
+					encryptionStr = encryptionStr[padding:]
+				}
+				e := strings.Split(encryptionStr, ".")
+				var nfsPKeysBytes [][]byte
+				for _, r := range e {
+					b, _ := base64.RawURLEncoding.DecodeString(r)
+					nfsPKeysBytes = append(nfsPKeysBytes, b)
+				}
 				handler.encryption = &encryption.ClientInstance{}
-				if err := handler.encryption.Init(nfsPKeysBytes, xorMode, seconds); err != nil {
+				if err := handler.encryption.Init(nfsPKeysBytes, xorMode, seconds, paddingStr); err != nil {
 					return nil, newError("failed to use encryption").Base(err).AtError()
 				}
 			}
@@ -182,8 +197,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	if h.encryption != nil {
 		var err error
-		conn, err = h.encryption.Handshake(conn)
-		if err != nil {
+		if conn, err = h.encryption.Handshake(conn); err != nil {
 			return newError("ML-KEM-768 handshake failed").Base(err).AtInfo()
 		}
 	}
@@ -210,7 +224,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		Flow: account.Flow,
 	}
 
-	var peerCache *[]byte
 	var input *bytes.Reader
 	var rawInput *bytes.Buffer
 	allowUDP443 := false
@@ -228,28 +241,29 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		case protocol.RequestCommandMux:
 			fallthrough // let server break Mux connections that contain TCP requests
 		case protocol.RequestCommandTCP:
-			if clientConn, ok := conn.(*encryption.CommonConn); ok {
-				peerCache = &clientConn.PeerCache
-				break
-			}
 			var t reflect.Type
 			var p uintptr
-			if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
-				iConn = httpupgradeConn.Conn
-			} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
-				iConn = websocketConn.Conn.NetConn()
-			}
-			if tlsConn, ok := iConn.(*tls.Conn); ok {
-				t = reflect.TypeOf(tlsConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(tlsConn.Conn))
-			} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
-				t = reflect.TypeOf(utlsConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(utlsConn.Conn))
-			} else if realityConn, ok := iConn.(*reality.UConn); ok {
-				t = reflect.TypeOf(realityConn.Conn).Elem()
-				p = uintptr(unsafe.Pointer(realityConn.Conn))
+			if commonConn, ok := conn.(*encryption.CommonConn); ok {
+				t = reflect.TypeOf(commonConn).Elem()
+				p = uintptr(unsafe.Pointer(commonConn))
 			} else {
-				return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+				if httpupgradeConn, ok := iConn.(*httpupgrade.Connection); ok {
+					iConn = httpupgradeConn.Conn
+				} else if websocketConn, ok := iConn.(*websocket.Connection); ok {
+					iConn = websocketConn.Conn.NetConn()
+				}
+				if tlsConn, ok := iConn.(*tls.Conn); ok {
+					t = reflect.TypeOf(tlsConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(tlsConn.Conn))
+				} else if utlsConn, ok := iConn.(utls.UTLSClientConnection); ok {
+					t = reflect.TypeOf(utlsConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(utlsConn.Conn))
+				} else if realityConn, ok := iConn.(*reality.UConn); ok {
+					t = reflect.TypeOf(realityConn.Conn).Elem()
+					p = uintptr(unsafe.Pointer(realityConn.Conn))
+				} else {
+					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
+				}
 			}
 			i, _ := t.FieldByName("input")
 			r, _ := t.FieldByName("rawInput")
@@ -368,7 +382,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 
 		if requestAddons.Flow == vless.XRV {
-			err = encoding.XtlsRead(serverReader, clientWriter, timer, conn, peerCache, input, rawInput, trafficState, false, ctx)
+			err = encoding.XtlsRead(serverReader, clientWriter, timer, conn, input, rawInput, trafficState, false, ctx)
 		} else {
 			// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
 			err = buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer))
