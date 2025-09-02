@@ -54,6 +54,8 @@ github.com/dyhkwong/hysteria/core/v2 v2.7.0-1 h1:bpjBg1lmcem53NkKO9G5GbQQJm0ct4S
 github.com/dyhkwong/hysteria/core/v2 v2.7.0-1/go.mod h1:yZ9h7sr360IprsRCjPNHzolwEUFwWzVURcPpFVGXiKQ=
 github.com/dyhkwong/hysteria/extras/v2 v2.7.0-1 h1:nAUZRGnprGSGjXhQg28vPYl2bpiXd8eGH0RW34DxTO4=
 github.com/dyhkwong/hysteria/extras/v2 v2.7.0-1/go.mod h1:CjBDwvzaF7LP0qcPLRqjedGKaNY3MR36TA5ANjoYR0k=
+github.com/dyhkwong/sing-juicity v0.1.0-beta.6 h1:viKT3TKSfI605k9hVrPwtPdf9lxB3issxn41v/h/59I=
+github.com/dyhkwong/sing-juicity v0.1.0-beta.6/go.mod h1:LNc++CLsfsfqKJLFOG0rJsM1VX9LmJhpw57Z1nll2CA=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
@@ -67,8 +69,8 @@ github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ4
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
-github.com/gofrs/uuid/v5 v5.3.2 h1:2jfO8j3XgSwlz/wHqemAEugfnTlikAYHhnqQ8Xh4fE0=
-github.com/gofrs/uuid/v5 v5.3.2/go.mod h1:CDOjlDMVAtN56jqyRUZh58JT31Tiw7/oQyEXZV+9bD8=
+github.com/gofrs/uuid/v5 v5.4.0 h1:EfbpCTjqMuGyq5ZJwxqzn3Cbr2d0rUZU7v5ycAk/e/0=
+github.com/gofrs/uuid/v5 v5.4.0/go.mod h1:CDOjlDMVAtN56jqyRUZh58JT31Tiw7/oQyEXZV+9bD8=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
 github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259 h1:ZHJ7+IGpuOXtVf6Zk/a3WuHQgkC+vXwaqfUBDFwahtI=
