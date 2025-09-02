@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package v2ray.core.proxy.juicity;
+option csharp_namespace = "V2Ray.Core.Proxy.Juicity";
+option go_package = "github.com/v2fly/v2ray-core/v5/proxy/juicity";
+option java_package = "com.v2ray.core.proxy.juicity";
+option java_multiple_files = true;
+
+import "common/protoext/extensions.proto";
+import "common/net/address.proto";
+import "transport/internet/tls/config.proto";
+
+message ClientConfig {
+  option (v2ray.core.common.protoext.message_opt).type = "outbound";
+  option (v2ray.core.common.protoext.message_opt).short_name = "juicity";
+
+  v2ray.core.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  string uuid = 3;
+  string password = 4;
+  v2ray.core.transport.internet.tls.Config tls_settings = 5;
+}
