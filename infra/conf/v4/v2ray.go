@@ -63,6 +63,7 @@ var (
 		"shadowtls":        func() interface{} { return new(ShadowTLSClientConfig) },
 		"anytls":           func() interface{} { return new(AnyTLSClientConfig) },
 		"tuic":             func() interface{} { return new(TuicClientConfig) },
+		"juicity":          func() interface{} { return new(JuicityClientConfig) },
 	}, "protocol", "settings")
 )
 
