@@ -8,6 +8,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/errors"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/proxy/vless"
 )
@@ -56,13 +57,13 @@ func DecodeHeaderAddons(buffer *buf.Buffer, reader io.Reader) (*Addons, error) {
 }
 
 // EncodeBodyAddons returns a Writer that auto-encrypt content written by caller.
-func EncodeBodyAddons(writer io.Writer, request *protocol.RequestHeader, addons *Addons, state *TrafficState, isUplink bool, context context.Context) buf.Writer {
+func EncodeBodyAddons(writer io.Writer, request *protocol.RequestHeader, addons *Addons, state *TrafficState, isUplink bool, context context.Context, conn net.Conn) buf.Writer {
 	if request.Command == protocol.RequestCommandUDP {
 		return NewMultiLengthPacketWriter(writer.(buf.Writer))
 	}
 	w := buf.NewWriter(writer)
 	if addons.Flow == vless.XRV {
-		w = NewVisionWriter(w, state, isUplink, context)
+		w = NewVisionWriter(w, state, isUplink, context, conn)
 	}
 	return w
 }

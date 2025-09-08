@@ -11,6 +11,7 @@ require (
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152
 	github.com/dyhkwong/hysteria/core/v2 v2.6.2-1
 	github.com/dyhkwong/hysteria/extras/v2 v2.6.2-1
+	github.com/dyhkwong/sing-juicity v0.0.1
 	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
@@ -24,10 +25,10 @@ require (
 	github.com/pires/go-proxyproto v0.8.1
 	github.com/quic-go/quic-go v0.54.0
 	github.com/refraction-networking/utls v1.8.0
-	github.com/sagernet/sing v0.7.5
-	github.com/sagernet/sing-quic v0.5.0
-	github.com/sagernet/sing-shadowsocks v0.2.8
-	github.com/sagernet/sing-shadowsocks2 v0.2.1
+	github.com/sagernet/sing v0.7.7
+	github.com/sagernet/sing-quic v0.5.1
+	github.com/sagernet/sing-shadowsocks v0.2.9
+	github.com/sagernet/sing-shadowsocks2 v0.2.2
 	github.com/sagernet/sing-shadowtls v0.2.0
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
 	github.com/stretchr/testify v1.11.1

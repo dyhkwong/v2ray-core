@@ -43,6 +43,10 @@ func init() {
 
 	common.Must(common.RegisterConfig((*SimplifiedConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		simplifiedClient := config.(*SimplifiedConfig)
+		enc := simplifiedClient.Encryption
+		if len(enc) == 0 {
+			enc = "none"
+		}
 		fullClient := &Config{
 			Vnext: []*protocol.ServerEndpoint{
 				{
@@ -52,7 +56,7 @@ func init() {
 						{
 							Account: serial.ToTypedMessage(&vless.Account{
 								Id:         simplifiedClient.Uuid,
-								Encryption: simplifiedClient.Encryption,
+								Encryption: enc,
 							}),
 						},
 					},
@@ -305,7 +309,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 
 		// default: serverWriter := bufferWriter
-		serverWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, true, ctx)
+		serverWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, true, ctx, conn)
 		switch packetEncoding {
 		case packetaddr.PacketAddrType_Packet:
 			serverWriter = packetaddr.NewPacketWriter(serverWriter, target)
@@ -338,7 +342,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 			return newError("failed to write A request payload").Base(err).AtWarning()
 		}
 
-		var err error
 		if requestAddons.Flow == vless.XRV {
 			if tlsConn, ok := iConn.(*tls.Conn); ok {
 				if tlsConn.ConnectionState().Version != 0x0304 /* VersionTLS13 */ {
@@ -349,12 +352,10 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 					return newError(`failed to use `+requestAddons.Flow+`, found outer tls version `, utlsConn.ConnectionState().Version).AtWarning()
 				}
 			}
-			err = encoding.XtlsWrite(clientReader, serverWriter, timer, conn, trafficState, true, ctx)
-		} else {
-			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
-			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
 		}
-		if err != nil {
+
+		// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
+		if err := buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to transfer request payload").Base(err).AtInfo()
 		}
 
@@ -372,7 +373,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		// default: serverReader := buf.NewReader(conn)
 		serverReader := encoding.DecodeBodyAddons(conn, request, responseAddons)
 		if requestAddons.Flow == vless.XRV {
-			serverReader = encoding.NewVisionReader(serverReader, trafficState, false, ctx)
+			serverReader = encoding.NewVisionReader(serverReader, trafficState, false, ctx, conn, input, rawInput)
 		}
 		switch packetEncoding {
 		case packetaddr.PacketAddrType_Packet:
@@ -381,14 +382,8 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 			serverReader = xudp.NewPacketReader(&buf.BufferedReader{Reader: serverReader})
 		}
 
-		if requestAddons.Flow == vless.XRV {
-			err = encoding.XtlsRead(serverReader, clientWriter, timer, conn, input, rawInput, trafficState, false, ctx)
-		} else {
-			// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
-			err = buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer))
-		}
-
-		if err != nil {
+		// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
+		if err := buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to transfer response payload").Base(err).AtInfo()
 		}
 

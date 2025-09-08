@@ -49,6 +49,10 @@ func init() {
 
 	common.Must(common.RegisterConfig((*SimplifiedConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		simplifiedServer := config.(*SimplifiedConfig)
+		dec := simplifiedServer.Decryption
+		if len(dec) == 0 {
+			dec = "none"
+		}
 		fullConfig := &Config{
 			Clients: func() (users []*protocol.User) {
 				for _, v := range simplifiedServer.Users {
@@ -59,7 +63,7 @@ func init() {
 				}
 				return
 			}(),
-			Decryption: simplifiedServer.Decryption,
+			Decryption: dec,
 		}
 
 		return common.CreateObject(ctx, fullConfig)
@@ -101,7 +105,8 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 	case "none":
 	default:
 		decryptionStr := config.Decryption
-		var xorMode, seconds uint32
+		var xorMode uint32
+		var secondsFrom, secondsTo int64
 		var paddingStr string
 		s := strings.Split(decryptionStr, ".")
 		if len(s) < 4 || s[0] != "mlkem768x25519plus" {
@@ -116,16 +121,18 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 		default:
 			return nil, newError("invalid decryption")
 		}
-		if s[2] != "1rtt" {
-			t := strings.TrimSuffix(s[2], "s")
-			if t == s[2] {
-				return nil, newError("invalid decryption")
-			}
-			i, err := strconv.Atoi(t)
+		t := strings.SplitN(strings.TrimSuffix(s[2], "s"), "-", 2)
+		i, err := strconv.Atoi(t[0])
+		if err != nil {
+			return nil, newError("invalid decryption")
+		}
+		secondsFrom = int64(i)
+		if len(t) == 2 {
+			i, err := strconv.Atoi(t[1])
 			if err != nil {
 				return nil, newError("invalid decryption")
 			}
-			seconds = uint32(i)
+			secondsTo = int64(i)
 		}
 		padding := 0
 		for _, r := range s[3:] {
@@ -149,7 +156,7 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 			nfsSKeysBytes = append(nfsSKeysBytes, b)
 		}
 		handler.decryption = &encryption.ServerInstance{}
-		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, seconds, paddingStr); err != nil {
+		if err := handler.decryption.Init(nfsSKeysBytes, xorMode, secondsFrom, secondsTo, paddingStr); err != nil {
 			return nil, newError("failed to use decryption").Base(err).AtError()
 		}
 	}
@@ -559,16 +566,12 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		// default: clientReader := reader
 		clientReader := encoding.DecodeBodyAddons(reader, request, requestAddons)
 
-		var err error
 		if requestAddons.Flow == vless.XRV {
-			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx)
-			err = encoding.XtlsRead(clientReader, serverWriter, timer, connection, input, rawInput, trafficState, true, ctx)
-		} else {
-			// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
-			err = buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer))
+			clientReader = encoding.NewVisionReader(clientReader, trafficState, true, ctx, connection, input, rawInput)
 		}
 
-		if err != nil {
+		// from clientReader.ReadMultiBuffer to serverWriter.WriteMultiBuffer
+		if err := buf.Copy(clientReader, serverWriter, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to transfer request payload").Base(err).AtInfo()
 		}
 
@@ -584,7 +587,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		}
 
 		// default: clientWriter := bufferWriter
-		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, false, ctx)
+		clientWriter := encoding.EncodeBodyAddons(bufferWriter, request, requestAddons, trafficState, false, ctx, connection)
 		{
 			multiBuffer, err := serverReader.ReadMultiBuffer()
 			if err != nil {
@@ -600,14 +603,8 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			return newError("failed to write A response payload").Base(err).AtWarning()
 		}
 
-		var err error
-		if requestAddons.Flow == vless.XRV {
-			err = encoding.XtlsWrite(serverReader, clientWriter, timer, connection, trafficState, false, ctx)
-		} else {
-			// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
-			err = buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer))
-		}
-		if err != nil {
+		// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBuffer
+		if err := buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to transfer response payload").Base(err).AtInfo()
 		}
 

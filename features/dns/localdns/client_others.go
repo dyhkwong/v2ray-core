@@ -5,6 +5,7 @@ package localdns
 import (
 	"context"
 	"encoding/binary"
+	"io"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -46,7 +47,7 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	response := bytespool.Alloc(buf.Size)
+	response := make([]byte, buf.Size)
 	defer bytespool.Free(response)
 	n, err := udpConn.Read(response)
 	if err != nil {
@@ -95,11 +96,10 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	if err := binary.Read(tcpConn, binary.BigEndian, &length); err != nil {
 		return nil, err
 	}
-	respBuf := buf.NewWithSize(int32(length))
-	defer respBuf.Release()
+	response = make([]byte, length)
 
-	if _, err := respBuf.ReadFullFrom(tcpConn, int32(length)); err != nil {
+	if n, err = io.ReadFull(tcpConn, response); err != nil {
 		return nil, err
 	}
-	return respBuf.Bytes(), nil
+	return response[:n], nil
 }
