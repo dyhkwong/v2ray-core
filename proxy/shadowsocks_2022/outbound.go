@@ -2,7 +2,6 @@ package shadowsocks_2022 // nolint:stylecheck
 
 import (
 	"context"
-	"io"
 	"strconv"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -120,7 +120,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 
 	if network == net.Network_TCP {
-		serverConn := o.method.DialEarlyConn(connection, toSocksaddr(destination))
+		serverConn := o.method.DialEarlyConn(connection, singbridge.ToSocksAddr(destination))
 		var handshake bool
 		if timeoutReader, isTimeoutReader := link.Reader.(buf.TimeoutReader); isTimeoutReader {
 			mb, err := timeoutReader.ReadMultiBufferTimeout(time.Millisecond * 100)
@@ -153,24 +153,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 				return newError("client handshake").Base(err)
 			}
 		}
-		conn := &pipeConnWrapper{
-			W: link.Writer,
-		}
-		if ir, ok := link.Reader.(io.Reader); ok {
-			conn.R = ir
-		} else {
-			conn.R = &buf.BufferedReader{Reader: link.Reader}
-		}
-
-		return returnError(bufio.CopyConn(ctx, conn, serverConn))
+		return singbridge.ReturnError(bufio.CopyConn(ctx, singbridge.NewPipeConnWrapper(link), serverConn))
 	} else {
-		packetConn := &packetConnWrapper{
-			Reader: link.Reader,
-			Writer: link.Writer,
-			Dest:   destination,
-		}
-
 		serverConn := o.method.DialPacketConn(connection)
-		return returnError(bufio.CopyPacketConn(ctx, packetConn, serverConn))
+		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), serverConn))
 	}
 }

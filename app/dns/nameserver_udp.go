@@ -486,6 +486,11 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
+		if err != errRecordNotFound {
+			return ips, expireAt, err
+		}
+
 		select {
 		case <-ctx.Done():
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -500,11 +505,6 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
-		}
-
-		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
-		if err != errRecordNotFound {
-			return ips, expireAt, err
 		}
 	}
 }

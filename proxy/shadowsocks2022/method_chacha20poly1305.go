@@ -25,10 +25,13 @@ func (a Chacha20Poly1305Method) GetStreamAEAD(sessionSubKey []byte) (cipher.AEAD
 }
 
 func (a Chacha20Poly1305Method) GenerateEIH(currentIdentitySubKey []byte, nextPskHash []byte, out []byte) error {
-	return newError("Chacha20-Poly1305 does not support EIH")
+	return newError("this method does not support EIH")
 }
 
-func (a Chacha20Poly1305Method) GetUDPClientProcessor(_ [][]byte, psk []byte, derivation KeyDerivation) (UDPClientPacketProcessor, error) {
+func (a Chacha20Poly1305Method) GetUDPClientProcessor(ipsk [][]byte, psk []byte, derivation KeyDerivation) (UDPClientPacketProcessor, error) {
+	if len(ipsk) > 0 {
+		return nil, newError("this method does not support EIH")
+	}
 	aead, err := chacha20poly1305.NewX(psk)
 	if err != nil {
 		return nil, newError("failed to create XChacha20-Poly1305").Base(err)

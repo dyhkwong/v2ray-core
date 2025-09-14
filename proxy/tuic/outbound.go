@@ -4,19 +4,17 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"io"
-	"sync"
 	"time"
 
 	"github.com/sagernet/sing-quic/tuic"
 	"github.com/sagernet/sing/common/bufio"
-	N "github.com/sagernet/sing/common/network"
+	"github.com/sagernet/sing/common/network"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -30,10 +28,9 @@ func init() {
 }
 
 type Outbound struct {
-	mutex       sync.Mutex
-	serverAddr  net.Destination
-	tuicOptions tuic.ClientOptions
-	tuicClients map[internet.Dialer]*tuic.Client
+	serverAddr net.Destination
+	options    tuic.ClientOptions
+	client     *tuic.Client
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -88,12 +85,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		}
 	}
 
-	o.tuicOptions = tuic.ClientOptions{
-		Context: ctx,
-		TLSConfig: &tlsConfigWrapper{
-			config: tlsConfig,
-		},
-		ServerAddress:     toSocksaddr(o.serverAddr),
+	o.options = tuic.ClientOptions{
+		Context:           ctx,
+		TLSConfig:         singbridge.NewTLSConfigWrapper(tlsConfig),
+		ServerAddress:     singbridge.ToSocksAddr(o.serverAddr),
 		UUID:              uuid,
 		Password:          config.Password,
 		CongestionControl: config.CongestionControl,
@@ -102,26 +97,19 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		Heartbeat:         time.Second * time.Duration(config.Heartbeat),
 	}
 
-	o.tuicClients = make(map[internet.Dialer]*tuic.Client)
-
 	return o, nil
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	o.mutex.Lock()
-	tuicClient, found := o.tuicClients[dialer]
-	if !found {
+	if o.client == nil {
 		var err error
-		options := o.tuicOptions
-		options.Dialer = &dialerWrapper{dialer}
-		tuicClient, err = tuic.NewClient(options)
+		options := o.options
+		options.Dialer = singbridge.NewDialerWrapper(dialer)
+		o.client, err = tuic.NewClient(options)
 		if err != nil {
-			o.mutex.Unlock()
 			return err
 		}
-		o.tuicClients[dialer] = tuicClient
 	}
-	o.mutex.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -133,29 +121,16 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 
 	detachedCtx := core.ToBackgroundDetachedContext(ctx)
 	if destination.Network == net.Network_TCP {
-		serverConn, err := tuicClient.DialConn(detachedCtx, toSocksaddr(destination))
+		serverConn, err := o.client.DialConn(detachedCtx, singbridge.ToSocksAddr(destination))
 		if err != nil {
 			return err
 		}
-		conn := &pipeConnWrapper{
-			W: link.Writer,
-		}
-		if ir, ok := link.Reader.(io.Reader); ok {
-			conn.R = ir
-		} else {
-			conn.R = &buf.BufferedReader{Reader: link.Reader}
-		}
-		return returnError(bufio.CopyConn(detachedCtx, conn, serverConn))
+		return singbridge.ReturnError(bufio.CopyConn(detachedCtx, singbridge.NewPipeConnWrapper(link), serverConn))
 	} else {
-		packetConn := &packetConnWrapper{
-			Reader: link.Reader,
-			Writer: link.Writer,
-			Dest:   destination,
-		}
-		serverConn, err := tuicClient.ListenPacket(detachedCtx)
+		serverConn, err := o.client.ListenPacket(detachedCtx)
 		if err != nil {
 			return err
 		}
-		return returnError(bufio.CopyPacketConn(detachedCtx, packetConn, serverConn.(N.PacketConn)))
+		return singbridge.ReturnError(bufio.CopyPacketConn(detachedCtx, singbridge.NewPacketConnWrapper(link, destination), serverConn.(network.PacketConn)))
 	}
 }

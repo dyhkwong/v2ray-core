@@ -420,15 +420,15 @@ func (s *TCPNameServer) QueryIPWithTTL(ctx context.Context, domain string, clien
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
+		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
+		if err != errRecordNotFound {
+			return ips, expireAt, err
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
-		}
-
-		ips, expireAt, err := s.findIPsForDomain(fqdn, option)
-		if err != errRecordNotFound {
-			return ips, expireAt, err
 		}
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
@@ -23,6 +22,7 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	}
 
 	dns := dnsReadConfig()
+
 	done := make(chan any)
 	var udpConn *net.UDPConn
 	go func() {
@@ -48,7 +48,6 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	}
 
 	response := make([]byte, buf.Size)
-	defer bytespool.Free(response)
 	n, err := udpConn.Read(response)
 	if err != nil {
 		return nil, err
@@ -91,15 +90,16 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	if _, err := tcpConn.Write(reqBuf.Bytes()); err != nil {
 		return nil, err
 	}
-
 	var length uint16
 	if err := binary.Read(tcpConn, binary.BigEndian, &length); err != nil {
 		return nil, err
 	}
 	response = make([]byte, length)
-
 	if n, err = io.ReadFull(tcpConn, response); err != nil {
 		return nil, err
+	}
+	if binary.BigEndian.Uint16(response[:2]) != requestMsg.ID {
+		return nil, newError("DNS message ID mismatch")
 	}
 	return response[:n], nil
 }

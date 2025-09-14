@@ -92,23 +92,18 @@ func (c *ConnWriter) newHeader() ([]byte, error) {
 	}
 
 	if _, err := buffer.Write(c.Account.Key); err != nil {
-		buffer.Release()
 		return nil, err
 	}
 	if _, err := buffer.Write(crlf); err != nil {
-		buffer.Release()
 		return nil, err
 	}
 	if err := buffer.WriteByte(command); err != nil {
-		buffer.Release()
 		return nil, err
 	}
 	if err := addrParser.WriteAddressPort(&buffer, c.Target.Address, c.Target.Port); err != nil {
-		buffer.Release()
 		return nil, err
 	}
 	if _, err := buffer.Write(crlf); err != nil {
-		buffer.Release()
 		return nil, err
 	}
 

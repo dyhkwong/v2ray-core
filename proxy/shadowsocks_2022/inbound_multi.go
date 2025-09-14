@@ -13,7 +13,6 @@ import (
 	A "github.com/sagernet/sing/common/auth"
 	B "github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
-	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	features_inbound "github.com/v2fly/v2ray-core/v5/features/inbound"
@@ -242,7 +242,7 @@ func (i *MultiUserInbound) Process(ctx context.Context, network net.Network, con
 	ctx = session.ContextWithDispatcher(ctx, dispatcher)
 
 	if network == net.Network_TCP {
-		return returnError(i.service.NewConnection(ctx, connection, metadata))
+		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)
 		pc := &natPacketConn{connection}
@@ -250,7 +250,7 @@ func (i *MultiUserInbound) Process(ctx context.Context, network net.Network, con
 			mb, err := reader.ReadMultiBuffer()
 			if err != nil {
 				buf.ReleaseMulti(mb)
-				return returnError(err)
+				return singbridge.ReturnError(err)
 			}
 			for _, buffer := range mb {
 				packet := B.As(buffer.Bytes()).ToOwned()
@@ -282,16 +282,11 @@ func (i *MultiUserInbound) NewConnection(ctx context.Context, conn net.Conn, met
 	})
 	newError("tunnelling request to tcp:", metadata.Destination).WriteToLog(session.ExportIDToError(ctx))
 	dispatcher := session.DispatcherFromContext(ctx)
-	link, err := dispatcher.Dispatch(ctx, toDestination(metadata.Destination, net.Network_TCP))
+	link, err := dispatcher.Dispatch(ctx, singbridge.ToDestination(metadata.Destination, net.Network_TCP))
 	if err != nil {
 		return err
 	}
-	outConn := &pipeConnWrapper{
-		&buf.BufferedReader{Reader: link.Reader},
-		link.Writer,
-		conn,
-	}
-	return bufio.CopyConn(ctx, conn, outConn)
+	return singbridge.ReturnError(bufio.CopyConn(ctx, conn, singbridge.NewPipeConnWrapper(link)))
 }
 
 func (i *MultiUserInbound) NewPacketConnection(ctx context.Context, conn N.PacketConn, metadata M.Metadata) error {
@@ -310,22 +305,16 @@ func (i *MultiUserInbound) NewPacketConnection(ctx context.Context, conn N.Packe
 	})
 	newError("tunnelling request to udp:", metadata.Destination).WriteToLog(session.ExportIDToError(ctx))
 	dispatcher := session.DispatcherFromContext(ctx)
-	destination := toDestination(metadata.Destination, net.Network_UDP)
+	destination := singbridge.ToDestination(metadata.Destination, net.Network_UDP)
 	link, err := dispatcher.Dispatch(ctx, destination)
 	if err != nil {
 		return err
 	}
-	outConn := &packetConnWrapper{
-		Reader: link.Reader,
-		Writer: link.Writer,
-		Dest:   destination,
-	}
-	return bufio.CopyPacketConn(ctx, conn, outConn)
+	return singbridge.ReturnError(bufio.CopyPacketConn(ctx, conn, singbridge.NewPacketConnWrapper(link, destination)))
 }
 
 func (i *MultiUserInbound) NewError(ctx context.Context, err error) {
-	if E.IsClosed(err) {
-		return
+	if singbridge.ReturnError(err) != nil {
+		newError(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 	}
-	newError(err).AtWarning().WriteToLog()
 }

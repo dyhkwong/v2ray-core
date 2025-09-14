@@ -12,11 +12,11 @@ import (
 	"github.com/sagernet/sing/common/uot"
 
 	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -44,7 +44,7 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
 	serverConfig := anytls.ServiceConfig{
 		PaddingScheme: paddingScheme,
 		Handler:       inbound,
-		Logger:        newLogger(newError),
+		Logger:        singbridge.NewLoggerWrapper(newError),
 	}
 	for _, user := range config.Users {
 		serverConfig.Users = append(serverConfig.Users, anytls.User{
@@ -71,7 +71,7 @@ func (i *Inbound) Process(ctx context.Context, network net.Network, conn interne
 		source = metadata.ParseSocksaddr(inbound.Source.NetAddr())
 	}
 	ctx = session.ContextWithDispatcher(ctx, dispatcher)
-	return returnError(i.service.NewConnection(ctx, conn, source, nil))
+	return singbridge.ReturnError(i.service.NewConnection(ctx, conn, source, nil))
 }
 
 func (i *Inbound) NewConnectionEx(ctx context.Context, conn net.Conn, source metadata.Socksaddr, destination metadata.Socksaddr, onClose network.CloseHandlerFunc) {
@@ -120,15 +120,11 @@ func (i *Inbound) handleTCP(ctx context.Context, conn net.Conn, source metadata.
 	})
 	newError("tunnelling request to tcp:", destination).WriteToLog(session.ExportIDToError(ctx))
 	dispatcher := session.DispatcherFromContext(ctx)
-	link, err := dispatcher.Dispatch(ctx, toDestination(destination, net.Network_TCP))
+	link, err := dispatcher.Dispatch(ctx, singbridge.ToDestination(destination, net.Network_TCP))
 	if err != nil {
 		return err
 	}
-	return bufio.CopyConn(ctx, conn, &pipeConnWrapper{
-		&buf.BufferedReader{Reader: link.Reader},
-		link.Writer,
-		conn,
-	})
+	return singbridge.ReturnError(bufio.CopyConn(ctx, conn, singbridge.NewPipeConnWrapper(link)))
 }
 
 func (i *Inbound) handleUDP(ctx context.Context, conn network.PacketConn, source metadata.Socksaddr, destination metadata.Socksaddr) error {
@@ -140,13 +136,9 @@ func (i *Inbound) handleUDP(ctx context.Context, conn network.PacketConn, source
 	})
 	newError("tunnelling request to udp:", destination).WriteToLog(session.ExportIDToError(ctx))
 	dispatcher := session.DispatcherFromContext(ctx)
-	link, err := dispatcher.Dispatch(ctx, toDestination(destination, net.Network_UDP))
+	link, err := dispatcher.Dispatch(ctx, singbridge.ToDestination(destination, net.Network_UDP))
 	if err != nil {
 		return err
 	}
-	return bufio.CopyPacketConn(ctx, conn, &packetConnWrapper{
-		Reader: link.Reader,
-		Writer: link.Writer,
-		Dest:   toDestination(destination, net.Network_UDP),
-	})
+	return singbridge.ReturnError(bufio.CopyPacketConn(ctx, conn, singbridge.NewPacketConnWrapper(link, singbridge.ToDestination(destination, net.Network_UDP))))
 }

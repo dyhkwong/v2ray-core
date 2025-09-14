@@ -235,7 +235,6 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			session.SubmitOutboundErrorToOriginator(ctx, err)
 			err.WriteToLog(session.ExportIDToError(ctx))
 			common.Interrupt(link.Writer)
-			common.Interrupt(link.Reader)
 		}
 	} else {
 		if err := h.proxy.Process(ctx, link, h); err != nil {
