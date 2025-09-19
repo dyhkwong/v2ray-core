@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
@@ -16,6 +17,10 @@ type EndpointOverrideReader struct {
 	ipToDomain   *sync.Map
 	fakedns      dns.FakeDNSEngine
 	usedFakeIPs  *sync.Map
+}
+
+func (r *EndpointOverrideReader) Interrupt() {
+	common.Interrupt(r.Reader)
 }
 
 func (r *EndpointOverrideReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
@@ -58,6 +63,10 @@ type EndpointOverrideWriter struct {
 	usedFakeIPs  *sync.Map
 	resolver     func(domain string) net.Address
 	ipToDomain   *sync.Map
+}
+
+func (r *EndpointOverrideWriter) Interrupt() {
+	common.Interrupt(r.Writer)
 }
 
 func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
