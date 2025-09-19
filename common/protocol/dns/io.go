@@ -2,7 +2,7 @@ package dns
 
 import (
 	"encoding/binary"
-	"sync"
+	"io"
 
 	"golang.org/x/net/dns/dnsmessage"
 
@@ -28,79 +28,39 @@ type MessageReader interface {
 }
 
 type UDPReader struct {
-	buf.Reader
-
-	access sync.Mutex
-	cache  buf.MultiBuffer
-}
-
-func (r *UDPReader) readCache() *buf.Buffer {
-	r.access.Lock()
-	defer r.access.Unlock()
-
-	mb, b := buf.SplitFirst(r.cache)
-	r.cache = mb
-	return b
-}
-
-func (r *UDPReader) refill() error {
-	mb, err := r.Reader.ReadMultiBuffer()
-	if err != nil {
-		return err
-	}
-	r.access.Lock()
-	r.cache = mb
-	r.access.Unlock()
-	return nil
+	io.Reader
 }
 
 // ReadMessage implements MessageReader.
 func (r *UDPReader) ReadMessage() (*buf.Buffer, error) {
-	for {
-		b := r.readCache()
-		if b != nil {
-			return b, nil
-		}
-		if err := r.refill(); err != nil {
-			return nil, err
-		}
+	b := buf.New()
+	if _, err := b.ReadFrom(r.Reader); err != nil {
+		b.Release()
+		return nil, err
 	}
+	return b, nil
+}
+
+func (r *UDPReader) Interrupt() {
+	common.Interrupt(r.Reader)
 }
 
 // Close implements common.Closable.
 func (r *UDPReader) Close() error {
-	defer func() {
-		r.access.Lock()
-		buf.ReleaseMulti(r.cache)
-		r.cache = nil
-		r.access.Unlock()
-	}()
-
 	return common.Close(r.Reader)
 }
 
 type TCPReader struct {
-	reader *buf.BufferedReader
-}
-
-func NewTCPReader(reader buf.Reader) *TCPReader {
-	return &TCPReader{
-		reader: &buf.BufferedReader{
-			Reader: reader,
-		},
-	}
+	io.Reader
 }
 
 func (r *TCPReader) ReadMessage() (*buf.Buffer, error) {
-	size, err := serial.ReadUint16(r.reader)
+	size, err := serial.ReadUint16(r.Reader)
 	if err != nil {
 		return nil, err
 	}
-	if size > buf.Size {
-		return nil, newError("message size too large: ", size)
-	}
-	b := buf.New()
-	if _, err := b.ReadFullFrom(r.reader, int32(size)); err != nil {
+	b := buf.NewWithSize(int32(size))
+	if _, err := b.ReadFullFrom(r.Reader, int32(size)); err != nil {
 		b.Release()
 		return nil, err
 	}
@@ -108,11 +68,11 @@ func (r *TCPReader) ReadMessage() (*buf.Buffer, error) {
 }
 
 func (r *TCPReader) Interrupt() {
-	common.Interrupt(r.reader)
+	common.Interrupt(r.Reader)
 }
 
 func (r *TCPReader) Close() error {
-	return common.Close(r.reader)
+	return common.Close(r.Reader)
 }
 
 type MessageWriter interface {
