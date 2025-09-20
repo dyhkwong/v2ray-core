@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation;
+option csharp_namespace = "V2Ray.Core.Transport.Internet.Tlsmirror.MirrorEnrollment.RoundTripperEnrollmentConfirmation";
+option go_package = "github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation";
+option java_package = "com.v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation";
+option java_multiple_files = true;
+
+import "common/serial/typed_message.proto";
+
+message ClientConfig {
+  v2ray.core.common.serial.TypedMessage round_tripper_client = 1;
+  v2ray.core.common.serial.TypedMessage security_config = 2;
+  string dest = 3;
+  string outbound_tag = 4;
+}
+
+message ServerConfig {
+  v2ray.core.common.serial.TypedMessage round_tripper_server = 2;
+  string listen = 3;
+}

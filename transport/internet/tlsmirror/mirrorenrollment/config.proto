@@ -6,7 +6,7 @@ option go_package = "github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror
 option java_package = "com.v2ray.core.transport.internet.tlsmirror.mirrorenrollment";
 option java_multiple_files = true;
 
-import "google/protobuf/any.proto";
+import "common/serial/typed_message.proto";
 
 message Config {
   // This will be handled by the TLS Mirror server, the enrollment part only accepts existing connections.
@@ -15,7 +15,7 @@ message Config {
   string primary_egress_outbound = 2;
   repeated string bootstrap_ingress_url = 3;
   repeated string bootstrap_egress_url = 4;
-  repeated google.protobuf.Any bootstrap_ingress_config = 5;
-  repeated google.protobuf.Any bootstrap_egress_config = 6;
+  repeated v2ray.core.common.serial.TypedMessage bootstrap_ingress_config = 5;
+  repeated v2ray.core.common.serial.TypedMessage bootstrap_egress_config = 6;
   string bootstrap_egress_outbound = 7;
 }
