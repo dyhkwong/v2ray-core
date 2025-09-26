@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -184,13 +186,39 @@ func (c *Config) parseServerName() string {
 
 func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	if c.PinnedPeerCertificateChainSha256 != nil {
-		hashValue := GenerateCertChainHash(rawCerts)
-		for _, v := range c.PinnedPeerCertificateChainSha256 {
-			if hmac.Equal(hashValue, v) {
-				return nil
-			}
+		hash := GenerateCertChainHash(rawCerts)
+		if !slices.ContainsFunc(c.PinnedPeerCertificateChainSha256, func(b []byte) bool {
+			return hmac.Equal(b, hash)
+		}) {
+			return newError("peer cert is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
 		}
-		return newError("peer cert is unrecognized: ", base64.StdEncoding.EncodeToString(hashValue))
+	}
+	if c.PinnedPeerCertificatePublicKeySha256 != nil {
+		hash, err := GenerateCertPublicKeyHash(rawCerts[0])
+		if err != nil {
+			return err
+		}
+		if !slices.ContainsFunc(c.PinnedPeerCertificatePublicKeySha256, func(b []byte) bool {
+			return hmac.Equal(b, hash)
+		}) {
+			return newError("peer cert public key is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
+		}
+	}
+	if c.PinnedPeerCertificateSha256 != nil {
+		pinnedPeerCertificateSha256 := make([][]byte, len(c.PinnedPeerCertificateSha256))
+		for i, v := range c.PinnedPeerCertificateSha256 {
+			b, err := hex.DecodeString(v)
+			if err != nil {
+				return err
+			}
+			pinnedPeerCertificateSha256[i] = b
+		}
+		hash := GenerateCertHash(rawCerts[0])
+		if !slices.ContainsFunc(pinnedPeerCertificateSha256, func(b []byte) bool {
+			return hmac.Equal(b, hash)
+		}) {
+			return newError("peer cert sha256 is unrecognized: ", hex.EncodeToString(hash))
+		}
 	}
 	return nil
 }
@@ -238,6 +266,14 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 	}
 
 	if c.AllowInsecureIfPinnedPeerCertificate && c.PinnedPeerCertificateChainSha256 != nil {
+		config.InsecureSkipVerify = true
+	}
+
+	if c.AllowInsecureIfPinnedPeerCertificate && c.PinnedPeerCertificatePublicKeySha256 != nil {
+		config.InsecureSkipVerify = true
+	}
+
+	if c.AllowInsecureIfPinnedPeerCertificate && c.PinnedPeerCertificateSha256 != nil {
 		config.InsecureSkipVerify = true
 	}
 
