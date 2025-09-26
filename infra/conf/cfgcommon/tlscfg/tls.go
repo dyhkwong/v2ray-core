@@ -21,6 +21,8 @@ type TLSConfig struct {
 	EnableSessionResumption              bool                  `json:"enableSessionResumption"`
 	DisableSystemRoot                    bool                  `json:"disableSystemRoot"`
 	PinnedPeerCertificateChainSha256     *[]string             `json:"pinnedPeerCertificateChainSha256"`
+	PinnedPeerCertificatePublicKeySha256 []string              `json:"pinnedPeerCertificatePublicKeySha256"`
+	PinnedPeerCertificateSha256          []string              `json:"pinnedPeerCertificateSha256"`
 	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
 	ECHConfig                            string                `json:"echConfig"`
 	ECHDOHServer                         string                `json:"echDohServer"`
@@ -64,6 +66,20 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 			}
 			config.PinnedPeerCertificateChainSha256 = append(config.PinnedPeerCertificateChainSha256, hashValue)
 		}
+	}
+
+	if len(c.PinnedPeerCertificatePublicKeySha256) > 0 {
+		for _, v := range c.PinnedPeerCertificatePublicKeySha256 {
+			hashValue, err := base64.StdEncoding.DecodeString(v)
+			if err != nil {
+				return nil, err
+			}
+			config.PinnedPeerCertificatePublicKeySha256 = append(config.PinnedPeerCertificatePublicKeySha256, hashValue)
+		}
+	}
+
+	if len(c.PinnedPeerCertificateSha256) > 0 {
+		config.PinnedPeerCertificateSha256 = c.PinnedPeerCertificateSha256
 	}
 
 	if c.ECHConfig != "" {
