@@ -237,9 +237,11 @@ type Config struct {
 	EchQueryDomain string `protobuf:"bytes,18,opt,name=ech_query_domain,json=echQueryDomain,proto3" json:"ech_query_domain,omitempty"`
 	// cipher suites to to be offered or accepted.
 	// This is an developer option.
-	Ciphersuites  []uint32 `protobuf:"varint,19,rep,packed,name=ciphersuites,proto3" json:"ciphersuites,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Ciphersuites                         []uint32 `protobuf:"varint,19,rep,packed,name=ciphersuites,proto3" json:"ciphersuites,omitempty"`
+	PinnedPeerCertificatePublicKeySha256 [][]byte `protobuf:"bytes,900,rep,name=pinned_peer_certificate_public_key_sha256,json=pinnedPeerCertificatePublicKeySha256,proto3" json:"pinned_peer_certificate_public_key_sha256,omitempty"`
+	PinnedPeerCertificateSha256          []string `protobuf:"bytes,901,rep,name=pinned_peer_certificate_sha256,json=pinnedPeerCertificateSha256,proto3" json:"pinned_peer_certificate_sha256,omitempty"`
+	unknownFields                        protoimpl.UnknownFields
+	sizeCache                            protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -377,6 +379,20 @@ func (x *Config) GetCiphersuites() []uint32 {
 	return nil
 }
 
+func (x *Config) GetPinnedPeerCertificatePublicKeySha256() [][]byte {
+	if x != nil {
+		return x.PinnedPeerCertificatePublicKeySha256
+	}
+	return nil
+}
+
+func (x *Config) GetPinnedPeerCertificateSha256() []string {
+	if x != nil {
+		return x.PinnedPeerCertificateSha256
+	}
+	return nil
+}
+
 var File_transport_internet_tls_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_tls_config_proto_rawDesc = "" +
@@ -392,7 +408,7 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\fENCIPHERMENT\x10\x00\x12\x14\n" +
 	"\x10AUTHORITY_VERIFY\x10\x01\x12\x13\n" +
 	"\x0fAUTHORITY_ISSUE\x10\x02\x12\x1b\n" +
-	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xc0\a\n" +
+	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xe0\b\n" +
 	"\x06Config\x12-\n" +
 	"\x0eallow_insecure\x18\x01 \x01(\bB\x06\x82\xb5\x18\x02(\x01R\rallowInsecure\x12P\n" +
 	"\vcertificate\x18\x02 \x03(\v2..v2ray.core.transport.internet.tls.CertificateR\vcertificate\x12\x1f\n" +
@@ -413,7 +429,9 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"ech_config\x18\x10 \x01(\fR\techConfig\x12#\n" +
 	"\rech_DOHserver\x18\x11 \x01(\tR\fechDOHserver\x12(\n" +
 	"\x10ech_query_domain\x18\x12 \x01(\tR\x0eechQueryDomain\x12\"\n" +
-	"\fciphersuites\x18\x13 \x03(\rR\fciphersuites\"I\n" +
+	"\fciphersuites\x18\x13 \x03(\rR\fciphersuites\x12X\n" +
+	")pinned_peer_certificate_public_key_sha256\x18\x84\a \x03(\fR$pinnedPeerCertificatePublicKeySha256\x12D\n" +
+	"\x1epinned_peer_certificate_sha256\x18\x85\a \x03(\tR\x1bpinnedPeerCertificateSha256\"I\n" +
 	"\n" +
 	"TLSVersion\x12\v\n" +
 	"\aDefault\x10\x00\x12\n" +
