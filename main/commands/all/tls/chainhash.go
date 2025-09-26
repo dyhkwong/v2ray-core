@@ -17,13 +17,13 @@ func init() {
 	cmdChainHash.Run = executeChainHash // break init loop
 }
 
-var certFile = cmdChainHash.Flag.String("cert", "cert.pem", "")
+var certFileForChainHash = cmdChainHash.Flag.String("cert", "cert.pem", "")
 
 func executeChainHash(cmd *base.Command, args []string) {
-	if len(*certFile) == 0 {
+	if len(*certFileForChainHash) == 0 {
 		base.Fatalf("cert file not specified")
 	}
-	certContent, err := os.ReadFile(*certFile)
+	certContent, err := os.ReadFile(*certFileForChainHash)
 	if err != nil {
 		base.Fatalf("Failed to read cert file: %s", err)
 		return
