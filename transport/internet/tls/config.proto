@@ -90,4 +90,7 @@ message Config {
   // cipher suites to to be offered or accepted.
   // This is an developer option.
   repeated uint32 ciphersuites = 19;
+
+  repeated bytes pinned_peer_certificate_public_key_sha256 = 900;
+  repeated string pinned_peer_certificate_sha256 = 901;
 }
