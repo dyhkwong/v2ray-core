@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	logService "github.com/v2fly/v2ray-core/v4/app/log/command"
 	statsService "github.com/v2fly/v2ray-core/v4/app/stats/command"
@@ -65,7 +66,7 @@ func (c *APICommand) Execute(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, *serverAddrPtr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, *serverAddrPtr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		return newError("failed to dial ", *serverAddrPtr).Base(err)
 	}

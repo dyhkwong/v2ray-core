@@ -1,10 +1,8 @@
 //go:build !confonly
-// +build !confonly
 
 package tun
 
 import (
-	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -29,7 +27,7 @@ func (t *TUN) CreateStack(linkedEndpoint stack.LinkEndpoint) (*stack.Stack, erro
 		},
 	})
 
-	nicID := tcpip.NICID(s.UniqueID())
+	nicID := s.NextNICID()
 
 	opts := []StackOption{
 		SetTCPHandler(t.ctx, t.dispatcher, t.policyManager, t.config),
