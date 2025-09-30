@@ -1,36 +1,21 @@
 package json
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // FromTOML convert toml to json
 func FromTOML(v []byte) ([]byte, error) {
-	tomlReader := bytes.NewReader(v)
-	jsonStr, err := jsonFromTomlReader(tomlReader)
+	m1 := make(map[interface{}]interface{})
+	if err := toml.Unmarshal(v, &m1); err != nil {
+		return nil, err
+	}
+	m2 := convert(m1)
+	j, err := json.Marshal(m2)
 	if err != nil {
 		return nil, err
 	}
-	return []byte(jsonStr), nil
-}
-
-func jsonFromTomlReader(r io.Reader) (string, error) {
-	tree, err := toml.LoadReader(r)
-	if err != nil {
-		return "", err
-	}
-	return mapToJSON(tree)
-}
-
-func mapToJSON(tree *toml.Tree) (string, error) {
-	treeMap := tree.ToMap()
-	bytes, err := json.MarshalIndent(treeMap, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
+	return j, nil
 }
