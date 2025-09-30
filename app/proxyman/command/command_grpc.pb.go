@@ -122,22 +122,22 @@ type HandlerServiceServer interface {
 type UnimplementedHandlerServiceServer struct{}
 
 func (UnimplementedHandlerServiceServer) AddInbound(context.Context, *AddInboundRequest) (*AddInboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddInbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddInbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) RemoveInbound(context.Context, *RemoveInboundRequest) (*RemoveInboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveInbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method RemoveInbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) AlterInbound(context.Context, *AlterInboundRequest) (*AlterInboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AlterInbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AlterInbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) AddOutbound(context.Context, *AddOutboundRequest) (*AddOutboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddOutbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddOutbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) RemoveOutbound(context.Context, *RemoveOutboundRequest) (*RemoveOutboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveOutbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method RemoveOutbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) AlterOutbound(context.Context, *AlterOutboundRequest) (*AlterOutboundResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AlterOutbound not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AlterOutbound not implemented")
 }
 func (UnimplementedHandlerServiceServer) mustEmbedUnimplementedHandlerServiceServer() {}
 func (UnimplementedHandlerServiceServer) testEmbeddedByValue()                        {}
@@ -150,7 +150,7 @@ type UnsafeHandlerServiceServer interface {
 }
 
 func RegisterHandlerServiceServer(s grpc.ServiceRegistrar, srv HandlerServiceServer) {
-	// If the following call pancis, it indicates UnimplementedHandlerServiceServer was
+	// If the following call panics, it indicates UnimplementedHandlerServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

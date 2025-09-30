@@ -2,7 +2,6 @@ package gvisorstack
 
 import (
 	routercommon "github.com/v2fly/v2ray-core/v5/app/router/routercommon"
-	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
 	internet "github.com/v2fly/v2ray-core/v5/transport/internet"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -198,7 +197,7 @@ var File_common_packetswitch_gvisorstack_config_proto protoreflect.FileDescripto
 
 const file_common_packetswitch_gvisorstack_config_proto_rawDesc = "" +
 	"\n" +
-	",common/packetswitch/gvisorstack/config.proto\x12*v2ray.core.common.packetswitch.gvisorstack\x1a$app/router/routercommon/common.proto\x1a\x1ftransport/internet/config.proto\x1a common/protoext/extensions.proto\"w\n" +
+	",common/packetswitch/gvisorstack/config.proto\x12*v2ray.core.common.packetswitch.gvisorstack\x1a$app/router/routercommon/common.proto\x1a\x1ftransport/internet/config.proto\"w\n" +
 	"\vTCPListener\x12\x12\n" +
 	"\x04port\x18\x01 \x01(\rR\x04port\x12B\n" +
 	"\aaddress\x18\x02 \x01(\v2(.v2ray.core.app.router.routercommon.CIDRR\aaddress\x12\x10\n" +
