@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package core
 
@@ -8,18 +7,17 @@ import (
 	"reflect"
 	sync "sync"
 
-	"github.com/v2fly/v2ray-core/v4/common/environment/deferredpersistentstorage"
-	"github.com/v2fly/v2ray-core/v4/common/environment/filesystemimpl"
-	"github.com/v2fly/v2ray-core/v4/features/extension/storage"
-
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
+	"github.com/v2fly/v2ray-core/v4/common/environment/deferredpersistentstorage"
+	"github.com/v2fly/v2ray-core/v4/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v4/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v4/common/environment/transientstorageimpl"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
 	"github.com/v2fly/v2ray-core/v4/features"
 	"github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
+	"github.com/v2fly/v2ray-core/v4/features/extension/storage"
 	"github.com/v2fly/v2ray-core/v4/features/inbound"
 	"github.com/v2fly/v2ray-core/v4/features/outbound"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
@@ -312,7 +310,7 @@ func (s *Instance) RequireFeatures(callback interface{}) error {
 
 	var featureTypes []reflect.Type
 	for i := 0; i < callbackType.NumIn(); i++ {
-		featureTypes = append(featureTypes, reflect.PtrTo(callbackType.In(i)))
+		featureTypes = append(featureTypes, reflect.PointerTo(callbackType.In(i)))
 	}
 
 	r := resolution{
