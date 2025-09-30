@@ -8,7 +8,6 @@ option java_multiple_files = true;
 
 import "proxy/wireguard/wgcommon/config.proto";
 import "common/packetswitch/gvisorstack/config.proto";
-import "common/net/packetaddr/config.proto";
 import "common/protoext/extensions.proto";
 
 message Config{
@@ -18,7 +17,6 @@ message Config{
   v2ray.core.proxy.wireguard.wgcommon.DeviceConfig wg_device = 1;
   v2ray.core.common.packetswitch.gvisorstack.Config stack = 2;
 
-  //v2ray.core.net.packetaddr.PacketAddrType outbound_packet_encoding = 3;
   bool listen_on_system_network = 4;
 
   enum DomainStrategy {
