@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package router
 
@@ -281,7 +280,7 @@ type AttributeMatcher struct {
 }
 
 func NewAttributeMatcher(code string) (*AttributeMatcher, error) {
-	starFile, err := syntax.Parse("attr.star", "satisfied=("+code+")", 0)
+	starFile, err := syntax.LegacyFileOptions().Parse("attr.star", "satisfied=("+code+")", 0)
 	if err != nil {
 		return nil, newError("attr rule").Base(err)
 	}

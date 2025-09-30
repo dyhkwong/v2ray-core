@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/commander"
@@ -104,7 +105,7 @@ func TestCommanderRemoveHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithInsecure(), grpc.WithBlock())
+	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	common.Must(err)
 	defer cmdConn.Close()
 
@@ -273,7 +274,7 @@ func TestCommanderAddRemoveUser(t *testing.T) {
 		t.Fatal("expected error: ", err)
 	}
 
-	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithInsecure(), grpc.WithBlock())
+	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	common.Must(err)
 	defer cmdConn.Close()
 
@@ -457,7 +458,7 @@ func TestCommanderStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithInsecure(), grpc.WithBlock())
+	cmdConn, err := grpc.Dial(fmt.Sprintf("127.0.0.1:%d", cmdPort), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	common.Must(err)
 	defer cmdConn.Close()
 
