@@ -1,7 +1,6 @@
 package roundtripperenrollmentconfirmation
 
 import (
-	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
@@ -149,7 +148,7 @@ var File_transport_internet_tlsmirror_mirrorenrollment_roundtripperenrollmentcon
 
 const file_transport_internet_tlsmirror_mirrorenrollment_roundtripperenrollmentconfirmation_config_proto_rawDesc = "" +
 	"\n" +
-	"]transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation/config.proto\x12[v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation\x1a common/protoext/extensions.proto\x1a\x19google/protobuf/any.proto\"\xf5\x01\n" +
+	"]transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation/config.proto\x12[v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation\x1a\x19google/protobuf/any.proto\"\xf5\x01\n" +
 	"\fClientConfig\x12F\n" +
 	"\x14round_tripper_client\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x12roundTripperClient\x12=\n" +
 	"\x0fsecurity_config\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x0esecurityConfig\x12\x12\n" +
