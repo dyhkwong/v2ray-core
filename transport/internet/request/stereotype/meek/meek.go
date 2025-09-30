@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package meek
 
@@ -14,8 +13,6 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet/request/assembly"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/request/roundtripper/httprt"
 )
-
-//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 const protocolName = "meek"
 

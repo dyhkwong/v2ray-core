@@ -199,7 +199,7 @@ func NormalizeGeneratedProtoFile(path string) error {
 		return err
 	}
 
-	_, err = fd.Seek(0, os.SEEK_SET)
+	_, err = fd.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func NormalizeGeneratedProtoFile(path string) error {
 		out.Write(scanner.Bytes())
 		out.Write([]byte("\n"))
 	}
-	_, err = fd.Seek(0, os.SEEK_SET)
+	_, err = fd.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
