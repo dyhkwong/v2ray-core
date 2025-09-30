@@ -3,10 +3,9 @@ package udp
 import (
 	"context"
 
+	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
 	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
-
-	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/protocol/udp"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
