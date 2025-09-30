@@ -49,7 +49,7 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 	if f, ok := fw.w.(http.Flusher); ok {
 		f.Flush()
 	}
-	return
+	return n, err
 }
 
 func (l *Listener) ServeHTTP(writer http.ResponseWriter, request *http.Request) {

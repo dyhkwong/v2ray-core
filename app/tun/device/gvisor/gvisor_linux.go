@@ -1,6 +1,4 @@
 //go:build linux && ((linux && amd64) || (linux && arm64))
-// +build linux
-// +build linux,amd64 linux,arm64
 
 package gvisor
 
@@ -10,12 +8,11 @@ import (
 
 	"golang.org/x/sys/unix"
 	"gvisor.dev/gvisor/pkg/rawfile"
+	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
+	"gvisor.dev/gvisor/pkg/tcpip/link/tun"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 
 	"github.com/v2fly/v2ray-core/v5/app/tun/device"
-
-	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
-	"gvisor.dev/gvisor/pkg/tcpip/link/tun"
 )
 
 const (

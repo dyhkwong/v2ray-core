@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
+	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/jsonpb"
