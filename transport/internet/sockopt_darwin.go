@@ -13,7 +13,7 @@ const (
 	TCP_FASTOPEN_CLIENT = 0x02 // nolint: revive,stylecheck
 )
 
-func applyOutboundSocketOptions(network string, address string, fd uintptr, config *SocketConfig) error {
+func applyOutboundSocketOptions(network string, _ string, fd uintptr, config *SocketConfig) error {
 	if isTCPSocket(network) {
 		switch config.Tfo {
 		case SocketConfig_Enable:
@@ -128,14 +128,14 @@ func applyInboundSocketOptions(network string, fd uintptr, config *SocketConfig)
 	return nil
 }
 
-func bindAddr(fd uintptr, address []byte, port uint32) error {
+func bindAddr(_ uintptr, _ []byte, _ uint32) error {
 	return nil
 }
 
-func setReuseAddr(fd uintptr) error {
+func setReuseAddr(_ uintptr) error {
 	return nil
 }
 
-func setReusePort(fd uintptr) error {
+func setReusePort(_ uintptr) error {
 	return nil
 }
