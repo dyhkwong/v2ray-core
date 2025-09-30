@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
-
 	"github.com/v2fly/v2ray-core/v5/transport/internet/request"
 )
 
@@ -144,7 +143,7 @@ func (s *simpleAssemblerClientSession) Read(p []byte) (n int, err error) {
 		s.readBuffer.Reset()
 		return 0, nil
 	}
-	return
+	return n, err
 }
 
 func (s *simpleAssemblerClientSession) Write(p []byte) (n int, err error) {
