@@ -13,14 +13,14 @@ func LoadArg(arg string) (out io.Reader, err error) {
 		return nil, err
 	}
 	out = bytes.NewBuffer(bs)
-	return
+	return out, err
 }
 
 // LoadArgToBytes loads one arg to []byte, maybe an remote url, or local file path
 func LoadArgToBytes(arg string) (out []byte, err error) {
 	out, err = os.ReadFile(arg)
 	if err != nil {
-		return
+		return out, err
 	}
-	return
+	return out, err
 }

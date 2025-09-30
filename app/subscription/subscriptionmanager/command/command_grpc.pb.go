@@ -109,19 +109,19 @@ type SubscriptionManagerServiceServer interface {
 type UnimplementedSubscriptionManagerServiceServer struct{}
 
 func (UnimplementedSubscriptionManagerServiceServer) ListTrackedSubscription(context.Context, *ListTrackedSubscriptionRequest) (*ListTrackedSubscriptionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListTrackedSubscription not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ListTrackedSubscription not implemented")
 }
 func (UnimplementedSubscriptionManagerServiceServer) AddTrackedSubscription(context.Context, *AddTrackedSubscriptionRequest) (*AddTrackedSubscriptionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTrackedSubscription not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddTrackedSubscription not implemented")
 }
 func (UnimplementedSubscriptionManagerServiceServer) RemoveTrackedSubscription(context.Context, *RemoveTrackedSubscriptionRequest) (*RemoveTrackedSubscriptionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveTrackedSubscription not implemented")
+	return nil, status.Error(codes.Unimplemented, "method RemoveTrackedSubscription not implemented")
 }
 func (UnimplementedSubscriptionManagerServiceServer) GetTrackedSubscriptionStatus(context.Context, *GetTrackedSubscriptionStatusRequest) (*GetTrackedSubscriptionStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedSubscriptionStatus not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GetTrackedSubscriptionStatus not implemented")
 }
 func (UnimplementedSubscriptionManagerServiceServer) UpdateTrackedSubscription(context.Context, *UpdateTrackedSubscriptionRequest) (*UpdateTrackedSubscriptionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateTrackedSubscription not implemented")
+	return nil, status.Error(codes.Unimplemented, "method UpdateTrackedSubscription not implemented")
 }
 func (UnimplementedSubscriptionManagerServiceServer) mustEmbedUnimplementedSubscriptionManagerServiceServer() {
 }
@@ -135,7 +135,7 @@ type UnsafeSubscriptionManagerServiceServer interface {
 }
 
 func RegisterSubscriptionManagerServiceServer(s grpc.ServiceRegistrar, srv SubscriptionManagerServiceServer) {
-	// If the following call pancis, it indicates UnimplementedSubscriptionManagerServiceServer was
+	// If the following call panics, it indicates UnimplementedSubscriptionManagerServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
