@@ -378,7 +378,7 @@ func init() {
 						Account: serial.ToTypedMessage(account),
 					})
 				}
-				return
+				return users
 			}(),
 		}
 
