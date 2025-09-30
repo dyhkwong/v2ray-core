@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
-	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 )
@@ -61,8 +60,4 @@ func (dd *DeterministicDice) Roll(n int) int {
 		return 0
 	}
 	return dd.Intn(n)
-}
-
-func init() {
-	rand.Seed(time.Now().Unix())
 }

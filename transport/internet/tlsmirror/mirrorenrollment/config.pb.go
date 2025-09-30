@@ -1,7 +1,6 @@
 package mirrorenrollment
 
 import (
-	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
@@ -114,7 +113,7 @@ var File_transport_internet_tlsmirror_mirrorenrollment_config_proto protoreflect
 
 const file_transport_internet_tlsmirror_mirrorenrollment_config_proto_rawDesc = "" +
 	"\n" +
-	":transport/internet/tlsmirror/mirrorenrollment/config.proto\x128v2ray.core.transport.internet.tlsmirror.mirrorenrollment\x1a common/protoext/extensions.proto\x1a\x19google/protobuf/any.proto\"\xba\x03\n" +
+	":transport/internet/tlsmirror/mirrorenrollment/config.proto\x128v2ray.core.transport.internet.tlsmirror.mirrorenrollment\x1a\x19google/protobuf/any.proto\"\xba\x03\n" +
 	"\x06Config\x128\n" +
 	"\x18primary_ingress_outbound\x18\x01 \x01(\tR\x16primaryIngressOutbound\x126\n" +
 	"\x17primary_egress_outbound\x18\x02 \x01(\tR\x15primaryEgressOutbound\x122\n" +

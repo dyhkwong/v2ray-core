@@ -1,6 +1,8 @@
 package device
 
-import "gvisor.dev/gvisor/pkg/tcpip/stack"
+import (
+	"gvisor.dev/gvisor/pkg/tcpip/stack"
+)
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
