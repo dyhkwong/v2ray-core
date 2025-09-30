@@ -104,23 +104,23 @@ func parseIPQuery(b []byte) (r bool, domain string, id uint16, qType dnsmessage.
 	header, err := parser.Start(b)
 	if err != nil {
 		newError("parser start").Base(err).WriteToLog()
-		return
+		return r, domain, id, qType
 	}
 
 	id = header.ID
 	q, err := parser.Question()
 	if err != nil {
 		newError("question").Base(err).WriteToLog()
-		return
+		return r, domain, id, qType
 	}
 	qType = q.Type
 	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
-		return
+		return r, domain, id, qType
 	}
 
 	domain = q.Name.String()
 	r = true
-	return
+	return r, domain, id, qType
 }
 
 // Process implements proxy.Outbound.

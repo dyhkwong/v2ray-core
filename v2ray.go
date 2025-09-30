@@ -5,18 +5,17 @@ import (
 	"reflect"
 	sync "sync"
 
-	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
-	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
-	"github.com/v2fly/v2ray-core/v5/features/extension/storage"
-
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
+	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v5/common/environment/transientstorageimpl"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/features"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
+	"github.com/v2fly/v2ray-core/v5/features/extension/storage"
 	"github.com/v2fly/v2ray-core/v5/features/inbound"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -309,7 +308,7 @@ func (s *Instance) RequireFeatures(callback interface{}) error {
 
 	var featureTypes []reflect.Type
 	for i := 0; i < callbackType.NumIn(); i++ {
-		featureTypes = append(featureTypes, reflect.PtrTo(callbackType.In(i)))
+		featureTypes = append(featureTypes, reflect.PointerTo(callbackType.In(i)))
 	}
 
 	r := resolution{

@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pion/transport/v3/replaydetector"
+
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-
-	"github.com/pion/transport/v2/replaydetector"
 )
 
 func NewClientUDPSession(ctx context.Context, conn io.ReadWriteCloser, packetProcessor UDPClientPacketProcessor) *ClientUDPSession {

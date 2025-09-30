@@ -100,7 +100,7 @@ func (s *Server) processTCP(ctx context.Context, conn internet.Connection, dispa
 	reader := &buf.BufferedReader{Reader: buf.NewReader(conn)}
 	request, err := svrSession.Handshake(reader, conn)
 	if err != nil {
-		if inbound != nil && inbound.Source.IsValid() {
+		if inbound.Source.IsValid() {
 			log.Record(&log.AccessMessage{
 				From:   inbound.Source,
 				To:     "",
@@ -121,7 +121,7 @@ func (s *Server) processTCP(ctx context.Context, conn internet.Connection, dispa
 	if request.Command == protocol.RequestCommandTCP {
 		dest := request.Destination()
 		newError("TCP Connect request to ", dest).WriteToLog(session.ExportIDToError(ctx))
-		if inbound != nil && inbound.Source.IsValid() {
+		if inbound.Source.IsValid() {
 			ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
 				From:   inbound.Source,
 				To:     dest,

@@ -18,27 +18,27 @@ func (p *packetBundle) Overhead() int {
 func (p *packetBundle) WriteToBundle(b []byte, writer io.Writer) (err error) {
 	err = binary.Write(writer, binary.BigEndian, uint16(len(b)))
 	if err != nil {
-		return
+		return err
 	}
 	_, err = writer.Write(b)
-	return
+	return err
 }
 
 func (p *packetBundle) ReadFromBundle(writer io.Reader) (b []byte, err error) {
 	var length uint16
 	err = binary.Read(writer, binary.BigEndian, &length)
 	if err != nil {
-		return
+		return b, err
 	}
 	b = make([]byte, length)
 	n, err := io.ReadFull(writer, b)
 	if err != nil {
-		return
+		return b, err
 	}
 	if n != int(length) {
 		return nil, io.ErrUnexpectedEOF
 	}
-	return
+	return b, err
 }
 
 type PacketBundle interface {

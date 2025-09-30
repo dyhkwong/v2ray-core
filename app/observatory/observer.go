@@ -1,6 +1,3 @@
-//go:build !confonly
-// +build !confonly
-
 package observatory
 
 import (
@@ -12,15 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v5/app/persistentstorage"
-	"github.com/v2fly/v2ray-core/v5/app/persistentstorage/protostorage"
-	"github.com/v2fly/v2ray-core/v5/common/environment"
-	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
-
 	"github.com/golang/protobuf/proto"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/persistentstorage"
+	"github.com/v2fly/v2ray-core/v5/app/persistentstorage/protostorage"
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	v2net "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
