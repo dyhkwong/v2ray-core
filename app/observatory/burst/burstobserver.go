@@ -5,7 +5,6 @@ package burst
 
 import (
 	"context"
-	"sync"
 
 	"github.com/golang/protobuf/proto"
 
@@ -21,8 +20,7 @@ type Observer struct {
 	config *Config
 	ctx    context.Context
 
-	statusLock sync.Mutex // nolint: structcheck
-	hp         *HealthPing
+	hp *HealthPing
 
 	finished *done.Instance
 
