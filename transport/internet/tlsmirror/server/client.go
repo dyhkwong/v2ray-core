@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package server
 
@@ -11,8 +10,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorcommon"
-
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
@@ -23,6 +20,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorbase"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorcommon"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorenrollment"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/tlstrafficgen"
 )
