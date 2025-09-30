@@ -195,7 +195,7 @@ func (r *PacketConnectionReader) ReadFrom(p []byte) (n int, addr net.Addr, err e
 	if r.payload == nil || r.payload.Buffer.IsEmpty() {
 		r.payload, err = r.reader.ReadMultiBufferWithMetadata()
 		if err != nil {
-			return
+			return n, addr, err
 		}
 	}
 
@@ -206,5 +206,5 @@ func (r *PacketConnectionReader) ReadFrom(p []byte) (n int, addr net.Addr, err e
 
 	r.payload.Buffer, n = buf.SplitFirstBytes(r.payload.Buffer, p)
 
-	return
+	return n, addr, err
 }

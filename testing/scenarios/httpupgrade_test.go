@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/testing/servers/tcp"
-
 	_ "github.com/v2fly/v2ray-core/v5/main/distro/all"
+	"github.com/v2fly/v2ray-core/v5/testing/servers/tcp"
 )
 
 func TestHTTPUpgrade(t *testing.T) {

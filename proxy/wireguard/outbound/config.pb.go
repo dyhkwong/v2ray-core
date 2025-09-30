@@ -1,7 +1,6 @@
 package outbound
 
 import (
-	_ "github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	gvisorstack "github.com/v2fly/v2ray-core/v5/common/packetswitch/gvisorstack"
 	_ "github.com/v2fly/v2ray-core/v5/common/protoext"
 	wgcommon "github.com/v2fly/v2ray-core/v5/proxy/wireguard/wgcommon"
@@ -72,12 +71,11 @@ func (Config_DomainStrategy) EnumDescriptor() ([]byte, []int) {
 }
 
 type Config struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	WgDevice *wgcommon.DeviceConfig `protobuf:"bytes,1,opt,name=wg_device,json=wgDevice,proto3" json:"wg_device,omitempty"`
-	Stack    *gvisorstack.Config    `protobuf:"bytes,2,opt,name=stack,proto3" json:"stack,omitempty"`
-	// v2ray.core.net.packetaddr.PacketAddrType outbound_packet_encoding = 3;
-	ListenOnSystemNetwork bool                  `protobuf:"varint,4,opt,name=listen_on_system_network,json=listenOnSystemNetwork,proto3" json:"listen_on_system_network,omitempty"`
-	DomainStrategy        Config_DomainStrategy `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.wireguard.outbound.Config_DomainStrategy" json:"domain_strategy,omitempty"`
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	WgDevice              *wgcommon.DeviceConfig `protobuf:"bytes,1,opt,name=wg_device,json=wgDevice,proto3" json:"wg_device,omitempty"`
+	Stack                 *gvisorstack.Config    `protobuf:"bytes,2,opt,name=stack,proto3" json:"stack,omitempty"`
+	ListenOnSystemNetwork bool                   `protobuf:"varint,4,opt,name=listen_on_system_network,json=listenOnSystemNetwork,proto3" json:"listen_on_system_network,omitempty"`
+	DomainStrategy        Config_DomainStrategy  `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.wireguard.outbound.Config_DomainStrategy" json:"domain_strategy,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -144,7 +142,7 @@ var File_proxy_wireguard_outbound_config_proto protoreflect.FileDescriptor
 
 const file_proxy_wireguard_outbound_config_proto_rawDesc = "" +
 	"\n" +
-	"%proxy/wireguard/outbound/config.proto\x12#v2ray.core.proxy.wireguard.outbound\x1a%proxy/wireguard/wgcommon/config.proto\x1a,common/packetswitch/gvisorstack/config.proto\x1a\"common/net/packetaddr/config.proto\x1a common/protoext/extensions.proto\"\x9e\x03\n" +
+	"%proxy/wireguard/outbound/config.proto\x12#v2ray.core.proxy.wireguard.outbound\x1a%proxy/wireguard/wgcommon/config.proto\x1a,common/packetswitch/gvisorstack/config.proto\x1a common/protoext/extensions.proto\"\x9e\x03\n" +
 	"\x06Config\x12N\n" +
 	"\twg_device\x18\x01 \x01(\v21.v2ray.core.proxy.wireguard.wgcommon.DeviceConfigR\bwgDevice\x12H\n" +
 	"\x05stack\x18\x02 \x01(\v22.v2ray.core.common.packetswitch.gvisorstack.ConfigR\x05stack\x127\n" +
