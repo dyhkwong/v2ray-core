@@ -12,15 +12,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v4/app/persistentstorage"
-	"github.com/v2fly/v2ray-core/v4/app/persistentstorage/protostorage"
-	"github.com/v2fly/v2ray-core/v4/common/environment"
-	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
-
 	"github.com/golang/protobuf/proto"
 
 	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/app/persistentstorage"
+	"github.com/v2fly/v2ray-core/v4/app/persistentstorage/protostorage"
 	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/environment"
+	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
 	v2net "github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal/done"

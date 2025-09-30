@@ -1,5 +1,5 @@
-//go:build go1.23 && !confonly
-// +build go1.23,!confonly
+//go:build !confonly
+// +build !confonly
 
 package tls
 

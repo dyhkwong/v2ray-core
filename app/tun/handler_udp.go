@@ -48,7 +48,7 @@ func SetUDPHandler(ctx context.Context, dispatcher routing.Dispatcher, policyMan
 			}
 
 			conn := &udpConn{
-				UDPConn: gonet.NewUDPConn(s, wg, linkedEndpoint),
+				UDPConn: gonet.NewUDPConn(wg, linkedEndpoint),
 				id:      r.ID(),
 			}
 

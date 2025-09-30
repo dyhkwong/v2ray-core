@@ -4,8 +4,6 @@
 // Package blackhole is an outbound handler that blocks all connections.
 package blackhole
 
-//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
-
 import (
 	"context"
 	"time"
