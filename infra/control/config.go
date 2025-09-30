@@ -79,10 +79,10 @@ func (c *ConfigCommand) LoadArg(arg string) (out io.Reader, err error) {
 	}
 
 	if err != nil {
-		return
+		return out, err
 	}
 	out = bytes.NewBuffer(data)
-	return
+	return out, err
 }
 
 func init() {

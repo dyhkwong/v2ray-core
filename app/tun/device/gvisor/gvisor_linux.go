@@ -1,7 +1,4 @@
 //go:build !confonly && linux && ((linux && amd64) || (linux && arm64))
-// +build !confonly
-// +build linux
-// +build linux,amd64 linux,arm64
 
 package gvisor
 
@@ -10,13 +7,12 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
+	"gvisor.dev/gvisor/pkg/rawfile"
+	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
+	"gvisor.dev/gvisor/pkg/tcpip/link/tun"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 
 	"github.com/v2fly/v2ray-core/v4/app/tun/device"
-
-	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
-	"gvisor.dev/gvisor/pkg/tcpip/link/rawfile"
-	"gvisor.dev/gvisor/pkg/tcpip/link/tun"
 )
 
 const (
@@ -74,8 +70,8 @@ func New(options device.Options) (device.Device, error) {
 	return t, nil
 }
 
-func (t *GvisorTUN) Close() error {
-	return unix.Close(t.fd)
+func (t *GvisorTUN) Close() {
+	_ = unix.Close(t.fd)
 }
 
 // Modified from golang.zx2c4.com/wireguard/tun/tun_linux.go

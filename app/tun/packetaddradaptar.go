@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package tun
 
@@ -25,7 +24,7 @@ type packetAddrDevice struct {
 	secondaryDispatcher stack.NetworkDispatcher
 }
 
-func (p *packetAddrDevice) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNumber, pkt stack.PacketBufferPtr) {
+func (p *packetAddrDevice) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
 	buf := pkt.ToBuffer()
 	_, err := p.sorter.OnPacketReceived(buf.Flatten())
 	if err != nil {
@@ -33,7 +32,7 @@ func (p *packetAddrDevice) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNu
 	}
 }
 
-func (p *packetAddrDevice) DeliverLinkPacket(protocol tcpip.NetworkProtocolNumber, pkt stack.PacketBufferPtr) {
+func (p *packetAddrDevice) DeliverLinkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
 	// TODO implement me
 	panic("implement me")
 }

@@ -1,6 +1,4 @@
 //go:build !confonly && (!linux || (linux && !(amd64 || arm64)))
-// +build !confonly
-// +build !linux linux,!amd64,!arm64
 
 package gvisor
 

@@ -10,15 +10,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/v2fly/v2ray-core/v4/common/environment/deferredpersistentstorage"
-	"github.com/v2fly/v2ray-core/v4/common/environment/filesystemimpl"
-
+	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
+	"github.com/v2fly/v2ray-core/v4/common/environment/deferredpersistentstorage"
 	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
+	"github.com/v2fly/v2ray-core/v4/common/environment/filesystemimpl"
 	"github.com/v2fly/v2ray-core/v4/common/environment/systemnetworkimpl"
 	"github.com/v2fly/v2ray-core/v4/common/environment/transientstorageimpl"
-
-	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/errors"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"

@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package httprt
 
@@ -14,11 +13,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v4/transport/internet/transportcommon"
-
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/request"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/transportcommon"
 )
 
 func newHTTPRoundTripperClient(ctx context.Context, config *ClientConfig) request.RoundTripperClient {
