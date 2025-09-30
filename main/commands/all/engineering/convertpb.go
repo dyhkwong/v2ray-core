@@ -14,15 +14,13 @@ import (
 )
 
 var (
-	configFiles          cmdarg.Arg
-	configDirs           cmdarg.Arg
-	configFormat         *string
-	configDirRecursively *bool
+	configFiles  cmdarg.Arg
+	configDirs   cmdarg.Arg
+	configFormat *string
 )
 
 func setConfigFlags(cmd *base.Command) {
 	configFormat = cmd.Flag.String("format", core.FormatAuto, "")
-	configDirRecursively = cmd.Flag.Bool("r", false, "")
 
 	cmd.Flag.Var(&configFiles, "config", "")
 	cmd.Flag.Var(&configFiles, "c", "")
