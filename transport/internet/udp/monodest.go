@@ -21,7 +21,7 @@ type MonoDestUDPConn struct {
 func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	buffer := buf.New()
 	buffer.Extend(2048)
-	nBytes, _, err := m.AbstractPacketConn.ReadFrom(buffer.Bytes())
+	nBytes, _, err := m.ReadFrom(buffer.Bytes())
 	if err != nil {
 		buffer.Release()
 		return nil, err
@@ -32,7 +32,7 @@ func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 	for _, b := range buffer {
-		_, err := m.AbstractPacketConn.WriteTo(b.Bytes(), m.dest)
+		_, err := m.WriteTo(b.Bytes(), m.dest)
 		if err != nil {
 			return err
 		}
@@ -42,10 +42,10 @@ func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 }
 
 func (m *MonoDestUDPConn) Read(p []byte) (n int, err error) {
-	n, _, err = m.AbstractPacketConn.ReadFrom(p)
-	return
+	n, _, err = m.ReadFrom(p)
+	return n, err
 }
 
 func (m *MonoDestUDPConn) Write(p []byte) (n int, err error) {
-	return m.AbstractPacketConn.WriteTo(p, m.dest)
+	return m.WriteTo(p, m.dest)
 }
