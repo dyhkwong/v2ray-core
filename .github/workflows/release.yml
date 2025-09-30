@@ -134,11 +134,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: ./go.mod
+          go-version: ~1.25
           cache-dependency-path: ./go.sum
-
-      - name: Get project dependencies
-        run: go mod download
 
       - name: Build V2Ray
         run: |
