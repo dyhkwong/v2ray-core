@@ -81,14 +81,6 @@ func showBalancerInfo(b *routerService.BalancerMsg) {
 	os.Stdout.WriteString(sb.String())
 }
 
-func getColumnFormats(titles []string) []string {
-	w := make([]string, len(titles))
-	for i, t := range titles {
-		w[i] = fmt.Sprintf("%%-%ds ", len(t))
-	}
-	return w
-}
-
 func writeRow(sb *strings.Builder, indent, index int, values, formats []string) {
 	if index == 0 {
 		// title line

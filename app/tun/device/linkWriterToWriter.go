@@ -3,10 +3,10 @@ package device
 import (
 	"io"
 
-	"github.com/v2fly/v2ray-core/v5/common/errors"
-
 	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+
+	"github.com/v2fly/v2ray-core/v5/common/errors"
 )
 
 func NewLinkWriterToWriter(writer stack.LinkWriter) io.Writer {
