@@ -15,10 +15,10 @@ func mergeMaps(target map[string]interface{}, source map[string]interface{}) (er
 	for key, value := range source {
 		target[key], err = mergeField(target[key], value)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 func mergeField(target interface{}, source interface{}) (interface{}, error) {
