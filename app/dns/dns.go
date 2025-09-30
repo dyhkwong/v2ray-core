@@ -1,6 +1,3 @@
-//go:build !confonly
-// +build !confonly
-
 // Package dns is an implementation of core.DNS feature.
 package dns
 
@@ -152,9 +149,6 @@ func establishDomainRules(s *DNS, config *Config, nsClientMap map[int]int) error
 			matcherInfos[midx] = DomainMatcherInfo{
 				clientIdx:     uint16(clientIdx),
 				domainRuleIdx: uint16(originalRuleIdx),
-			}
-			if err != nil {
-				return newError("failed to create prioritized domain").Base(err).AtWarning()
 			}
 		}
 		s.clients[clientIdx].domains = rules
