@@ -62,7 +62,7 @@ func TryParseAsUDPPacket(packet []byte) (src, dst net.Destination, data []byte, 
 	src = net.UDPDestination(srcIP, srcPort)
 	dst = net.UDPDestination(dstIP, dstPort)
 	data = udp.Payload
-	return // nolint: nakedret
+	return src, dst, data, err
 }
 
 func TryConstructUDPPacket(src, dst net.Destination, data []byte) ([]byte, error) {

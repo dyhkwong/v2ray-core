@@ -8,13 +8,12 @@ import (
 	gonet "net"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v4/transport/internet/transportcommon"
-
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/request"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/transportcommon"
 )
 
 type client struct {

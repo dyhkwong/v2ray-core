@@ -171,11 +171,9 @@ func main() {
 
 	goimportsArgs := []string{
 		"write",
-		"--NoInlineComments",
-		"--NoPrefixComments",
-		"--Section", "Standard",
-		"--Section", "Default",
-		"--Section", "pkgPrefix(github.com/v2fly/v2ray-core)",
+		"--section", "standard",
+		"--section", "default",
+		"--section", "Prefix(github.com/v2fly/v2ray-core)",
 	}
 
 	RunMany(gofmt, gofmtArgs, rawFilesSlice)
