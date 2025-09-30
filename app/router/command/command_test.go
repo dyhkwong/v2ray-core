@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -59,10 +59,7 @@ func TestServiceSubscribeRoutingStats(t *testing.T) {
 		publishTestCases := func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			for { // Wait until there's one subscriber in routing stats channel
-				if len(c.Subscribers()) > 0 {
-					break
-				}
+			for len(c.Subscribers()) == 0 { // Wait until there's one subscriber in routing stats channel
 				if ctx.Err() != nil {
 					return ctx.Err()
 				}
@@ -104,10 +101,7 @@ func TestServiceSubscribeRoutingStats(t *testing.T) {
 				streamClose()
 				timeOutCtx, timeout := context.WithTimeout(context.Background(), time.Second)
 				defer timeout()
-				for { // Wait until there's no subscriber in routing stats channel
-					if len(c.Subscribers()) == 0 {
-						break
-					}
+				for len(c.Subscribers()) == 0 { // Wait until there's no subscriber in routing stats channel
 					if timeOutCtx.Err() != nil {
 						t.Error("unexpected subscribers not decreased in channel", timeOutCtx.Err())
 					}
@@ -198,10 +192,7 @@ func TestServiceSubscribeSubsetOfFields(t *testing.T) {
 		publishTestCases := func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			for { // Wait until there's one subscriber in routing stats channel
-				if len(c.Subscribers()) > 0 {
-					break
-				}
+			for len(c.Subscribers()) == 0 { // Wait until there's one subscriber in routing stats channel
 				if ctx.Err() != nil {
 					return ctx.Err()
 				}
@@ -221,7 +212,7 @@ func TestServiceSubscribeSubsetOfFields(t *testing.T) {
 	// Client goroutine
 	go func() {
 		defer lis.Close()
-		conn, err := grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+		conn, err := grpc.DialContext(context.Background(), "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			errCh <- err
 			return

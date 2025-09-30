@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package inbound
 
@@ -22,7 +21,6 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal"
 	"github.com/v2fly/v2ray-core/v4/common/task"
-	"github.com/v2fly/v2ray-core/v4/features/dns"
 	feature_inbound "github.com/v2fly/v2ray-core/v4/features/inbound"
 	"github.com/v2fly/v2ray-core/v4/features/policy"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
@@ -34,14 +32,7 @@ import (
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		var dc dns.Client
-		if err := core.RequireFeatures(ctx, func(d dns.Client) error {
-			dc = d
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-		return New(ctx, config.(*Config), dc)
+		return New(ctx, config.(*Config))
 	}))
 }
 
@@ -50,19 +41,17 @@ type Handler struct {
 	inboundHandlerManager feature_inbound.Manager
 	policyManager         policy.Manager
 	validator             *vless.Validator
-	dns                   dns.Client
 	fallbacks             map[string]map[string]*Fallback // or nil
 	// regexps               map[string]*regexp.Regexp       // or nil
 }
 
 // New creates a new VLess inbound handler.
-func New(ctx context.Context, config *Config, dc dns.Client) (*Handler, error) {
+func New(ctx context.Context, config *Config) (*Handler, error) {
 	v := core.MustFromContext(ctx)
 	handler := &Handler{
 		inboundHandlerManager: v.GetFeature(feature_inbound.ManagerType()).(feature_inbound.Manager),
 		policyManager:         v.GetFeature(policy.ManagerType()).(policy.Manager),
 		validator:             new(vless.Validator),
-		dns:                   dc,
 	}
 
 	for _, user := range config.Clients {
