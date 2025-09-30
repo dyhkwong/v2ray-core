@@ -6,13 +6,12 @@ import (
 	gonet "net"
 	"net/http"
 
-	"github.com/v2fly/v2ray-core/v5/common"
-	"github.com/v2fly/v2ray-core/v5/common/net"
-
 	"github.com/v2fly/v2ray-core/v5/app/subscription"
 	"github.com/v2fly/v2ray-core/v5/app/subscription/documentfetcher"
+	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/environment"
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
@@ -30,8 +29,7 @@ type httpFetcher struct{}
 func (h *httpFetcher) DownloadDocument(ctx context.Context, source *subscription.ImportSource, opts ...documentfetcher.FetcherOptions) ([]byte, error) {
 	instanceNetwork := envctx.EnvironmentFromContext(ctx).(environment.InstanceNetworkCapabilitySet)
 	outboundDialer := instanceNetwork.OutboundDialer()
-	var httpRoundTripper http.RoundTripper //nolint: gosimple
-	httpRoundTripper = &http.Transport{
+	httpRoundTripper := &http.Transport{
 		DialContext: func(ctx_ context.Context, network string, addr string) (gonet.Conn, error) {
 			dest, err := net.ParseDestination(network + ":" + addr)
 			if err != nil {
