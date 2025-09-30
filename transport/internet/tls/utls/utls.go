@@ -108,15 +108,26 @@ func (u uTLSClientConnection) GetConnectionApplicationProtocol() (string, error)
 
 func uTLSConfigFromTLSConfig(config *systls.Config) (*utls.Config, error) { // nolint: unparam
 	uconfig := &utls.Config{
-		Rand:                  config.Rand,
-		Time:                  config.Time,
-		RootCAs:               config.RootCAs,
-		NextProtos:            config.NextProtos,
-		ServerName:            config.ServerName,
-		VerifyPeerCertificate: config.VerifyPeerCertificate,
-		InsecureSkipVerify:    config.InsecureSkipVerify,
-		ClientAuth:            utls.ClientAuthType(config.ClientAuth),
-		ClientCAs:             config.ClientCAs,
+		Rand:                           config.Rand,
+		Time:                           config.Time,
+		RootCAs:                        config.RootCAs,
+		NextProtos:                     config.NextProtos,
+		ServerName:                     config.ServerName,
+		VerifyPeerCertificate:          config.VerifyPeerCertificate,
+		InsecureSkipVerify:             config.InsecureSkipVerify,
+		ClientAuth:                     utls.ClientAuthType(config.ClientAuth),
+		ClientCAs:                      config.ClientCAs,
+		EncryptedClientHelloConfigList: config.EncryptedClientHelloConfigList,
+	}
+	if len(config.Certificates) > 0 {
+		certificates := make([]utls.Certificate, len(config.Certificates))
+		for i, certificate := range config.Certificates {
+			certificates[i] = utls.Certificate{
+				Certificate: certificate.Certificate,
+				PrivateKey:  certificate.PrivateKey,
+			}
+		}
+		uconfig.Certificates = certificates
 	}
 	return uconfig, nil
 }
