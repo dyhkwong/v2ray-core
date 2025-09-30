@@ -1,0 +1,36 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+      - v*
+      - dev*
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/test.yml"
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ~1.26
+          cache-dependency-path: ./go.sum
+
+      - name: Run tests
+        run: |
+          go test ./... -v -timeout=1h
