@@ -8,7 +8,6 @@ option java_multiple_files = true;
 
 import "app/router/routercommon/common.proto";
 import "transport/internet/config.proto";
-import "common/protoext/extensions.proto";
 
 message TCPListener {
   uint32 port = 1;
