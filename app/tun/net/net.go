@@ -1,13 +1,12 @@
 //go:build !confonly
-// +build !confonly
 
 package net
 
 import (
-	"github.com/v2fly/v2ray-core/v4/common/net"
-
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+
+	"github.com/v2fly/v2ray-core/v4/common/net"
 )
 
 type TCPConn interface {

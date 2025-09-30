@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package tun
 
@@ -87,7 +86,7 @@ func SetRouteTable(id tcpip.NICID, routes []*router.CIDR) StackOption {
 				}
 				table = append(table, route)
 			}
-			return
+			return table
 		}())
 
 		return nil

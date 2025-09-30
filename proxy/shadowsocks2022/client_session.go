@@ -1,5 +1,4 @@
 //go:build !confonly
-// +build !confonly
 
 package shadowsocks2022
 
@@ -11,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pion/transport/v4/replaydetector"
+
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
-
-	"github.com/pion/transport/v2/replaydetector"
 )
 
 func NewClientUDPSession(ctx context.Context, conn io.ReadWriteCloser, packetProcessor UDPClientPacketProcessor) *ClientUDPSession {
