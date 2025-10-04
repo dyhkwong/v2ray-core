@@ -12,6 +12,8 @@ import (
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/environment"
+	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
@@ -104,6 +106,18 @@ func (c *clientConnections) cleanConnections() error {
 	return nil
 }
 
+func (c *clientConnections) Close() error {
+	c.access.Lock()
+	for _, cc := range c.conns {
+		_ = cc.conn.CloseWithError(0, "")
+		_ = cc.rawConn.Close()
+	}
+	clear(c.conns)
+	_ = c.cleanup.Close()
+	c.access.Unlock()
+	return nil
+}
+
 func (c *clientConnections) openConnection(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	var destAddr *net.UDPAddr
 	if dest.Address.Family().IsIP() {
@@ -190,18 +204,42 @@ func (c *clientConnections) openConnection(ctx context.Context, dest net.Destina
 	return cc.openStream(destAddr)
 }
 
-var (
-	globalDialerMap    map[dialerConf]*clientConnections
-	globalDialerAccess sync.Mutex
-)
+type transportConnectionState struct {
+	scopedDialerMap    map[dialerConf]*clientConnections
+	scopedDialerAccess sync.Mutex
+}
+
+func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
+}
+
+func (t *transportConnectionState) Close() error {
+	t.scopedDialerAccess.Lock()
+	for _, conn := range t.scopedDialerMap {
+		_ = conn.Close()
+	}
+	clear(t.scopedDialerMap)
+	t.scopedDialerAccess.Unlock()
+	return nil
+}
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	dest.Network = net.Network_UDP
-	globalDialerAccess.Lock()
-	if globalDialerMap == nil {
-		globalDialerMap = make(map[dialerConf]*clientConnections)
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
+	state, err := transportEnvironment.TransientStorage().Get(ctx, "quic-transport-connection-state")
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "quic-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "quic-transport-connection-state")
+		if err != nil {
+			return nil, newError("failed to get quic transport connection state").Base(err)
+		}
 	}
-	client, found := globalDialerMap[dialerConf{dest, streamSettings}]
+	stateTyped := state.(*transportConnectionState)
+	stateTyped.scopedDialerAccess.Lock()
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]*clientConnections)
+	}
+	client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]
 	if !found {
 		client = new(clientConnections)
 		client.cleanup = &task.Periodic{
@@ -209,9 +247,9 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			Execute:  client.cleanConnections,
 		}
 		common.Must(client.cleanup.Start())
-		globalDialerMap[dialerConf{dest, streamSettings}] = client
+		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
 	}
-	globalDialerAccess.Unlock()
+	stateTyped.scopedDialerAccess.Unlock()
 	return client.openConnection(ctx, dest, streamSettings)
 }
 
