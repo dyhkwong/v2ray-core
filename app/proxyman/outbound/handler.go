@@ -59,21 +59,22 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx               context.Context
-	tag               string
-	senderSettings    *proxyman.SenderConfig
-	streamSettings    *internet.MemoryStreamConfig
-	proxy             proxy.Outbound
-	outboundManager   outbound.Manager
-	mux               *mux.ClientManager
-	smux              *sing_mux.Client
-	uplinkCounter     stats.Counter
-	downlinkCounter   stats.Counter
-	dns               dns.Client
-	fakedns           dns.FakeDNSEngine
-	muxPacketEncoding packetaddr.PacketAddrType
-	pool              *internet.ConnectionPool
-	closed            bool
+	ctx                  context.Context
+	tag                  string
+	senderSettings       *proxyman.SenderConfig
+	streamSettings       *internet.MemoryStreamConfig
+	proxy                proxy.Outbound
+	outboundManager      outbound.Manager
+	mux                  *mux.ClientManager
+	smux                 *sing_mux.Client
+	uplinkCounter        stats.Counter
+	downlinkCounter      stats.Counter
+	dns                  dns.Client
+	fakedns              dns.FakeDNSEngine
+	muxPacketEncoding    packetaddr.PacketAddrType
+	pool                 *internet.ConnectionPool
+	closed               bool
+	transportEnvironment environment.TransportEnvironment
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -185,6 +186,13 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 			}
 		}
 	}
+
+	proxyEnvironment := envctx.EnvironmentFromContext(ctx).(environment.ProxyEnvironment)
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
+	if err != nil {
+		return nil, newError("unable to narrow environment to transport").Base(err)
+	}
+	h.transportEnvironment = transportEnvironment
 
 	return h, nil
 }
@@ -402,12 +410,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 		return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
 	}
 
-	proxyEnvironment := envctx.EnvironmentFromContext(h.ctx).(environment.ProxyEnvironment)
-	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
-	if err != nil {
-		return nil, newError("unable to narrow environment to transport").Base(err)
-	}
-	ctx = envctx.ContextWithEnvironment(ctx, transportEnvironment)
+	ctx = envctx.ContextWithEnvironment(ctx, h.transportEnvironment)
 	conn, err := internet.Dial(ctx, dest, h.streamSettings)
 	if err != nil {
 		return nil, err
@@ -477,5 +480,7 @@ func (h *Handler) Close() error {
 			return newError("unable to close proxy").Base(err)
 		}
 	}
+
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 	return nil
 }
