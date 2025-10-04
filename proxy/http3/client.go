@@ -35,6 +35,19 @@ import (
 type Client struct {
 	config        *ClientConfig
 	policyManager policy.Manager
+	cachedH3Mutex sync.Mutex
+	cachedH3Conns map[net.Destination]h3Conn
+}
+
+func (c *Client) Close() error {
+	c.cachedH3Mutex.Lock()
+	for _, cachedH3Conn := range c.cachedH3Conns {
+		_ = cachedH3Conn.h3Conn.CloseWithError(0, "")
+		_ = cachedH3Conn.rawConn.Close()
+	}
+	clear(c.cachedH3Conns)
+	c.cachedH3Mutex.Unlock()
+	return nil
 }
 
 type h3Conn struct {
@@ -45,16 +58,12 @@ type h3Conn struct {
 	writeCounter stats.Counter
 }
 
-var (
-	cachedH3Mutex sync.Mutex
-	cachedH3Conns map[net.Destination]h3Conn
-)
-
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	v := core.MustFromContext(ctx)
 	return &Client{
 		config:        config,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
+		cachedH3Conns: make(map[net.Destination]h3Conn),
 	}, nil
 }
 
@@ -88,7 +97,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		netConn, err := setUpHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
+		netConn, err := c.setUpHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
 		if err != nil {
 			return err
 		}
@@ -127,7 +136,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 // setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig) (net.Conn, error) {
+func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig) (net.Conn, error) {
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -203,9 +212,9 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		}, nil
 	}
 
-	cachedH3Mutex.Lock()
-	cachedConn, found := cachedH3Conns[dest]
-	cachedH3Mutex.Unlock()
+	c.cachedH3Mutex.Lock()
+	cachedConn, found := c.cachedH3Conns[dest]
+	c.cachedH3Mutex.Unlock()
 
 	if found {
 		rawConn, quicConn, h3Conn := cachedConn.rawConn, cachedConn.quicConn, cachedConn.h3Conn
@@ -217,6 +226,9 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 			if err != nil {
 				quicConn.CloseWithError(0, "")
 				rawConn.Close()
+				c.cachedH3Mutex.Lock()
+				delete(c.cachedH3Conns, dest)
+				c.cachedH3Mutex.Unlock()
 				return nil, err
 			}
 			return proxyConn, nil
@@ -273,19 +285,15 @@ func setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer,
 		return nil, err
 	}
 
-	cachedH3Mutex.Lock()
-	if cachedH3Conns == nil {
-		cachedH3Conns = make(map[net.Destination]h3Conn)
-	}
-
-	cachedH3Conns[dest] = h3Conn{
+	c.cachedH3Mutex.Lock()
+	c.cachedH3Conns[dest] = h3Conn{
 		rawConn:      rawConn,
 		quicConn:     quicConn,
 		h3Conn:       h3clientConn,
 		readCounter:  readCounter,
 		writeCounter: writeCounter,
 	}
-	cachedH3Mutex.Unlock()
+	c.cachedH3Mutex.Unlock()
 
 	return proxyConn, err
 }
