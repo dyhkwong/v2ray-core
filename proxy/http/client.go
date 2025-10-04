@@ -34,17 +34,25 @@ type Client struct {
 	serverPicker       protocol.ServerPicker
 	policyManager      policy.Manager
 	h1SkipWaitForReply bool
+	cachedH2Mutex      sync.Mutex
+	cachedH2Conns      map[net.Destination]h2Conn
+}
+
+func (c *Client) Close() error {
+	c.cachedH2Mutex.Lock()
+	for _, cachedH2Conn := range c.cachedH2Conns {
+		_ = cachedH2Conn.h2Conn.Close()
+		_ = cachedH2Conn.rawConn.Close()
+	}
+	clear(c.cachedH2Conns)
+	c.cachedH2Mutex.Unlock()
+	return nil
 }
 
 type h2Conn struct {
 	rawConn net.Conn
 	h2Conn  *http2.ClientConn
 }
-
-var (
-	cachedH2Mutex sync.Mutex
-	cachedH2Conns map[net.Destination]h2Conn
-)
 
 // NewClient create a new http client based on the given config.
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
@@ -65,6 +73,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		serverPicker:       protocol.NewRoundRobinServerPicker(serverList),
 		policyManager:      v.GetFeature(policy.ManagerType()).(policy.Manager),
 		h1SkipWaitForReply: config.H1SkipWaitForReply,
+		cachedH2Conns:      make(map[net.Destination]h2Conn),
 	}, nil
 }
 
@@ -113,7 +122,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		dest := server.Destination()
 		user = server.PickUser()
 
-		netConn, firstResp, err := setUpHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
+		netConn, firstResp, err := c.setUpHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
 		if netConn != nil {
 			if _, ok := netConn.(*http2Conn); !ok && !c.h1SkipWaitForReply {
 				if _, err := netConn.Write(firstPayload); err != nil {
@@ -165,7 +174,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 // setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte, writeFirstPayloadInH1 bool,
+func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte, writeFirstPayloadInH1 bool,
 ) (net.Conn, buf.MultiBuffer, error) {
 	req := &http.Request{
 		Method: http.MethodConnect,
@@ -267,9 +276,9 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 		return newHTTP2Conn(rawConn, pw, resp.Body), nil
 	}
 
-	cachedH2Mutex.Lock()
-	cachedConn, cachedConnFound := cachedH2Conns[dest]
-	cachedH2Mutex.Unlock()
+	c.cachedH2Mutex.Lock()
+	cachedConn, cachedConnFound := c.cachedH2Conns[dest]
+	c.cachedH2Mutex.Unlock()
 
 	if cachedConnFound {
 		rc, cc := cachedConn.rawConn, cachedConn.h2Conn
@@ -319,16 +328,12 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 			return nil, nil, err
 		}
 
-		cachedH2Mutex.Lock()
-		if cachedH2Conns == nil {
-			cachedH2Conns = make(map[net.Destination]h2Conn)
-		}
-
-		cachedH2Conns[dest] = h2Conn{
+		c.cachedH2Mutex.Lock()
+		c.cachedH2Conns[dest] = h2Conn{
 			rawConn: rawConn,
 			h2Conn:  h2clientConn,
 		}
-		cachedH2Mutex.Unlock()
+		c.cachedH2Mutex.Unlock()
 
 		return proxyConn, nil, err
 	default:

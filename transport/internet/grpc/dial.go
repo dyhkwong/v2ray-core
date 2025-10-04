@@ -58,7 +58,7 @@ func (t *transportConnectionState) Close() error {
 	for _, conn := range t.scopedDialerMap {
 		_ = conn.Close()
 	}
-	t.scopedDialerMap = nil
+	clear(t.scopedDialerMap)
 	return nil
 }
 
