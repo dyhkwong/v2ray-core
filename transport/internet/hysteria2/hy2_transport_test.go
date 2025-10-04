@@ -11,6 +11,12 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/deferredpersistentstorage"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
+	"github.com/v2fly/v2ray-core/v5/common/environment/filesystemimpl"
+	"github.com/v2fly/v2ray-core/v5/common/environment/systemnetworkimpl"
+	"github.com/v2fly/v2ray-core/v5/common/environment/transientstorageimpl"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/tls/cert"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -60,6 +66,19 @@ func TestTCP(t *testing.T) {
 	time.Sleep(time.Second)
 
 	dctx := context.Background()
+	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(dctx)
+	rootEnv := environment.NewRootEnvImpl(dctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
+	proxyEnvironment := rootEnv.ProxyEnvironment("o")
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("hysteria2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dctx = envctx.ContextWithEnvironment(dctx, transportEnvironment)
+
 	conn, err := hysteria2.Dial(dctx, net.TCPDestination(net.LocalHostIP, port), &internet.MemoryStreamConfig{
 		ProtocolName:     "hysteria2",
 		ProtocolSettings: &hysteria2.Config{Password: "123"},
@@ -128,7 +147,20 @@ func TestUDP(t *testing.T) {
 
 	address, err := net.ParseDestination("udp:127.0.0.1:1180")
 	common.Must(err)
+
 	dctx := session.ContextWithOutbound(context.Background(), &session.Outbound{Target: address})
+	defaultNetworkImpl := systemnetworkimpl.NewSystemNetworkDefault()
+	defaultFilesystemImpl := filesystemimpl.NewDefaultFileSystemDefaultImpl()
+	deferredPersistentStorageImpl := deferredpersistentstorage.NewDeferredPersistentStorage(dctx)
+	rootEnv := environment.NewRootEnvImpl(dctx,
+		transientstorageimpl.NewScopedTransientStorageImpl(), defaultNetworkImpl.Dialer(), defaultNetworkImpl.Listener(),
+		defaultFilesystemImpl, deferredPersistentStorageImpl)
+	proxyEnvironment := rootEnv.ProxyEnvironment("o")
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("hysteria2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dctx = envctx.ContextWithEnvironment(dctx, transportEnvironment)
 
 	conn, err := hysteria2.Dial(dctx, net.TCPDestination(net.LocalHostIP, port), &internet.MemoryStreamConfig{
 		ProtocolName:     "hysteria2",
