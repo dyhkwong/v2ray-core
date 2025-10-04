@@ -5,12 +5,16 @@ import (
 	gotls "crypto/tls"
 	"sync"
 
+	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/quicvarint"
 	hyClient "github.com/dyhkwong/hysteria/core/v2/client"
 	hyProtocol "github.com/dyhkwong/hysteria/core/v2/international/protocol"
+	"github.com/dyhkwong/hysteria/core/v2/international/utils"
 	"github.com/dyhkwong/hysteria/extras/v2/obfs"
 
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
@@ -18,16 +22,128 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
+var _ hyClient.Client = (*hysteriaClient)(nil)
+
+type hysteriaClient struct {
+	hyClient.Client
+	mu             sync.Mutex
+	inited         bool
+	ctx            context.Context
+	dest           net.Destination
+	streamSettings *internet.MemoryStreamConfig
+}
+
+func (c *hysteriaClient) init() error {
+	client, err := NewHyClient(c.ctx, c.dest, c.streamSettings)
+	if err != nil {
+		return err
+	}
+	c.Client = client
+	return nil
+}
+
+func (c *hysteriaClient) TCP(addr string) (net.Conn, error) {
+	c.mu.Lock()
+	if !c.inited {
+		if err := c.init(); err != nil {
+			c.mu.Unlock()
+			return nil, err
+		}
+		c.inited = true
+	}
+	c.mu.Unlock()
+	return c.Client.TCP(addr)
+}
+
+func (c *hysteriaClient) UDP() (hyClient.HyUDPConn, error) {
+	c.mu.Lock()
+	if !c.inited {
+		if err := c.init(); err != nil {
+			c.mu.Unlock()
+			return nil, err
+		}
+		c.inited = true
+	}
+	c.mu.Unlock()
+	return c.Client.UDP()
+}
+
+func (c *hysteriaClient) Close() error {
+	c.mu.Lock()
+	if !c.inited {
+		c.mu.Unlock()
+		return nil
+	}
+	c.mu.Unlock()
+	return c.Client.Close()
+}
+
+func (c *hysteriaClient) OpenStream() (*utils.QStream, error) {
+	c.mu.Lock()
+	if !c.inited {
+		if err := c.init(); err != nil {
+			c.mu.Unlock()
+			return nil, err
+		}
+		c.inited = true
+	}
+	c.mu.Unlock()
+	return c.Client.OpenStream()
+}
+
+func (c *hysteriaClient) GetQuicConn() *quic.Conn {
+	c.mu.Lock()
+	if !c.inited {
+		c.mu.Unlock()
+		return nil
+	}
+	c.mu.Unlock()
+	return c.Client.GetQuicConn()
+}
+
+func (c *hysteriaClient) getQuicConn() (*quic.Conn, error) {
+	c.mu.Lock()
+	if !c.inited {
+		if err := c.init(); err != nil {
+			c.mu.Unlock()
+			return nil, err
+		}
+		c.inited = true
+	}
+	c.mu.Unlock()
+	quicConn := c.GetQuicConn()
+	if quicConn == nil {
+		return nil, newError("get quic conn failed")
+	}
+	return quicConn, nil
+}
+
 type dialerConf struct {
 	net.Destination
 	*internet.MemoryStreamConfig
 }
 
-var (
-	RunningClient map[dialerConf](hyClient.Client)
-	ClientMutex   sync.Mutex
-	MBps          uint64 = 1000000 / 8 // MByte
-)
+type transportConnectionState struct {
+	scopedDialerMap    map[dialerConf]*hysteriaClient
+	scopedDialerAccess sync.Mutex
+}
+
+type dialerCanceller func()
+
+func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
+}
+
+func (t *transportConnectionState) Close() error {
+	t.scopedDialerAccess.Lock()
+	for _, client := range t.scopedDialerMap {
+		_ = client.Close()
+	}
+	clear(t.scopedDialerMap)
+	t.scopedDialerAccess.Unlock()
+	return nil
+}
+
+var MBps uint64 = 1000000 / 8 // MByte
 
 func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
@@ -131,64 +247,88 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 	return client, nil
 }
 
-func CloseHyClient(dest net.Destination, streamSettings *internet.MemoryStreamConfig) error {
-	ClientMutex.Lock()
-	defer ClientMutex.Unlock()
+func CloseHyClient(state *transportConnectionState, dest net.Destination, streamSettings *internet.MemoryStreamConfig) error {
+	state.scopedDialerAccess.Lock()
+	defer state.scopedDialerAccess.Unlock()
 
-	client, found := RunningClient[dialerConf{dest, streamSettings}]
+	client, found := state.scopedDialerMap[dialerConf{dest, streamSettings}]
 	if found {
-		delete(RunningClient, dialerConf{dest, streamSettings})
+		delete(state.scopedDialerMap, dialerConf{dest, streamSettings})
 		return client.Close()
 	}
 	return nil
 }
 
-func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
-	var err error
-	var client hyClient.Client
-
-	ClientMutex.Lock()
-	client, found := RunningClient[dialerConf{dest, streamSettings}]
-	ClientMutex.Unlock()
-	if !found || !CheckHyClientHealthy(client) {
-		if found {
-			// retry
-			CloseHyClient(dest, streamSettings)
-		}
-		client, err = NewHyClient(ctx, dest, streamSettings)
+func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*hysteriaClient, dialerCanceller, error) {
+	dest.Network = net.Network_UDP
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
+	state, err := transportEnvironment.TransientStorage().Get(ctx, "hysteria2-transport-connection-state")
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "hysteria2-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "hysteria2-transport-connection-state")
 		if err != nil {
-			return nil, err
+			return nil, nil, newError("failed to get hysteria2 transport connection state").Base(err)
 		}
-		ClientMutex.Lock()
-		RunningClient[dialerConf{dest, streamSettings}] = client
-		ClientMutex.Unlock()
 	}
-	return client, nil
+	stateTyped := state.(*transportConnectionState)
+	stateTyped.scopedDialerAccess.Lock()
+	defer stateTyped.scopedDialerAccess.Unlock()
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]*hysteriaClient)
+	}
+	canceller := func() {
+		CloseHyClient(stateTyped, dest, streamSettings)
+	}
+	client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]
+	if found {
+		return client, canceller, nil
+	}
+	client = &hysteriaClient{
+		ctx:            ctx,
+		dest:           dest,
+		streamSettings: streamSettings,
+	}
+	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
+	return client, canceller, nil
 }
 
-func CheckHyClientHealthy(client hyClient.Client) bool {
-	quicConn := client.GetQuicConn()
-	if quicConn == nil {
-		return false
-	}
+func CheckHyClientHealthy(quicConn *quic.Conn) bool {
 	select {
 	case <-quicConn.Context().Done():
 		return false
 	default:
+		return true
 	}
-	return true
 }
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	config := streamSettings.ProtocolSettings.(*Config)
-
-	client, err := GetHyClient(ctx, dest, streamSettings)
+	client, canceller, err := GetHyClient(ctx, dest, streamSettings)
 	if err != nil {
-		CloseHyClient(dest, streamSettings)
 		return nil, err
 	}
 
-	quicConn := client.GetQuicConn()
+	quicConn, err := client.getQuicConn()
+	if err != nil {
+		canceller()
+		return nil, err
+	}
+
+	if !CheckHyClientHealthy(quicConn) {
+		// retry
+		canceller()
+		client, canceller, err = GetHyClient(ctx, dest, streamSettings)
+		if err != nil {
+			return nil, err
+		}
+		quicConn, err = client.getQuicConn()
+		if err != nil {
+			canceller()
+			return nil, err
+		}
+	}
+
 	conn := &HyConn{
 		local:  quicConn.LocalAddr(),
 		remote: quicConn.RemoteAddr(),
@@ -205,7 +345,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		conn.IsServer = false
 		conn.ClientUDPSession, err = client.UDP()
 		if err != nil {
-			CloseHyClient(dest, streamSettings)
+			canceller()
 			return nil, err
 		}
 		return conn, nil
@@ -213,7 +353,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	conn.stream, err = client.OpenStream()
 	if err != nil {
-		CloseHyClient(dest, streamSettings)
 		return nil, err
 	}
 
@@ -223,13 +362,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	hyProtocol.VarintPut(buf, hyProtocol.FrameTypeTCPRequest)
 	_, err = conn.stream.Write(buf)
 	if err != nil {
-		CloseHyClient(dest, streamSettings)
 		return nil, err
 	}
 	return conn, nil
 }
 
 func init() {
-	RunningClient = make(map[dialerConf]hyClient.Client)
 	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
 }
