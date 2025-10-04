@@ -430,7 +430,7 @@ func (h *Handler) Close() error {
 
 	if closableProxy, ok := h.proxy.(common.Closable); ok {
 		if err := closableProxy.Close(); err != nil {
-			return newError("unable to close proxy").Base(err)
+			return newError("unable to close proxy")
 		}
 	}
 	return nil
