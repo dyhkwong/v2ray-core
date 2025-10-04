@@ -13,6 +13,8 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -25,29 +27,54 @@ type dialerConf struct {
 	*internet.MemoryStreamConfig
 }
 
-var (
-	globalDialerMap    map[dialerConf]*http.Client
-	globalDialerAccess sync.Mutex
-)
+type transportConnectionState struct {
+	scopedDialerMap    map[dialerConf]*http.Client
+	scopedDialerAccess sync.Mutex
+}
+
+func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
+}
+
+func (t *transportConnectionState) Close() error {
+	t.scopedDialerAccess.Lock()
+	for _, client := range t.scopedDialerMap {
+		client.CloseIdleConnections()
+	}
+	clear(t.scopedDialerMap)
+	t.scopedDialerAccess.Unlock()
+	return nil
+}
 
 type dialerCanceller func()
 
-func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *security.Engine, streamSettings *internet.MemoryStreamConfig) (*http.Client, dialerCanceller) {
-	globalDialerAccess.Lock()
-	defer globalDialerAccess.Unlock()
+func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *security.Engine, streamSettings *internet.MemoryStreamConfig) (*http.Client, dialerCanceller, error) {
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
+	state, err := transportEnvironment.TransientStorage().Get(ctx, "http-transport-connection-state")
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "http-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "http-transport-connection-state")
+		if err != nil {
+			return nil, nil, newError("failed to get http transport connection state").Base(err)
+		}
+	}
+	stateTyped := state.(*transportConnectionState)
+
+	stateTyped.scopedDialerAccess.Lock()
+	defer stateTyped.scopedDialerAccess.Unlock()
+
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]*http.Client)
+	}
 
 	canceller := func() {
-		globalDialerAccess.Lock()
-		defer globalDialerAccess.Unlock()
-		delete(globalDialerMap, dialerConf{dest, streamSettings})
+		stateTyped.scopedDialerAccess.Lock()
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
+		stateTyped.scopedDialerAccess.Unlock()
 	}
 
-	if globalDialerMap == nil {
-		globalDialerMap = make(map[dialerConf]*http.Client)
-	}
-
-	if client, found := globalDialerMap[dialerConf{dest, streamSettings}]; found {
-		return client, canceller
+	if client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]; found {
+		return client, canceller, nil
 	}
 
 	transport := &http2.Transport{
@@ -99,8 +126,8 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 		Transport: transport,
 	}
 
-	globalDialerMap[dialerConf{dest, streamSettings}] = client
-	return client, canceller
+	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
+	return client, canceller, nil
 }
 
 // Dial dials a new TCP connection to the given destination.
@@ -113,7 +140,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	if securityEngine == nil {
 		return nil, newError("TLS must be enabled for http transport.").AtWarning()
 	}
-	client, canceller := getHTTPClient(ctx, dest, &securityEngine, streamSettings)
+	client, canceller, err := getHTTPClient(ctx, dest, &securityEngine, streamSettings)
+	if err != nil {
+		return nil, err
+	}
 
 	opts := pipe.OptionsFromContext(ctx)
 	preader, pwriter := pipe.New(opts...)
@@ -151,6 +181,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	response, err := client.Do(request) // nolint: bodyclose
 	if err != nil {
+		client.CloseIdleConnections()
 		canceller()
 		return nil, newError("failed to dial to ", dest).Base(err).AtWarning()
 	}
