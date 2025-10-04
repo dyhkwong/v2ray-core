@@ -58,7 +58,7 @@ func (t *transportConnectionState) Close() error {
 	for _, conn := range t.scopedDialerMap {
 		_ = conn.Close()
 	}
-	t.scopedDialerMap = nil
+	clear(t.scopedDialerMap)
 	return nil
 }
 
@@ -160,6 +160,9 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 		}),
 		grpc.WithDisableServiceConfig(),
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 	canceller = func() {
 		stateTyped.scopedDialerAccess.Lock()
 		defer stateTyped.scopedDialerAccess.Unlock()
