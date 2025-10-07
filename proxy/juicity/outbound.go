@@ -101,3 +101,5 @@ func (o *Outbound) Close() error {
 	}
 	return nil
 }
+
+func (*Outbound) DisallowMuxCool() {}
