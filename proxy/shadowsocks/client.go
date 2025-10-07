@@ -38,6 +38,8 @@ type Client struct {
 	uot bool
 }
 
+func (c *Client) SupportSingMux() {}
+
 func (c *Client) Close() error {
 	if c.plugin != nil {
 		return c.plugin.Close()
