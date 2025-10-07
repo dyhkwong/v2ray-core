@@ -180,3 +180,7 @@ func (o *Outbound) Close() error {
 	}
 	return nil
 }
+
+func (o *Outbound) SingUotEnabled() bool {
+	return o.udpOverStream
+}

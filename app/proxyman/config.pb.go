@@ -552,6 +552,7 @@ type SenderConfig struct {
 	MultiplexSettings  *MultiplexingConfig         `protobuf:"bytes,4,opt,name=multiplex_settings,json=multiplexSettings,proto3" json:"multiplex_settings,omitempty"`
 	DomainStrategy     SenderConfig_DomainStrategy `protobuf:"varint,5,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"domain_strategy,omitempty"`
 	DialDomainStrategy SenderConfig_DomainStrategy `protobuf:"varint,6,opt,name=dial_domain_strategy,json=dialDomainStrategy,proto3,enum=v2ray.core.app.proxyman.SenderConfig_DomainStrategy" json:"dial_domain_strategy,omitempty"`
+	Smux               *SingMultiplexConfig        `protobuf:"bytes,7,opt,name=smux,proto3" json:"smux,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -628,6 +629,13 @@ func (x *SenderConfig) GetDialDomainStrategy() SenderConfig_DomainStrategy {
 	return SenderConfig_AS_IS
 }
 
+func (x *SenderConfig) GetSmux() *SingMultiplexConfig {
+	if x != nil {
+		return x.Smux
+	}
+	return nil
+}
+
 type MultiplexingConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether or not Mux is enabled.
@@ -690,6 +698,90 @@ func (x *MultiplexingConfig) GetPacketEncoding() packetaddr.PacketAddrType {
 	return packetaddr.PacketAddrType(0)
 }
 
+type SingMultiplexConfig struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Enabled        bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Protocol       string                 `protobuf:"bytes,2,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	MaxConnections uint32                 `protobuf:"varint,3,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
+	MinStreams     uint32                 `protobuf:"varint,4,opt,name=min_streams,json=minStreams,proto3" json:"min_streams,omitempty"`
+	MaxStreams     uint32                 `protobuf:"varint,5,opt,name=max_streams,json=maxStreams,proto3" json:"max_streams,omitempty"`
+	Padding        bool                   `protobuf:"varint,6,opt,name=padding,proto3" json:"padding,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SingMultiplexConfig) Reset() {
+	*x = SingMultiplexConfig{}
+	mi := &file_app_proxyman_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SingMultiplexConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SingMultiplexConfig) ProtoMessage() {}
+
+func (x *SingMultiplexConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_app_proxyman_config_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SingMultiplexConfig.ProtoReflect.Descriptor instead.
+func (*SingMultiplexConfig) Descriptor() ([]byte, []int) {
+	return file_app_proxyman_config_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SingMultiplexConfig) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *SingMultiplexConfig) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *SingMultiplexConfig) GetMaxConnections() uint32 {
+	if x != nil {
+		return x.MaxConnections
+	}
+	return 0
+}
+
+func (x *SingMultiplexConfig) GetMinStreams() uint32 {
+	if x != nil {
+		return x.MinStreams
+	}
+	return 0
+}
+
+func (x *SingMultiplexConfig) GetMaxStreams() uint32 {
+	if x != nil {
+		return x.MaxStreams
+	}
+	return 0
+}
+
+func (x *SingMultiplexConfig) GetPadding() bool {
+	if x != nil {
+		return x.Padding
+	}
+	return false
+}
+
 type AllocationStrategy_AllocationStrategyConcurrency struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Value         uint32                 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -699,7 +791,7 @@ type AllocationStrategy_AllocationStrategyConcurrency struct {
 
 func (x *AllocationStrategy_AllocationStrategyConcurrency) Reset() {
 	*x = AllocationStrategy_AllocationStrategyConcurrency{}
-	mi := &file_app_proxyman_config_proto_msgTypes[8]
+	mi := &file_app_proxyman_config_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +803,7 @@ func (x *AllocationStrategy_AllocationStrategyConcurrency) String() string {
 func (*AllocationStrategy_AllocationStrategyConcurrency) ProtoMessage() {}
 
 func (x *AllocationStrategy_AllocationStrategyConcurrency) ProtoReflect() protoreflect.Message {
-	mi := &file_app_proxyman_config_proto_msgTypes[8]
+	mi := &file_app_proxyman_config_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -743,7 +835,7 @@ type AllocationStrategy_AllocationStrategyRefresh struct {
 
 func (x *AllocationStrategy_AllocationStrategyRefresh) Reset() {
 	*x = AllocationStrategy_AllocationStrategyRefresh{}
-	mi := &file_app_proxyman_config_proto_msgTypes[9]
+	mi := &file_app_proxyman_config_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -755,7 +847,7 @@ func (x *AllocationStrategy_AllocationStrategyRefresh) String() string {
 func (*AllocationStrategy_AllocationStrategyRefresh) ProtoMessage() {}
 
 func (x *AllocationStrategy_AllocationStrategyRefresh) ProtoReflect() protoreflect.Message {
-	mi := &file_app_proxyman_config_proto_msgTypes[9]
+	mi := &file_app_proxyman_config_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,14 +909,15 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12A\n" +
 	"\x11receiver_settings\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x10receiverSettings\x12;\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\rproxySettings\"\x10\n" +
-	"\x0eOutboundConfig\"\xf2\x04\n" +
+	"\x0eOutboundConfig\"\xb4\x05\n" +
 	"\fSenderConfig\x123\n" +
 	"\x03via\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\x03via\x12T\n" +
 	"\x0fstream_settings\x18\x02 \x01(\v2+.v2ray.core.transport.internet.StreamConfigR\x0estreamSettings\x12Q\n" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2*.v2ray.core.transport.internet.ProxyConfigR\rproxySettings\x12Z\n" +
 	"\x12multiplex_settings\x18\x04 \x01(\v2+.v2ray.core.app.proxyman.MultiplexingConfigR\x11multiplexSettings\x12]\n" +
 	"\x0fdomain_strategy\x18\x05 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x0edomainStrategy\x12f\n" +
-	"\x14dial_domain_strategy\x18\x06 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x12dialDomainStrategy\"a\n" +
+	"\x14dial_domain_strategy\x18\x06 \x01(\x0e24.v2ray.core.app.proxyman.SenderConfig.DomainStrategyR\x12dialDomainStrategy\x12@\n" +
+	"\x04smux\x18\a \x01(\v2,.v2ray.core.app.proxyman.SingMultiplexConfigR\x04smux\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -838,7 +931,16 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x12MultiplexingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12 \n" +
 	"\vconcurrency\x18\x02 \x01(\rR\vconcurrency\x12R\n" +
-	"\x0fpacket_encoding\x18\x03 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding*#\n" +
+	"\x0fpacket_encoding\x18\x03 \x01(\x0e2).v2ray.core.net.packetaddr.PacketAddrTypeR\x0epacketEncoding\"\xd0\x01\n" +
+	"\x13SingMultiplexConfig\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1a\n" +
+	"\bprotocol\x18\x02 \x01(\tR\bprotocol\x12'\n" +
+	"\x0fmax_connections\x18\x03 \x01(\rR\x0emaxConnections\x12\x1f\n" +
+	"\vmin_streams\x18\x04 \x01(\rR\n" +
+	"minStreams\x12\x1f\n" +
+	"\vmax_streams\x18\x05 \x01(\rR\n" +
+	"maxStreams\x12\x18\n" +
+	"\apadding\x18\x06 \x01(\bR\apadding*#\n" +
 	"\x0eKnownProtocols\x12\b\n" +
 	"\x04HTTP\x10\x00\x12\a\n" +
 	"\x03TLS\x10\x01Bf\n" +
@@ -857,7 +959,7 @@ func file_app_proxyman_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_proxyman_config_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_app_proxyman_config_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_app_proxyman_config_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_app_proxyman_config_proto_goTypes = []any{
 	(KnownProtocols)(0),                                      // 0: v2ray.core.app.proxyman.KnownProtocols
 	(AllocationStrategy_Type)(0),                             // 1: v2ray.core.app.proxyman.AllocationStrategy.Type
@@ -870,39 +972,41 @@ var file_app_proxyman_config_proto_goTypes = []any{
 	(*OutboundConfig)(nil),                                   // 8: v2ray.core.app.proxyman.OutboundConfig
 	(*SenderConfig)(nil),                                     // 9: v2ray.core.app.proxyman.SenderConfig
 	(*MultiplexingConfig)(nil),                               // 10: v2ray.core.app.proxyman.MultiplexingConfig
-	(*AllocationStrategy_AllocationStrategyConcurrency)(nil), // 11: v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyConcurrency
-	(*AllocationStrategy_AllocationStrategyRefresh)(nil),     // 12: v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyRefresh
-	(*net.PortRange)(nil),                                    // 13: v2ray.core.common.net.PortRange
-	(*net.IPOrDomain)(nil),                                   // 14: v2ray.core.common.net.IPOrDomain
-	(*internet.StreamConfig)(nil),                            // 15: v2ray.core.transport.internet.StreamConfig
-	(*anypb.Any)(nil),                                        // 16: google.protobuf.Any
-	(*internet.ProxyConfig)(nil),                             // 17: v2ray.core.transport.internet.ProxyConfig
-	(packetaddr.PacketAddrType)(0),                           // 18: v2ray.core.net.packetaddr.PacketAddrType
+	(*SingMultiplexConfig)(nil),                              // 11: v2ray.core.app.proxyman.SingMultiplexConfig
+	(*AllocationStrategy_AllocationStrategyConcurrency)(nil), // 12: v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyConcurrency
+	(*AllocationStrategy_AllocationStrategyRefresh)(nil),     // 13: v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyRefresh
+	(*net.PortRange)(nil),                                    // 14: v2ray.core.common.net.PortRange
+	(*net.IPOrDomain)(nil),                                   // 15: v2ray.core.common.net.IPOrDomain
+	(*internet.StreamConfig)(nil),                            // 16: v2ray.core.transport.internet.StreamConfig
+	(*anypb.Any)(nil),                                        // 17: google.protobuf.Any
+	(*internet.ProxyConfig)(nil),                             // 18: v2ray.core.transport.internet.ProxyConfig
+	(packetaddr.PacketAddrType)(0),                           // 19: v2ray.core.net.packetaddr.PacketAddrType
 }
 var file_app_proxyman_config_proto_depIdxs = []int32{
 	1,  // 0: v2ray.core.app.proxyman.AllocationStrategy.type:type_name -> v2ray.core.app.proxyman.AllocationStrategy.Type
-	11, // 1: v2ray.core.app.proxyman.AllocationStrategy.concurrency:type_name -> v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyConcurrency
-	12, // 2: v2ray.core.app.proxyman.AllocationStrategy.refresh:type_name -> v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyRefresh
-	13, // 3: v2ray.core.app.proxyman.ReceiverConfig.port_range:type_name -> v2ray.core.common.net.PortRange
-	14, // 4: v2ray.core.app.proxyman.ReceiverConfig.listen:type_name -> v2ray.core.common.net.IPOrDomain
+	12, // 1: v2ray.core.app.proxyman.AllocationStrategy.concurrency:type_name -> v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyConcurrency
+	13, // 2: v2ray.core.app.proxyman.AllocationStrategy.refresh:type_name -> v2ray.core.app.proxyman.AllocationStrategy.AllocationStrategyRefresh
+	14, // 3: v2ray.core.app.proxyman.ReceiverConfig.port_range:type_name -> v2ray.core.common.net.PortRange
+	15, // 4: v2ray.core.app.proxyman.ReceiverConfig.listen:type_name -> v2ray.core.common.net.IPOrDomain
 	4,  // 5: v2ray.core.app.proxyman.ReceiverConfig.allocation_strategy:type_name -> v2ray.core.app.proxyman.AllocationStrategy
-	15, // 6: v2ray.core.app.proxyman.ReceiverConfig.stream_settings:type_name -> v2ray.core.transport.internet.StreamConfig
+	16, // 6: v2ray.core.app.proxyman.ReceiverConfig.stream_settings:type_name -> v2ray.core.transport.internet.StreamConfig
 	0,  // 7: v2ray.core.app.proxyman.ReceiverConfig.domain_override:type_name -> v2ray.core.app.proxyman.KnownProtocols
 	5,  // 8: v2ray.core.app.proxyman.ReceiverConfig.sniffing_settings:type_name -> v2ray.core.app.proxyman.SniffingConfig
-	16, // 9: v2ray.core.app.proxyman.InboundHandlerConfig.receiver_settings:type_name -> google.protobuf.Any
-	16, // 10: v2ray.core.app.proxyman.InboundHandlerConfig.proxy_settings:type_name -> google.protobuf.Any
-	14, // 11: v2ray.core.app.proxyman.SenderConfig.via:type_name -> v2ray.core.common.net.IPOrDomain
-	15, // 12: v2ray.core.app.proxyman.SenderConfig.stream_settings:type_name -> v2ray.core.transport.internet.StreamConfig
-	17, // 13: v2ray.core.app.proxyman.SenderConfig.proxy_settings:type_name -> v2ray.core.transport.internet.ProxyConfig
+	17, // 9: v2ray.core.app.proxyman.InboundHandlerConfig.receiver_settings:type_name -> google.protobuf.Any
+	17, // 10: v2ray.core.app.proxyman.InboundHandlerConfig.proxy_settings:type_name -> google.protobuf.Any
+	15, // 11: v2ray.core.app.proxyman.SenderConfig.via:type_name -> v2ray.core.common.net.IPOrDomain
+	16, // 12: v2ray.core.app.proxyman.SenderConfig.stream_settings:type_name -> v2ray.core.transport.internet.StreamConfig
+	18, // 13: v2ray.core.app.proxyman.SenderConfig.proxy_settings:type_name -> v2ray.core.transport.internet.ProxyConfig
 	10, // 14: v2ray.core.app.proxyman.SenderConfig.multiplex_settings:type_name -> v2ray.core.app.proxyman.MultiplexingConfig
 	2,  // 15: v2ray.core.app.proxyman.SenderConfig.domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
 	2,  // 16: v2ray.core.app.proxyman.SenderConfig.dial_domain_strategy:type_name -> v2ray.core.app.proxyman.SenderConfig.DomainStrategy
-	18, // 17: v2ray.core.app.proxyman.MultiplexingConfig.packet_encoding:type_name -> v2ray.core.net.packetaddr.PacketAddrType
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	11, // 17: v2ray.core.app.proxyman.SenderConfig.smux:type_name -> v2ray.core.app.proxyman.SingMultiplexConfig
+	19, // 18: v2ray.core.app.proxyman.MultiplexingConfig.packet_encoding:type_name -> v2ray.core.net.packetaddr.PacketAddrType
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_app_proxyman_config_proto_init() }
@@ -916,7 +1020,7 @@ func file_app_proxyman_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_proxyman_config_proto_rawDesc), len(file_app_proxyman_config_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
