@@ -26,6 +26,8 @@ type Client struct {
 	policyManager policy.Manager
 }
 
+func (c *Client) SupportSingMux() {}
+
 // NewClient create a new trojan client.
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	serverList := protocol.NewServerList()

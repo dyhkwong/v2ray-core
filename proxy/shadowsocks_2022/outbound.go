@@ -42,6 +42,8 @@ type Outbound struct {
 	uotClient *uot.Client
 }
 
+func (o *Outbound) SupportSingMux() {}
+
 func (o *Outbound) Close() error {
 	if o.plugin != nil {
 		return o.plugin.Close()
