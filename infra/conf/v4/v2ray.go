@@ -228,6 +228,7 @@ type OutboundDetourConfig struct {
 	StreamSetting      *StreamConfig         `json:"streamSettings"`
 	ProxySettings      *proxycfg.ProxyConfig `json:"proxySettings"`
 	MuxSettings        *muxcfg.MuxConfig     `json:"mux"`
+	SingMuxSettings    *muxcfg.SingMuxConfig `json:"smux"`
 	DomainStrategy     string                `json:"domainStrategy"`
 	DialDomainStrategy string                `json:"dialDomainStrategy"`
 }
@@ -262,6 +263,10 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 
 	if c.MuxSettings != nil {
 		senderSettings.MultiplexSettings = c.MuxSettings.Build()
+	}
+
+	if c.SingMuxSettings != nil {
+		senderSettings.Smux = c.SingMuxSettings.Build()
 	}
 
 	senderSettings.DomainStrategy = proxyman.SenderConfig_AS_IS

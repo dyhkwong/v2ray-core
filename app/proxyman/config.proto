@@ -105,6 +105,7 @@ message SenderConfig {
   MultiplexingConfig multiplex_settings = 4;
   DomainStrategy domain_strategy = 5;
   DomainStrategy dial_domain_strategy = 6;
+  SingMultiplexConfig smux = 7;
 }
 
 message MultiplexingConfig {
@@ -113,4 +114,13 @@ message MultiplexingConfig {
   // Max number of concurrent connections that one Mux connection can handle.
   uint32 concurrency = 2;
   v2ray.core.net.packetaddr.PacketAddrType packet_encoding = 3;
+}
+
+message SingMultiplexConfig {
+  bool enabled = 1;
+  string protocol = 2;
+  uint32 max_connections = 3;
+  uint32 min_streams = 4;
+  uint32 max_streams = 5;
+  bool padding = 6;
 }
