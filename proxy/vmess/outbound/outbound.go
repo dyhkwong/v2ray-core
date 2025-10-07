@@ -281,3 +281,5 @@ func init() {
 		aeadDisabled = true
 	}
 }
+
+func (*Handler) SupportSingMux() {}
