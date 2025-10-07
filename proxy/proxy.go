@@ -34,6 +34,10 @@ type Outbound interface {
 	Process(context.Context, *transport.Link, internet.Dialer) error
 }
 
+type SupportSingMux interface {
+	SupportSingMux()
+}
+
 // UserManager is the interface for Inbounds and Outbounds that can manage their users.
 type UserManager interface {
 	// AddUser adds a new user.

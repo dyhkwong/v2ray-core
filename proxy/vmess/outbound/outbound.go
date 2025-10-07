@@ -37,6 +37,8 @@ type Handler struct {
 	packetEncoding packetaddr.PacketAddrType
 }
 
+func (h *Handler) SupportSingMux() {}
+
 // New creates a new VMess outbound handler.
 func New(ctx context.Context, config *Config) (*Handler, error) {
 	serverList := protocol.NewServerList()
