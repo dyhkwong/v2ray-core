@@ -330,3 +330,9 @@ func init() {
 		return NewClient(ctx, clientConfig)
 	}))
 }
+
+func (*Client) SupportSingMux() {}
+
+func (c *Client) SingUotEnabled() bool {
+	return c.uot
+}

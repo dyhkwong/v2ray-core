@@ -216,3 +216,5 @@ func (c *Client) Close() error {
 	c.clientLock.Unlock()
 	return nil
 }
+
+func (*Client) DisallowMuxCool() {}
