@@ -196,3 +196,5 @@ func init() {
 		return NewClient(ctx, config.(*ClientConfig))
 	}))
 }
+
+func (*Client) SupportSingMux() {}
