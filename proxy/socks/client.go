@@ -250,3 +250,7 @@ func init() {
 		return NewClient(ctx, config.(*ClientConfig))
 	}))
 }
+
+func (c *Client) SingUotEnabled() bool {
+	return c.uot
+}
