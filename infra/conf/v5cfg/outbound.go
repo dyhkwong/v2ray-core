@@ -42,6 +42,10 @@ func (c OutboundConfig) BuildV5(ctx context.Context) (proto.Message, error) {
 		senderSettings.MultiplexSettings = c.MuxSettings.Build()
 	}
 
+	if c.SingMuxSettings != nil {
+		senderSettings.Smux = c.SingMuxSettings.Build()
+	}
+
 	senderSettings.DomainStrategy = proxyman.SenderConfig_AS_IS
 	switch c.DomainStrategy {
 	case "UseIP":
