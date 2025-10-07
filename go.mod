@@ -22,6 +22,7 @@ require (
 	github.com/quic-go/quic-go v0.59.0
 	github.com/refraction-networking/utls v1.8.2
 	github.com/sagernet/sing v0.8.0-beta.16
+	github.com/sagernet/sing-mux v0.3.4
 	github.com/sagernet/sing-quic v0.6.0-beta.12
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/sagernet/sing-shadowsocks2 v0.2.2
@@ -51,6 +52,7 @@ require (
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/gofrs/uuid/v5 v5.4.0 // indirect
 	github.com/google/btree v1.1.2 // indirect
+	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
@@ -58,6 +60,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.59.0-sing-box-mod.2 // indirect
+	github.com/sagernet/smux v1.5.50-sing-box-mod.1 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/mod v0.32.0 // indirect

@@ -182,3 +182,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), serverConn))
 	}
 }
+
+func (*Outbound) SupportSingMux() {}
+
+func (o *Outbound) SingUotEnabled() bool {
+	return o.uotClient != nil
+}

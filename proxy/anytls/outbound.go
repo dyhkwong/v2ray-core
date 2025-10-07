@@ -89,3 +89,5 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), uotConn))
 	}
 }
+
+func (*Outbound) DisallowMuxCool() {}
