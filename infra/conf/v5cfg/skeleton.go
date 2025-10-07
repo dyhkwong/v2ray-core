@@ -38,6 +38,7 @@ type OutboundConfig struct {
 	StreamSetting      *StreamConfig         `json:"streamSettings"`
 	ProxySettings      *proxycfg.ProxyConfig `json:"proxySettings"`
 	MuxSettings        *muxcfg.MuxConfig     `json:"mux"`
+	SingMuxSettings    *muxcfg.SingMuxConfig `json:"smux"`
 	DomainStrategy     string                `json:"domainStrategy"`
 	DialDomainStrategy string                `json:"dialDomainStrategy"`
 }
