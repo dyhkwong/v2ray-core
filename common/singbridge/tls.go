@@ -40,6 +40,10 @@ func (c *tlsConfigWrapper) Config() (*tls.Config, error) {
 	return c.config, nil
 }
 
+func (c *tlsConfigWrapper) STDConfig() (*tls.Config, error) {
+	return c.config, nil
+}
+
 func (c *tlsConfigWrapper) Client(conn net.Conn) (singtls.Conn, error) {
 	return tls.Client(conn, c.config), nil
 }

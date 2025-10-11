@@ -78,7 +78,7 @@ func (c *packetConnectionAdaptor) ReadFrom(p []byte) (n int, addr gonet.Addr, er
 	}
 	n = copy(p, w.Bytes())
 	w.Release()
-	return
+	return n, addr, err
 }
 
 func (c *packetConnectionAdaptor) WriteTo(p []byte, addr gonet.Addr) (n int, err error) {

@@ -88,7 +88,7 @@ func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 
 func (m *MonoDestUDPConn) Read(p []byte) (n int, err error) {
 	n, _, err = m.ReadFrom(p)
-	return
+	return n, err
 }
 
 func (m *MonoDestUDPConn) Write(p []byte) (n int, err error) {

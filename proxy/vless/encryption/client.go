@@ -44,12 +44,12 @@ func (i *ClientInstance) Init(nfsPKeysBytes [][]byte, xorMode, seconds uint32, p
 	for j, k := range nfsPKeysBytes {
 		if len(k) == 32 {
 			if i.NfsPKeys[j], err = ecdh.X25519().NewPublicKey(k); err != nil {
-				return
+				return err
 			}
 			i.RelaysLength += 32 + 32
 		} else {
 			if i.NfsPKeys[j], err = mlkem.NewEncapsulationKey768(k); err != nil {
-				return
+				return err
 			}
 			i.RelaysLength += 1088 + 32
 		}
@@ -78,7 +78,7 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
 	var nfsKey []byte
 	var lastCTR cipher.Stream
 	for j, k := range i.NfsPKeys {
-		var index = 32
+		index := 32
 		if k, ok := k.(*ecdh.PublicKey); ok {
 			privateKey, _ := ecdh.X25519().GenerateKey(rand.Reader)
 			copy(relays, privateKey.PublicKey().Bytes())

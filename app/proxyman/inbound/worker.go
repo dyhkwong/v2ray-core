@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/app/proxyman"
@@ -94,7 +95,13 @@ func (w *tcpWorker) callback(conn internet.Connection) {
 	}
 	if w.dumpUid && uidDumper != nil {
 		// SagerNet private
-		if uid, err := DumpUid(source, dest); err == nil && int(uid) != os.Getuid() {
+		var ipProto int32
+		if dest.Network == net.Network_TCP {
+			ipProto = syscall.IPPROTO_TCP
+		} else {
+			ipProto = syscall.IPPROTO_UDP
+		}
+		if uid, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), dest.Address.IP().String(), int32(dest.Port)); err == nil && int(uid) != os.Getuid() {
 			if packageName, _ := uidDumper.GetPackageName(uid); len(packageName) == 0 {
 				newError("[TCP (", uid, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 			} else {
@@ -348,7 +355,13 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 
 			if w.dumpUid && uidDumper != nil {
 				// SagerNet private
-				if uid, err := DumpUid(source, dest); err == nil && int(uid) != os.Getuid() {
+				var ipProto int32
+				if dest.Network == net.Network_TCP {
+					ipProto = syscall.IPPROTO_TCP
+				} else {
+					ipProto = syscall.IPPROTO_UDP
+				}
+				if uid, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), dest.Address.IP().String(), int32(dest.Port)); err == nil && int(uid) != os.Getuid() {
 					if packageName, _ := uidDumper.GetPackageName(uid); len(packageName) == 0 {
 						newError("[UDP (", uid, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 					} else {

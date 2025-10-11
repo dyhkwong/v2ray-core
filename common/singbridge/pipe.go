@@ -56,5 +56,5 @@ func (w *pipeConnWrapper) Write(p []byte) (n int, err error) {
 		n = 0
 		buf.ReleaseMulti(mb)
 	}
-	return
+	return n, err
 }

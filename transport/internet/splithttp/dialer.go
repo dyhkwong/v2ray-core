@@ -20,6 +20,8 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
@@ -48,37 +50,59 @@ type dialerConf struct {
 	*internet.MemoryStreamConfig
 }
 
-var (
-	globalDialerMap    map[dialerConf]DialerClient
-	globalDialerAccess sync.Mutex
-)
+type transportConnectionState struct {
+	scopedDialerMap    map[dialerConf]DialerClient
+	scopedDialerAccess sync.Mutex
+}
 
-func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
+func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
+}
+
+func (t *transportConnectionState) Close() error {
+	t.scopedDialerAccess.Lock()
+	clear(t.scopedDialerMap)
+	t.scopedDialerAccess.Unlock()
+	return nil
+}
+
+func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
 	config := streamSettings.ProtocolSettings.(*Config)
 	if reality.ConfigFromStreamSettings(streamSettings) == nil && config.UseBrowserForwarding {
 		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
 		return &BrowserDialerClient{
 			dialer:          core.MustFromContext(ctx).GetFeature(extension.BrowserDialerType()).(extension.BrowserDialer),
 			transportConfig: config,
+		}, nil
+	}
+
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
+	state, err := transportEnvironment.TransientStorage().Get(ctx, "splithttp-transport-connection-state")
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "splithttp-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "splithttp-transport-connection-state")
+		if err != nil {
+			return nil, newError("failed to get splithttp transport connection state").Base(err)
 		}
 	}
+	stateTyped := state.(*transportConnectionState)
 
-	globalDialerAccess.Lock()
-	defer globalDialerAccess.Unlock()
+	stateTyped.scopedDialerAccess.Lock()
+	defer stateTyped.scopedDialerAccess.Unlock()
 
-	if globalDialerMap == nil {
-		globalDialerMap = make(map[dialerConf]DialerClient)
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]DialerClient)
 	}
 
-	client, found := globalDialerMap[dialerConf{dest, streamSettings}]
+	client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]
 
 	if !found || client.IsClosed() {
 		client = createHTTPClient(ctx, dest, streamSettings)
-		globalDialerMap[dialerConf{dest, streamSettings}] = client
-		return client
+		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
+		return client, nil
 	}
 
-	return client
+	return client, nil
 }
 
 func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) string {
@@ -240,7 +264,10 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
 	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
 
-	httpClient := getHTTPClient(ctx, dest, streamSettings)
+	httpClient, err := getHTTPClient(ctx, dest, streamSettings)
+	if err != nil {
+		return nil, err
+	}
 
 	mode := transportConfiguration.Mode
 	if mode == "" || mode == "auto" {
@@ -264,7 +291,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		},
 	}
 
-	var err error
 	if mode == "stream-one" {
 		requestURL.Path = transportConfiguration.GetNormalizedPath()
 		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), reader, false)
@@ -337,7 +363,11 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 			lastWrite = time.Now()
 
-			httpClient = getHTTPClient(ctx, dest, streamSettings)
+			httpClient, err = getHTTPClient(ctx, dest, streamSettings)
+			if err != nil {
+				newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+				break
+			}
 
 			go func() {
 				err := httpClient.PostPacket(

@@ -38,15 +38,15 @@ func GetFingerprint(name string) (fingerprint *utls.ClientHelloID) {
 		return &utls.HelloGolang
 	}
 	if fingerprint = PresetFingerprints[name]; fingerprint != nil {
-		return
+		return fingerprint
 	}
 	if fingerprint = ModernFingerprints[name]; fingerprint != nil {
-		return
+		return fingerprint
 	}
 	if fingerprint = OtherFingerprints[name]; fingerprint != nil {
-		return
+		return fingerprint
 	}
-	return
+	return fingerprint
 }
 
 var PresetFingerprints = map[string]*utls.ClientHelloID{

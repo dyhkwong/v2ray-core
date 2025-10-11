@@ -239,6 +239,7 @@ func TestSniffQUICComplex(t *testing.T) {
 		})
 	}
 }
+
 func TestSniffFakeQUICPacketWithInvalidPacketNumberLength(t *testing.T) {
 	pkt, err := hex.DecodeString("cb00000001081c8c6d5aeb53d54400000090709b8600000000000000000000000000000000")
 	common.Must(err)

@@ -4,17 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	gotls "crypto/tls"
 	"fmt"
 	"io"
-	gonet "net"
 	"net/http"
 	"runtime"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/net/http2"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
@@ -250,17 +247,11 @@ func Test_listenSHAndDial_H2C(t *testing.T) {
 	common.Must(err)
 	defer listen.Close()
 
+	protocols := new(http.Protocols)
+	protocols.SetUnencryptedHTTP2(true)
 	client := http.Client{
-		Transport: &http2.Transport{
-			// So http2.Transport doesn't complain the URL scheme isn't 'https'
-			AllowHTTP: true,
-			// even with AllowHTTP, http2.Transport will attempt to establish
-			// the connection using DialTLSContext. Disable TLS with custom
-			// dial context.
-			DialTLSContext: func(ctx context.Context, network, addr string, cfg *gotls.Config) (gonet.Conn, error) {
-				var d gonet.Dialer
-				return d.DialContext(ctx, network, addr)
-			},
+		Transport: &http.Transport{
+			Protocols: protocols,
 		},
 	}
 

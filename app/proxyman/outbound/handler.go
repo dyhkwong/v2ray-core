@@ -4,6 +4,10 @@ import (
 	"context"
 	"sync"
 
+	sing_mux "github.com/sagernet/sing-mux"
+	"github.com/sagernet/sing/common/bufio"
+	"github.com/sagernet/sing/common/network"
+
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/proxyman"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -16,6 +20,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
+	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -54,20 +59,22 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx               context.Context
-	tag               string
-	senderSettings    *proxyman.SenderConfig
-	streamSettings    *internet.MemoryStreamConfig
-	proxy             proxy.Outbound
-	outboundManager   outbound.Manager
-	mux               *mux.ClientManager
-	uplinkCounter     stats.Counter
-	downlinkCounter   stats.Counter
-	dns               dns.Client
-	fakedns           dns.FakeDNSEngine
-	muxPacketEncoding packetaddr.PacketAddrType
-	pool              *internet.ConnectionPool
-	closed            bool
+	ctx                  context.Context
+	tag                  string
+	senderSettings       *proxyman.SenderConfig
+	streamSettings       *internet.MemoryStreamConfig
+	proxy                proxy.Outbound
+	outboundManager      outbound.Manager
+	mux                  *mux.ClientManager
+	smux                 *sing_mux.Client
+	uplinkCounter        stats.Counter
+	downlinkCounter      stats.Counter
+	dns                  dns.Client
+	fakedns              dns.FakeDNSEngine
+	muxPacketEncoding    packetaddr.PacketAddrType
+	pool                 *internet.ConnectionPool
+	closed               bool
+	transportEnvironment environment.TransportEnvironment
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -116,6 +123,9 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		return nil, newError("not an outbound handler")
 	}
 
+	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
+		return nil, newError("Mux.Cool is conflict with sing-mux")
+	}
 	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil {
 		config := h.senderSettings.MultiplexSettings
 		if config.Concurrency < 1 || config.Concurrency > 1024 {
@@ -154,6 +164,36 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	})
 
 	h.proxy = proxyHandler
+
+	if h.senderSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
+		config := h.senderSettings.Smux
+		if config.Enabled {
+			if _, ok := proxyHandler.(proxy.SupportSingMux); !ok {
+				return nil, newError("protocol does not support sing-mux")
+			}
+			h.smux, err = sing_mux.NewClient(sing_mux.Options{
+				Dialer:         singbridge.NewOutboundDialerWrapper(proxyHandler, h),
+				Logger:         singbridge.NewLoggerWrapper(newError),
+				Protocol:       config.Protocol,
+				MaxConnections: int(config.MaxConnections),
+				MinStreams:     int(config.MinStreams),
+				MaxStreams:     int(config.MaxStreams),
+				Padding:        config.Padding,
+				// never brutal
+			})
+			if err != nil {
+				return nil, newError("unable to create sing-mux client").Base(err)
+			}
+		}
+	}
+
+	proxyEnvironment := envctx.EnvironmentFromContext(ctx).(environment.ProxyEnvironment)
+	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
+	if err != nil {
+		return nil, newError("unable to narrow environment to transport").Base(err)
+	}
+	h.transportEnvironment = transportEnvironment
+
 	return h, nil
 }
 
@@ -235,6 +275,40 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			session.SubmitOutboundErrorToOriginator(ctx, err)
 			err.WriteToLog(session.ExportIDToError(ctx))
 			common.Interrupt(link.Writer)
+		}
+	} else if h.smux != nil {
+		outbound := session.OutboundFromContext(ctx)
+		if outbound.Target.Network == net.Network_TCP {
+			conn, err := h.smux.DialContext(ctx, network.NetworkTCP, singbridge.ToSocksAddr(outbound.Target))
+			if err != nil {
+				err := newError("failed to process smux outbound traffic").Base(err)
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+			}
+			err = singbridge.ReturnError(bufio.CopyConn(ctx, singbridge.NewPipeConnWrapper(link), conn))
+			if err != nil {
+				err := newError("failed to process smux outbound traffic").Base(err)
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+			}
+		} else {
+			packetConn, err := h.smux.ListenPacket(ctx, singbridge.ToSocksAddr(outbound.Target))
+			if err != nil {
+				err := newError("failed to process smux outbound traffic").Base(err)
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+				return
+			}
+			err = singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, outbound.Target), packetConn.(network.PacketConn)))
+			if err != nil {
+				err := newError("failed to process smux outbound traffic").Base(err)
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+			}
 		}
 	} else {
 		if err := h.proxy.Process(ctx, link, h); err != nil {
@@ -336,12 +410,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 		return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
 	}
 
-	proxyEnvironment := envctx.EnvironmentFromContext(h.ctx).(environment.ProxyEnvironment)
-	transportEnvironment, err := proxyEnvironment.NarrowScopeToTransport("transport")
-	if err != nil {
-		return nil, newError("unable to narrow environment to transport").Base(err)
-	}
-	ctx = envctx.ContextWithEnvironment(ctx, transportEnvironment)
+	ctx = envctx.ContextWithEnvironment(ctx, h.transportEnvironment)
 	conn, err := internet.Dial(ctx, dest, h.streamSettings)
 	if err != nil {
 		return nil, err
@@ -402,11 +471,16 @@ func (h *Handler) Close() error {
 	if h.mux != nil {
 		common.Close(h.mux)
 	}
+	if h.smux != nil {
+		common.Close(h.smux)
+	}
 
 	if closableProxy, ok := h.proxy.(common.Closable); ok {
 		if err := closableProxy.Close(); err != nil {
 			return newError("unable to close proxy").Base(err)
 		}
 	}
+
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 	return nil
 }

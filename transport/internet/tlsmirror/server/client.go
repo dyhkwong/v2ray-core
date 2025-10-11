@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	cryptoRand "crypto/rand"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -291,7 +290,6 @@ func Dial(ctx context.Context, dest net.Destination, settings *internet.MemorySt
 			securitySetting = settings.SecuritySettings.(proto.Message)
 		}
 		config := settings.ProtocolSettings.(*Config)
-		fmt.Println(config)
 		detachedContext := core.ToBackgroundDetachedContext(ctx)
 		dialer, err = newPersistentMirrorTLSDialer(detachedContext, config, dest, securitySetting)
 		if err != nil {

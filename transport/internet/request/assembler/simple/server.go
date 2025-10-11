@@ -93,7 +93,7 @@ func (s *simpleAssemblerServerSession) Write(p []byte) (n int, err error) {
 			return 0, s.ctx.Err()
 		}
 	}
-	return
+	return n, err
 }
 
 func (s *simpleAssemblerServerSession) Close() error {

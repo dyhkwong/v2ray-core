@@ -17,7 +17,6 @@ import (
 type APIConfig struct {
 	Tag      string   `json:"tag"`
 	Services []string `json:"services"`
-	Listen   string   `json:"listen"`
 }
 
 func (c *APIConfig) Build() (*commander.Config, error) {
@@ -45,7 +44,6 @@ func (c *APIConfig) Build() (*commander.Config, error) {
 
 	return &commander.Config{
 		Tag:     c.Tag,
-		Listen:  c.Listen,
 		Service: services,
 	}, nil
 }

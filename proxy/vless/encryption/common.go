@@ -24,7 +24,7 @@ import (
 var (
 	// Keep in sync with crypto/tls/cipher_suites.go.
 	hasGCMAsmAMD64 = cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ && cpu.X86.HasSSE41 && cpu.X86.HasSSSE3
-	hasGCMAsmARM64 = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL
+	hasGCMAsmARM64 = (cpu.ARM64.HasAES && cpu.ARM64.HasPMULL) || (runtime.GOOS == "darwin" && runtime.GOARCH == "arm64")
 	hasGCMAsmS390X = cpu.S390X.HasAES && cpu.S390X.HasAESCTR && cpu.S390X.HasGHASH
 	hasGCMAsmPPC64 = runtime.GOARCH == "ppc64" || runtime.GOARCH == "ppc64le"
 
@@ -231,7 +231,7 @@ func DecodeHeader(h []byte) (l int, err error) {
 	if l < 17 || l > 17000 { // TODO: TLSv1.3 max length
 		err = errors.New("invalid header: " + fmt.Sprintf("%v", h[:5])) // DO NOT CHANGE: relied by client's Read()
 	}
-	return
+	return l, err
 }
 
 func RandBetween(from int64, to int64) int64 {
@@ -247,7 +247,7 @@ func RandBetween(from int64, to int64) int64 {
 
 func ParsePadding(padding string, paddingLens, paddingGaps *[][3]int) (err error) {
 	if padding == "" {
-		return
+		return err
 	}
 	maxLen := 0
 	for i, s := range strings.Split(padding, ".") {
@@ -257,13 +257,13 @@ func ParsePadding(padding string, paddingLens, paddingGaps *[][3]int) (err error
 		}
 		y := [3]int{}
 		if y[0], err = strconv.Atoi(x[0]); err != nil {
-			return
+			return err
 		}
 		if y[1], err = strconv.Atoi(x[1]); err != nil {
-			return
+			return err
 		}
 		if y[2], err = strconv.Atoi(x[2]); err != nil {
-			return
+			return err
 		}
 		if i == 0 && (y[0] < 100 || y[1] < 18+17 || y[2] < 18+17) {
 			return errors.New("first padding length must not be smaller than 35")
@@ -278,7 +278,7 @@ func ParsePadding(padding string, paddingLens, paddingGaps *[][3]int) (err error
 	if maxLen > 18+65535 {
 		return errors.New("total padding length must not be larger than 65553")
 	}
-	return
+	return err
 }
 
 func CreatPadding(paddingLens, paddingGaps [][3]int) (length int, lens []int, gaps []time.Duration) {
@@ -301,5 +301,5 @@ func CreatPadding(paddingLens, paddingGaps [][3]int) (length int, lens []int, ga
 		}
 		gaps = append(gaps, time.Duration(g)*time.Millisecond)
 	}
-	return
+	return length, lens, gaps
 }

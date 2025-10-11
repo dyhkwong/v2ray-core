@@ -80,24 +80,26 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 		c.auth = []ssh.AuthMethod{ssh.Password(config.Password)}
 	}
 
-	var keys []ssh.PublicKey
+	var publicKeys []ssh.PublicKey
 	if config.PublicKey != "" {
-		for str := range strings.SplitSeq(config.PublicKey, "\n") {
-			str = strings.TrimSpace(str)
-			if str == "" {
+		lines := strings.FieldsFunc(config.PublicKey, func(r rune) bool {
+			return r == '\r' || r == '\n'
+		})
+		for _, line := range lines {
+			if line == "" {
 				continue
 			}
-			key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(str))
+			publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(line))
 			if err != nil {
-				return newError(err, "parse public key").Base(err)
+				return newError("parse public key").Base(err)
 			}
-			keys = append(keys, key)
+			publicKeys = append(publicKeys, publicKey)
 		}
 	}
-	if keys != nil {
+	if publicKeys != nil {
 		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			for _, pk := range keys {
-				if bytes.Equal(key.Marshal(), pk.Marshal()) {
+			for _, publicKey := range publicKeys {
+				if bytes.Equal(key.Marshal(), publicKey.Marshal()) {
 					return nil
 				}
 			}
@@ -105,8 +107,8 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 		}
 	} else {
 		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			newError("please save server public key for verifying").AtWarning().WriteToLog()
-			newError(key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal())).AtWarning().WriteToLog()
+			newError("please save server public key for verifying").AtError().WriteToLog()
+			newError(key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal())).AtError().WriteToLog()
 			return nil
 		}
 	}

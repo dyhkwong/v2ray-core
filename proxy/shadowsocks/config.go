@@ -275,6 +275,13 @@ func (a *Account) getCipher() (Cipher, error) {
 			EncryptCreator: blockStream(seed.NewCipher, cipher.NewCFBEncrypter),
 			DecryptCreator: blockStream(seed.NewCipher, cipher.NewCFBDecrypter),
 		}, nil
+	case CipherType_IDEA_CFB:
+		return &StreamCipher{
+			KeyBytes:       16,
+			IVBytes:        8,
+			EncryptCreator: blockStream(crypto.NewIdeaCipher, cipher.NewCFBEncrypter),
+			DecryptCreator: blockStream(crypto.NewIdeaCipher, cipher.NewCFBDecrypter),
+		}, nil
 	case CipherType_CAMELLIA_128_CFB:
 		return &StreamCipher{
 			KeyBytes:       16,
@@ -621,6 +628,8 @@ func CipherFromString(c string) CipherType {
 		return CipherType_RC2_CFB
 	case "seed-cfb":
 		return CipherType_SEED_CFB
+	case "idea-cfb":
+		return CipherType_IDEA_CFB
 	case "camellia-128-cfb":
 		return CipherType_CAMELLIA_128_CFB
 	case "camellia-192-cfb":

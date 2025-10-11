@@ -243,7 +243,7 @@ type natPacketConn struct {
 
 func (c *natPacketConn) ReadPacket(buffer *B.Buffer) (addr M.Socksaddr, err error) {
 	_, err = buffer.ReadFrom(c)
-	return
+	return addr, err
 }
 
 func (c *natPacketConn) WritePacket(buffer *B.Buffer, addr M.Socksaddr) error {

@@ -121,6 +121,16 @@ func uTLSConfigFromTLSConfig(config *systls.Config) (*utls.Config, error) { // n
 		ClientCAs:                      config.ClientCAs,
 		EncryptedClientHelloConfigList: config.EncryptedClientHelloConfigList,
 	}
+	if len(config.Certificates) > 0 {
+		certificates := make([]utls.Certificate, len(config.Certificates))
+		for _, certificate := range config.Certificates {
+			certificates = append(certificates, utls.Certificate{
+				Certificate: certificate.Certificate,
+				PrivateKey:  certificate.PrivateKey,
+			})
+		}
+		uconfig.Certificates = certificates
+	}
 	return uconfig, nil
 }
 

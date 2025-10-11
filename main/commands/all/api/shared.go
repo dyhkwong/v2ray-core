@@ -61,7 +61,7 @@ func dialAPIServer() (conn *grpc.ClientConn, ctx context.Context, close func()) 
 		cancel()
 		conn.Close()
 	}
-	return
+	return conn, ctx, close
 }
 
 func dialAPIServerWithoutTimeout() (conn *grpc.ClientConn, ctx context.Context, close func()) {
@@ -70,7 +70,7 @@ func dialAPIServerWithoutTimeout() (conn *grpc.ClientConn, ctx context.Context, 
 	close = func() {
 		conn.Close()
 	}
-	return
+	return conn, ctx, close
 }
 
 func dialAPIServerWithContext(ctx context.Context) (conn *grpc.ClientConn) {
@@ -78,7 +78,7 @@ func dialAPIServerWithContext(ctx context.Context) (conn *grpc.ClientConn) {
 	if err != nil {
 		base.Fatalf("failed to dial %s", apiServerAddrPtr)
 	}
-	return
+	return conn
 }
 
 func protoToJSONString(m proto.Message, prefix, indent string) (string, error) { // nolint: unparam

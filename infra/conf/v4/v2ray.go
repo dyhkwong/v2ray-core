@@ -60,9 +60,9 @@ var (
 		"shadowsocks2022":  func() interface{} { return new(Shadowsocks2022Config) },
 		"shadowsocks-2022": func() interface{} { return new(Shadowsocks2022ClientConfig) },
 		"wireguard":        func() interface{} { return new(WireGuardClientConfig) },
-		"tuic":             func() interface{} { return new(TuicClientConfig) },
 		"shadowtls":        func() interface{} { return new(ShadowTLSClientConfig) },
 		"anytls":           func() interface{} { return new(AnyTLSClientConfig) },
+		"tuic":             func() interface{} { return new(TuicClientConfig) },
 		"juicity":          func() interface{} { return new(JuicityClientConfig) },
 	}, "protocol", "settings")
 )
@@ -232,6 +232,7 @@ type OutboundDetourConfig struct {
 	StreamSetting      *StreamConfig         `json:"streamSettings"`
 	ProxySettings      *proxycfg.ProxyConfig `json:"proxySettings"`
 	MuxSettings        *muxcfg.MuxConfig     `json:"mux"`
+	SingMuxSettings    *muxcfg.SingMuxConfig `json:"smux"`
 	DomainStrategy     string                `json:"domainStrategy"`
 	DialDomainStrategy string                `json:"dialDomainStrategy"`
 }
@@ -266,6 +267,10 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 
 	if c.MuxSettings != nil {
 		senderSettings.MultiplexSettings = c.MuxSettings.Build()
+	}
+
+	if c.SingMuxSettings != nil {
+		senderSettings.Smux = c.SingMuxSettings.Build()
 	}
 
 	senderSettings.DomainStrategy = proxyman.SenderConfig_AS_IS

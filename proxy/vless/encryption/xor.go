@@ -13,7 +13,7 @@ func NewCTR(key, iv []byte) cipher.Stream {
 	blake3.DeriveKey(k, "VLESS", key) // avoids using key directly
 	block, _ := aes.NewCipher(k)
 	return cipher.NewCTR(block, iv)
-	//chacha20.NewUnauthenticatedCipher()
+	// chacha20.NewUnauthenticatedCipher()
 }
 
 type XorConn struct {

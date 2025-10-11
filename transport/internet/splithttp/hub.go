@@ -13,8 +13,6 @@ import (
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	goreality "github.com/xtls/reality"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -160,7 +158,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 
 		payload, err := io.ReadAll(request.Body)
-
 		if err != nil {
 			newError("failed to upload (ReadAll)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -178,7 +175,6 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			Payload: payload,
 			Seq:     seqInt,
 		})
-
 		if err != nil {
 			newError("failed to upload (PushPayload)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -341,11 +337,18 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	if realityConfig != nil {
 		l.listener = goreality.NewListener(l.listener, realityConfig.GetREALITYConfig())
 	}
+
 	handler.localAddr = l.listener.Addr()
+
+	// server can handle both plaintext HTTP/1.1 and h2c
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 	l.server = http.Server{
-		Handler:           h2c.NewHandler(handler, &http2.Server{}), // h2cHandler can handle both plaintext HTTP/1.1 and h2c
+		Handler:           handler,
 		ReadHeaderTimeout: time.Second * 4,
 		MaxHeaderBytes:    8192,
+		Protocols:         protocols,
 	}
 	go func() {
 		if err := l.server.Serve(l.listener); err != nil {

@@ -50,7 +50,7 @@ func SetLookupFunc(fn func(network, host string) ([]net.IP, error)) {
 				if len(ips) == 0 {
 					return nil, dns.ErrEmptyResponse
 				}
-				return
+				return ips, nil
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func SetRawQueryFunc(fn func(request []byte) ([]byte, error)) {
 			case <-time.After(time.Second * 5):
 				return nil, context.DeadlineExceeded
 			case <-done:
-				return
+				return response, err
 			}
 		}
 	}

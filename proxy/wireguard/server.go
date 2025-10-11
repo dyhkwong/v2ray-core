@@ -109,12 +109,8 @@ func subContextFromMuxInbound(ctx context.Context) context.Context {
 	newContent := session.Content{}
 	if content != nil {
 		newContent = *content
-		if content.Attributes != nil {
-			panic("content.Attributes != nil")
-		}
 	}
 	return session.ContextWithContent(session.ContextWithOutbound(ctx, &newOutbound), &newContent)
-
 }
 
 func (s *Server) forwardConnection(dest net.Destination, conn net.Conn) {

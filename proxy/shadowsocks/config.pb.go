@@ -48,17 +48,18 @@ const (
 	CipherType_DES_CFB            CipherType = 24
 	CipherType_RC2_CFB            CipherType = 25
 	CipherType_SEED_CFB           CipherType = 26
-	CipherType_CAMELLIA_128_CFB   CipherType = 27
-	CipherType_CAMELLIA_192_CFB   CipherType = 28
-	CipherType_CAMELLIA_256_CFB   CipherType = 29
-	CipherType_CAMELLIA_128_CFB8  CipherType = 30
-	CipherType_CAMELLIA_192_CFB8  CipherType = 31
-	CipherType_CAMELLIA_256_CFB8  CipherType = 32
-	CipherType_SALSA20            CipherType = 33
-	CipherType_CHACHA20           CipherType = 34
-	CipherType_CHACHA20_IETF      CipherType = 35
-	CipherType_XCHACHA20          CipherType = 36
-	CipherType_TABLE              CipherType = 37
+	CipherType_IDEA_CFB           CipherType = 27
+	CipherType_CAMELLIA_128_CFB   CipherType = 28
+	CipherType_CAMELLIA_192_CFB   CipherType = 29
+	CipherType_CAMELLIA_256_CFB   CipherType = 30
+	CipherType_CAMELLIA_128_CFB8  CipherType = 31
+	CipherType_CAMELLIA_192_CFB8  CipherType = 32
+	CipherType_CAMELLIA_256_CFB8  CipherType = 33
+	CipherType_SALSA20            CipherType = 34
+	CipherType_CHACHA20           CipherType = 35
+	CipherType_CHACHA20_IETF      CipherType = 36
+	CipherType_XCHACHA20          CipherType = 37
+	CipherType_TABLE              CipherType = 38
 )
 
 // Enum value maps for CipherType.
@@ -91,17 +92,18 @@ var (
 		24: "DES_CFB",
 		25: "RC2_CFB",
 		26: "SEED_CFB",
-		27: "CAMELLIA_128_CFB",
-		28: "CAMELLIA_192_CFB",
-		29: "CAMELLIA_256_CFB",
-		30: "CAMELLIA_128_CFB8",
-		31: "CAMELLIA_192_CFB8",
-		32: "CAMELLIA_256_CFB8",
-		33: "SALSA20",
-		34: "CHACHA20",
-		35: "CHACHA20_IETF",
-		36: "XCHACHA20",
-		37: "TABLE",
+		27: "IDEA_CFB",
+		28: "CAMELLIA_128_CFB",
+		29: "CAMELLIA_192_CFB",
+		30: "CAMELLIA_256_CFB",
+		31: "CAMELLIA_128_CFB8",
+		32: "CAMELLIA_192_CFB8",
+		33: "CAMELLIA_256_CFB8",
+		34: "SALSA20",
+		35: "CHACHA20",
+		36: "CHACHA20_IETF",
+		37: "XCHACHA20",
+		38: "TABLE",
 	}
 	CipherType_value = map[string]int32{
 		"UNKNOWN":            0,
@@ -131,17 +133,18 @@ var (
 		"DES_CFB":            24,
 		"RC2_CFB":            25,
 		"SEED_CFB":           26,
-		"CAMELLIA_128_CFB":   27,
-		"CAMELLIA_192_CFB":   28,
-		"CAMELLIA_256_CFB":   29,
-		"CAMELLIA_128_CFB8":  30,
-		"CAMELLIA_192_CFB8":  31,
-		"CAMELLIA_256_CFB8":  32,
-		"SALSA20":            33,
-		"CHACHA20":           34,
-		"CHACHA20_IETF":      35,
-		"XCHACHA20":          36,
-		"TABLE":              37,
+		"IDEA_CFB":           27,
+		"CAMELLIA_128_CFB":   28,
+		"CAMELLIA_192_CFB":   29,
+		"CAMELLIA_256_CFB":   30,
+		"CAMELLIA_128_CFB8":  31,
+		"CAMELLIA_192_CFB8":  32,
+		"CAMELLIA_256_CFB8":  33,
+		"SALSA20":            34,
+		"CHACHA20":           35,
+		"CHACHA20_IETF":      36,
+		"XCHACHA20":          37,
+		"TABLE":              38,
 	}
 )
 
@@ -352,6 +355,7 @@ type ClientConfig struct {
 	PluginOpts       string                     `protobuf:"bytes,3,opt,name=plugin_opts,json=pluginOpts,proto3" json:"plugin_opts,omitempty"`
 	PluginArgs       []string                   `protobuf:"bytes,4,rep,name=plugin_args,json=pluginArgs,proto3" json:"plugin_args,omitempty"`
 	PluginWorkingDir string                     `protobuf:"bytes,5,opt,name=plugin_working_dir,json=pluginWorkingDir,proto3" json:"plugin_working_dir,omitempty"`
+	Uot              bool                       `protobuf:"varint,6,opt,name=uot,proto3" json:"uot,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -421,6 +425,13 @@ func (x *ClientConfig) GetPluginWorkingDir() string {
 	return ""
 }
 
+func (x *ClientConfig) GetUot() bool {
+	if x != nil {
+		return x.Uot
+	}
+	return false
+}
+
 var File_proxy_shadowsocks_config_proto protoreflect.FileDescriptor
 
 const file_proxy_shadowsocks_config_proto_rawDesc = "" +
@@ -443,7 +454,7 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\a \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\"\xda\x01\n" +
+	"\x12plugin_working_dir\x18\b \x01(\tR\x10pluginWorkingDir\"\xec\x01\n" +
 	"\fClientConfig\x12B\n" +
 	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\x12\x16\n" +
 	"\x06plugin\x18\x02 \x01(\tR\x06plugin\x12\x1f\n" +
@@ -451,7 +462,8 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"pluginOpts\x12\x1f\n" +
 	"\vplugin_args\x18\x04 \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
-	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir*\x8b\x05\n" +
+	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
+	"\x03uot\x18\x06 \x01(\bR\x03uot*\x99\x05\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +
@@ -482,18 +494,19 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\tCAST5_CFB\x10\x17\x12\v\n" +
 	"\aDES_CFB\x10\x18\x12\v\n" +
 	"\aRC2_CFB\x10\x19\x12\f\n" +
-	"\bSEED_CFB\x10\x1a\x12\x14\n" +
-	"\x10CAMELLIA_128_CFB\x10\x1b\x12\x14\n" +
-	"\x10CAMELLIA_192_CFB\x10\x1c\x12\x14\n" +
-	"\x10CAMELLIA_256_CFB\x10\x1d\x12\x15\n" +
-	"\x11CAMELLIA_128_CFB8\x10\x1e\x12\x15\n" +
-	"\x11CAMELLIA_192_CFB8\x10\x1f\x12\x15\n" +
-	"\x11CAMELLIA_256_CFB8\x10 \x12\v\n" +
-	"\aSALSA20\x10!\x12\f\n" +
-	"\bCHACHA20\x10\"\x12\x11\n" +
-	"\rCHACHA20_IETF\x10#\x12\r\n" +
-	"\tXCHACHA20\x10$\x12\t\n" +
-	"\x05TABLE\x10%Bu\n" +
+	"\bSEED_CFB\x10\x1a\x12\f\n" +
+	"\bIDEA_CFB\x10\x1b\x12\x14\n" +
+	"\x10CAMELLIA_128_CFB\x10\x1c\x12\x14\n" +
+	"\x10CAMELLIA_192_CFB\x10\x1d\x12\x14\n" +
+	"\x10CAMELLIA_256_CFB\x10\x1e\x12\x15\n" +
+	"\x11CAMELLIA_128_CFB8\x10\x1f\x12\x15\n" +
+	"\x11CAMELLIA_192_CFB8\x10 \x12\x15\n" +
+	"\x11CAMELLIA_256_CFB8\x10!\x12\v\n" +
+	"\aSALSA20\x10\"\x12\f\n" +
+	"\bCHACHA20\x10#\x12\x11\n" +
+	"\rCHACHA20_IETF\x10$\x12\r\n" +
+	"\tXCHACHA20\x10%\x12\t\n" +
+	"\x05TABLE\x10&Bu\n" +
 	" com.v2ray.core.proxy.shadowsocksP\x01Z0github.com/v2fly/v2ray-core/v5/proxy/shadowsocks\xaa\x02\x1cV2Ray.Core.Proxy.Shadowsocksb\x06proto3"
 
 var (

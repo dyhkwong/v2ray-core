@@ -20,15 +20,15 @@ func newRandRangeConfig(defaultFrom, defaultTo int32, randRange string) (config 
 		To:   defaultTo,
 	}
 	if len(randRange) == 0 {
-		return
+		return config
 	}
 	from, to, err := parseRangeString(randRange)
 	if err != nil || to == 0 {
-		return
+		return config
 	}
 	config.From = int32(from)
 	config.To = int32(to)
-	return
+	return config
 }
 
 func (c *RangeConfig) rand() int32 {

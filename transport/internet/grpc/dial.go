@@ -15,6 +15,8 @@ import (
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/environment"
+	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -38,17 +40,30 @@ func init() {
 	common.Must(internet.RegisterTransportDialer(protocolName, Dial))
 }
 
-type dialerCanceller func()
-
 type dialerConf struct {
 	net.Destination
 	*internet.MemoryStreamConfig
 }
 
-var (
-	globalDialerMap    map[dialerConf]*grpc.ClientConn
-	globalDialerAccess sync.Mutex
-)
+type transportConnectionState struct {
+	scopedDialerMap    map[dialerConf]*grpc.ClientConn
+	scopedDialerAccess sync.Mutex
+}
+
+func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
+}
+
+func (t *transportConnectionState) Close() error {
+	t.scopedDialerAccess.Lock()
+	defer t.scopedDialerAccess.Unlock()
+	for _, conn := range t.scopedDialerMap {
+		_ = conn.Close()
+	}
+	clear(t.scopedDialerMap)
+	return nil
+}
+
+type dialerCanceller func()
 
 func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
 	grpcSettings := streamSettings.ProtocolSettings.(*Config)
@@ -87,25 +102,36 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 }
 
 func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.DialOption, streamSettings *internet.MemoryStreamConfig) (*grpc.ClientConn, dialerCanceller, error) {
-	globalDialerAccess.Lock()
-	defer globalDialerAccess.Unlock()
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
+	state, err := transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "grpc-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
+		if err != nil {
+			return nil, nil, newError("failed to get grpc transport connection state").Base(err)
+		}
+	}
+	stateTyped := state.(*transportConnectionState)
 
-	if globalDialerMap == nil {
-		globalDialerMap = make(map[dialerConf]*grpc.ClientConn)
+	stateTyped.scopedDialerAccess.Lock()
+	defer stateTyped.scopedDialerAccess.Unlock()
+
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]*grpc.ClientConn)
 	}
 
 	canceller := func() {
-		globalDialerAccess.Lock()
-		defer globalDialerAccess.Unlock()
-		delete(globalDialerMap, dialerConf{dest, streamSettings})
+		stateTyped.scopedDialerAccess.Lock()
+		defer stateTyped.scopedDialerAccess.Unlock()
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
 	}
 
-	// TODO Should support chain proxy to the same destination
-	if client, found := globalDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
+	if client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
 		return client, canceller, nil
 	}
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		dest.Address.String()+":"+dest.Port.String(),
 		dialOption,
 		grpc.WithConnectParams(grpc.ConnectParams{
@@ -141,6 +167,14 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 			return conn, err
 		}),
 	)
-	globalDialerMap[dialerConf{dest, streamSettings}] = conn
+	canceller = func() {
+		stateTyped.scopedDialerAccess.Lock()
+		defer stateTyped.scopedDialerAccess.Unlock()
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
+		if err != nil {
+			conn.Close()
+		}
+	}
+	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = conn
 	return conn, canceller, err
 }
