@@ -22,6 +22,7 @@ type ClientConfig struct {
 	SecurityConfig     *serial.TypedMessage   `protobuf:"bytes,2,opt,name=security_config,json=securityConfig,proto3" json:"security_config,omitempty"`
 	Dest               string                 `protobuf:"bytes,3,opt,name=dest,proto3" json:"dest,omitempty"`
 	OutboundTag        string                 `protobuf:"bytes,4,opt,name=outbound_tag,json=outboundTag,proto3" json:"outbound_tag,omitempty"`
+	ServerIdentity     []byte                 `protobuf:"bytes,5,opt,name=server_identity,json=serverIdentity,proto3" json:"server_identity,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -84,6 +85,13 @@ func (x *ClientConfig) GetOutboundTag() string {
 	return ""
 }
 
+func (x *ClientConfig) GetServerIdentity() []byte {
+	if x != nil {
+		return x.ServerIdentity
+	}
+	return nil
+}
+
 type ServerConfig struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	RoundTripperServer *serial.TypedMessage   `protobuf:"bytes,2,opt,name=round_tripper_server,json=roundTripperServer,proto3" json:"round_tripper_server,omitempty"`
@@ -140,12 +148,13 @@ var File_transport_internet_tlsmirror_mirrorenrollment_roundtripperenrollmentcon
 
 const file_transport_internet_tlsmirror_mirrorenrollment_roundtripperenrollmentconfirmation_config_proto_rawDesc = "" +
 	"\n" +
-	"]transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation/config.proto\x12[v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation\x1a!common/serial/typed_message.proto\"\xf0\x01\n" +
+	"]transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation/config.proto\x12[v2ray.core.transport.internet.tlsmirror.mirrorenrollment.roundtripperenrollmentconfirmation\x1a!common/serial/typed_message.proto\"\x99\x02\n" +
 	"\fClientConfig\x12X\n" +
 	"\x14round_tripper_client\x18\x01 \x01(\v2&.v2ray.core.common.serial.TypedMessageR\x12roundTripperClient\x12O\n" +
 	"\x0fsecurity_config\x18\x02 \x01(\v2&.v2ray.core.common.serial.TypedMessageR\x0esecurityConfig\x12\x12\n" +
 	"\x04dest\x18\x03 \x01(\tR\x04dest\x12!\n" +
-	"\foutbound_tag\x18\x04 \x01(\tR\voutboundTag\"\x80\x01\n" +
+	"\foutbound_tag\x18\x04 \x01(\tR\voutboundTag\x12'\n" +
+	"\x0fserver_identity\x18\x05 \x01(\fR\x0eserverIdentity\"\x80\x01\n" +
 	"\fServerConfig\x12X\n" +
 	"\x14round_tripper_server\x18\x02 \x01(\v2&.v2ray.core.common.serial.TypedMessageR\x12roundTripperServer\x12\x16\n" +
 	"\x06listen\x18\x03 \x01(\tR\x06listenB\xb2\x02\n" +
