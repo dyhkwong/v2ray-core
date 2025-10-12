@@ -91,3 +91,7 @@ type ConnectionEnrollmentConfirmationServerInstanceConfig struct {
 type ConnectionEnrollmentConfirmationServerInstanceConfigReceiver interface {
 	OnConnectionEnrollmentConfirmationServerInstanceConfigReady(ConnectionEnrollmentConfirmationServerInstanceConfig)
 }
+
+type ConnectionLoopbackPrevention struct {
+	Key string
+}
