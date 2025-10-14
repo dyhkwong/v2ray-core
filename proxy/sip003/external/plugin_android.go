@@ -1,4 +1,4 @@
-//go:build !android
+// workaround https://github.com/golang/go/issues/70508
 
 package external
 
@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	exec2 "github.com/v2fly/v2ray-core/v5/common/exec"
 	"github.com/v2fly/v2ray-core/v5/common/platform"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
@@ -25,18 +26,18 @@ func init() {
 
 type Plugin struct {
 	Plugin        string
-	pluginProcess *exec.Cmd
+	pluginProcess *exec2.Cmd
 	done          *done.Instance
 }
 
-func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, _ string) error {
+func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, workingDir string) error {
 	p.done = done.New()
 	path, err := exec.LookPath(p.Plugin)
 	if err != nil && !errors.Is(err, exec.ErrDot) {
 		return newError("plugin ", p.Plugin, " not found").Base(err)
 	}
 	_, name := filepath.Split(path)
-	proc := &exec.Cmd{
+	proc := &exec2.Cmd{
 		Path: path,
 		Args: append([]string{path}, pluginArgs...),
 		Env: []string{
@@ -52,6 +53,9 @@ func (p *Plugin) Init(localHost string, localPort string, remoteHost string, rem
 			name: name,
 		},
 	}
+	if len(workingDir) > 0 {
+		proc.Dir = workingDir
+	}
 	if pluginOpts != "" {
 		proc.Env = append(proc.Env, "SS_PLUGIN_OPTIONS="+pluginOpts)
 	}
@@ -64,17 +68,18 @@ func (p *Plugin) Init(localHost string, localPort string, remoteHost string, rem
 	return nil
 }
 
-func (p *Plugin) startPlugin(oldProc *exec.Cmd) error {
+func (p *Plugin) startPlugin(oldProc *exec2.Cmd) error {
 	if p.done.Done() {
 		return newError("closed")
 	}
 
-	proc := &exec.Cmd{
+	proc := &exec2.Cmd{
 		Path:   oldProc.Path,
 		Args:   oldProc.Args,
 		Stdout: oldProc.Stdout,
 		Stderr: oldProc.Stderr,
 		Env:    oldProc.Env,
+		Dir:    oldProc.Dir,
 	}
 
 	newError("start process ", strings.Join(proc.Args, " ")).AtInfo().WriteToLog()
