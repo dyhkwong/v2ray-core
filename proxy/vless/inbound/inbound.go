@@ -14,8 +14,8 @@ import (
 	"time"
 	"unsafe"
 
+	goreality "github.com/metacubex/utls"
 	"github.com/pires/go-proxyproto"
-	goreality "github.com/xtls/reality"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"

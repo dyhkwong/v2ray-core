@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	goreality "github.com/xtls/reality"
+	utls "github.com/metacubex/utls"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -183,7 +183,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 
 		if config == nil {
 			if realityConfig := reality.ConfigFromStreamSettings(streamSettings); realityConfig != nil {
-				streamListener = goreality.NewListener(streamListener, realityConfig.GetREALITYConfig())
+				streamListener = utls.NewRealityListener(streamListener, realityConfig.GetREALITYConfig())
 			}
 			err = server.Serve(streamListener)
 			if err != nil {

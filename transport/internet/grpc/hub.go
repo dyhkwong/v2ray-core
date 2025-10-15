@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	goreality "github.com/xtls/reality"
+	utls "github.com/metacubex/utls"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -108,7 +108,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, settings *i
 		encoding.RegisterGunServiceServerX(s, listener, grpcSettings.ServiceName)
 
 		if realityConfig := reality.ConfigFromStreamSettings(settings); realityConfig != nil {
-			streamListener = goreality.NewListener(streamListener, realityConfig.GetREALITYConfig())
+			streamListener = utls.NewRealityListener(streamListener, realityConfig.GetREALITYConfig())
 		}
 
 		if err = s.Serve(streamListener); err != nil {

@@ -8,8 +8,8 @@ import (
 	"math/big"
 	"strconv"
 
+	goreality "github.com/metacubex/utls"
 	"github.com/pires/go-proxyproto"
-	goreality "github.com/xtls/reality"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -541,7 +541,7 @@ func UnwrapRawConn(conn net.Conn) (net.Conn, stats.Counter, stats.Counter) {
 			return xorConn, nil, nil // full-random xorConn should not be penetrated
 		}
 		if trackedConn, ok := conn.(*internet.TrackedConn); ok {
-			conn = trackedConn.Conn
+			conn = trackedConn.NetConn()
 		}
 		statConn, ok := conn.(*internet.StatCouterConnection)
 		if ok {

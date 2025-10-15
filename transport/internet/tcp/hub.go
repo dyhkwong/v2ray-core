@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	goreality "github.com/xtls/reality"
+	utls "github.com/metacubex/utls"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -19,9 +19,10 @@ import (
 
 // Listener is an internet.Listener that listens for TCP connections.
 type Listener struct {
+	ctx           context.Context
 	listener      net.Listener
 	tlsConfig     *gotls.Config
-	realityConfig *goreality.Config
+	realityConfig *utls.RealityConfig
 	authConfig    internet.ConnectionAuthenticator
 	config        *Config
 	addConn       internet.ConnHandler
@@ -30,6 +31,7 @@ type Listener struct {
 // ListenTCP creates a new Listener based on configurations.
 func ListenTCP(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, handler internet.ConnHandler) (internet.Listener, error) {
 	l := &Listener{
+		ctx:     ctx,
 		addConn: handler,
 	}
 	tcpSettings := streamSettings.ProtocolSettings.(*Config)
@@ -110,7 +112,7 @@ func (v *Listener) keepAccepting() {
 				conn = tls.Server(conn, v.tlsConfig)
 			}
 			if v.realityConfig != nil {
-				if conn, err = reality.Server(conn, v.realityConfig); err != nil {
+				if conn, err = reality.Server(v.ctx, conn, v.realityConfig); err != nil {
 					newError(err).AtInfo().WriteToLog()
 					return
 				}

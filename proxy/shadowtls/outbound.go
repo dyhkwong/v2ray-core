@@ -2,6 +2,7 @@ package shadowtls
 
 import (
 	"context"
+	gotls "crypto/tls"
 
 	shadowtls "github.com/sagernet/sing-shadowtls"
 	"github.com/sagernet/sing/common/bufio"
@@ -12,7 +13,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/singbridge"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-	v2tls "github.com/v2fly/v2ray-core/v5/transport/internet/tls"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 func init() {
@@ -34,7 +35,26 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		Network: net.Network_TCP,
 	}
 	if config.TlsSettings == nil {
-		config.TlsSettings = &v2tls.Config{}
+		config.TlsSettings = &tls.Config{}
+	}
+	tlsConfig := config.TlsSettings.GetTLSConfig(tls.WithDestination(serverAddr)).Clone()
+	version := int(config.Version)
+	if version == 0 {
+		version = 1
+	}
+	if version == 1 {
+		tlsConfig.MinVersion = gotls.VersionTLS12
+		tlsConfig.MaxVersion = gotls.VersionTLS12
+	}
+	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
+	switch version {
+	case 1, 2:
+		tlsHandshakeFunc = func(ctx context.Context, conn net.Conn, _ shadowtls.TLSSessionIDGeneratorFunc) error {
+			tlsConn := gotls.Client(conn, tlsConfig)
+			return tlsConn.HandshakeContext(ctx)
+		}
+	case 3:
+		tlsHandshakeFunc = shadowtls.DefaultTLSHandshakeFunc(config.Password, tlsConfig)
 	}
 	o := &Outbound{
 		serverAddr: serverAddr,
@@ -43,10 +63,9 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Password:     config.Password,
 			Server:       singbridge.ToSocksAddr(serverAddr),
 			Logger:       singbridge.NewLoggerWrapper(newError),
-			TLSHandshake: shadowtls.DefaultTLSHandshakeFunc(config.Password, config.TlsSettings.GetTLSConfig(v2tls.WithDestination(serverAddr))),
+			TLSHandshake: tlsHandshakeFunc,
 		},
 	}
-
 	return o, nil
 }
 

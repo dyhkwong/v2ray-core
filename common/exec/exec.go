@@ -45,7 +45,6 @@ type Cmd struct {
 	ExtraFiles    []*os.File
 	SysProcAttr   *syscall.SysProcAttr
 	Process       *os.Process
-	ProcessState  *os.ProcessState
 	ctx           context.Context
 	Err           error
 	Cancel        func() error
@@ -61,19 +60,6 @@ type Cmd struct {
 type ctxResult struct {
 	err   error
 	timer *time.Timer
-}
-
-func (c *Cmd) String() string {
-	if c.Err != nil || c.lookPathErr != nil {
-		return strings.Join(c.Args, " ")
-	}
-	b := new(strings.Builder)
-	b.WriteString(c.Path)
-	for _, a := range c.Args[1:] {
-		b.WriteByte(' ')
-		b.WriteString(a)
-	}
-	return b.String()
 }
 
 func interfaceEqual(a, b any) bool {

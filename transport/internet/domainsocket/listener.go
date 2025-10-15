@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	goreality "github.com/xtls/reality"
+	utls "github.com/metacubex/utls"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -22,7 +22,7 @@ type Listener struct {
 	addr          *net.UnixAddr
 	ln            net.Listener
 	tlsConfig     *gotls.Config
-	realityConfig *goreality.Config
+	realityConfig *utls.RealityConfig
 	config        *Config
 	addConn       internet.ConnHandler
 	locker        *fileLocker
@@ -93,7 +93,7 @@ func (ln *Listener) run() {
 			if ln.tlsConfig != nil {
 				conn = tls.Server(conn, ln.tlsConfig)
 			} else if ln.realityConfig != nil {
-				if conn, err = reality.Server(conn, ln.realityConfig); err != nil {
+				if conn, err = utls.RealityServer(context.Background(), conn, ln.realityConfig); err != nil {
 					newError(err).AtInfo().WriteToLog()
 					return
 				}

@@ -1,12 +1,11 @@
-// workaround https://github.com/golang/go/issues/70508
+//go:build !android
 
 package external
 
 import (
 	"io"
 	"os"
-
-	"github.com/v2fly/v2ray-core/v5/common/exec"
+	"os/exec"
 )
 
 var _ Cmd = (*CmdWrapper)(nil)

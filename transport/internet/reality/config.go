@@ -1,24 +1,27 @@
 package reality
 
 import (
+	"fmt"
 	"net"
 
-	"github.com/xtls/reality"
+	utls "github.com/metacubex/utls"
 
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
-func (c *Config) GetREALITYConfig() *reality.Config {
+func (c *Config) GetREALITYConfig() *utls.RealityConfig {
 	var dialer net.Dialer
-	config := &reality.Config{
-		DialContext:            dialer.DialContext,
-		Type:                   c.Type,
-		Dest:                   c.Dest,
-		Xver:                   byte(c.Xver),
-		PrivateKey:             c.PrivateKey,
-		NextProtos:             nil, // should be nil
-		SessionTicketsDisabled: true,
+	config := &utls.RealityConfig{
+		DialContext: dialer.DialContext,
+		Type:        c.Type,
+		Dest:        c.Dest,
+		Xver:        byte(c.Xver),
+		PrivateKey:  c.PrivateKey,
 	}
+	config.Log = func(format string, v ...any) {
+		newError(fmt.Sprintf(format, v...)).AtDebug().WriteToLog()
+	}
+	config.SessionTicketsDisabled = true
 	config.ServerNames = make(map[string]bool)
 	for _, serverName := range c.ServerNames {
 		config.ServerNames[serverName] = true

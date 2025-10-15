@@ -186,7 +186,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	iConn := conn
 	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.Conn
+		iConn = trackedConn.NetConn()
 	}
 	statConn, ok := iConn.(*internet.StatCouterConnection)
 	if ok {

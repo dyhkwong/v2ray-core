@@ -18,26 +18,26 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kierdavis/cfb8 v0.0.0-20180105024805-3a17c36ee2f8
+	github.com/metacubex/utls v1.8.2
 	github.com/miekg/dns v1.1.68
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/pion/transport/v3 v3.0.8
 	github.com/pires/go-proxyproto v0.8.1
 	github.com/quic-go/quic-go v0.55.0
-	github.com/refraction-networking/utls v1.8.0
+	github.com/refraction-networking/utls v1.8.1
 	github.com/sagernet/sing v0.8.0-beta.5
 	github.com/sagernet/sing-mux v0.3.3
 	github.com/sagernet/sing-quic v0.6.0-beta.3
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/sagernet/sing-shadowsocks2 v0.2.2
-	github.com/sagernet/sing-shadowtls v0.2.0
+	github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771
 	github.com/stretchr/testify v1.11.1
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2
-	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130
 	go.uber.org/mock v0.6.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.43.0
@@ -62,7 +62,7 @@ require (
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
@@ -87,5 +87,6 @@ require (
 	golang.org/x/tools v0.37.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

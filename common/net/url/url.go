@@ -8,16 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
-	neturl "net/url"
+	"net/url"
 	"strings"
 	_ "unsafe"
 )
 
 //go:linkname setFragment net/url.(*URL).setFragment
-func setFragment(u *neturl.URL, fragment string) error
+func setFragment(u *url.URL, fragment string) error
 
 //go:linkname setPath net/url.(*URL).setPath
-func setPath(u *neturl.URL, fragment string) error
+func setPath(u *url.URL, fragment string) error
 
 func ishex(c byte) bool {
 	switch {
@@ -113,15 +113,15 @@ func unescape(s string, mode encoding) (string, error) {
 				if len(s) > 3 {
 					s = s[:3]
 				}
-				return "", neturl.EscapeError(s)
+				return "", url.EscapeError(s)
 			}
 			if mode == encodeHost && unhex(s[i+1]) < 8 && s[i:i+3] != "%25" {
-				return "", neturl.EscapeError(s[i : i+3])
+				return "", url.EscapeError(s[i : i+3])
 			}
 			if mode == encodeZone {
 				v := unhex(s[i+1])<<4 | unhex(s[i+2])
 				if s[i:i+3] != "%25" && v != ' ' && shouldEscape(v, encodeHost) {
-					return "", neturl.EscapeError(s[i : i+3])
+					return "", url.EscapeError(s[i : i+3])
 				}
 			}
 			i += 3
@@ -130,7 +130,7 @@ func unescape(s string, mode encoding) (string, error) {
 			i++
 		default:
 			if (mode == encodeHost || mode == encodeZone) && s[i] < 0x80 && shouldEscape(s[i], mode) {
-				return "", neturl.InvalidHostError(s[i : i+1])
+				return "", url.InvalidHostError(s[i : i+1])
 			}
 			i++
 		}
@@ -181,22 +181,22 @@ func getScheme(rawURL string) (scheme, path string, err error) {
 	return "", rawURL, nil
 }
 
-func Parse(rawURL string) (*neturl.URL, error) {
+func Parse(rawURL string) (*url.URL, error) {
 	u, frag, _ := strings.Cut(rawURL, "#")
-	url, err := parse(u)
+	uu, err := parse(u)
 	if err != nil {
-		return nil, &neturl.Error{Op: "parse", URL: u, Err: err}
+		return nil, &url.Error{Op: "parse", URL: u, Err: err}
 	}
 	if frag == "" {
-		return url, nil
+		return uu, nil
 	}
-	if err = setFragment(url, frag); err != nil {
-		return nil, &neturl.Error{Op: "parse", URL: rawURL, Err: err}
+	if err = setFragment(uu, frag); err != nil {
+		return nil, &url.Error{Op: "parse", URL: rawURL, Err: err}
 	}
-	return url, nil
+	return uu, nil
 }
 
-func parse(rawURL string) (*neturl.URL, error) {
+func parse(rawURL string) (*url.URL, error) {
 	var rest string
 	var err error
 
@@ -204,29 +204,29 @@ func parse(rawURL string) (*neturl.URL, error) {
 		return nil, errors.New("net/url: invalid control character in URL")
 	}
 
-	url := new(neturl.URL)
+	u := new(url.URL)
 
 	if rawURL == "*" {
-		url.Path = "*"
-		return url, nil
+		u.Path = "*"
+		return u, nil
 	}
 
-	if url.Scheme, rest, err = getScheme(rawURL); err != nil {
+	if u.Scheme, rest, err = getScheme(rawURL); err != nil {
 		return nil, err
 	}
-	url.Scheme = strings.ToLower(url.Scheme)
+	u.Scheme = strings.ToLower(u.Scheme)
 
 	if strings.HasSuffix(rest, "?") && strings.Count(rest, "?") == 1 {
-		url.ForceQuery = true
+		u.ForceQuery = true
 		rest = rest[:len(rest)-1]
 	} else {
-		rest, url.RawQuery, _ = strings.Cut(rest, "?")
+		rest, u.RawQuery, _ = strings.Cut(rest, "?")
 	}
 
 	if !strings.HasPrefix(rest, "/") {
-		if url.Scheme != "" {
-			url.Opaque = rest
-			return url, nil
+		if u.Scheme != "" {
+			u.Opaque = rest
+			return u, nil
 		}
 
 		if segment, _, _ := strings.Cut(rest, "/"); strings.Contains(segment, ":") {
@@ -240,21 +240,21 @@ func parse(rawURL string) (*neturl.URL, error) {
 		if i := strings.Index(authority, "/"); i >= 0 {
 			authority, rest = authority[:i], authority[i:]
 		}
-		url.User, url.Host, err = parseAuthority(authority)
+		u.User, u.Host, err = parseAuthority(authority)
 		if err != nil {
 			return nil, err
 		}
-	} else if url.Scheme != "" && strings.HasPrefix(rest, "/") {
-		url.OmitHost = true
+	} else if u.Scheme != "" && strings.HasPrefix(rest, "/") {
+		u.OmitHost = true
 	}
 
-	if err := setPath(url, rest); err != nil {
+	if err := setPath(u, rest); err != nil {
 		return nil, err
 	}
-	return url, nil
+	return u, nil
 }
 
-func parseAuthority(authority string) (user *neturl.Userinfo, host string, err error) {
+func parseAuthority(authority string) (user *url.Userinfo, host string, err error) {
 	i := strings.LastIndex(authority, "@")
 	if i < 0 {
 		host, err = parseHost(authority)
@@ -275,7 +275,7 @@ func parseAuthority(authority string) (user *neturl.Userinfo, host string, err e
 		if userinfo, err = unescape(userinfo, encodeUserPassword); err != nil {
 			return nil, "", err
 		}
-		user = neturl.User(userinfo)
+		user = url.User(userinfo)
 	} else {
 		username, password, _ := strings.Cut(userinfo, ":")
 		if username, err = unescape(username, encodeUserPassword); err != nil {
@@ -284,7 +284,7 @@ func parseAuthority(authority string) (user *neturl.Userinfo, host string, err e
 		if password, err = unescape(password, encodeUserPassword); err != nil {
 			return nil, "", err
 		}
-		user = neturl.UserPassword(username, password)
+		user = url.UserPassword(username, password)
 	}
 	return user, host, nil
 }

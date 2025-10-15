@@ -28,7 +28,6 @@ type tlsFragmentConn struct {
 	tcpConn            *net.TCPConn
 	splitPacket        bool
 	splitRecord        bool
-	fallbackDelayMs    uint32
 	firstPacketWritten bool
 }
 

@@ -1,9 +1,8 @@
-//go:build !android
-
 package external
 
 import (
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +14,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 )
 
+//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
+
 var _ sip003.Plugin = (*Plugin)(nil)
 
 func init() {
@@ -23,61 +24,67 @@ func init() {
 	})
 }
 
+type Cmd interface {
+	Start() error
+	Path() string
+	Args() []string
+	Env() []string
+	Stdout() io.Writer
+	Stderr() io.Writer
+	Dir() string
+	Process() *os.Process
+	Clone() Cmd
+}
+
 type Plugin struct {
 	Plugin        string
-	pluginProcess *exec.Cmd
+	pluginProcess Cmd
 	done          *done.Instance
 }
 
-func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, _ string) error {
+func (p *Plugin) Init(localHost string, localPort string, remoteHost string, remotePort string, pluginOpts string, pluginArgs []string, workingDir string) error {
 	p.done = done.New()
 	path, err := exec.LookPath(p.Plugin)
 	if err != nil && !errors.Is(err, exec.ErrDot) {
 		return newError("plugin ", p.Plugin, " not found").Base(err)
 	}
 	_, name := filepath.Split(path)
-	proc := &exec.Cmd{
-		Path: path,
-		Args: append([]string{path}, pluginArgs...),
-		Env: []string{
-			"SS_REMOTE_HOST=" + remoteHost,
-			"SS_REMOTE_PORT=" + remotePort,
-			"SS_LOCAL_HOST=" + localHost,
-			"SS_LOCAL_PORT=" + localPort,
-		},
-		Stdout: &pluginOutWriter{
-			name: name,
-		},
-		Stderr: &pluginErrWriter{
-			name: name,
-		},
+	env := []string{
+		"SS_REMOTE_HOST=" + remoteHost,
+		"SS_REMOTE_PORT=" + remotePort,
+		"SS_LOCAL_HOST=" + localHost,
+		"SS_LOCAL_PORT=" + localPort,
 	}
 	if pluginOpts != "" {
-		proc.Env = append(proc.Env, "SS_PLUGIN_OPTIONS="+pluginOpts)
+		env = append(env, "SS_PLUGIN_OPTIONS="+pluginOpts)
 	}
-	proc.Env = append(proc.Env, os.Environ()...)
-
+	env = append(env, os.Environ()...)
+	proc := NewCmd(
+		path,
+		append([]string{path}, pluginArgs...),
+		env,
+		&pluginOutWriter{
+			name: name,
+		},
+		&pluginErrWriter{
+			name: name,
+		},
+		workingDir,
+	)
 	if err := p.startPlugin(proc); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (p *Plugin) startPlugin(oldProc *exec.Cmd) error {
+func (p *Plugin) startPlugin(oldProc Cmd) error {
 	if p.done.Done() {
 		return newError("closed")
 	}
 
-	proc := &exec.Cmd{
-		Path:   oldProc.Path,
-		Args:   oldProc.Args,
-		Stdout: oldProc.Stdout,
-		Stderr: oldProc.Stderr,
-		Env:    oldProc.Env,
-	}
+	proc := oldProc.Clone()
 
-	newError("start process ", strings.Join(proc.Args, " ")).AtInfo().WriteToLog()
+	newError("start process ", strings.Join(proc.Args(), " ")).AtInfo().WriteToLog()
 
 	err := proc.Start()
 	if err != nil {
@@ -86,7 +93,7 @@ func (p *Plugin) startPlugin(oldProc *exec.Cmd) error {
 
 	go func() {
 		time.Sleep(time.Second)
-		err = platform.CheckChildProcess(proc.Process)
+		err = platform.CheckChildProcess(proc.Process())
 		if err != nil {
 			newError("sip003 plugin ", proc.Path, " exits too fast").Base(err).WriteToLog()
 			return
@@ -100,7 +107,7 @@ func (p *Plugin) startPlugin(oldProc *exec.Cmd) error {
 }
 
 func (p *Plugin) waitPlugin() {
-	status, err := p.pluginProcess.Process.Wait()
+	status, err := p.pluginProcess.Process().Wait()
 
 	if p.done.Done() {
 		return
@@ -124,8 +131,8 @@ func (p *Plugin) waitPlugin() {
 func (p *Plugin) Close() error {
 	p.done.Close()
 	proc := p.pluginProcess
-	if proc != nil && proc.Process != nil {
-		proc.Process.Kill()
+	if proc != nil && proc.Process() != nil {
+		proc.Process().Kill()
 	}
 	return nil
 }
