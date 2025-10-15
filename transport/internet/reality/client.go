@@ -47,9 +47,9 @@ func (c *UConn) HandshakeAddress() net.Address {
 
 func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	certs := make([]*x509.Certificate, len(rawCerts))
-	for _, rawCert := range rawCerts {
+	for i, rawCert := range rawCerts {
 		cert, _ := x509.ParseCertificate(rawCert)
-		certs = append(certs, cert)
+		certs[i] = cert
 	}
 	if pub, ok := certs[0].PublicKey.(ed25519.PublicKey); ok {
 		h := hmac.New(sha512.New, c.AuthKey)

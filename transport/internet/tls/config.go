@@ -206,9 +206,9 @@ func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Cert
 		}
 		if matchAt > 0 {
 			certs := make([]*x509.Certificate, matchAt+1)
-			for _, rawCert := range rawCerts[:matchAt+1] {
+			for i, rawCert := range rawCerts[:matchAt+1] {
 				cert, _ := x509.ParseCertificate(rawCert)
-				certs = append(certs, cert)
+				certs[i] = cert
 			}
 			opts := x509.VerifyOptions{
 				Roots:         x509.NewCertPool(),
@@ -244,9 +244,9 @@ func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Cert
 		}
 		if matchAt > 0 {
 			certs := make([]*x509.Certificate, matchAt+1)
-			for _, rawCert := range rawCerts[:matchAt+1] {
+			for i, rawCert := range rawCerts[:matchAt+1] {
 				cert, _ := x509.ParseCertificate(rawCert)
-				certs = append(certs, cert)
+				certs[i] = cert
 			}
 			opts := x509.VerifyOptions{
 				Roots:         x509.NewCertPool(),
