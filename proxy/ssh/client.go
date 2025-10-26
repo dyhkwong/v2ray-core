@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -98,10 +99,10 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 	}
 	if publicKeys != nil {
 		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			for _, publicKey := range publicKeys {
-				if bytes.Equal(key.Marshal(), publicKey.Marshal()) {
-					return nil
-				}
+			if slices.ContainsFunc(publicKeys, func(publicKey ssh.PublicKey) bool {
+				return bytes.Equal(key.Marshal(), publicKey.Marshal())
+			}) {
+				return nil
 			}
 			return newError("ssh host key mismatch, server send ", key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal()))
 		}

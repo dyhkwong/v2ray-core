@@ -20,7 +20,6 @@ type LocalNameServer struct {
 func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ net.IP, option dns.IPOption, _ bool) ([]net.IP, time.Time, error) {
 	newError("localhost querying: ", domain).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	var ips []net.IP
-	expireAt := time.Now().Add(time.Duration(600) * time.Second)
 	var err error
 
 	switch {
@@ -36,7 +35,7 @@ func (s *LocalNameServer) QueryIPWithTTL(ctx context.Context, domain string, _ n
 		newError("localhost got answer: ", domain, " -> ", ips).AtInfo().WriteToLog()
 	}
 
-	return ips, expireAt, err
+	return ips, time.Now().Add(time.Duration(1) * time.Second), err
 }
 
 // QueryIP implements Server.

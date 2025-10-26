@@ -301,7 +301,7 @@ func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
 	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
 }
 
-func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
+func (s *DNS) QueryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 	if s.closed {
 		return nil, newError("dns client closed")
 	}
@@ -318,11 +318,66 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 	}()
 
 	requestMsg := new(dnsmessage.Message)
-	if err := requestMsg.Unpack(request); err != nil || len(requestMsg.Questions) == 0 {
+	if err := requestMsg.Unpack(request); err != nil {
 		return nil, newError("failed to parse dns request").Base(err)
 	}
-	clients := s.sortClients(strings.TrimSuffix(strings.ToLower(requestMsg.Questions[0].Name.String()), "."), dns.IPOption{
-		FakeEnable: false,
+	if requestMsg.Response {
+		return nil, newError("failed to parse dns request: not query")
+	}
+	if len(requestMsg.Questions) == 0 {
+		return nil, newError("failed to parse dns request: no question")
+	}
+
+	qName := requestMsg.Questions[0].Name
+	qType := requestMsg.Questions[0].Type
+	qClass := requestMsg.Questions[0].Class
+
+	// Normalize the FQDN form query
+	domain := strings.TrimSuffix(strings.ToLower(qName.String()), ".")
+
+	if len(requestMsg.Questions) == 1 && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA) {
+		// Static host lookup
+		switch addrs := s.hosts.Lookup(domain, dns.IPOption{
+			IPv4Enable: qType == dnsmessage.TypeA,
+			IPv6Enable: qType == dnsmessage.TypeAAAA,
+			FakeEnable: fakeEnabled,
+		}); {
+		case addrs == nil: // Domain not recorded in static host
+		case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Domain replacement, unsupported
+		default: // Successfully found ip records in static host
+			newError("returning ", len(addrs), " IP(s) for domain ", domain, " -> ", addrs).WriteToLog()
+			ips, err := toNetIP(addrs)
+			if err != nil {
+				return nil, err
+			}
+			builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{
+				ID:                 requestMsg.ID,
+				RCode:              dnsmessage.RCodeSuccess,
+				RecursionAvailable: true,
+				RecursionDesired:   true,
+				Response:           true,
+			})
+			builder.EnableCompression()
+			common.Must(builder.StartQuestions())
+			common.Must(builder.Question(dnsmessage.Question{Name: qName, Class: qClass, Type: qType}))
+			common.Must(builder.StartAnswers())
+			h := dnsmessage.ResourceHeader{Name: qName, Type: qType, Class: qClass, TTL: 600}
+			for _, ip := range ips {
+				switch qType {
+				case dnsmessage.TypeA:
+					common.Must(builder.AResource(h, dnsmessage.AResource{A: [4]byte(ip)}))
+				case dnsmessage.TypeAAAA:
+					common.Must(builder.AAAAResource(h, dnsmessage.AAAAResource{AAAA: [16]byte(ip)}))
+				}
+			}
+			return builder.Finish()
+		}
+	}
+
+	clients := s.sortClients(domain, dns.IPOption{
+		IPv4Enable: qType == dnsmessage.TypeA,
+		IPv6Enable: qType == dnsmessage.TypeAAAA,
+		FakeEnable: qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA && fakeEnabled,
 	})
 	if len(clients) == 0 {
 		for _, question := range requestMsg.Questions {
@@ -345,7 +400,9 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 		if s.closed {
 			return nil, newError("dns client closed")
 		}
-		respBytes, err := client.QueryRaw(s.ctx, request)
+		respBytes, err := client.QueryRaw(s.ctx, request,
+			qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA && fakeEnabled,
+		)
 		if err == nil {
 			return respBytes, nil
 		}
@@ -385,21 +442,19 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	// Normalize the FQDN form query
 	domain = strings.TrimSuffix(domain, ".")
 
-	expireAt := time.Now().Add(time.Duration(600) * time.Second)
-
 	// Static host lookup
 	switch addrs := s.hosts.Lookup(domain, option); {
 	case addrs == nil: // Domain not recorded in static host
 		break
 	case len(addrs) == 0: // Domain recorded, but no valid IP returned (e.g. IPv4 address with only IPv6 enabled)
-		return nil, expireAt, dns.ErrEmptyResponse
+		return nil, time.Now().Add(time.Duration(600) * time.Second), dns.ErrEmptyResponse
 	case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Domain replacement
 		newError("domain replaced: ", domain, " -> ", addrs[0].Domain()).WriteToLog()
 		domain = addrs[0].Domain()
 	default: // Successfully found ip records in static host
 		newError("returning ", len(addrs), " IP(s) for domain ", domain, " -> ", addrs).WriteToLog()
 		ips, err := toNetIP(addrs)
-		return ips, expireAt, err
+		return ips, time.Now().Add(time.Duration(600) * time.Second), err
 	}
 
 	// Name servers lookup
@@ -424,9 +479,9 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	}
 
 	if len(errs) == 0 {
-		return nil, expireAt, dns.ErrEmptyResponse
+		return nil, time.Time{}, dns.ErrEmptyResponse
 	}
-	return nil, expireAt, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
+	return nil, time.Time{}, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
 }
 
 func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {

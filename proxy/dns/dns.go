@@ -40,6 +40,7 @@ func init() {
 		fullConfig := &Config{}
 		fullConfig.OverrideResponseTtl = simplifiedServer.OverrideResponseTtl
 		fullConfig.ResponseTtl = simplifiedServer.ResponseTtl
+		fullConfig.LookupAsExchange = simplifiedServer.LookupAsExchange
 		return common.CreateObject(ctx, fullConfig)
 	}))
 }
@@ -59,6 +60,8 @@ type Handler struct {
 	config *Config
 
 	nonIPQuery string
+
+	lookupAsExchange bool
 }
 
 func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager policy.Manager) error {
@@ -92,6 +95,9 @@ func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager polic
 	h.config = config
 
 	h.nonIPQuery = config.Non_IPQuery
+
+	h.lookupAsExchange = config.LookupAsExchange
+
 	return nil
 }
 
@@ -211,7 +217,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 			if !h.isOwnLink(ctx) {
 				isIPQuery, domain, id, qType := parseIPQuery(b.Bytes())
 				if isIPQuery || h.nonIPQuery != "drop" {
-					if isIPQuery {
+					if isIPQuery && !h.lookupAsExchange {
 						go h.handleIPQuery(id, qType, domain, writer)
 						b.Release()
 						continue
@@ -282,7 +288,7 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	if h.config.OverrideResponseTtl {
 		ttl = h.config.ResponseTtl
 	}
-	expireAt := timeNow.Add(time.Duration(ttl) * time.Second)
+	var expireAt time.Time
 
 	switch qType {
 	case dnsmessage.TypeA:
@@ -290,12 +296,14 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 			ips, expireAt, err = ipv4Lookup.LookupIPv4WithTTL(domain)
 		} else {
 			ips, err = h.ipv4Lookup.LookupIPv4(domain)
+			expireAt = timeNow.Add(time.Duration(ttl) * time.Second)
 		}
 	case dnsmessage.TypeAAAA:
 		if ipv6Lookup, ok := h.ipv6Lookup.(dns.IPv6LookupWithTTL); ok {
 			ips, expireAt, err = ipv6Lookup.LookupIPv6WithTTL(domain)
 		} else {
 			ips, err = h.ipv6Lookup.LookupIPv6(domain)
+			expireAt = timeNow.Add(time.Duration(ttl) * time.Second)
 		}
 	}
 

@@ -110,12 +110,14 @@ func getHTTPClient(ctx context.Context, dest net.Destination, securityEngine *se
 			if connAPLNGetter, ok := cn.(security.ConnectionApplicationProtocol); ok {
 				connectionALPN, err := connAPLNGetter.GetConnectionApplicationProtocol()
 				if err != nil {
+					cn.Close()
 					return nil, newError("failed to get connection ALPN").Base(err).AtWarning()
 				}
 				protocol = connectionALPN
 			}
 
 			if protocol != http2.NextProtoTLS {
+				cn.Close()
 				return nil, newError("http2: unexpected ALPN protocol " + protocol + "; want q" + http2.NextProtoTLS).AtError()
 			}
 			return cn, nil

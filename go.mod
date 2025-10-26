@@ -6,19 +6,19 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/anytls/sing-anytls v0.0.11
-	github.com/apernet/quic-go v0.54.1-0.20250907230547-eb32f8aec5e2
+	github.com/apernet/quic-go v0.54.1-0.20251024023933-5e0818a71079
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152
-	github.com/dyhkwong/hysteria/core/v2 v2.6.4-1
-	github.com/dyhkwong/hysteria/extras/v2 v2.6.4-1
-	github.com/dyhkwong/sing-juicity v0.1.0-beta.1
+	github.com/dyhkwong/hysteria/core/v2 v2.6.5-1
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.5-1
+	github.com/dyhkwong/sing-juicity v0.1.0-beta.2
 	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kierdavis/cfb8 v0.0.0-20180105024805-3a17c36ee2f8
-	github.com/metacubex/utls v1.8.2
+	github.com/metacubex/utls v1.8.3
 	github.com/miekg/dns v1.1.68
 	github.com/mustafaturan/bus v1.0.2
 	github.com/pion/dtls/v2 v2.2.12
@@ -28,7 +28,7 @@ require (
 	github.com/refraction-networking/utls v1.8.1
 	github.com/sagernet/sing v0.8.0-beta.5
 	github.com/sagernet/sing-mux v0.3.3
-	github.com/sagernet/sing-quic v0.6.0-beta.3
+	github.com/sagernet/sing-quic v0.6.0-beta.4
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/sagernet/sing-shadowsocks2 v0.2.2
 	github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11
@@ -41,7 +41,7 @@ require (
 	go.uber.org/mock v0.6.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.46.1-0.20251023203934-dec9fe711ec1
 	golang.org/x/sync v0.17.0
 	golang.org/x/sys v0.37.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
@@ -76,7 +76,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
-	github.com/sagernet/quic-go v0.54.0-sing-box-mod.3 // indirect
+	github.com/sagernet/quic-go v0.55.0-sing-box-mod.2 // indirect
 	github.com/sagernet/smux v1.5.34-mod.1 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect

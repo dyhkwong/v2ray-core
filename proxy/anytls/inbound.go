@@ -3,6 +3,7 @@ package anytls
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/singbridge"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -49,7 +51,12 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Inbound, error) {
 		Handler:       inbound,
 		Logger:        singbridge.NewLoggerWrapper(newError),
 	}
-	for _, user := range config.Users {
+	for i, user := range config.Users {
+		user.Email = strings.ToLower(user.Email)
+		if len(user.Email) == 0 {
+			u := uuid.New()
+			user.Email = "unnamed-user-" + strconv.Itoa(i) + "-" + u.String()
+		}
 		serverConfig.Users = append(serverConfig.Users, anytls.User{
 			Name:     user.Email,
 			Password: user.Password,
@@ -158,19 +165,22 @@ func (i *Inbound) handleUDP(ctx context.Context, conn network.PacketConn, source
 // AddUser implements proxy.UserManager.AddUser().
 func (i *Inbound) AddUser(ctx context.Context, user *protocol.MemoryUser) error {
 	account := user.Account.(*MemoryAccount)
-	if account.Email == "" {
+	email := strings.ToLower(account.Email)
+	if len(email) == 0 {
+		u := uuid.New()
+		email = "unnamed-user-" + strconv.Itoa(len(i.users)) + "-" + u.String()
 		return newError("Email must not be empty.")
 	}
 	i.Lock()
 	defer i.Unlock()
-	if idx := slices.IndexFunc(i.users, func(u *User) bool {
-		return u.Email == account.Email
-	}); idx >= 0 {
+	if slices.ContainsFunc(i.users, func(u *User) bool {
+		return u.Email == email
+	}) {
 		return newError("User ", account.Email, " already exists.")
 	}
 	i.users = append(i.users, &User{
 		Password: account.Password,
-		Email:    account.Email,
+		Email:    email,
 		Level:    account.Level,
 	})
 	var users []anytls.User
@@ -186,11 +196,17 @@ func (i *Inbound) AddUser(ctx context.Context, user *protocol.MemoryUser) error 
 
 // RemoveUser implements proxy.UserManager.RemoveUser().
 func (i *Inbound) RemoveUser(ctx context.Context, email string) error {
+	email = strings.ToLower(email)
 	if email == "" {
 		return newError("Email must not be empty.")
 	}
 	i.Lock()
 	defer i.Unlock()
+	if !slices.ContainsFunc(i.users, func(u *User) bool {
+		return u.Email == email
+	}) {
+		return newError("User ", email, " does not exist.")
+	}
 	i.users = slices.DeleteFunc(i.users, func(u *User) bool {
 		return u.Email == email
 	})

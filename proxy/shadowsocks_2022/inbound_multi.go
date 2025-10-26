@@ -3,6 +3,7 @@ package shadowsocks_2022 //nolint:stylecheck
 import (
 	"context"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -82,7 +83,8 @@ func NewMultiServer(ctx context.Context, config *MultiUserServerConfig) (*MultiU
 	}
 
 	for i, user := range config.Users {
-		if user.Email == "" {
+		user.Email = strings.ToLower(user.Email)
+		if len(user.Email) == 0 {
 			u := uuid.New()
 			user.Email = "unnamed-user-" + strconv.Itoa(i) + "-" + u.String()
 		}
@@ -145,24 +147,25 @@ func NewMultiServer(ctx context.Context, config *MultiUserServerConfig) (*MultiU
 
 // AddUser implements proxy.UserManager.AddUser().
 func (i *MultiUserInbound) AddUser(ctx context.Context, u *protocol.MemoryUser) error {
+	account := u.Account.(*MemoryAccount)
+	email := strings.ToLower(account.Email)
+	if len(email) == 0 {
+		u := uuid.New()
+		email = "unnamed-user-" + strconv.Itoa(len(i.users)) + "-" + u.String()
+		return newError("Email must not be empty.")
+	}
 	i.Lock()
 	defer i.Unlock()
-
-	account := u.Account.(*MemoryAccount)
-	if account.Email != "" {
-		for idx := range i.users {
-			if i.users[idx].Email == account.Email {
-				return newError("User ", account.Email, " already exists.")
-			}
-		}
+	if slices.ContainsFunc(i.users, func(u *User) bool {
+		return u.Email == email
+	}) {
+		return newError("User ", account.Email, " already exists.")
 	}
 	i.users = append(i.users, &User{
 		Key:   account.Key,
-		Email: account.Email,
+		Email: email,
 		Level: account.Level,
 	})
-
-	// sync to multi service
 	i.service.UpdateUsersWithPasswords(
 		C.MapIndexed(i.users, func(index int, it *User) int { return index }),
 		C.Map(i.users, func(it *User) string { return it.Key }),
@@ -173,37 +176,24 @@ func (i *MultiUserInbound) AddUser(ctx context.Context, u *protocol.MemoryUser) 
 
 // RemoveUser implements proxy.UserManager.RemoveUser().
 func (i *MultiUserInbound) RemoveUser(ctx context.Context, email string) error {
-	if email == "" {
+	email = strings.ToLower(email)
+	if len(email) == 0 {
 		return newError("Email must not be empty.")
 	}
-
 	i.Lock()
 	defer i.Unlock()
-
-	idx := -1
-	for ii, u := range i.users {
-		if strings.EqualFold(u.Email, email) {
-			idx = ii
-			break
-		}
+	if !slices.ContainsFunc(i.users, func(u *User) bool {
+		return u.Email == email
+	}) {
+		return newError("User ", email, " does not exist.")
 	}
-
-	if idx == -1 {
-		return newError("User ", email, " not found.")
-	}
-
-	ulen := len(i.users)
-
-	i.users[idx] = i.users[ulen-1]
-	i.users[ulen-1] = nil
-	i.users = i.users[:ulen-1]
-
-	// sync to multi service
+	i.users = slices.DeleteFunc(i.users, func(u *User) bool {
+		return u.Email == email
+	})
 	i.service.UpdateUsersWithPasswords(
 		C.MapIndexed(i.users, func(index int, it *User) int { return index }),
 		C.Map(i.users, func(it *User) string { return it.Key }),
 	)
-
 	return nil
 }
 

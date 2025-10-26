@@ -46,10 +46,5 @@ func (c *BrowserDialerClient) PostPacket(ctx context.Context, url string, body i
 		return err
 	}
 
-	err = c.dialer.DialPost(url, requestHeader, bytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.dialer.DialPost(url, requestHeader, bytes)
 }

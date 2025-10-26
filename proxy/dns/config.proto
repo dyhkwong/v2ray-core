@@ -17,6 +17,7 @@ message Config {
   bool override_response_ttl = 4;
   uint32 response_ttl = 3;
   string non_IP_query = 5;
+  bool lookup_as_exchange = 99;
 }
 
 message SimplifiedConfig {
@@ -25,4 +26,5 @@ message SimplifiedConfig {
 
   bool override_response_ttl = 4;
   uint32 response_ttl = 3;
+  bool lookup_as_exchange = 99;
 }

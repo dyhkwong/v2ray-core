@@ -2,7 +2,9 @@ package dns
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/binary"
+	"strconv"
 	"strings"
 	"time"
 
@@ -232,12 +234,13 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: c.tag})
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	var ips []net.IP
-	expireAt := time.Now().Add(time.Duration(600) * time.Second)
+	var expireAt time.Time
 	var err error
 	if serverWithTTL, ok := server.(ServerWithTTL); ok {
 		ips, expireAt, err = serverWithTTL.QueryIPWithTTL(ctx, domain, c.clientIP, queryOption, disableCache)
 	} else {
 		ips, err = server.QueryIP(ctx, domain, c.clientIP, queryOption, disableCache)
+		expireAt = time.Now().Add(time.Duration(600) * time.Second)
 	}
 	cancel()
 
@@ -248,8 +251,12 @@ func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.I
 	return ips, expireAt, err
 }
 
-func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
-	if serverRaw, ok := c.server.(ServerRaw); ok {
+func (c *Client) QueryRaw(ctx context.Context, request []byte, fakeEnabled bool) ([]byte, error) {
+	server := c.server
+	if c.fakeDNS != nil && fakeEnabled {
+		server = c.fakeDNS
+	}
+	if serverRaw, ok := server.(ServerRaw); ok {
 		msg := new(dnsmessage.Message)
 		if err := msg.Unpack(request); err != nil {
 			return nil, newError("failed to parse dns request").Base(err)
@@ -273,16 +280,103 @@ func (c *Client) QueryRaw(ctx context.Context, request []byte) ([]byte, error) {
 			return nil, err
 		}
 		for _, answer := range msg.Answers {
-			newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+			newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type, func() string {
+				if s := resourceBodyToString(answer); len(s) > 0 {
+					return " " + s
+				} else {
+					return ""
+				}
+			}()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
 		for _, authority := range msg.Authorities {
-			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+			newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type, func() string {
+				if s := resourceBodyToString(authority); len(s) > 0 {
+					return " " + s
+				} else {
+					return ""
+				}
+			}()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 		}
 
 		binary.BigEndian.PutUint16(response[:2], id)
 		return response, nil
 	}
 	return nil, newError("not implemented")
+}
+
+func resourceBodyToString(resource dnsmessage.Resource) string {
+	switch body := resource.Body.(type) {
+	case *dnsmessage.AResource:
+		return net.IPAddress(body.A[:]).IP().String()
+	case *dnsmessage.AAAAResource:
+		return net.IPAddress(body.AAAA[:]).IP().String()
+	case *dnsmessage.CNAMEResource:
+		return body.CNAME.String()
+	case *dnsmessage.MXResource:
+		return body.MX.String()
+	case *dnsmessage.NSResource:
+		return body.NS.String()
+	case *dnsmessage.PTRResource:
+		return body.PTR.String()
+	case *dnsmessage.SOAResource:
+		return body.NS.String() + " " + body.MBox.String()
+	case *dnsmessage.TXTResource:
+		return strings.Join(body.TXT, " ")
+	case *dnsmessage.SRVResource:
+		return net.JoinHostPort(body.Target.String(), strconv.Itoa(int(body.Port)))
+	case *dnsmessage.SVCBResource, *dnsmessage.HTTPSResource:
+		var target string
+		var params []dnsmessage.SVCParam
+		switch body := resource.Body.(type) {
+		case *dnsmessage.SVCBResource:
+			target = body.Target.String()
+			params = body.Params
+
+		case *dnsmessage.HTTPSResource:
+			target = body.Target.String()
+			params = body.Params
+		}
+		var paramString []string
+		for _, param := range params {
+			switch param.Key {
+			case dnsmessage.SVCParamPort:
+				paramString = append(paramString, "port="+strconv.Itoa(int(binary.BigEndian.Uint16(param.Value))))
+
+			case dnsmessage.SVCParamECH:
+				paramString = append(paramString, "ech="+base64.StdEncoding.EncodeToString(param.Value))
+			case dnsmessage.SVCParamNoDefaultALPN:
+				paramString = append(paramString, "no-default-alpn")
+			case dnsmessage.SVCParamALPN:
+				var alpnString []string
+				pos := 0
+				for pos+1 <= len(param.Value) {
+					length := param.Value[pos]
+					pos++
+					if pos+int(length) > len(param.Value) {
+						break
+					}
+					alpnString = append(alpnString, string(param.Value[pos:pos+int(length)]))
+					pos += int(length)
+				}
+				paramString = append(paramString, "alpn="+strings.Join(alpnString, ","))
+			case dnsmessage.SVCParamIPv4Hint:
+				ipv4String := make([]string, len(param.Value)/4)
+				for i := range len(param.Value) / 4 {
+					ipv4String[i] = net.IPAddress(param.Value[i*4 : i*4+4]).IP().String()
+				}
+				paramString = append(paramString, "ipv4hint="+strings.Join(ipv4String, ","))
+			case dnsmessage.SVCParamIPv6Hint:
+				ipv6String := make([]string, len(param.Value)/16)
+				for i := range len(param.Value) / 16 {
+					ipv6String[i] = net.IPAddress(param.Value[i*16 : i*16+16]).IP().String()
+				}
+				paramString = append(paramString, "ipv6hint="+strings.Join(ipv6String, ","))
+			}
+		}
+		return target + " " + strings.Join(paramString, " ")
+	default:
+		return ""
+	}
 }
 
 // MatchExpectedIPs matches queried domain IPs with expected IPs and returns matched ones.

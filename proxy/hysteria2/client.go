@@ -118,12 +118,18 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			}
 			dest := net.DestinationFromAddr(addr)
 
-			connWriter := &ConnWriter{Writer: conn, Target: dest}
+			bufferWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
+			connWriter := &ConnWriter{Writer: bufferWriter, Target: dest}
 			packetWriter := &PacketWriter{Writer: connWriter, Target: dest, HyConn: hyConn, counter: writeCounter}
 
 			// write some request payload to buffer
 			if _, err := packetWriter.WriteTo(buffer[:n], addr); err != nil {
 				return newError("failed to write a request payload").Base(err)
+			}
+
+			// Flush; bufferWriter.WriteMultiBuffer now is bufferWriter.writer.WriteMultiBuffer
+			if err = bufferWriter.SetBuffered(false); err != nil {
+				return newError("failed to flush payload").Base(err).AtWarning()
 			}
 
 			return udp.CopyPacketConn(packetWriter, packetConn, udp.UpdateActivity(timer))
@@ -150,7 +156,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		defer timer.SetTimeout(sessionPolicy.Timeouts.DownlinkOnly)
 
 		var bodyWriter buf.Writer
-		connWriter := &ConnWriter{Writer: conn, Target: destination}
+		bufferWriter := buf.NewBufferedWriter(buf.NewWriter(conn))
+		connWriter := &ConnWriter{Writer: bufferWriter, Target: destination}
 		bodyWriter = connWriter
 
 		if network == net.Network_UDP {
@@ -166,6 +173,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			case nil:
 			default:
 				return newError("failed to write a request payload").Base(err).AtWarning()
+			}
+			// Flush; bufferWriter.WriteMultiBuffer now is bufferWriter.writer.WriteMultiBuffer
+			if err = bufferWriter.SetBuffered(false); err != nil {
+				return newError("failed to flush payload").Base(err).AtWarning()
 			}
 		}
 

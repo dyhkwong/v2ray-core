@@ -155,7 +155,8 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 
 	var transport http.RoundTripper
 
-	if httpVersion == "3" {
+	switch httpVersion {
+	case "3":
 		transport = &http3.Transport{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout: connIdleTimeout,
@@ -184,7 +185,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				return quic.DialEarly(detachedCtx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
-	} else if httpVersion == "2" {
+	case "2":
 		transport = &http2.Transport{
 			DialTLSContext: func(ctxInner context.Context, network string, addr string, cfg *gotls.Config) (net.Conn, error) {
 				return dialContext(ctxInner)
@@ -192,11 +193,10 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 			IdleConnTimeout: connIdleTimeout,
 			ReadIdleTimeout: h2KeepalivePeriod,
 		}
-	} else {
+	default:
 		httpDialContext := func(ctxInner context.Context, network string, addr string) (net.Conn, error) {
 			return dialContext(ctxInner)
 		}
-
 		transport = &http.Transport{
 			DialTLSContext:  httpDialContext,
 			DialContext:     httpDialContext,
@@ -419,7 +419,7 @@ func (w uploadWriter) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	var writed int
+	writed := 0
 
 	for _, buff := range buffer.MultiBuffer {
 		err := w.WriteMultiBuffer(buf.MultiBuffer{buff})

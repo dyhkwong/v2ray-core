@@ -34,17 +34,6 @@ type UConn struct {
 	Verified   bool
 }
 
-func (c *UConn) HandshakeAddress() net.Address {
-	if err := c.Handshake(); err != nil {
-		return nil
-	}
-	state := c.ConnectionState()
-	if state.ServerName == "" {
-		return nil
-	}
-	return net.ParseAddress(state.ServerName)
-}
-
 func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	certs := make([]*x509.Certificate, len(rawCerts))
 	for i, rawCert := range rawCerts {

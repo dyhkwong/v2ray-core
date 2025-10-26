@@ -40,7 +40,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
 	if err != nil {
-		return nil, newError(err, "invalid uuid")
+		return nil, newError("invalid uuid")
 	}
 
 	if config.TlsSettings == nil {
