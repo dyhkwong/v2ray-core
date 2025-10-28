@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/dns/fakedns"
@@ -23,7 +23,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/strmatcher"
 	"github.com/v2fly/v2ray-core/v4/features"
-	"github.com/v2fly/v2ray-core/v4/features/dns"
+	feature_dns "github.com/v2fly/v2ray-core/v4/features/dns"
 )
 
 // DNS is a DNS rely server.
@@ -207,12 +207,12 @@ func establishFakeDNS(s *DNS, config *Config, nsClientMap map[int]int) error {
 	}
 	// Add FakeDNSEngine feature when DNS feature is added for the first time
 	s.fakeDNSEngine = &FakeDNSEngine{dns: s, fakeHolders: fakeHolders, fakeDefault: fakeDefault}
-	return core.RequireFeatures(s.ctx, func(client dns.Client) error {
+	return core.RequireFeatures(s.ctx, func(client feature_dns.Client) error {
 		v := core.MustFromContext(s.ctx)
-		if v.GetFeature(dns.FakeDNSEngineType()) != nil {
+		if v.GetFeature(feature_dns.FakeDNSEngineType()) != nil {
 			return nil
 		}
-		if client, ok := client.(dns.ClientWithFakeDNS); ok {
+		if client, ok := client.(feature_dns.ClientWithFakeDNS); ok {
 			return v.AddFeature(client.AsFakeDNSEngine())
 		}
 		return nil
@@ -221,7 +221,7 @@ func establishFakeDNS(s *DNS, config *Config, nsClientMap map[int]int) error {
 
 // Type implements common.HasType.
 func (*DNS) Type() interface{} {
-	return dns.ClientType()
+	return feature_dns.ClientType()
 }
 
 // Start implements common.Runnable.
@@ -241,38 +241,38 @@ func (s *DNS) IsOwnLink(ctx context.Context) bool {
 }
 
 // AsFakeDNSClient implements dns.ClientWithFakeDNS.
-func (s *DNS) AsFakeDNSClient() dns.Client {
+func (s *DNS) AsFakeDNSClient() feature_dns.Client {
 	return &FakeDNSClient{DNS: s}
 }
 
 // AsFakeDNSEngine implements dns.ClientWithFakeDNS.
-func (s *DNS) AsFakeDNSEngine() dns.FakeDNSEngine {
+func (s *DNS) AsFakeDNSEngine() feature_dns.FakeDNSEngine {
 	return s.fakeDNSEngine
 }
 
 // LookupIP implements dns.Client.
 func (s *DNS) LookupIP(domain string) ([]net.IP, error) {
-	return s.lookupIPInternal(domain, dns.IPOption{IPv4Enable: true, IPv6Enable: true, FakeEnable: false})
+	return s.lookupIPInternal(domain, feature_dns.IPOption{IPv4Enable: true, IPv6Enable: true, FakeEnable: false})
 }
 
 // LookupIPv4 implements dns.IPv4Lookup.
 func (s *DNS) LookupIPv4(domain string) ([]net.IP, error) {
-	return s.lookupIPInternal(domain, dns.IPOption{IPv4Enable: true, FakeEnable: false})
+	return s.lookupIPInternal(domain, feature_dns.IPOption{IPv4Enable: true, FakeEnable: false})
 }
 
 // LookupIPv6 implements dns.IPv6Lookup.
 func (s *DNS) LookupIPv6(domain string) ([]net.IP, error) {
-	return s.lookupIPInternal(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
+	return s.lookupIPInternal(domain, feature_dns.IPOption{IPv6Enable: true, FakeEnable: false})
 }
 
 // LookupIPv4WithTTL implements dns.IPv4LookupWithTTL.
 func (s *DNS) LookupIPv4WithTTL(domain string) ([]net.IP, time.Time, error) {
-	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv4Enable: true, FakeEnable: false})
+	return s.lookupIPInternalWithTTL(domain, feature_dns.IPOption{IPv4Enable: true, FakeEnable: false})
 }
 
 // LookupIPv6WithTTL implements dns.IPv6LookupWithTTL.
 func (s *DNS) LookupIPv6WithTTL(domain string) ([]net.IP, time.Time, error) {
-	return s.lookupIPInternalWithTTL(domain, dns.IPOption{IPv6Enable: true, FakeEnable: false})
+	return s.lookupIPInternalWithTTL(domain, feature_dns.IPOption{IPv6Enable: true, FakeEnable: false})
 }
 
 func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
@@ -280,31 +280,31 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 }
 
 func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
-	requestMsg := new(dnsmessage.Message)
+	requestMsg := new(dns.Msg)
 	if err := requestMsg.Unpack(request); err != nil {
 		return nil, newError("failed to parse dns request").Base(err)
 	}
-	if requestMsg.Response || len(requestMsg.Answers) > 0 {
+	if requestMsg.Response || len(requestMsg.Answer) > 0 {
 		return nil, newError("failed to parse dns request: not query")
 	}
 
 	var domain string
-	var qName dnsmessage.Name
-	var qType dnsmessage.Type
-	var qClass dnsmessage.Class
-	if len(requestMsg.Questions) == 1 {
-		qName = requestMsg.Questions[0].Name
-		qType = requestMsg.Questions[0].Type
-		qClass = requestMsg.Questions[0].Class
+	var qName string
+	var qType uint16
+	var qClass uint16
+	if len(requestMsg.Question) == 1 {
+		qName = requestMsg.Question[0].Name
+		qType = requestMsg.Question[0].Qtype
+		qClass = requestMsg.Question[0].Qclass
 		// Normalize the FQDN form query
-		domain = strings.TrimSuffix(strings.ToLower(qName.String()), ".")
+		domain = strings.TrimSuffix(strings.ToLower(qName), ".")
 	}
 
-	if len(requestMsg.Questions) == 1 && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA) && qClass == dnsmessage.ClassINET {
+	if len(requestMsg.Question) == 1 && (qType == dns.TypeA || qType == dns.TypeAAAA) && qClass == dns.ClassINET {
 		// Static host lookup
-		switch addrs := s.hosts.Lookup(domain, dns.IPOption{
-			IPv4Enable: qType == dnsmessage.TypeA,
-			IPv6Enable: qType == dnsmessage.TypeAAAA,
+		switch addrs := s.hosts.Lookup(domain, feature_dns.IPOption{
+			IPv4Enable: qType == dns.TypeA,
+			IPv6Enable: qType == dns.TypeAAAA,
 			FakeEnable: fakeEnabled,
 		}); {
 		case addrs == nil: // Domain not recorded in static host
@@ -315,44 +315,46 @@ func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{
-				ID:                 requestMsg.ID,
-				RCode:              dnsmessage.RCodeSuccess,
-				RecursionAvailable: true,
-				RecursionDesired:   true,
-				Response:           true,
-			})
-			builder.EnableCompression()
-			common.Must(builder.StartQuestions())
-			common.Must(builder.Question(dnsmessage.Question{Name: qName, Class: qClass, Type: qType}))
-			common.Must(builder.StartAnswers())
-			h := dnsmessage.ResourceHeader{Name: qName, Type: qType, Class: qClass, TTL: 600}
+			responseMsg := new(dns.Msg)
+			responseMsg.Compress = true
+			responseMsg.Id = requestMsg.Id
+			responseMsg.Rcode = dns.RcodeSuccess
+			responseMsg.RecursionAvailable = true
+			responseMsg.RecursionDesired = true
+			responseMsg.Response = true
+			responseMsg.Question = []dns.Question{{Name: qName, Qclass: qClass, Qtype: qType}}
 			for _, ip := range ips {
 				switch qType {
-				case dnsmessage.TypeA:
-					common.Must(builder.AResource(h, dnsmessage.AResource{A: [4]byte(ip)}))
-				case dnsmessage.TypeAAAA:
-					common.Must(builder.AAAAResource(h, dnsmessage.AAAAResource{AAAA: [16]byte(ip)}))
+				case dns.TypeA:
+					responseMsg.Answer = append(responseMsg.Answer, &dns.A{
+						Hdr: dns.RR_Header{Name: qName, Class: dns.ClassINET, Rrtype: qType, Ttl: 600},
+						A:   ip,
+					})
+				case dns.TypeAAAA:
+					responseMsg.Answer = append(responseMsg.Answer, &dns.AAAA{
+						Hdr:  dns.RR_Header{Name: qName, Class: dns.ClassINET, Rrtype: qType, Ttl: 600},
+						AAAA: ip,
+					})
 				}
 			}
-			return builder.Finish()
+			return responseMsg.Pack()
 		}
 	}
 
-	clients := s.sortClients(domain, dns.IPOption{
-		IPv4Enable: qType == dnsmessage.TypeA,
-		IPv6Enable: qType == dnsmessage.TypeAAAA,
-		FakeEnable: fakeEnabled && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA),
+	clients := s.sortClients(domain, feature_dns.IPOption{
+		IPv4Enable: qType == dns.TypeA,
+		IPv6Enable: qType == dns.TypeAAAA,
+		FakeEnable: fakeEnabled && (qType == dns.TypeA || qType == dns.TypeAAAA),
 	})
 	if len(clients) == 0 {
-		for _, question := range requestMsg.Questions {
-			newError("querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog()
+		for _, question := range requestMsg.Question {
+			newError("querying: ", formatRR(question.String())).AtInfo().WriteToLog()
 		}
 		newError("no qualified server").AtError().WriteToLog()
 		/*
-			responseMsg := new(dnsmessage.Message)
-			responseMsg.ID = requestMsg.ID
-			responseMsg.RCode = dnsmessage.RCodeNotImplemented
+			responseMsg := new(dns.Msg)
+			responseMsg.Id = requestMsg.Id
+			responseMsg.Rcode = dns.RcodeNotImplemented
 			responseMsg.RecursionAvailable = true
 			responseMsg.RecursionDesired = true
 			responseMsg.Response = true
@@ -363,7 +365,7 @@ func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 	errs := []error{}
 	for _, client := range clients {
 		response, err := client.QueryRaw(s.ctx, request,
-			fakeEnabled && (qType == dnsmessage.TypeA || qType == dnsmessage.TypeAAAA),
+			fakeEnabled && (qType == dns.TypeA || qType == dns.TypeAAAA),
 		)
 		if err == nil {
 			return response, nil
@@ -376,12 +378,12 @@ func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 	return nil, newError(errors.Combine(errs...))
 }
 
-func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {
+func (s *DNS) lookupIPInternal(domain string, option feature_dns.IPOption) ([]net.IP, error) {
 	ips, _, err := s.lookupIPInternalWithTTL(domain, option)
 	return ips, err
 }
 
-func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
+func (s *DNS) lookupIPInternalWithTTL(domain string, option feature_dns.IPOption) ([]net.IP, time.Time, error) {
 	if domain == "" {
 		return nil, time.Time{}, newError("empty domain name")
 	}
@@ -394,7 +396,7 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	case addrs == nil: // Domain not recorded in static host
 		break
 	case len(addrs) == 0: // Domain recorded, but no valid IP returned (e.g. IPv4 address with only IPv6 enabled)
-		return nil, time.Now().Add(time.Duration(600) * time.Second), dns.ErrEmptyResponse
+		return nil, time.Now().Add(time.Duration(600) * time.Second), feature_dns.ErrEmptyResponse
 	case len(addrs) == 1 && addrs[0].Family().IsDomain(): // Domain replacement
 		newError("domain replaced: ", domain, " -> ", addrs[0].Domain()).WriteToLog()
 		domain = addrs[0].Domain()
@@ -414,7 +416,7 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 		if err != nil {
 			errs = append(errs, err)
 		}
-		if err != dns.ErrEmptyResponse { // ErrEmptyResponse is not seen as failure, so no failed log
+		if err != feature_dns.ErrEmptyResponse { // ErrEmptyResponse is not seen as failure, so no failed log
 			newError("failed to lookup ip for domain ", domain, " at server ", client.Name()).Base(err).WriteToLog()
 		}
 		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch {
@@ -423,12 +425,12 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option dns.IPOption) ([]net
 	}
 
 	if len(errs) == 0 {
-		return nil, time.Time{}, dns.ErrEmptyResponse
+		return nil, time.Time{}, feature_dns.ErrEmptyResponse
 	}
 	return nil, time.Time{}, newError("returning nil for domain ", domain).Base(errors.Combine(errs...))
 }
 
-func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {
+func (s *DNS) sortClients(domain string, option feature_dns.IPOption) []*Client {
 	clients := make([]*Client, 0, len(s.clients))
 	clientUsed := make([]bool, len(s.clients))
 	clientIdxs := make([]int, 0, len(s.clients))
@@ -479,7 +481,7 @@ func (s *DNS) sortClients(domain string, option dns.IPOption) []*Client {
 	return clients
 }
 
-func (s *DNS) formatClientNames(clientIdxs []int, option dns.IPOption) []string {
+func (s *DNS) formatClientNames(clientIdxs []int, option feature_dns.IPOption) []string {
 	clientNames := make([]string, 0, len(clientIdxs))
 	counter := make(map[string]uint, len(clientIdxs))
 	for _, clientIdx := range clientIdxs {

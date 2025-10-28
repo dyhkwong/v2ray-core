@@ -4,17 +4,17 @@ import (
 	"encoding/binary"
 	"io"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
 )
 
-func PackMessage(msg *dnsmessage.Message) (*buf.Buffer, error) {
+func PackMessage(msg *dns.Msg) (*buf.Buffer, error) {
 	buffer := buf.New()
 	rawBytes := buffer.Extend(buf.Size)
-	packed, err := msg.AppendPack(rawBytes[:0])
+	packed, err := msg.PackBuffer(rawBytes)
 	if err != nil {
 		buffer.Release()
 		return nil, err

@@ -8,19 +8,19 @@ import (
 	"io"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 )
 
 var rawQueryFunc = func(request []byte) ([]byte, error) {
-	message := new(dnsmessage.Message)
+	message := new(dns.Msg)
 	err := message.Unpack(request)
 	if err != nil {
 		return nil, newError("failed to parse dns request").Base(err)
 	}
-	if message.Response || len(message.Answers) > 0 {
+	if message.Response || len(message.Answer) > 0 {
 		return nil, newError("failed to parse dns request: not query")
 	}
 
