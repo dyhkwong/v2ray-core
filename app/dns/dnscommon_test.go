@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/miekg/dns"
-	"golang.org/x/net/dns/dnsmessage"
 
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
@@ -54,7 +53,7 @@ func Test_parseResponse(t *testing.T) {
 	}{
 		{
 			"empty",
-			&IPRecord{0, []net.Address(nil), time.Time{}, dnsmessage.RCodeSuccess, 600},
+			&IPRecord{0, []net.Address(nil), time.Time{}, dns.RcodeSuccess, 600},
 			false,
 		},
 		{
@@ -68,14 +67,14 @@ func Test_parseResponse(t *testing.T) {
 				1,
 				[]net.Address{net.ParseAddress("8.8.8.8"), net.ParseAddress("8.8.4.4")},
 				time.Time{},
-				dnsmessage.RCodeSuccess,
+				dns.RcodeSuccess,
 				600,
 			},
 			false,
 		},
 		{
 			"aaaa record",
-			&IPRecord{2, []net.Address{net.ParseAddress("2001::123:8888"), net.ParseAddress("2001::123:8844")}, time.Time{}, dnsmessage.RCodeSuccess, 600},
+			&IPRecord{2, []net.Address{net.ParseAddress("2001::123:8888"), net.ParseAddress("2001::123:8844")}, time.Time{}, dns.RcodeSuccess, 600},
 			false,
 		},
 	}
@@ -108,7 +107,7 @@ func Test_buildReqMsgs(t *testing.T) {
 	type args struct {
 		domain  string
 		option  dns_feature.IPOption
-		reqOpts *dnsmessage.Resource
+		reqOpts dns.RR
 	}
 	tests := []struct {
 		name string
@@ -152,7 +151,7 @@ func Test_genEDNS0Options(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *dnsmessage.Resource
+		want dns.RR
 	}{
 		// TODO: Add test cases.
 		{"ipv4", args{net.ParseIP("4.3.2.1")}, nil},
