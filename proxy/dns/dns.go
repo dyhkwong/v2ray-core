@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -16,7 +16,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
-	"github.com/v2fly/v2ray-core/v5/features/dns"
+	feature_dns "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -25,7 +25,7 @@ import (
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		h := new(Handler)
-		if err := core.RequireFeatures(ctx, func(dnsClient dns.Client, policyManager policy.Manager) error {
+		if err := core.RequireFeatures(ctx, func(dnsClient feature_dns.Client, policyManager policy.Manager) error {
 			return h.Init(config.(*Config), dnsClient, policyManager)
 		}); err != nil {
 			return nil, err
@@ -49,9 +49,9 @@ type ownLinkVerifier interface {
 }
 
 type Handler struct {
-	client          dns.Client
-	ipv4Lookup      dns.IPv4Lookup
-	ipv6Lookup      dns.IPv6Lookup
+	client          feature_dns.Client
+	ipv4Lookup      feature_dns.IPv4Lookup
+	ipv6Lookup      feature_dns.IPv6Lookup
 	ownLinkVerifier ownLinkVerifier
 	server          net.Destination
 	timeout         time.Duration
@@ -63,21 +63,21 @@ type Handler struct {
 	lookupAsExchange bool
 }
 
-func (h *Handler) Init(config *Config, dnsClient dns.Client, policyManager policy.Manager) error {
+func (h *Handler) Init(config *Config, dnsClient feature_dns.Client, policyManager policy.Manager) error {
 	// Enable FakeDNS for DNS outbound
-	if clientWithFakeDNS, ok := dnsClient.(dns.ClientWithFakeDNS); ok {
+	if clientWithFakeDNS, ok := dnsClient.(feature_dns.ClientWithFakeDNS); ok {
 		dnsClient = clientWithFakeDNS.AsFakeDNSClient()
 	}
 	h.client = dnsClient
 	h.timeout = policyManager.ForLevel(config.UserLevel).Timeouts.ConnectionIdle
 
-	if ipv4lookup, ok := dnsClient.(dns.IPv4Lookup); ok {
+	if ipv4lookup, ok := dnsClient.(feature_dns.IPv4Lookup); ok {
 		h.ipv4Lookup = ipv4lookup
 	} else {
 		return newError("dns.Client doesn't implement IPv4Lookup")
 	}
 
-	if ipv6lookup, ok := dnsClient.(dns.IPv6Lookup); ok {
+	if ipv6lookup, ok := dnsClient.(feature_dns.IPv6Lookup); ok {
 		h.ipv6Lookup = ipv6lookup
 	} else {
 		return newError("dns.Client doesn't implement IPv6Lookup")
@@ -104,26 +104,26 @@ func (h *Handler) isOwnLink(ctx context.Context) bool {
 	return h.ownLinkVerifier != nil && h.ownLinkVerifier.IsOwnLink(ctx)
 }
 
-func parseIPQuery(b []byte) (bool, string, uint16, dnsmessage.Type) {
-	message := new(dnsmessage.Message)
+func parseIPQuery(b []byte) (bool, string, uint16, uint16) {
+	message := new(dns.Msg)
 	if err := message.Unpack(b); err != nil {
 		return false, "", 0, 0
 	}
-	id := message.ID
-	if len(message.Questions) != 1 || message.Response {
+	id := message.Id
+	if len(message.Question) != 1 || message.Response {
 		return false, "", id, 0
 	}
-	qClass := message.Questions[0].Class
-	if qClass != dnsmessage.ClassINET {
+	qClass := message.Question[0].Qclass
+	if qClass != dns.ClassINET {
 		return false, "", id, 0
 	}
-	qType := message.Questions[0].Type
-	if qType != dnsmessage.TypeA && qType != dnsmessage.TypeAAAA {
+	qType := message.Question[0].Qtype
+	if qType != dns.TypeA && qType != dns.TypeAAAA {
 		return false, "", id, qType
 	}
-	domain := message.Questions[0].Name.String()
-	if dns_proto.IsDomainName(message.Questions[0].Name.String()) {
-		return true, domain, id, qType
+	qName := message.Question[0].Name
+	if dns_proto.IsDomainName(qName) {
+		return true, qName, id, qType
 	}
 	return false, "", id, qType
 }
@@ -230,7 +230,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 						continue
 					}
 				} else {
-					h.handleDNSError(id, dnsmessage.RCodeNotImplemented, writer)
+					h.handleDNSError(id, dns.RcodeNotImplemented, writer)
 					b.Release()
 				}
 			} else if err := connWriter.WriteMessage(b); err != nil {
@@ -266,7 +266,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, d internet.
 }
 
 func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
-	if rawQuery, ok := h.client.(dns.RawQuery); ok {
+	if rawQuery, ok := h.client.(feature_dns.RawQuery); ok {
 		resp, err := rawQuery.QueryRaw(b)
 		if err != nil {
 			newError(err).AtError().WriteToLog()
@@ -280,7 +280,7 @@ func (h *Handler) handleRawQuery(b []byte, writer dns_proto.MessageWriter) {
 	}
 }
 
-func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string, writer dns_proto.MessageWriter) {
+func (h *Handler) handleIPQuery(id uint16, qType uint16, domain string, writer dns_proto.MessageWriter) {
 	var ips []net.IP
 	var err error
 
@@ -292,15 +292,15 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 	var expireAt time.Time
 
 	switch qType {
-	case dnsmessage.TypeA:
-		if ipv4Lookup, ok := h.ipv4Lookup.(dns.IPv4LookupWithTTL); ok {
+	case dns.TypeA:
+		if ipv4Lookup, ok := h.ipv4Lookup.(feature_dns.IPv4LookupWithTTL); ok {
 			ips, expireAt, err = ipv4Lookup.LookupIPv4WithTTL(domain)
 		} else {
 			ips, err = h.ipv4Lookup.LookupIPv4(domain)
 			expireAt = timeNow.Add(time.Duration(ttl) * time.Second)
 		}
-	case dnsmessage.TypeAAAA:
-		if ipv6Lookup, ok := h.ipv6Lookup.(dns.IPv6LookupWithTTL); ok {
+	case dns.TypeAAAA:
+		if ipv6Lookup, ok := h.ipv6Lookup.(feature_dns.IPv6LookupWithTTL); ok {
 			ips, expireAt, err = ipv6Lookup.LookupIPv6WithTTL(domain)
 		} else {
 			ips, err = h.ipv6Lookup.LookupIPv6(domain)
@@ -308,79 +308,74 @@ func (h *Handler) handleIPQuery(id uint16, qType dnsmessage.Type, domain string,
 		}
 	}
 
-	rcode := dns.RCodeFromError(err)
-	if rcode == 0 && len(ips) == 0 && err != dns.ErrEmptyResponse {
+	rcode := feature_dns.RCodeFromError(err)
+	if rcode == 0 && len(ips) == 0 && err != feature_dns.ErrEmptyResponse {
 		newError("ip query").Base(err).WriteToLog()
 		return
 	}
 
-	b := buf.New()
-	rawBytes := b.Extend(buf.Size)
-	builder := dnsmessage.NewBuilder(rawBytes[:0], dnsmessage.Header{
-		ID:                 id,
-		RCode:              dnsmessage.RCode(rcode),
-		RecursionAvailable: true,
-		RecursionDesired:   true,
-		Response:           true,
-	})
-	builder.EnableCompression()
-	common.Must(builder.StartQuestions())
-	common.Must(builder.Question(dnsmessage.Question{
-		Name:  dnsmessage.MustNewName(domain),
-		Class: dnsmessage.ClassINET,
-		Type:  qType,
-	}))
-	common.Must(builder.StartAnswers())
-
-	rHeader := dnsmessage.ResourceHeader{Name: dnsmessage.MustNewName(domain), Class: dnsmessage.ClassINET, TTL: max(uint32(expireAt.Sub(timeNow).Seconds()), 0)}
+	message := new(dns.Msg)
+	message.Compress = true
+	message.Id = id
+	message.Rcode = int(rcode)
+	message.RecursionAvailable = true
+	message.RecursionDesired = true
+	message.Response = true
+	message.Question = append(message.Question, dns.Question{Name: dns.Fqdn(domain), Qclass: dns.ClassINET, Qtype: qType})
 	for _, ip := range ips {
 		if len(ip) == net.IPv4len {
-			var r dnsmessage.AResource
-			copy(r.A[:], ip)
-			common.Must(builder.AResource(rHeader, r))
+			message.Answer = append(message.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   dns.Fqdn(domain),
+					Class:  dns.ClassINET,
+					Rrtype: qType,
+					Ttl:    max(uint32(expireAt.Sub(timeNow).Seconds()), 0),
+				},
+				A: ip,
+			})
 		} else {
-			var r dnsmessage.AAAAResource
-			copy(r.AAAA[:], ip)
-			common.Must(builder.AAAAResource(rHeader, r))
+			message.Answer = append(message.Answer, &dns.AAAA{
+				Hdr: dns.RR_Header{
+					Name:   dns.Fqdn(domain),
+					Class:  dns.ClassINET,
+					Rrtype: qType,
+					Ttl:    max(uint32(expireAt.Sub(timeNow).Seconds()), 0),
+				},
+				AAAA: ip,
+			})
 		}
 	}
-	msgBytes, err := builder.Finish()
+	b := buf.New()
+	rawBytes := b.Extend(buf.Size)
+	msgBytes, err := message.PackBuffer(rawBytes)
 	if err != nil {
 		newError("pack message").Base(err).WriteToLog()
 		b.Release()
 		return
 	}
 	b.Resize(0, int32(len(msgBytes)))
-
 	if err := writer.WriteMessage(b); err != nil {
 		newError("write IP answer").Base(err).WriteToLog()
 	}
 }
 
-func (h *Handler) handleDNSError(id uint16, rCode dnsmessage.RCode, writer dns_proto.MessageWriter) {
-	var err error
-
+func (h *Handler) handleDNSError(id uint16, rCode int, writer dns_proto.MessageWriter) {
+	message := new(dns.Msg)
+	message.Compress = true
+	message.Id = id
+	message.Rcode = rCode
+	message.RecursionAvailable = true
+	message.RecursionDesired = true
+	message.Response = true
 	b := buf.New()
 	rawBytes := b.Extend(buf.Size)
-	builder := dnsmessage.NewBuilder(rawBytes[:0], dnsmessage.Header{
-		ID:                 id,
-		RCode:              rCode,
-		RecursionAvailable: true,
-		RecursionDesired:   true,
-		Response:           true,
-	})
-	builder.EnableCompression()
-	common.Must(builder.StartQuestions())
-	common.Must(builder.StartAnswers())
-
-	msgBytes, err := builder.Finish()
+	msgBytes, err := message.PackBuffer(rawBytes)
 	if err != nil {
 		newError("pack message").Base(err).WriteToLog()
 		b.Release()
 		return
 	}
 	b.Resize(0, int32(len(msgBytes)))
-
 	if err := writer.WriteMessage(b); err != nil {
 		newError("write IP answer").Base(err).WriteToLog()
 	}
