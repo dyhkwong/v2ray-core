@@ -10,14 +10,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
@@ -200,7 +200,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 	if err == errTruncated {
 		newError("truncated, retry over TCP").AtError().WriteToLog()
-		b, packErr := dns.PackMessage(req.msg)
+		b, packErr := protocol_dns.PackMessage(req.msg)
 		if packErr != nil {
 			newError(packErr).AtError().WriteToLog()
 			return
@@ -221,14 +221,14 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 	var rec record
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		rec.A = ipRec
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		rec.AAAA = ipRec
 	}
 
 	elapsed := time.Since(req.start)
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 	if len(req.domain) > 0 && (rec.A != nil || rec.AAAA != nil) {
 		s.updateIP(req.domain, rec)
 	}
@@ -271,7 +271,7 @@ func (s *ClassicNameServer) addPendingRequest(req *dnsRequest) {
 	s.Lock()
 	defer s.Unlock()
 
-	id := req.msg.ID
+	id := req.msg.Id
 	req.expire = time.Now().Add(time.Second * 8)
 	s.requests[id] = *req
 }
@@ -290,7 +290,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
-		b, err := dns.PackMessage(req.msg)
+		b, err := protocol_dns.PackMessage(req.msg)
 		if err != nil {
 			newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 			return
