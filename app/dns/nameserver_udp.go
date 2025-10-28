@@ -10,14 +10,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
@@ -197,7 +197,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 	if err == errTruncated {
 		newError("truncated, retry over TCP").AtError().WriteToLog()
-		b, packErr := dns.PackMessage(req.msg)
+		b, packErr := protocol_dns.PackMessage(req.msg)
 		if packErr != nil {
 			newError(packErr).AtError().WriteToLog()
 			return
@@ -217,7 +217,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 	}
 
 	elapsed := time.Since(req.start)
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 	if len(req.domain) > 0 {
 		s.updateIP(req, ipRec)
 	}
@@ -225,7 +225,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 func (s *ClassicNameServer) updateIP(req dnsRequest, newRec *IPRecord) {
 	var ipRecords map[string]*IPRecord
-	if req.reqType == dnsmessage.TypeAAAA {
+	if req.reqType == dns.TypeAAAA {
 		ipRecords = s.ip6
 	} else {
 		ipRecords = s.ip4
@@ -236,9 +236,9 @@ func (s *ClassicNameServer) updateIP(req dnsRequest, newRec *IPRecord) {
 		ipRecords[req.domain] = newRec
 	}
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		s.pub.Publish(req.domain+"4", nil)
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
@@ -253,7 +253,7 @@ func (s *ClassicNameServer) addPendingRequest(req *dnsRequest) {
 	s.Lock()
 	defer s.Unlock()
 
-	id := req.msg.ID
+	id := req.msg.Id
 	req.expire = time.Now().Add(time.Second * 8)
 	s.requests[id] = *req
 }
@@ -272,7 +272,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
-		b, err := dns.PackMessage(req.msg)
+		b, err := protocol_dns.PackMessage(req.msg)
 		if err != nil {
 			newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 			return
@@ -354,7 +354,7 @@ func (s *ClassicNameServer) findSingleStackIPsForDomain(domain string, isIPv6 bo
 		return nil, time.Time{}, errRecordNotFound
 	}
 	ips, expireAt, err := record.getIPs()
-	if record.RCode != dnsmessage.RCodeSuccess && record.RCode != dnsmessage.RCodeNameError || record.TTL == 0 {
+	if record.RCode != dns.RcodeSuccess && record.RCode != dns.RcodeNameError || record.TTL == 0 {
 		s.Lock()
 		delete(ipRecords, domain)
 		s.Unlock()
