@@ -12,13 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v4/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v4/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v4/common/task"
@@ -139,7 +139,7 @@ func (s *TCPNameServer) Cleanup() error {
 
 func (s *TCPNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	var ipRecords map[string]*IPRecord
-	if req.reqType == dnsmessage.TypeAAAA {
+	if req.reqType == dns.TypeAAAA {
 		ipRecords = s.ip6
 	} else {
 		ipRecords = s.ip4
@@ -149,12 +149,12 @@ func (s *TCPNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	rec := ipRecords[req.domain]
 	if isNewer(rec, ipRec) {
 		ipRecords[req.domain] = ipRec
-		newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+		newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 	}
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		s.pub.Publish(req.domain+"4", nil)
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
@@ -194,7 +194,7 @@ func (s *TCPNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 			defer cancel()
 
-			b, err := dns.PackMessage(r.msg)
+			b, err := protocol_dns.PackMessage(r.msg)
 			if err != nil {
 				newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 				return
@@ -311,7 +311,7 @@ func (s *TCPNameServer) findSingleStackIPsForDomain(domain string, isIPv6 bool) 
 		return nil, time.Time{}, errRecordNotFound
 	}
 	ips, expireAt, err := record.getIPs()
-	if record.RCode != dnsmessage.RCodeSuccess && record.RCode != dnsmessage.RCodeNameError || record.TTL == 0 {
+	if record.RCode != dns.RcodeSuccess && record.RCode != dns.RcodeNameError || record.TTL == 0 {
 		s.Lock()
 		delete(ipRecords, domain)
 		s.Unlock()
