@@ -10,15 +10,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
-	"golang.org/x/net/dns/dnsmessage"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v4/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v4/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v4/common/task"
@@ -149,12 +149,12 @@ func (s *QUICNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	updated := false
 
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		if isNewer(rec.A, ipRec) {
 			rec.A = ipRec
 			updated = true
 		}
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		addr := make([]net.Address, 0)
 		for _, ip := range ipRec.IP {
 			if len(ip.IP()) == net.IPv6len {
@@ -167,15 +167,15 @@ func (s *QUICNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 			updated = true
 		}
 	}
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 
 	if updated {
 		s.ips[req.domain] = rec
 	}
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		s.pub.Publish(req.domain+"4", nil)
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
@@ -218,7 +218,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 			defer cancel()
 
-			b, err := dns.PackMessage(r.msg)
+			b, err := protocol_dns.PackMessage(r.msg)
 			if err != nil {
 				newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 				return
