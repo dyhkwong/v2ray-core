@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/app/dns/fakedns"
@@ -18,7 +18,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/features"
-	"github.com/v2fly/v2ray-core/v4/features/dns"
+	feature_dns "github.com/v2fly/v2ray-core/v4/features/dns"
 	"github.com/v2fly/v2ray-core/v4/features/routing"
 )
 
@@ -27,14 +27,14 @@ type Server interface {
 	// Name of the Client.
 	Name() string
 	// QueryIP sends IP queries to its configured server.
-	QueryIP(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, error)
+	QueryIP(ctx context.Context, domain string, clientIP net.IP, option feature_dns.IPOption, disableCache bool) ([]net.IP, error)
 }
 
 // ServerWithTTL is the interface for Name Server with TTL information.
 type ServerWithTTL interface {
 	Server
 	// QueryIPWithTTL sends IP queries to its configured server.
-	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option dns.IPOption, disableCache bool) ([]net.IP, time.Time, error)
+	QueryIPWithTTL(ctx context.Context, domain string, clientIP net.IP, option feature_dns.IPOption, disableCache bool) ([]net.IP, time.Time, error)
 }
 
 type ServerRaw interface {
@@ -49,7 +49,7 @@ type Client struct {
 	clientIP net.IP
 	tag      string
 
-	queryStrategy    dns.IPOption
+	queryStrategy    feature_dns.IPOption
 	cacheStrategy    CacheStrategy
 	fallbackStrategy FallbackStrategy
 
@@ -77,7 +77,7 @@ func NewServer(ctx context.Context, dest net.Destination, onCreated func(Server)
 		case strings.EqualFold(u.String(), "localhost"):
 			return onCreated(NewLocalNameServer())
 		case strings.EqualFold(u.String(), "fakedns"):
-			return core.RequireFeatures(ctx, func(fakedns dns.FakeDNSEngine) error { return onCreated(NewFakeDNSServer(fakedns)) })
+			return core.RequireFeatures(ctx, func(fakedns feature_dns.FakeDNSEngine) error { return onCreated(NewFakeDNSServer(fakedns)) })
 		case strings.EqualFold(u.Scheme, "https"): // DOH Remote mode
 			return core.RequireFeatures(ctx, func(dispatcher routing.Dispatcher) error { return onCreatedWithError(NewDoHNameServer(u, dispatcher)) })
 		case strings.EqualFold(u.Scheme, "https+local"): // DOH Local mode
@@ -213,17 +213,17 @@ func (c *Client) Name() string {
 }
 
 // QueryIP send DNS query to the name server with the client's IP and IP options.
-func (c *Client) QueryIP(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, error) {
+func (c *Client) QueryIP(ctx context.Context, domain string, option feature_dns.IPOption) ([]net.IP, error) {
 	ips, _, err := c.QueryIPWithTTL(ctx, domain, option)
 	return ips, err
 }
 
 // QueryIPWithTTL send DNS query to the name server with the client's IP and IP options, with TTL information returned.
-func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option dns.IPOption) ([]net.IP, time.Time, error) {
+func (c *Client) QueryIPWithTTL(ctx context.Context, domain string, option feature_dns.IPOption) ([]net.IP, time.Time, error) {
 	queryOption := option.With(c.queryStrategy)
 	if !queryOption.IsValid() {
 		newError(c.server.Name(), " returns empty answer: ", domain, ". ", toReqTypes(option)).AtInfo().WriteToLog()
-		return nil, time.Time{}, dns.ErrEmptyResponse
+		return nil, time.Time{}, feature_dns.ErrEmptyResponse
 	}
 	server := c.server
 	if queryOption.FakeEnable && c.fakeDNS != nil {
@@ -262,12 +262,12 @@ func (c *Client) QueryRaw(ctx context.Context, request []byte, fakeEnabled bool)
 		return nil, newError("not implemented")
 	}
 
-	msg := new(dnsmessage.Message)
+	msg := new(dns.Msg)
 	if err := msg.Unpack(request); err != nil {
 		return nil, newError("failed to parse dns request").Base(err)
 	}
-	for _, question := range msg.Questions {
-		newError(c.Name(), " querying: ", question.Name, " ", question.Class, " ", question.Type).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+	for _, question := range msg.Question {
+		newError(c.Name(), " querying: ", formatRR(question.String())).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	}
 
 	id := binary.BigEndian.Uint16(request[:2])
@@ -284,11 +284,14 @@ func (c *Client) QueryRaw(ctx context.Context, request []byte, fakeEnabled bool)
 	if err := msg.Unpack(response); err != nil {
 		return nil, newError("failed to parse dns response").Base(err)
 	}
-	for _, answer := range msg.Answers {
-		newError(c.Name(), " got answer: ", answer.Header.Name, " ", answer.Header.Class, " ", answer.Header.Type, " ", resourceBodyToString(answer)).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+	for _, answer := range msg.Answer {
+		newError(c.Name(), " got answer: ", formatRR(answer.String())).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	}
-	for _, authority := range msg.Authorities {
-		newError(c.Name(), " got authority: ", authority.Header.Name, " ", authority.Header.Class, " ", authority.Header.Type, " ", resourceBodyToString(authority)).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+	for _, ns := range msg.Ns {
+		newError(c.Name(), " got authority: ", formatRR(ns.String())).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+	}
+	for _, extra := range msg.Extra {
+		newError(c.Name(), " got additional: ", formatRR(extra.String())).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 	}
 	binary.BigEndian.PutUint16(response[:2], id)
 	return response, nil
