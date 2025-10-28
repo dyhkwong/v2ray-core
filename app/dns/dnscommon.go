@@ -28,11 +28,6 @@ func Fqdn(domain string) string {
 	return domain + "."
 }
 
-type record struct {
-	A    *IPRecord
-	AAAA *IPRecord
-}
-
 // IPRecord is a cacheable item for a resolved domain
 type IPRecord struct {
 	ReqID  uint16
