@@ -3,8 +3,6 @@
 package dns
 
 import (
-	"golang.org/x/net/dns/dnsmessage"
-
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/strmatcher"
 	"github.com/v2fly/v2ray-core/v4/common/uuid"
@@ -70,13 +68,13 @@ func toIPOption(s QueryStrategy) dns.IPOption {
 	}
 }
 
-func toReqTypes(option dns.IPOption) []dnsmessage.Type {
-	var reqTypes []dnsmessage.Type
+func toReqTypes(option dns.IPOption) []string {
+	var reqTypes []string
 	if option.IPv4Enable {
-		reqTypes = append(reqTypes, dnsmessage.TypeA)
+		reqTypes = append(reqTypes, "TypeA")
 	}
 	if option.IPv6Enable {
-		reqTypes = append(reqTypes, dnsmessage.TypeAAAA)
+		reqTypes = append(reqTypes, "TypeAAAA")
 	}
 	return reqTypes
 }
