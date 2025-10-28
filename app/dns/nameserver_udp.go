@@ -32,7 +32,8 @@ type ClassicNameServer struct {
 	sync.RWMutex
 	name      string
 	address   net.Destination
-	ips       map[string]record
+	ip4       map[string]*IPRecord
+	ip6       map[string]*IPRecord
 	requests  map[uint16]dnsRequest
 	pub       *pubsub.Service
 	udpServer udp.DispatcherI
@@ -101,7 +102,8 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
 		address:  address,
-		ips:      make(map[string]record),
+		ip4:      make(map[string]*IPRecord),
+		ip6:      make(map[string]*IPRecord),
 		requests: make(map[uint16]dnsRequest),
 		pub:      pubsub.NewService(),
 		name:     name,
@@ -126,40 +128,35 @@ func (s *ClassicNameServer) Cleanup() error {
 	now := time.Now()
 	s.Lock()
 	defer s.Unlock()
-
-	if len(s.ips) == 0 && len(s.requests) == 0 {
+	if len(s.ip4) == 0 && len(s.ip6) == 0 && len(s.requests) == 0 {
 		return newError(s.name, " nothing to do. stopping...")
 	}
-
-	for domain, record := range s.ips {
-		if record.A != nil && record.A.Expire.Before(now) {
-			record.A = nil
-		}
-		if record.AAAA != nil && record.AAAA.Expire.Before(now) {
-			record.AAAA = nil
-		}
-
-		if record.A == nil && record.AAAA == nil {
-			delete(s.ips, domain)
-		} else {
-			s.ips[domain] = record
+	for domain, record := range s.ip4 {
+		if record.Expire.Before(now) {
+			delete(s.ip4, domain)
+			newError(s.name, " cleanup ", domain).AtDebug().WriteToLog()
 		}
 	}
-
-	if len(s.ips) == 0 {
-		s.ips = make(map[string]record)
+	for domain, record := range s.ip6 {
+		if record.Expire.Before(now) {
+			delete(s.ip6, domain)
+			newError(s.name, " cleanup ", domain).AtDebug().WriteToLog()
+		}
 	}
-
+	if len(s.ip4) == 0 {
+		s.ip4 = make(map[string]*IPRecord)
+	}
+	if len(s.ip6) == 0 {
+		s.ip6 = make(map[string]*IPRecord)
+	}
 	for id, req := range s.requests {
 		if req.expire.Before(now) {
 			delete(s.requests, id)
 		}
 	}
-
 	if len(s.requests) == 0 {
 		s.requests = make(map[uint16]dnsRequest)
 	}
-
 	return nil
 }
 
@@ -219,45 +216,30 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 		ipRec.ReqID = id
 	}
 
-	var rec record
-	switch req.reqType {
-	case dnsmessage.TypeA:
-		rec.A = ipRec
-	case dnsmessage.TypeAAAA:
-		rec.AAAA = ipRec
-	}
-
 	elapsed := time.Since(req.start)
 	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
-	if len(req.domain) > 0 && (rec.A != nil || rec.AAAA != nil) {
-		s.updateIP(req.domain, rec)
+	if len(req.domain) > 0 {
+		s.updateIP(req, ipRec)
 	}
 }
 
-func (s *ClassicNameServer) updateIP(domain string, newRec record) {
+func (s *ClassicNameServer) updateIP(req dnsRequest, newRec *IPRecord) {
+	var ipRecords map[string]*IPRecord
+	if req.reqType == dnsmessage.TypeAAAA {
+		ipRecords = s.ip6
+	} else {
+		ipRecords = s.ip4
+	}
 	s.Lock()
-
-	newError(s.name, " updating IP records for domain:", domain).AtDebug().WriteToLog()
-	rec := s.ips[domain]
-
-	updated := false
-	if isNewer(rec.A, newRec.A) {
-		rec.A = newRec.A
-		updated = true
+	rec := ipRecords[req.domain]
+	if isNewer(rec, newRec) {
+		ipRecords[req.domain] = newRec
 	}
-	if isNewer(rec.AAAA, newRec.AAAA) {
-		rec.AAAA = newRec.AAAA
-		updated = true
-	}
-
-	if updated {
-		s.ips[domain] = rec
-	}
-	if newRec.A != nil {
-		s.pub.Publish(domain+"4", nil)
-	}
-	if newRec.AAAA != nil {
-		s.pub.Publish(domain+"6", nil)
+	switch req.reqType {
+	case dnsmessage.TypeA:
+		s.pub.Publish(req.domain+"4", nil)
+	case dnsmessage.TypeAAAA:
+		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
 	common.Must(s.cleanup.Start())
@@ -358,59 +340,72 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	}
 }
 
-func (s *ClassicNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {
+func (s *ClassicNameServer) findSingleStackIPsForDomain(domain string, isIPv6 bool) ([]net.IP, time.Time, error) {
+	var ipRecords map[string]*IPRecord
+	if isIPv6 {
+		ipRecords = s.ip6
+	} else {
+		ipRecords = s.ip4
+	}
 	s.RLock()
-	record, found := s.ips[domain]
+	record, found := ipRecords[domain]
 	s.RUnlock()
-
 	if !found {
 		return nil, time.Time{}, errRecordNotFound
 	}
-
-	var ips, a, aaaa []net.Address
-	var expireAt time.Time
-	var err, lastErr error
-	updated := false
-	if option.IPv4Enable {
-		a, expireAt, err = record.A.getIPs()
-		if record.A != nil && record.A.TTL == 0 {
-			record.A = nil
-			updated = true
-		}
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, a...)
-	}
-
-	if option.IPv6Enable {
-		aaaa, expireAt, err = record.AAAA.getIPs()
-		if record.AAAA != nil && record.AAAA.TTL == 0 {
-			record.AAAA = nil
-			updated = true
-		}
-		if err != nil {
-			lastErr = err
-		}
-		ips = append(ips, aaaa...)
-	}
-
-	if updated {
+	ips, expireAt, err := record.getIPs()
+	if record.RCode != dnsmessage.RCodeSuccess && record.RCode != dnsmessage.RCodeNameError || record.TTL == 0 {
 		s.Lock()
-		s.ips[domain] = record
+		delete(ipRecords, domain)
 		s.Unlock()
 	}
-
+	if err != nil {
+		return nil, expireAt, err
+	}
 	if len(ips) > 0 {
-		ips, err := toNetIP(ips)
-		return ips, expireAt, err
+		netIP, err := toNetIP(ips)
+		return netIP, expireAt, err
 	}
-
-	if lastErr != nil {
-		return nil, expireAt, lastErr
-	}
-
 	return nil, expireAt, dns_feature.ErrEmptyResponse
+}
+
+func (s *ClassicNameServer) findDualStackIPsForDomain(domain string) ([]net.IP, time.Time, error) {
+	// WTF
+	ip4, expireAt4, err4 := s.findSingleStackIPsForDomain(domain, false)
+	ip6, expireAt6, err6 := s.findSingleStackIPsForDomain(domain, true)
+	minExpireAt := expireAt4
+	if expireAt4.After(expireAt6) {
+		minExpireAt = expireAt6
+	}
+	if err4 == nil && err6 == nil {
+		return append(ip4, ip6...), minExpireAt, nil
+	}
+	if err4 == nil && err6 != errRecordNotFound {
+		return ip4, expireAt4, nil
+	}
+	if err4 != errRecordNotFound && err6 == nil {
+		return ip6, expireAt6, nil
+	}
+	if err4 == dns_feature.ErrEmptyResponse && err6 == dns_feature.ErrEmptyResponse {
+		return nil, minExpireAt, dns_feature.ErrEmptyResponse
+	}
+	if err4 == errRecordNotFound || err6 == errRecordNotFound {
+		return nil, minExpireAt, errRecordNotFound
+	}
+	return nil, minExpireAt, err6
+}
+
+func (s *ClassicNameServer) findIPsForDomain(domain string, option dns_feature.IPOption) ([]net.IP, time.Time, error) {
+	if !option.IPv4Enable && !option.IPv6Enable {
+		return nil, time.Time{}, dns_feature.ErrEmptyResponse
+	}
+	if option.IPv4Enable && !option.IPv6Enable {
+		return s.findSingleStackIPsForDomain(domain, false)
+	}
+	if !option.IPv4Enable && option.IPv6Enable {
+		return s.findSingleStackIPsForDomain(domain, true)
+	}
+	return s.findDualStackIPsForDomain(domain)
 }
 
 // QueryIPWithTTL implements ServerWithTTL.
