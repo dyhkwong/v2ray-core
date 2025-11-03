@@ -78,6 +78,8 @@ func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			if ip := w.resolveIP(b.Endpoint.Address.Domain()); ip != nil {
 				w.ipToDomain.LoadOrStore(ip, b.Endpoint.Address)
 				b.Endpoint.Address = ip
+			} else {
+				return newError("resolve failed to resolve domain ", b.Endpoint.Address.Domain())
 			}
 		}
 	}
