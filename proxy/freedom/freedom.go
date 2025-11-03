@@ -308,6 +308,8 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			ip := w.handler.resolveIP(w.ctx, dest.Address.Domain(), nil)
 			if ip != nil {
 				dest.Address = ip
+			} else {
+				return newError("failed to resolve domain ", dest.Address.Domain())
 			}
 		}
 		destAddr, _ := net.ResolveUDPAddr("udp", dest.NetAddr())
