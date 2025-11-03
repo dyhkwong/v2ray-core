@@ -83,6 +83,8 @@ func DialSystem(ctx context.Context, dest net.Destination, sockopt *SocketConfig
 	if outbound != nil && outbound.Resolver != nil && dest.Address.Family().IsDomain() {
 		if addr := outbound.Resolver(ctx, dest.Address.Domain()); addr != nil {
 			dest.Address = addr
+		} else {
+			return nil, newError("dialing to ", dest, ", failed to resolve domain")
 		}
 	}
 
