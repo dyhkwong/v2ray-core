@@ -171,6 +171,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
 				outbound.Target.Address = addr
+			} else {
+				err := newError("failed to resolve domain ", outbound.Target.Address.Domain())
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+				common.Interrupt(link.Reader)
+				return
 			}
 		}
 	}
@@ -179,6 +186,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 				if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
 					outbound.Target.Address = addr
+				} else {
+					err := newError("failed to resolve domain ", outbound.Target.Address.Domain())
+					session.SubmitOutboundErrorToOriginator(ctx, err)
+					err.WriteToLog(session.ExportIDToError(ctx))
+					common.Interrupt(link.Writer)
+					common.Interrupt(link.Reader)
+					return
 				}
 			}
 		}
