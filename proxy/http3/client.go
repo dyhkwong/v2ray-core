@@ -36,6 +36,10 @@ type Client struct {
 	cachedH3Conns map[net.Destination]h3Conn
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.cachedH3Mutex.Lock()
 	for _, cachedH3Conn := range c.cachedH3Conns {
