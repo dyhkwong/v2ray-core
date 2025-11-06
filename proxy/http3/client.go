@@ -34,12 +34,19 @@ type Client struct {
 	policyManager policy.Manager
 	cachedH3Mutex sync.Mutex
 	cachedH3Conns map[net.Destination]h3Conn
+	resetAt       time.Time
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {
 	c.cachedH3Mutex.Lock()
 	for _, cachedH3Conn := range c.cachedH3Conns {
 		_ = cachedH3Conn.h3Conn.CloseWithError(0, "")
+		_ = cachedH3Conn.quicConn.CloseWithError(0, "")
 		_ = cachedH3Conn.rawConn.Close()
 	}
 	clear(c.cachedH3Conns)
@@ -171,26 +178,54 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 			wg.Done()
 		}()
 
-		resp, err := h3clientConn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			return nil, err
+		type result struct {
+			resp *http.Response
+			err  error
 		}
-
-		wg.Wait()
-		if pErr != nil {
-			return nil, pErr
+		ch := make(chan result, 1)
+		startAt := time.Now()
+		go func() {
+			resp, err := h3clientConn.RoundTrip(req) // nolint: bodyclose
+			ch <- result{
+				resp: resp,
+				err:  err,
+			}
+		}()
+		select {
+		case <-time.After(time.Second * 5):
+			h3clientConn.CloseWithError(0, "")
+			c.cachedH3Mutex.Lock()
+			if c.resetAt.Before(startAt) {
+				for _, cachedH3Conn := range c.cachedH3Conns {
+					_ = cachedH3Conn.h3Conn.CloseWithError(0, "")
+					_ = cachedH3Conn.rawConn.Close()
+				}
+				clear(c.cachedH3Conns)
+				c.resetAt = time.Now()
+			}
+			c.cachedH3Mutex.Unlock()
+			return nil, context.DeadlineExceeded
+		case result := <-ch:
+			resp, err := result.resp, result.err
+			if err != nil {
+				rawConn.Close()
+				return nil, err
+			}
+			wg.Wait()
+			if pErr != nil {
+				return nil, pErr
+			}
+			if resp.StatusCode != http.StatusOK {
+				return nil, newError("Proxy responded with non 200 code: " + resp.Status)
+			}
+			return &http3Conn{
+				Conn:         rawConn,
+				in:           pw,
+				out:          resp.Body,
+				readCounter:  readCounter,
+				writeCounter: writeCounter,
+			}, nil
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return &http3Conn{
-			Conn:         rawConn,
-			in:           pw,
-			out:          resp.Body,
-			readCounter:  readCounter,
-			writeCounter: writeCounter,
-		}, nil
 	}
 
 	c.cachedH3Mutex.Lock()
@@ -204,16 +239,16 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 		case <-h3Conn.Context().Done():
 		default:
 			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
-			if err != nil {
-				quicConn.CloseWithError(0, "")
-				rawConn.Close()
-				c.cachedH3Mutex.Lock()
-				delete(c.cachedH3Conns, dest)
-				c.cachedH3Mutex.Unlock()
-				return nil, err
+			if err == nil {
+				return proxyConn, nil
 			}
-			return proxyConn, nil
+			newError("failed to connect http3").Base(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		}
+		quicConn.CloseWithError(0, "")
+		rawConn.Close()
+		c.cachedH3Mutex.Lock()
+		delete(c.cachedH3Conns, dest)
+		c.cachedH3Mutex.Unlock()
 	}
 
 	rawConn, err := dialer.Dial(ctx, dest)

@@ -36,6 +36,12 @@ type Client struct {
 	h1SkipWaitForReply bool
 	cachedH2Mutex      sync.Mutex
 	cachedH2Conns      map[net.Destination]h2Conn
+	resetAt            time.Time
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {
@@ -256,23 +262,52 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, targ
 			wg.Done()
 		}()
 
-		resp, err := h2clientConn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			rawConn.Close()
-			return nil, err
+		type result struct {
+			resp *http.Response
+			err  error
 		}
-
-		wg.Wait()
-		if pErr != nil {
+		ch := make(chan result, 1)
+		startAt := time.Now()
+		go func() {
+			// do not use req.WithContext here
+			resp, err := h2clientConn.RoundTrip(req) // nolint: bodyclose
+			ch <- result{
+				resp: resp,
+				err:  err,
+			}
+		}()
+		select {
+		case <-time.After(time.Second * 5):
+			h2clientConn.Close()
+			c.cachedH2Mutex.Lock()
+			if c.resetAt.Before(startAt) {
+				for _, cachedH2Conn := range c.cachedH2Conns {
+					_ = cachedH2Conn.h2Conn.Close()
+					_ = cachedH2Conn.rawConn.Close()
+				}
+				clear(c.cachedH2Conns)
+				c.resetAt = time.Now()
+			}
+			c.cachedH2Mutex.Unlock()
 			rawConn.Close()
-			return nil, pErr
+			return nil, context.DeadlineExceeded
+		case result := <-ch:
+			resp, err := result.resp, result.err
+			if err != nil {
+				rawConn.Close()
+				return nil, err
+			}
+			wg.Wait()
+			if pErr != nil {
+				rawConn.Close()
+				return nil, pErr
+			}
+			if resp.StatusCode != http.StatusOK {
+				rawConn.Close()
+				return nil, newError("Proxy responded with non 200 code: " + resp.Status)
+			}
+			return newHTTP2Conn(rawConn, pw, resp.Body), nil
 		}
-
-		if resp.StatusCode != http.StatusOK {
-			rawConn.Close()
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return newHTTP2Conn(rawConn, pw, resp.Body), nil
 	}
 
 	c.cachedH2Mutex.Lock()
@@ -283,14 +318,15 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		rc, cc := cachedConn.rawConn, cachedConn.h2Conn
 		if cc.CanTakeNewRequest() {
 			proxyConn, err := connectHTTP2(rc, cc)
-			if err != nil {
-				c.cachedH2Mutex.Lock()
-				delete(c.cachedH2Conns, dest)
-				c.cachedH2Mutex.Unlock()
-				return nil, nil, err
+			if err == nil {
+				return proxyConn, nil, nil
 			}
-			return proxyConn, nil, nil
+			newError("failed to connect http2").Base(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		}
+		rc.Close()
+		c.cachedH2Mutex.Lock()
+		delete(c.cachedH2Conns, dest)
+		c.cachedH2Mutex.Unlock()
 	}
 
 	rawConn, err := dialer.Dial(ctx, dest)
