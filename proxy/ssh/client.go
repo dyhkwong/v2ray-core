@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -142,8 +143,9 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	newError("tunneling request to ", destination, " via ", c.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
-
-	conn, err := client.DialContext(ctx, "tcp", destination.NetAddr())
+	dialCtx, dialCancel := context.WithTimeout(ctx, time.Second*5)
+	defer dialCancel()
+	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
 		return newError("failed to open ssh proxy connection").Base(err)
 	}
@@ -223,6 +225,15 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		c.clientAccess.Unlock()
 	}()
 	return client, nil
+}
+
+func (c *Client) InterfaceUpdate() {
+	c.clientAccess.Lock()
+	if c.client != nil {
+		c.client.Close()
+	}
+	c.client = nil
+	c.clientAccess.Unlock()
 }
 
 func (c *Client) Close() error {

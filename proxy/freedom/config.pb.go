@@ -126,8 +126,10 @@ type Config struct {
 	Timeout             uint32               `protobuf:"varint,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	DestinationOverride *DestinationOverride `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
 	UserLevel           uint32               `protobuf:"varint,4,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// SagerNet private
+	InterruptConnections bool `protobuf:"varint,1000,opt,name=interrupt_connections,json=interruptConnections,proto3" json:"interrupt_connections,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -189,11 +191,20 @@ func (x *Config) GetUserLevel() uint32 {
 	return 0
 }
 
+func (x *Config) GetInterruptConnections() bool {
+	if x != nil {
+		return x.InterruptConnections
+	}
+	return false
+}
+
 type SimplifiedConfig struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	DestinationOverride *DestinationOverride   `protobuf:"bytes,3,opt,name=destination_override,json=destinationOverride,proto3" json:"destination_override,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// SagerNet private
+	InterruptConnections bool `protobuf:"varint,1000,opt,name=interrupt_connections,json=interruptConnections,proto3" json:"interrupt_connections,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *SimplifiedConfig) Reset() {
@@ -233,19 +244,27 @@ func (x *SimplifiedConfig) GetDestinationOverride() *DestinationOverride {
 	return nil
 }
 
+func (x *SimplifiedConfig) GetInterruptConnections() bool {
+	if x != nil {
+		return x.InterruptConnections
+	}
+	return false
+}
+
 var File_proxy_freedom_config_proto protoreflect.FileDescriptor
 
 const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"\x1aproxy/freedom/config.proto\x12\x18v2ray.core.proxy.freedom\x1a!common/protocol/server_spec.proto\x1a common/protoext/extensions.proto\"Y\n" +
 	"\x13DestinationOverride\x12B\n" +
-	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\xe4\x02\n" +
+	"\x06server\x18\x01 \x01(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\"\x9a\x03\n" +
 	"\x06Config\x12X\n" +
 	"\x0fdomain_strategy\x18\x01 \x01(\x0e2/.v2ray.core.proxy.freedom.Config.DomainStrategyR\x0edomainStrategy\x12\x1c\n" +
 	"\atimeout\x18\x02 \x01(\rB\x02\x18\x01R\atimeout\x12`\n" +
 	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x12\x1d\n" +
 	"\n" +
-	"user_level\x18\x04 \x01(\rR\tuserLevel\"a\n" +
+	"user_level\x18\x04 \x01(\rR\tuserLevel\x124\n" +
+	"\x15interrupt_connections\x18\xe8\a \x01(\bR\x14interruptConnections\"a\n" +
 	"\x0eDomainStrategy\x12\t\n" +
 	"\x05AS_IS\x10\x00\x12\n" +
 	"\n" +
@@ -255,9 +274,10 @@ const file_proxy_freedom_config_proto_rawDesc = "" +
 	"\n" +
 	"PREFER_IP4\x10\x04\x12\x0e\n" +
 	"\n" +
-	"PREFER_IP6\x10\x05\"\x8d\x01\n" +
+	"PREFER_IP6\x10\x05\"\xc3\x01\n" +
 	"\x10SimplifiedConfig\x12`\n" +
-	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride:\x17\x82\xb5\x18\x13\n" +
+	"\x14destination_override\x18\x03 \x01(\v2-.v2ray.core.proxy.freedom.DestinationOverrideR\x13destinationOverride\x124\n" +
+	"\x15interrupt_connections\x18\xe8\a \x01(\bR\x14interruptConnections:\x17\x82\xb5\x18\x13\n" +
 	"\boutbound\x12\afreedomBi\n" +
 	"\x1ccom.v2ray.core.proxy.freedomP\x01Z,github.com/v2fly/v2ray-core/v5/proxy/freedom\xaa\x02\x18V2Ray.Core.Proxy.Freedomb\x06proto3"
 

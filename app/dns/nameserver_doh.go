@@ -2,6 +2,7 @@ package dns
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
@@ -38,76 +40,74 @@ type DoHNameServer struct {
 	name       string
 	protocol   string
 
-	connectionPool *track.ConnectionPool
+	connectionPool          *track.ConnectionPool
+	newHTTPClientFunc       func() *http.Client
+	interfaceUpdateCallback *list.Element
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
 func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
-	s := baseDOHNameServer(url, "DOH", "tls")
-
-	tr := &http.Transport{
-		MaxIdleConns:        30,
-		IdleConnTimeout:     90 * time.Second,
-		TLSHandshakeTimeout: 30 * time.Second,
-		ForceAttemptHTTP2:   true,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := net.ParseDestination(network + ":" + addr)
-			if err != nil {
-				return nil, err
-			}
-
-			link, err := dispatcher.Dispatch(ctx, dest)
-			if err != nil {
-				return nil, err
-			}
-			return cnc.NewConnection(
-				cnc.ConnectionInputMulti(link.Writer),
-				cnc.ConnectionOutputMulti(link.Reader),
-			), nil
-		},
-	}
-
-	dispatchedClient := &http.Client{
-		Transport: tr,
-		Timeout:   60 * time.Second,
-	}
-
-	s.httpClient = dispatchedClient
+	s := baseDOHNameServer(url, "DOH", "tls", func() *http.Client {
+		return &http.Client{
+			Timeout: 60 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        30,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 30 * time.Second,
+				ForceAttemptHTTP2:   true,
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					dest, err := net.ParseDestination(network + ":" + addr)
+					if err != nil {
+						return nil, err
+					}
+					link, err := dispatcher.Dispatch(ctx, dest)
+					if err != nil {
+						return nil, err
+					}
+					return cnc.NewConnection(
+						cnc.ConnectionInputMulti(link.Writer),
+						cnc.ConnectionOutputMulti(link.Reader),
+					), nil
+				},
+			},
+		}
+	})
+	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s, nil
 }
 
 // NewDoHLocalNameServer creates DOH client object for local resolving
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "DOHL", "tls")
 	connectionPool := track.NewConnectionPool()
-	s.connectionPool = connectionPool
-	tr := &http.Transport{
-		IdleConnTimeout:   90 * time.Second,
-		ForceAttemptHTTP2: true,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := net.ParseDestination(network + ":" + addr)
-			if err != nil {
-				return nil, err
-			}
-			ctx = session.ContextWithConnectionPool(ctx, connectionPool)
-			conn, err := internet.DialSystem(ctx, dest, nil)
-			if err != nil {
-				return nil, err
-			}
-			return conn, nil
-		},
-	}
-	s.httpClient = &http.Client{
-		Timeout:   time.Second * 180,
-		Transport: tr,
-	}
+	s := baseDOHNameServer(url, "DOHL", "tls", func() *http.Client {
+		tr := &http.Transport{
+			IdleConnTimeout:   90 * time.Second,
+			ForceAttemptHTTP2: true,
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				dest, err := net.ParseDestination(network + ":" + addr)
+				if err != nil {
+					return nil, err
+				}
+				ctx = session.ContextWithConnectionPool(ctx, connectionPool)
+				conn, err := internet.DialSystem(ctx, dest, nil)
+				if err != nil {
+					return nil, err
+				}
+				return conn, nil
+			},
+		}
+		return &http.Client{
+			Timeout:   time.Second * 180,
+			Transport: tr,
+		}
+	})
 	newError("DNS: created Local DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }
 
-func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
+func baseDOHNameServer(url *url.URL, prefix, protocol string, newHTTPClientFunc func() *http.Client) *DoHNameServer {
 	s := &DoHNameServer{
 		ips:      make(map[string]record),
 		pub:      pubsub.NewService(),
@@ -119,7 +119,17 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
+	s.newHTTPClientFunc = newHTTPClientFunc
+	s.httpClient = s.newHTTPClientFunc()
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
 	return s
+}
+
+func (s *DoHNameServer) interfaceUpdate() {
+	s.Lock()
+	s.httpClient.CloseIdleConnections()
+	s.httpClient = s.newHTTPClientFunc()
+	s.Unlock()
 }
 
 func (s *DoHNameServer) Close() error {
@@ -130,6 +140,7 @@ func (s *DoHNameServer) Close() error {
 		s.connectionPool.ResetConnections()
 	}
 	s.ips = nil
+	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()
 	return nil
 }
