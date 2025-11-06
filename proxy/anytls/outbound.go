@@ -124,6 +124,15 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 }
 
+func (o *Outbound) InterfaceUpdate() {
+	o.clientLock.Lock()
+	if o.client != nil {
+		o.client.Close()
+		o.client = nil
+	}
+	o.clientLock.Unlock()
+}
+
 func (o *Outbound) Close() error {
 	close(o.closed)
 	o.clientLock.Lock()
