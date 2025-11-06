@@ -1,4 +1,4 @@
-package http3
+package trusttunnel
 
 import (
 	"context"
@@ -115,6 +115,22 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		targetAddr = uot.MagicAddress
 	}
 
+	streamSettingsFunc, ok := dialer.(interface{ StreamSettings() *internet.MemoryStreamConfig })
+	if !ok {
+		return newError("handler does not implemented StreamSettings()")
+	}
+	streamSettings := streamSettingsFunc.StreamSettings()
+	var tlsConfig *tls.Config
+	switch streamSettings.SecuritySettings.(type) {
+	case *v2tls.Config:
+		if config := v2tls.ConfigFromStreamSettings(streamSettings); config != nil {
+			tlsConfig = config.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+			
+		}
+	default:
+		return newError("unsupported security")
+	}
+
 	var conn internet.Connection
 
 	var firstPayload []byte
@@ -132,7 +148,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		httpConn, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
+		httpConn, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config, tlsConfig)
 		if err != nil {
 			return err
 		}
@@ -190,7 +206,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 // setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig) (net.Conn, error) {
+func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig, tlsConfig *tls.Config) (net.Conn, error) {
 	dest := net.Destination{
 		Address: config.Address.AsAddress(),
 		Port:    net.Port(config.Port),
@@ -203,7 +219,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 			QUICConfig: &quic.Config{
 				KeepAlivePeriod: time.Second * 10,
 			},
-			Dial: func(_ context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+			Dial: func(_ context.Context, addr string, _ *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 				detachedCtx := core.ToBackgroundDetachedContext(ctx)
 				rawConn, err := dialer.Dial(detachedCtx, dest)
 				if err != nil {
@@ -239,10 +255,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 				if tlsSettings == nil {
 					tlsSettings = &v2tls.Config{}
 				}
-				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(),
-					tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
-					cfg,
-				)
+				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsConfig, cfg)
 				if err != nil {
 					rawConn.Close()
 					return nil, err
@@ -378,3 +391,5 @@ func init() {
 }
 
 func (*Client) DisallowMuxCool() {}
+
+func (*Client) DisallowTransportLayer() {}

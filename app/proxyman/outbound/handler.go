@@ -76,6 +76,7 @@ type Handler struct {
 	pool                 *internet.ConnectionPool
 	closed               atomic.Bool
 	transportEnvironment environment.TransportEnvironment
+	globalIdx            uint64
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -205,6 +206,8 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		return nil, newError("unable to narrow environment to transport").Base(err)
 	}
 	h.transportEnvironment = transportEnvironment
+
+	h.globalIdx = RegisterInterfaceUpdateFunc(h.interfaceUpdated)
 
 	return h, nil
 }
@@ -499,6 +502,25 @@ func (h *Handler) Start() error {
 	return nil
 }
 
+func (h *Handler) interfaceUpdated() {
+	if fn, ok := h.proxy.(interface{ InterfaceUpdate() }); ok {
+		fn.InterfaceUpdate()
+	}
+	if h.smux != nil {
+		h.smux.Reset()
+	}
+	if h.mux != nil {
+		common.Close(h.mux)
+		h.mux.Picker = &mux.IncrementalWorkerPicker{
+			Factory: mux.NewDialingWorkerFactory(h.ctx, h.proxy, h, mux.ClientStrategy{
+				MaxConcurrency: h.senderSettings.MultiplexSettings.Concurrency,
+				MaxConnection:  128,
+			}),
+		}
+	}
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+}
+
 // Close implements common.Closable.
 func (h *Handler) Close() error {
 	h.closed.Store(true)
@@ -518,5 +540,8 @@ func (h *Handler) Close() error {
 	}
 
 	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+
+	UnRegisterInterfaceUpdateFunc(h.globalIdx)
+
 	return nil
 }
