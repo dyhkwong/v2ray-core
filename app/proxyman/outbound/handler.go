@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	"container/list"
 	"context"
 	"sync"
 
@@ -61,22 +62,23 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx                  context.Context
-	tag                  string
-	senderSettings       *proxyman.SenderConfig
-	streamSettings       *internet.MemoryStreamConfig
-	proxy                proxy.Outbound
-	outboundManager      outbound.Manager
-	mux                  *mux.ClientManager
-	smux                 *sing_mux.Client
-	uplinkCounter        stats.Counter
-	downlinkCounter      stats.Counter
-	dns                  dns.Client
-	fakedns              dns.FakeDNSEngine
-	muxPacketEncoding    packetaddr.PacketAddrType
-	closed               bool
-	transportEnvironment environment.TransportEnvironment
-	connectionPool       *track.ConnectionPool
+	ctx                     context.Context
+	tag                     string
+	senderSettings          *proxyman.SenderConfig
+	streamSettings          *internet.MemoryStreamConfig
+	proxy                   proxy.Outbound
+	outboundManager         outbound.Manager
+	mux                     *mux.ClientManager
+	smux                    *sing_mux.Client
+	uplinkCounter           stats.Counter
+	downlinkCounter         stats.Counter
+	dns                     dns.Client
+	fakedns                 dns.FakeDNSEngine
+	muxPacketEncoding       packetaddr.PacketAddrType
+	closed                  bool
+	transportEnvironment    environment.TransportEnvironment
+	connectionPool          *track.ConnectionPool
+	interfaceUpdateCallback *list.Element
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -204,6 +206,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	h.transportEnvironment = transportEnvironment
 
 	h.connectionPool = track.NewConnectionPool()
+	h.interfaceUpdateCallback = RegisterInterfaceUpdateCallback(h.interfaceUpdate)
 
 	return h, nil
 }
@@ -534,6 +537,29 @@ func (h *Handler) Start() error {
 	return nil
 }
 
+func (h *Handler) interfaceUpdate() {
+	if fn, ok := h.proxy.(interface{ InterfaceUpdate() }); ok {
+		fn.InterfaceUpdate()
+	}
+	if h.smux != nil {
+		h.smux.Reset()
+	}
+	if h.mux != nil {
+		common.Close(h.mux)
+		h.mux.Picker = &mux.IncrementalWorkerPicker{
+			Factory: mux.NewDialingWorkerFactory(h.ctx, h.proxy, h, mux.ClientStrategy{
+				MaxConcurrency: h.senderSettings.MultiplexSettings.Concurrency,
+				MaxConnection:  128,
+			}),
+		}
+	}
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+}
+
+func (h *Handler) ResetConnections() {
+	h.connectionPool.ResetConnections()
+}
+
 // Close implements common.Closable.
 func (h *Handler) Close() error {
 	h.closed = true
@@ -553,5 +579,8 @@ func (h *Handler) Close() error {
 	}
 
 	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+
+	UnRegisterInterfaceUpdateCallback(h.interfaceUpdateCallback)
+
 	return nil
 }

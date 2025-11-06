@@ -39,6 +39,10 @@ type Client struct {
 	transport     *http3.Transport
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.transportLock.Lock()
 	if c.transport != nil {
