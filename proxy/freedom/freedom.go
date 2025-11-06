@@ -58,7 +58,6 @@ func (h *Handler) Init(config *Config, pm policy.Manager, d dns.Client) error {
 	h.config = config
 	h.policyManager = pm
 	h.dns = d
-
 	return nil
 }
 
