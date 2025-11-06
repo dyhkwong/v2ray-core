@@ -52,6 +52,10 @@ func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() (err error) {
 	go func() {
 		c.wgLock.Lock()
