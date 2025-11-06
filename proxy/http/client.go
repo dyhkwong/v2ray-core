@@ -34,15 +34,24 @@ type Client struct {
 	policyManager policy.Manager
 	transport     map[net.Destination]*http.Transport
 	transportLock sync.Mutex
+	resetAt       time.Time
 
-	// Deprecated. Do not use.
+	// Deprecated: Do not use.
 	trustTunnelUDP bool
-	// Deprecated. Do not use.
+	// Deprecated: Do not use.
 	resolver func(domain string) (net.Address, error)
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {
 	c.transportLock.Lock()
+	for _, transport := range c.transport {
+		transport.CloseIdleConnections()
+	}
 	clear(c.transport)
 	c.transportLock.Unlock()
 	return nil
@@ -309,10 +318,8 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
-	resp, err := transport.RoundTrip(req) // nolint: bodyclose
+	resp, err := c.roundTripWrapper(transport, req) // nolint: bodyclose
 	if err != nil {
-		pw.Close()
-		wg.Wait()
 		return nil, false, err
 	}
 	wg.Wait()
@@ -331,6 +338,38 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		return httpConn, false, nil
 	}
 	return &httpConn{in: pw, out: resp.Body}, true, nil
+}
+
+func (c *Client) roundTripWrapper(transport *http.Transport, req *http.Request) (*http.Response, error) {
+	type result struct {
+		resp *http.Response
+		err  error
+	}
+	ch := make(chan result, 1)
+	startAt := time.Now()
+	go func() {
+		// do not use req.WithContext here
+		resp, err := transport.RoundTrip(req) // nolint: bodyclose
+		ch <- result{
+			resp: resp,
+			err:  err,
+		}
+	}()
+	select {
+	case <-time.After(time.Second * 5):
+		c.transportLock.Lock()
+		if c.resetAt.Before(startAt) {
+			for _, transport := range c.transport {
+				transport.CloseIdleConnections()
+			}
+			clear(c.transport)
+			c.resetAt = time.Now()
+		}
+		c.transportLock.Unlock()
+		return nil, context.DeadlineExceeded
+	case result := <-ch:
+		return result.resp, result.err
+	}
 }
 
 type httpConn struct {
