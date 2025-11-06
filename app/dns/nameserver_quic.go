@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"container/list"
 	"context"
 	"encoding/binary"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"github.com/quic-go/quic-go"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -35,13 +37,14 @@ const handshakeIdleTimeout = time.Second * 8
 // QUICNameServer implemented DNS over QUIC
 type QUICNameServer struct {
 	sync.RWMutex
-	ips         map[string]record
-	pub         *pubsub.Service
-	cleanup     *task.Periodic
-	name        string
-	destination net.Destination
-	connection  *quic.Conn
-	dispatcher  routing.Dispatcher
+	ips                     map[string]record
+	pub                     *pubsub.Service
+	cleanup                 *task.Periodic
+	name                    string
+	destination             net.Destination
+	connection              *quic.Conn
+	dispatcher              routing.Dispatcher
+	interfaceUpdateCallback *list.Element
 }
 
 // NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
@@ -69,6 +72,8 @@ func NewQUICRemoteNameServer(url *url.URL, dispatcher routing.Dispatcher) (*QUIC
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
+
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
 
 	return s, nil
 }
@@ -98,7 +103,17 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 		Execute:  s.Cleanup,
 	}
 
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
+
 	return s, nil
+}
+
+func (s *QUICNameServer) interfaceUpdate() {
+	s.Lock()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	s.Unlock()
 }
 
 func (s *QUICNameServer) Close() error {
@@ -109,6 +124,7 @@ func (s *QUICNameServer) Close() error {
 		s.connection.CloseWithError(0, "")
 	}
 	s.ips = nil
+	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()
 	return nil
 }
@@ -253,6 +269,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			}
 
 			_ = conn.Close()
+			defer conn.CancelRead(0)
 
 			var length uint16
 			err = binary.Read(conn, binary.BigEndian, &length)
@@ -320,6 +337,7 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	}
 
 	_ = conn.Close()
+	defer conn.CancelRead(0)
 
 	var length uint16
 	err = binary.Read(conn, binary.BigEndian, &length)
