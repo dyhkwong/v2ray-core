@@ -98,4 +98,13 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 }
 
+func (o *Outbound) InterfaceUpdate() {
+	o.Lock()
+	if o.client != nil {
+		_ = o.client.Close()
+		o.client = nil
+	}
+	o.Unlock()
+}
+
 func (*Outbound) DisallowMuxCool() {}

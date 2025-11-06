@@ -159,6 +159,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 }
 
+func (o *Outbound) InterfaceUpdate() {
+	if o.client != nil {
+		_ = o.client.CloseWithError(newError("network changed"))
+	}
+}
+
 func (o *Outbound) Close() error {
 	o.Lock()
 	defer o.Unlock()
