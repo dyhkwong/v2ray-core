@@ -89,3 +89,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), uotConn))
 	}
 }
+
+func (o *Outbound) InterfaceUpdate() {
+	if o.client != nil {
+		_ = o.client.Close()
+	}
+}

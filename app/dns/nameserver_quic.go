@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net/url"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/quic-go/quic-go"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -42,6 +44,8 @@ type QUICNameServer struct {
 	destination net.Destination
 	connection  *quic.Conn
 	dispatcher  routing.Dispatcher
+	resetAt     time.Time
+	globalIdx   uint64
 }
 
 // NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
@@ -69,6 +73,8 @@ func NewQUICRemoteNameServer(url *url.URL, dispatcher routing.Dispatcher) (*QUIC
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
+
+	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
 
 	return s, nil
 }
@@ -101,6 +107,15 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 	return s, nil
 }
 
+func (s *QUICNameServer) InterfaceUpdate() {
+	s.Lock()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	s.resetAt = time.Now()
+	s.Unlock()
+}
+
 func (s *QUICNameServer) Close() error {
 	s.Lock()
 	s.cleanup.Close()
@@ -109,6 +124,7 @@ func (s *QUICNameServer) Close() error {
 		s.connection.CloseWithError(0, "")
 	}
 	s.ips = nil
+	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
 	s.Unlock()
 	return nil
 }
@@ -253,6 +269,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			}
 
 			_ = conn.Close()
+			defer conn.CancelRead(0)
 
 			var length uint16
 			err = binary.Read(conn, binary.BigEndian, &length)
@@ -309,6 +326,21 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	binary.Write(dnsReqBuf, binary.BigEndian, uint16(len(request)))
 	dnsReqBuf.Write(request)
 
+	var err error
+	startAt := time.Now()
+	defer func() {
+		if err != nil && errors.Is(dnsCtx.Err(), context.DeadlineExceeded) {
+			s.Lock()
+			if s.resetAt.Before(startAt) {
+				if s.connection != nil {
+					s.connection.CloseWithError(0, "")
+				}
+				s.resetAt = time.Now()
+			}
+			s.Unlock()
+		}
+	}()
+
 	conn, err := s.openStream(dnsCtx)
 	if err != nil {
 		return nil, newError("failed to open quic connection").Base(err)
@@ -320,6 +352,7 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	}
 
 	_ = conn.Close()
+	defer conn.CancelRead(0)
 
 	var length uint16
 	err = binary.Read(conn, binary.BigEndian, &length)
@@ -430,6 +463,7 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
@@ -440,6 +474,16 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				s.Lock()
+				if s.resetAt.Before(startAt) {
+					if s.connection != nil {
+						s.connection.CloseWithError(0, "")
+					}
+					s.resetAt = time.Now()
+				}
+				s.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
