@@ -19,27 +19,28 @@ import (
 // NewH3NameServer creates DOH server object for remote resolving.
 func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3", "quic")
-	s.httpClient = &http.Client{
-		Transport: &http3.Transport{
-			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
-				dest, err := net.ParseDestination("udp:" + addr)
-				if err != nil {
-					return nil, err
-				}
-				detachedCtx := core.ToBackgroundDetachedContext(ctx)
-				link, err := dispatcher.Dispatch(detachedCtx, dest)
-				if err != nil {
-					return nil, err
-				}
-				rawConn := cnc.NewConnection(
-					cnc.ConnectionInputMulti(link.Writer),
-					cnc.ConnectionOutputMultiUDP(link.Reader),
-				)
-				return quic.DialEarly(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+	s := baseDOHNameServer(url, "H3", "quic", func() *http.Client {
+		return &http.Client{
+			Transport: &http3.Transport{
+				Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+					dest, err := net.ParseDestination("udp:" + addr)
+					if err != nil {
+						return nil, err
+					}
+					detachedCtx := core.ToBackgroundDetachedContext(ctx)
+					link, err := dispatcher.Dispatch(detachedCtx, dest)
+					if err != nil {
+						return nil, err
+					}
+					rawConn := cnc.NewConnection(
+						cnc.ConnectionInputMulti(link.Writer),
+						cnc.ConnectionOutputMultiUDP(link.Reader),
+					)
+					return quic.DialEarly(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+				},
 			},
-		},
-	}
+		}
+	})
 	newError("DNS: created Remote H3 client for ", url.String()).AtInfo().WriteToLog()
 	return s, nil
 }
@@ -47,31 +48,32 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 // NewH3LocalNameServer creates DOH client object for local resolving
 func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3L", "quic")
-	s.httpClient = &http.Client{
-		Transport: &http3.Transport{
-			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
-				dest, err := net.ParseDestination("udp:" + addr)
-				if err != nil {
-					return nil, err
-				}
-				rawConn, err := internet.DialSystem(ctx, dest, nil)
-				if err != nil {
-					return nil, err
-				}
-				var packetConn net.PacketConn
-				switch rawConn := rawConn.(type) {
-				case *internet.PacketConnWrapper:
-					packetConn = rawConn.Conn
-				case net.PacketConn:
-					packetConn = rawConn
-				default:
-					packetConn = internet.NewConnWrapper(rawConn)
-				}
-				return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+	s := baseDOHNameServer(url, "H3L", "quic", func() *http.Client {
+		return &http.Client{
+			Transport: &http3.Transport{
+				Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+					dest, err := net.ParseDestination("udp:" + addr)
+					if err != nil {
+						return nil, err
+					}
+					rawConn, err := internet.DialSystem(ctx, dest, nil)
+					if err != nil {
+						return nil, err
+					}
+					var packetConn net.PacketConn
+					switch rawConn := rawConn.(type) {
+					case *internet.PacketConnWrapper:
+						packetConn = rawConn.Conn
+					case net.PacketConn:
+						packetConn = rawConn
+					default:
+						packetConn = internet.NewConnWrapper(rawConn)
+					}
+					return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+				},
 			},
-		},
-	}
+		}
+	})
 	newError("DNS: created Local H3 client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }
