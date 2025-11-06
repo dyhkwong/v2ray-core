@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"net/url"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -41,6 +43,10 @@ type ClassicNameServer struct {
 	tcpServer *TCPNameServer
 
 	channel map[uint16]chan []byte
+
+	resetAt              time.Time
+	newUDPDispatcherFunc func() udp.DispatcherI
+	globalIdx            uint64
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -112,8 +118,19 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	s.newUDPDispatcherFunc = func() udp.DispatcherI {
+		return udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	}
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
 	return s
+}
+
+func (s *ClassicNameServer) InterfaceUpdate() {
+	s.Lock()
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.resetAt = time.Now()
+	s.Unlock()
 }
 
 func (s *ClassicNameServer) Close() error {
@@ -123,6 +140,7 @@ func (s *ClassicNameServer) Close() error {
 	s.ips = nil
 	s.requests = nil
 	s.tcpServer.Close()
+	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
 	s.Unlock()
 	return nil
 }
@@ -349,6 +367,7 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	var cancel context.CancelFunc
 	udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
 	defer cancel()
+	startAt := time.Now()
 	s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, buf.FromBytes(request))
 
 	select {
@@ -356,6 +375,14 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 		s.Lock()
 		delete(s.channel, id)
 		s.Unlock()
+		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
+			s.Lock()
+			if s.resetAt.Before(startAt) {
+				s.udpServer = s.newUDPDispatcherFunc()
+				s.resetAt = time.Now()
+			}
+			s.Unlock()
+		}
 		return nil, udpCtx.Err()
 	case response := <-ch:
 		s.Lock()
@@ -463,6 +490,7 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
@@ -473,6 +501,14 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				s.Lock()
+				if s.resetAt.Before(startAt) {
+					s.udpServer = s.newUDPDispatcherFunc()
+					s.resetAt = time.Now()
+				}
+				s.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
