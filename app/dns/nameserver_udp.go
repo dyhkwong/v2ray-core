@@ -2,6 +2,7 @@ package dns
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"encoding/binary"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -43,7 +45,9 @@ type ClassicNameServer struct {
 
 	channel map[uint16]chan []byte
 
-	connectionPool *track.ConnectionPool
+	connectionPool          *track.ConnectionPool
+	newUDPDispatcherFunc    func() udp.DispatcherI
+	interfaceUpdateCallback *list.Element
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -116,8 +120,18 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.udpServer = udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	s.newUDPDispatcherFunc = func() udp.DispatcherI {
+		return udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
+	}
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
 	return s
+}
+
+func (s *ClassicNameServer) interfaceUpdate() {
+	s.Lock()
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.Unlock()
 }
 
 func (s *ClassicNameServer) Close() error {
@@ -130,6 +144,7 @@ func (s *ClassicNameServer) Close() error {
 	s.ips = nil
 	s.requests = nil
 	s.tcpServer.Close()
+	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()
 	return nil
 }
