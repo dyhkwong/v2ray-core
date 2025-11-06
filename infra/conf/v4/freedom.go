@@ -16,6 +16,8 @@ type FreedomConfig struct {
 	Timeout        *uint32 `json:"timeout"`
 	Redirect       string  `json:"redirect"`
 	UserLevel      uint32  `json:"userLevel"`
+	// SagerNet private
+	InterruptConnections bool `json:"interruptConnections"`
 }
 
 // Build implements Buildable
@@ -58,5 +60,7 @@ func (c *FreedomConfig) Build() (proto.Message, error) {
 			config.DestinationOverride.Server.Address = v2net.NewIPOrDomain(v2net.ParseAddress(host))
 		}
 	}
+	// SagerNet private
+	config.InterruptConnections = c.InterruptConnections
 	return config, nil
 }
