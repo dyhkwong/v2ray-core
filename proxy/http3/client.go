@@ -37,11 +37,18 @@ type Client struct {
 	policyManager policy.Manager
 	transport     *http3.Transport
 	transportLock sync.Mutex
+	resetAt       time.Time
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
 }
 
 func (c *Client) Close() error {
 	c.transportLock.Lock()
+	c.transport.CloseIdleConnections()
 	c.transport = nil
+	c.resetAt = time.Now()
 	c.transportLock.Unlock()
 	return nil
 }
@@ -236,7 +243,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		_, pErr = pw.Write(firstPayload)
 		wg.Done()
 	}()
-	resp, err := transport.RoundTrip(req) // nolint: bodyclose
+	resp, err := c.roundTripWrapper(transport, req) // nolint: bodyclose
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +255,36 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 	}
 	return &httpConn{in: pw, out: resp.Body}, err
+}
+
+func (c *Client) roundTripWrapper(transport *http3.Transport, req *http.Request) (*http.Response, error) {
+	type result struct {
+		resp *http.Response
+		err  error
+	}
+	ch := make(chan result, 1)
+	startAt := time.Now()
+	go func() {
+		// do not use req.WithContext here
+		resp, err := transport.RoundTrip(req) // nolint: bodyclose
+		ch <- result{
+			resp: resp,
+			err:  err,
+		}
+	}()
+	select {
+	case <-time.After(time.Second * 5):
+		c.transportLock.Lock()
+		if c.resetAt.Before(startAt) {
+			transport.CloseIdleConnections()
+			c.transport = nil
+			c.resetAt = time.Now()
+		}
+		c.transportLock.Unlock()
+		return nil, context.DeadlineExceeded
+	case result := <-ch:
+		return result.resp, result.err
+	}
 }
 
 type httpConn struct {

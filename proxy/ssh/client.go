@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -48,6 +50,7 @@ type Client struct {
 	auth            []ssh.AuthMethod
 	connectLock     sync.Mutex
 	hostKeyCallback ssh.HostKeyCallback
+	resetAt         time.Time
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -142,8 +145,19 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return err
 	}
 
-	conn, err := client.DialContext(ctx, "tcp", destination.NetAddr())
+	startAt := time.Now()
+	dialCtx, dialCancel := context.WithTimeout(ctx, time.Second*5)
+	defer dialCancel()
+	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.clientLock.Lock()
+			if c.resetAt.Before(startAt) {
+				client.Close()
+				c.client = nil
+			}
+			c.clientLock.Unlock()
+		}
 		return newError("failed to open ssh proxy connection").Base(err)
 	}
 	defer conn.Close()
@@ -220,6 +234,11 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		c.clientLock.Unlock()
 	}()
 	return client, nil
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {

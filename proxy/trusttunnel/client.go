@@ -40,6 +40,11 @@ type Client struct {
 	resolver         func(domain string) (net.Address, error)
 	roundTripper     http.RoundTripper
 	roundTripperLock sync.Mutex
+	resetAt          time.Time
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
 }
 
 func (c *Client) Close() error {
@@ -48,6 +53,7 @@ func (c *Client) Close() error {
 		transport.CloseIdleConnections()
 	}
 	c.roundTripper = nil
+	c.resetAt = time.Now()
 	c.roundTripperLock.Unlock()
 	return nil
 }
@@ -370,7 +376,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		}
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	}
-	resp, err := roundTripper.RoundTrip(req) // nolint: bodyclose
+	resp, err := c.roundTripWrapper(roundTripper, req) // nolint: bodyclose
 	if err != nil {
 		return nil, httpVersion, err
 	}
@@ -390,6 +396,38 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		return httpConn, httpVersion, nil
 	}
 	return &httpConn{in: pw, out: resp.Body}, httpVersion, nil
+}
+
+func (c *Client) roundTripWrapper(roundTripper http.RoundTripper, req *http.Request) (*http.Response, error) {
+	type result struct {
+		resp *http.Response
+		err  error
+	}
+	ch := make(chan result, 1)
+	startAt := time.Now()
+	go func() {
+		// do not use req.WithContext here
+		resp, err := roundTripper.RoundTrip(req) // nolint: bodyclose
+		ch <- result{
+			resp: resp,
+			err:  err,
+		}
+	}()
+	select {
+	case <-time.After(time.Second * 5):
+		c.roundTripperLock.Lock()
+		if c.resetAt.Before(startAt) {
+			if transport, ok := c.roundTripper.(interface{ CloseIdleConnections() }); ok {
+				transport.CloseIdleConnections()
+			}
+			c.roundTripper = nil
+			c.resetAt = time.Now()
+		}
+		c.roundTripperLock.Unlock()
+		return nil, context.DeadlineExceeded
+	case result := <-ch:
+		return result.resp, result.err
+	}
 }
 
 type httpConn struct {
