@@ -40,6 +40,10 @@ type Client struct {
 	cachedH3Conns list.List
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.cachedH3Mutex.Lock()
 	for elem := c.cachedH3Conns.Front(); elem != nil; elem = elem.Next() {

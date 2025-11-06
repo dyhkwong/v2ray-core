@@ -45,6 +45,10 @@ type Client struct {
 	cachedConns    list.List
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.cacheConnsLock.Lock()
 	for elem := c.cachedConns.Front(); elem != nil; elem = elem.Next() {
