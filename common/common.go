@@ -7,13 +7,13 @@ import (
 	"go/build"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common/errors"
-	"github.com/v2fly/v2ray-core/v5/common/net/url"
 )
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen

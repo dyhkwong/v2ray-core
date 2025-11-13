@@ -122,6 +122,9 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 	}
 
 	if len(config.HopPorts) > 0 {
+		if config.HopPorts == "all" || config.HopPorts == "*" {
+			return nil, newError("invalid hopPorts")
+		}
 		host, _, err := net.SplitHostPort(serverAddr.String())
 		if err != nil {
 			return nil, err

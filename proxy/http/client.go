@@ -38,6 +38,10 @@ type Client struct {
 	cachedH2Conns      map[net.Destination]h2Conn
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.cachedH2Mutex.Lock()
 	for _, cachedH2Conn := range c.cachedH2Conns {
@@ -285,9 +289,11 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		if cc.CanTakeNewRequest() {
 			proxyConn, err := connectHTTP2(rc, cc)
 			if err != nil {
+				c.cachedH2Mutex.Lock()
+				delete(c.cachedH2Conns, dest)
+				c.cachedH2Mutex.Unlock()
 				return nil, nil, err
 			}
-
 			return proxyConn, nil, nil
 		}
 	}

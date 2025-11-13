@@ -19,8 +19,7 @@ import (
 // NewH3NameServer creates DOH server object for remote resolving.
 func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3", "quic")
-	s.newHTTPClient = func() *http.Client {
+	s := baseDOHNameServer(url, "H3", "quic", func() *http.Client {
 		return &http.Client{
 			Transport: &http3.Transport{
 				Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
@@ -41,8 +40,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 				},
 			},
 		}
-	}
-	s.httpClient = s.newHTTPClient()
+	})
 	newError("DNS: created Remote H3 client for ", url.String()).AtInfo().WriteToLog()
 	return s, nil
 }
@@ -50,8 +48,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 // NewH3LocalNameServer creates DOH client object for local resolving
 func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "H3L", "quic")
-	s.newHTTPClient = func() *http.Client {
+	s := baseDOHNameServer(url, "H3L", "quic", func() *http.Client {
 		return &http.Client{
 			Transport: &http3.Transport{
 				Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
@@ -76,8 +73,7 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 				},
 			},
 		}
-	}
-	s.httpClient = s.newHTTPClient()
+	})
 	newError("DNS: created Local H3 client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }

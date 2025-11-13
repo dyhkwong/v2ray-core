@@ -18,6 +18,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror/mirrorbase"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror/mirrorcommon"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror/mirrorenrollment"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror/tlstrafficgen"
 )
@@ -58,6 +59,8 @@ type persistentMirrorTLSDialer struct {
 	explicitNonceCiphersuiteLookup *ciphersuiteLookuper
 
 	enrollmentConfirmationClient *mirrorenrollment.EnrollmentConfirmationClient
+
+	enrollmentServerIdentifier []byte
 }
 
 func (d *persistentMirrorTLSDialer) init(ctx context.Context, config *Config) error {
@@ -147,6 +150,7 @@ func (d *persistentMirrorTLSDialer) init(ctx context.Context, config *Config) er
 		if err != nil {
 			return newError("failed to derive enrollment server identifier").Base(err).AtError()
 		}
+		d.enrollmentServerIdentifier = enrollmentServerIdentifier
 		d.enrollmentConfirmationClient, err = mirrorenrollment.NewEnrollmentConfirmationClient(d.ctx, d.config.ConnectionEnrolment, enrollmentServerIdentifier)
 		if err != nil {
 			return newError("failed to create enrollment confirmation client").Base(err).AtError()
@@ -259,6 +263,12 @@ func (d *persistentMirrorTLSDialer) handleIncomingReadyConnection(conn internet.
 func (d *persistentMirrorTLSDialer) Dial(ctx context.Context,
 	dest net.Destination, settings *internet.MemoryStreamConfig,
 ) (internet.Connection, error) {
+	if len(d.enrollmentServerIdentifier) > 0 {
+		if mirrorcommon.IsLoopbackProtectionEnabled(ctx, d.enrollmentServerIdentifier) {
+			return nil, newError("loopback protection: refusing to dial to self")
+		}
+	}
+
 	var recvConn net.Conn
 	select {
 	case conn := <-d.incomingConnections:

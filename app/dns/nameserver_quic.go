@@ -3,20 +3,22 @@ package dns
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net/url"
 	"sync"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
-	"golang.org/x/net/dns/dnsmessage"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -42,6 +44,8 @@ type QUICNameServer struct {
 	destination net.Destination
 	connection  *quic.Conn
 	dispatcher  routing.Dispatcher
+	resetAt     time.Time
+	globalIdx   uint64
 }
 
 // NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
@@ -69,6 +73,8 @@ func NewQUICRemoteNameServer(url *url.URL, dispatcher routing.Dispatcher) (*QUIC
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
+
+	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
 
 	return s, nil
 }
@@ -101,6 +107,15 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 	return s, nil
 }
 
+func (s *QUICNameServer) InterfaceUpdate() {
+	s.Lock()
+	if s.connection != nil {
+		s.connection.CloseWithError(0, "")
+	}
+	s.resetAt = time.Now()
+	s.Unlock()
+}
+
 func (s *QUICNameServer) Close() error {
 	s.Lock()
 	s.cleanup.Close()
@@ -109,6 +124,7 @@ func (s *QUICNameServer) Close() error {
 		s.connection.CloseWithError(0, "")
 	}
 	s.ips = nil
+	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
 	s.Unlock()
 	return nil
 }
@@ -159,12 +175,12 @@ func (s *QUICNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	updated := false
 
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		if isNewer(rec.A, ipRec) {
 			rec.A = ipRec
 			updated = true
 		}
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		addr := make([]net.Address, 0)
 		for _, ip := range ipRec.IP {
 			if len(ip.IP()) == net.IPv6len {
@@ -177,15 +193,15 @@ func (s *QUICNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 			updated = true
 		}
 	}
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 
 	if updated {
 		s.ips[req.domain] = rec
 	}
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		s.pub.Publish(req.domain+"4", nil)
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
@@ -228,7 +244,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 			defer cancel()
 
-			b, err := dns.PackMessage(r.msg)
+			b, err := protocol_dns.PackMessage(r.msg)
 			if err != nil {
 				newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 				return
@@ -253,6 +269,7 @@ func (s *QUICNameServer) sendQuery(ctx context.Context, domain string, clientIP 
 			}
 
 			_ = conn.Close()
+			defer conn.CancelRead(0)
 
 			var length uint16
 			err = binary.Read(conn, binary.BigEndian, &length)
@@ -309,6 +326,21 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	binary.Write(dnsReqBuf, binary.BigEndian, uint16(len(request)))
 	dnsReqBuf.Write(request)
 
+	var err error
+	startAt := time.Now()
+	defer func() {
+		if err != nil && errors.Is(dnsCtx.Err(), context.DeadlineExceeded) {
+			s.Lock()
+			if s.resetAt.Before(startAt) {
+				if s.connection != nil {
+					s.connection.CloseWithError(0, "")
+				}
+				s.resetAt = time.Now()
+			}
+			s.Unlock()
+		}
+	}()
+
 	conn, err := s.openStream(dnsCtx)
 	if err != nil {
 		return nil, newError("failed to open quic connection").Base(err)
@@ -320,6 +352,7 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	}
 
 	_ = conn.Close()
+	defer conn.CancelRead(0)
 
 	var length uint16
 	err = binary.Read(conn, binary.BigEndian, &length)
@@ -430,6 +463,7 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 		}
 		close(done)
 	}()
+	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
@@ -440,6 +474,16 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 
 		select {
 		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				s.Lock()
+				if s.resetAt.Before(startAt) {
+					if s.connection != nil {
+						s.connection.CloseWithError(0, "")
+					}
+					s.resetAt = time.Now()
+				}
+				s.Unlock()
+			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}

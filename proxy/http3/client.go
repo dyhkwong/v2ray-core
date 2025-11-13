@@ -36,6 +36,10 @@ type Client struct {
 	cachedH3Conns map[net.Destination]h3Conn
 }
 
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+}
+
 func (c *Client) Close() error {
 	c.cachedH3Mutex.Lock()
 	for _, cachedH3Conn := range c.cachedH3Conns {
@@ -202,7 +206,13 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 		select {
 		case <-h3Conn.Context().Done():
 		default:
-			return connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
+			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
+			if err != nil {
+				c.cachedH3Mutex.Lock()
+				delete(c.cachedH3Conns, dest)
+				c.cachedH3Mutex.Unlock()
+			}
+			return proxyConn, nil
 		}
 	}
 

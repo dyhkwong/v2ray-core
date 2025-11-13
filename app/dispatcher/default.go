@@ -4,6 +4,7 @@ package dispatcher
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -14,8 +15,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
+	dns_proto "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
-	"github.com/v2fly/v2ray-core/v5/common/strmatcher"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
@@ -220,6 +221,9 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 	if !sniffingRequest.Enabled {
 		go d.routedDispatch(ctx, outbound, destination)
 	} else {
+		if slices.Contains(sniffingRequest.OverrideDestinationForProtocol, "fakedns") {
+			ob.OverrideFakeDNS = true
+		}
 		go func() {
 			cReader := &cachedReader{
 				reader: outbound.Reader.(*pipe.Reader),
@@ -230,7 +234,8 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 				content.Protocol = result.Protocol()
 			}
 			if err == nil && shouldOverride(result, sniffingRequest.OverrideDestinationForProtocol) {
-				if domain, err := strmatcher.ToDomain(result.Domain()); err == nil {
+				domain := result.Domain()
+				if dns_proto.IsDomainName(domain) {
 					newError("sniffed domain: ", domain, " for ", destination).WriteToLog(session.ExportIDToError(ctx))
 					destination.Address = net.ParseAddress(domain)
 					protocol := result.Protocol()

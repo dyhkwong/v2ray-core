@@ -4,26 +4,16 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
-
-// from "github.com/v2fly/v2ray-core/v5/app/dns", import cycle
-func fqdn(domain string) string {
-	if len(domain) > 0 && strings.HasSuffix(domain, ".") {
-		return domain
-	}
-	return domain + "."
-}
 
 func ApplyECH(c *Config, config *tls.Config) error {
 	var echConfig []byte
@@ -80,7 +70,7 @@ func QueryRecord(domain string, server string) ([]byte, error) {
 	newError("Trying to query ECH config for domain: ", domain, " with ECH server: ", server).AtDebug().WriteToLog()
 	record, ttl, err := dohQuery(server, domain)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	if ttl > 0 {
@@ -95,15 +85,15 @@ func QueryRecord(domain string, server string) ([]byte, error) {
 }
 
 func dohQuery(server string, domain string) ([]byte, uint32, error) {
-	m := new(dnsmessage.Message)
-	m.Questions = []dnsmessage.Question{
+	m := new(dns.Msg)
+	m.Question = []dns.Question{
 		{
-			Name:  dnsmessage.MustNewName(fqdn(domain)),
-			Type:  dnsmessage.TypeHTTPS,
-			Class: dnsmessage.ClassINET,
+			Name:   dns.Fqdn(domain),
+			Qtype:  dns.TypeHTTPS,
+			Qclass: dns.ClassINET,
 		},
 	}
-	m.ID = 0
+	m.Id = 0
 	msg, err := m.Pack()
 	if err != nil {
 		return nil, 0, err
@@ -144,29 +134,27 @@ func dohQuery(server string, domain string) ([]byte, uint32, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, newError("query failed with response code: ", resp.StatusCode)
 	}
-	respMsg := new(dnsmessage.Message)
+	respMsg := new(dns.Msg)
 	err = respMsg.Unpack(respBody)
 	if err != nil {
 		return nil, 0, err
 	}
-	for _, answer := range respMsg.Answers {
-		if answer.Header.Class == dnsmessage.ClassINET && answer.Header.Type == dnsmessage.TypeHTTPS {
-			if https, ok := answer.Body.(*dnsmessage.HTTPSResource); ok {
-				for _, param := range https.Params {
-					if param.Key == dnsmessage.SVCParamECH {
-						newError("Get ECH config: ", base64.StdEncoding.EncodeToString(param.Value), " TTL: ", answer.Header.TTL).AtDebug().WriteToLog()
-						return param.Value, answer.Header.TTL, nil
+	for _, answer := range respMsg.Answer {
+		if answer.Header().Class == dns.ClassINET && answer.Header().Header().Rrtype == dns.TypeHTTPS {
+			if https, ok := answer.(*dns.HTTPS); ok {
+				for _, v := range https.Value {
+					if echConfig, ok := v.(*dns.SVCBECHConfig); ok {
+						newError(context.Background(), "Get ECH config:", echConfig.String(), " TTL:", respMsg.Answer[0].Header().Ttl).AtDebug().WriteToLog()
+						return echConfig.ECH, answer.Header().Ttl, nil
 					}
 				}
 			}
 		}
 	}
-	if respMsg.RCode == dnsmessage.RCodeSuccess || respMsg.RCode == dnsmessage.RCodeNameError {
-		for _, authority := range respMsg.Authorities {
-			if authority.Header.Class == dnsmessage.ClassINET {
-				if soa, ok := authority.Body.(*dnsmessage.SOAResource); ok {
-					return nil, min(authority.Header.TTL, soa.MinTTL), nil
-				}
+	if respMsg.Rcode == dns.RcodeSuccess || respMsg.Rcode == dns.RcodeNameError {
+		for _, ns := range respMsg.Ns {
+			if soa, ok := ns.(*dns.SOA); ok {
+				return nil, min(ns.Header().Ttl, soa.Minttl), nil
 			}
 		}
 	}

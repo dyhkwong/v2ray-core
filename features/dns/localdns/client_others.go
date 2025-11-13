@@ -8,17 +8,20 @@ import (
 	"io"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
-	requestMsg := new(dnsmessage.Message)
-	err := requestMsg.Unpack(request)
+	message := new(dns.Msg)
+	err := message.Unpack(request)
 	if err != nil {
 		return nil, newError("failed to parse dns request").Base(err)
+	}
+	if message.Response || len(message.Answer) > 0 {
+		return nil, newError("failed to parse dns request: not query")
 	}
 
 	dns := dnsReadConfig()
@@ -48,17 +51,17 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	}
 
 	response := make([]byte, buf.Size)
-	n, err := udpConn.Read(response)
+	var n int
+	n, err = udpConn.Read(response)
 	if err != nil {
 		return nil, err
 	}
-	if n < 12 {
-		return nil, newError("response too short")
+	err = message.Unpack(response[:n])
+	if err != nil {
+		return nil, newError("failed to parse dns response").Base(err)
 	}
-	if binary.BigEndian.Uint16(response[:2]) != requestMsg.ID {
-		return nil, newError("DNS message ID mismatch")
-	}
-	if response[3]&0x02 < 0x02 {
+
+	if !message.Truncated {
 		return response[:n], nil
 	}
 
@@ -98,8 +101,9 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	if n, err = io.ReadFull(tcpConn, response); err != nil {
 		return nil, err
 	}
-	if binary.BigEndian.Uint16(response[:2]) != requestMsg.ID {
-		return nil, newError("DNS message ID mismatch")
+	err = message.Unpack(response[:n])
+	if err != nil {
+		return nil, newError("failed to parse dns response").Base(err)
 	}
 	return response[:n], nil
 }

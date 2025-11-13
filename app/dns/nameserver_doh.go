@@ -3,7 +3,6 @@ package dns
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -12,12 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -31,22 +31,22 @@ import (
 // thus most of the DOH implementation is copied from udpns.go
 type DoHNameServer struct {
 	sync.RWMutex
-	ips           map[string]record
-	pub           *pubsub.Service
-	cleanup       *task.Periodic
-	httpClient    *http.Client
-	dohURL        string
-	name          string
-	protocol      string
-	newHTTPClient func() *http.Client
-	resetAccess   sync.Mutex
-	resetAt       time.Time
+	ips               map[string]record
+	pub               *pubsub.Service
+	cleanup           *task.Periodic
+	httpClient        *http.Client
+	dohURL            string
+	name              string
+	protocol          string
+	resetAt           time.Time
+	newHTTPClientFunc func() *http.Client
+	globalIdx         uint64
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
 func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServer, error) {
-	s := baseDOHNameServer(url, "DOH", "tls")
-	s.newHTTPClient = func() *http.Client {
+	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
+	s := baseDOHNameServer(url, "DOH", "tls", func() *http.Client {
 		return &http.Client{
 			Timeout: 60 * time.Second,
 			Transport: &http.Transport{
@@ -54,7 +54,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 				IdleConnTimeout:     90 * time.Second,
 				TLSHandshakeTimeout: 30 * time.Second,
 				ForceAttemptHTTP2:   true,
-				DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 					dest, err := net.ParseDestination(network + ":" + addr)
 					if err != nil {
 						return nil, err
@@ -63,26 +63,14 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 					if err != nil {
 						return nil, err
 					}
-					return tls.Client(cnc.NewConnection(
+					return cnc.NewConnection(
 						cnc.ConnectionInputMulti(link.Writer),
 						cnc.ConnectionOutputMulti(link.Reader),
-					), &tls.Config{
-						ServerName: func() string {
-							switch dest.Address.Family() {
-							case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
-								return dest.Address.IP().String()
-							case net.AddressFamilyDomain:
-								return dest.Address.Domain()
-							default:
-								panic("unknown address family")
-							}
-						}(),
-					}), nil
+					), nil
 				},
 			},
 		}
-	}
-	s.httpClient = s.newHTTPClient()
+	})
 	newError("DNS: created Remote DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s, nil
 }
@@ -90,8 +78,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 // NewDoHLocalNameServer creates DOH client object for local resolving
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
-	s := baseDOHNameServer(url, "DOHL", "tls")
-	s.newHTTPClient = func() *http.Client {
+	s := baseDOHNameServer(url, "DOHL", "tls", func() *http.Client {
 		tr := &http.Transport{
 			IdleConnTimeout:   90 * time.Second,
 			ForceAttemptHTTP2: true,
@@ -111,13 +98,12 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 			Timeout:   time.Second * 180,
 			Transport: tr,
 		}
-	}
-	s.httpClient = s.newHTTPClient()
+	})
 	newError("DNS: created Local DOH client for ", url.String()).AtInfo().WriteToLog()
 	return s
 }
 
-func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
+func baseDOHNameServer(url *url.URL, prefix, protocol string, newHTTPClientFunc func() *http.Client) *DoHNameServer {
 	s := &DoHNameServer{
 		ips:      make(map[string]record),
 		pub:      pubsub.NewService(),
@@ -129,7 +115,18 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string) *DoHNameServer {
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
+	s.newHTTPClientFunc = newHTTPClientFunc
+	s.httpClient = s.newHTTPClientFunc()
+	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
 	return s
+}
+
+func (s *DoHNameServer) InterfaceUpdate() {
+	s.Lock()
+	s.httpClient.CloseIdleConnections()
+	s.httpClient = s.newHTTPClientFunc()
+	s.resetAt = time.Now()
+	s.Unlock()
 }
 
 func (s *DoHNameServer) Close() error {
@@ -137,6 +134,7 @@ func (s *DoHNameServer) Close() error {
 	s.cleanup.Close()
 	s.pub.Close()
 	s.ips = nil
+	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
 	s.Unlock()
 	return nil
 }
@@ -187,12 +185,12 @@ func (s *DoHNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 	updated := false
 
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		if isNewer(rec.A, ipRec) {
 			rec.A = ipRec
 			updated = true
 		}
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		addr := make([]net.Address, 0)
 		for _, ip := range ipRec.IP {
 			if len(ip.IP()) == net.IPv6len {
@@ -205,15 +203,15 @@ func (s *DoHNameServer) updateIP(req *dnsRequest, ipRec *IPRecord) {
 			updated = true
 		}
 	}
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 
 	if updated {
 		s.ips[req.domain] = rec
 	}
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		s.pub.Publish(req.domain+"4", nil)
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		s.pub.Publish(req.domain+"6", nil)
 	}
 	s.Unlock()
@@ -256,7 +254,7 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 			dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 			defer cancel()
 
-			b, err := dns.PackMessage(r.msg)
+			b, err := protocol_dns.PackMessage(r.msg)
 			if err != nil {
 				newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 				return
@@ -307,14 +305,13 @@ func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	resp, err := s.dohHTTPSContext(dnsCtx, request)
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			s.resetAccess.Lock()
-			if s.resetAt.After(startAt) {
-				return nil, newError("failed to retrieve response").Base(ctx.Err())
+			s.Lock()
+			if s.resetAt.Before(startAt) {
+				s.httpClient.CloseIdleConnections()
+				s.httpClient = s.newHTTPClientFunc()
+				s.resetAt = time.Now()
 			}
-			s.httpClient.CloseIdleConnections()
-			s.httpClient = s.newHTTPClient()
-			s.resetAt = time.Now()
-			s.resetAccess.Unlock()
+			s.Unlock()
 		}
 		return nil, newError("failed to retrieve response").Base(err)
 	}
@@ -452,14 +449,13 @@ func (s *DoHNameServer) QueryIPWithTTL(ctx context.Context, domain string, clien
 		select {
 		case <-ctx.Done():
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				s.resetAccess.Lock()
-				if s.resetAt.After(startAt) {
-					s.resetAccess.Unlock()
-					return nil, time.Time{}, ctx.Err()
+				s.Lock()
+				if s.resetAt.Before(startAt) {
+					s.httpClient.CloseIdleConnections()
+					s.httpClient = s.newHTTPClientFunc()
+					s.resetAt = time.Now()
 				}
-				s.httpClient = s.newHTTPClient()
-				s.resetAt = time.Now()
-				s.resetAccess.Unlock()
+				s.Unlock()
 			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:

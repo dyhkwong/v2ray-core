@@ -53,9 +53,10 @@ type Inbound struct {
 // Outbound is the metadata of an outbound connection.
 type Outbound struct {
 	// Target address of the outbound connection.
-	OriginalTarget net.Destination
-	Target         net.Destination
-	RouteTarget    net.Destination
+	OriginalTarget  net.Destination
+	Target          net.Destination
+	RouteTarget     net.Destination
+	OverrideFakeDNS bool
 	// Gateway address
 	Gateway net.Address
 	// Domain resolver to use when dialing

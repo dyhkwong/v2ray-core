@@ -44,7 +44,7 @@ func (s *FakeDNSClient) NewReqID() uint16 {
 }
 
 func (s *FakeDNSClient) QueryRaw(request []byte) ([]byte, error) {
-	return s.DNS.QueryRaw(request, true)
+	return s.queryRaw(request, true)
 }
 
 // FakeDNSEngine is an implementation of dns.FakeDNSEngine based on a fully functional DNS.

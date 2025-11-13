@@ -2,6 +2,7 @@ package juicity
 
 import (
 	"context"
+	"os"
 
 	juicity "github.com/dyhkwong/sing-juicity"
 	"github.com/sagernet/sing/common/bufio"
@@ -92,4 +93,14 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		}
 		return singbridge.ReturnError(bufio.CopyPacketConn(detachedCtx, singbridge.NewPacketConnWrapper(link, destination), serverConn.(network.PacketConn)))
 	}
+}
+
+func (o *Outbound) InterfaceUpdate() {
+	if o.client != nil {
+		_ = o.client.CloseWithError(newError("network changed"))
+	}
+}
+
+func (o *Outbound) Close() error {
+	return o.client.CloseWithError(os.ErrClosed)
 }

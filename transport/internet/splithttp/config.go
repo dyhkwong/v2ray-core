@@ -4,10 +4,9 @@ import (
 	"crypto/rand"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/v2fly/v2ray-core/v5/common/net/url"
 )
 
 type RangeConfig struct {

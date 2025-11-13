@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	_ "unsafe"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 )
 
-//go:linkname isDomainName net.isDomainName
-func isDomainName(domain string) bool
+//go:linkname IsDomainName net.isDomainName
+func IsDomainName(domain string) bool
 
 var errNotDNS = newError("not dns")
 
@@ -30,12 +30,12 @@ func SniffTCPDNS(b []byte) (*SniffHeader, error) {
 }
 
 func SniffDNS(b []byte) (*SniffHeader, error) {
-	message := new(dnsmessage.Message)
-	if err := message.Unpack(b); err != nil || len(message.Questions) == 0 {
+	message := new(dns.Msg)
+	if err := message.Unpack(b); err != nil || message.Response || len(message.Question) == 0 || len(message.Answer) > 0 || len(message.Ns) > 0 {
 		return nil, errNotDNS
 	}
-	for _, question := range message.Questions {
-		if !isDomainName(question.Name.String()) {
+	for _, question := range message.Question {
+		if !IsDomainName(question.Name) {
 			return nil, errNotDNS
 		}
 	}

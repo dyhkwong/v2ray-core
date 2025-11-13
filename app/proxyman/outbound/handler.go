@@ -75,6 +75,7 @@ type Handler struct {
 	pool                 *internet.ConnectionPool
 	closed               bool
 	transportEnvironment environment.TransportEnvironment
+	globalIdx            uint64
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -194,6 +195,8 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	}
 	h.transportEnvironment = transportEnvironment
 
+	h.globalIdx = RegisterInterfaceUpdateFunc(h.interfaceUpdated)
+
 	return h, nil
 }
 
@@ -213,6 +216,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
 				outbound.Target.Address = addr
+			} else {
+				err := newError("failed to resolve domain ", outbound.Target.Address.Domain())
+				session.SubmitOutboundErrorToOriginator(ctx, err)
+				err.WriteToLog(session.ExportIDToError(ctx))
+				common.Interrupt(link.Writer)
+				common.Interrupt(link.Reader)
+				return
 			}
 		}
 	}
@@ -221,6 +231,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 				if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
 					outbound.Target.Address = addr
+				} else {
+					err := newError("failed to resolve domain ", outbound.Target.Address.Domain())
+					session.SubmitOutboundErrorToOriginator(ctx, err)
+					err.WriteToLog(session.ExportIDToError(ctx))
+					common.Interrupt(link.Writer)
+					common.Interrupt(link.Reader)
+					return
 				}
 			}
 		}
@@ -234,7 +251,7 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			Dest:         outbound.Target.Address,
 			OriginalDest: outbound.OriginalTarget.Address,
 		}
-		if h.fakedns != nil {
+		if h.fakedns != nil && outbound.OverrideFakeDNS {
 			reader.fakedns = h.fakedns
 			writer.fakedns = h.fakedns
 			usedFakeIPs := new(sync.Map)
@@ -463,6 +480,25 @@ func (h *Handler) Start() error {
 	return nil
 }
 
+func (h *Handler) interfaceUpdated() {
+	if interfaceUpdate, ok := h.proxy.(proxy.InterfaceUpdate); ok {
+		interfaceUpdate.InterfaceUpdate()
+	}
+	if h.smux != nil {
+		h.smux.Reset()
+	}
+	if h.mux != nil {
+		common.Close(h.mux)
+		h.mux.Picker = &mux.IncrementalWorkerPicker{
+			Factory: mux.NewDialingWorkerFactory(h.ctx, h.proxy, h, mux.ClientStrategy{
+				MaxConcurrency: h.senderSettings.MultiplexSettings.Concurrency,
+				MaxConnection:  128,
+			}),
+		}
+	}
+	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+}
+
 // Close implements common.Closable.
 func (h *Handler) Close() error {
 	h.closed = true
@@ -482,5 +518,8 @@ func (h *Handler) Close() error {
 	}
 
 	h.transportEnvironment.TransientStorage().Clear(h.ctx)
+
+	UnRegisterInterfaceUpdateFunc(h.globalIdx)
+
 	return nil
 }

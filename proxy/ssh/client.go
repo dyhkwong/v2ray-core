@@ -48,6 +48,7 @@ type Client struct {
 	client          *ssh.Client
 	auth            []ssh.AuthMethod
 	hostKeyCallback ssh.HostKeyCallback
+	resetAt         time.Time
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -133,14 +134,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return err
 	}
 
-	dialCtx, dialCancel := context.WithDeadline(ctx, time.Now().Add(time.Second*5))
+	startAt := time.Now()
+	dialCtx, dialCancel := context.WithTimeout(ctx, time.Second*5)
 	defer dialCancel()
 	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			c.Lock()
-			client.Close()
-			c.client = nil
+			if c.resetAt.Before(startAt) {
+				client.Close()
+				c.client = nil
+			}
 			c.Unlock()
 		}
 		return newError("failed to open ssh proxy connection").Base(err)
@@ -217,6 +221,11 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		c.Unlock()
 	}()
 	return client, nil
+}
+
+func (c *Client) InterfaceUpdate() {
+	_ = c.Close()
+	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {

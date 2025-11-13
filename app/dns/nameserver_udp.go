@@ -11,14 +11,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"github.com/miekg/dns"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/dispatcher"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/protocol/dns"
+	protocol_dns "github.com/v2fly/v2ray-core/v5/common/protocol/dns"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
@@ -31,21 +32,21 @@ import (
 // ClassicNameServer implemented traditional UDP DNS.
 type ClassicNameServer struct {
 	sync.RWMutex
-	name       string
-	address    net.Destination
-	ips        map[string]record
-	requests   map[uint16]dnsRequest
-	pub        *pubsub.Service
-	dispatcher routing.Dispatcher
-	udpServer  udp.DispatcherI
-	cleanup    *task.Periodic
-	reqID      uint32
-	tcpServer  *TCPNameServer
+	name      string
+	address   net.Destination
+	ips       map[string]record
+	requests  map[uint16]dnsRequest
+	pub       *pubsub.Service
+	udpServer udp.DispatcherI
+	cleanup   *task.Periodic
+	reqID     uint32
+	tcpServer *TCPNameServer
 
-	channel      map[uint16]chan []byte
-	newUDPServer func() udp.DispatcherI
-	resetAccess  sync.Mutex
-	resetAt      time.Time
+	channel map[uint16]chan []byte
+
+	resetAt              time.Time
+	newUDPDispatcherFunc func() udp.DispatcherI
+	globalIdx            uint64
 }
 
 // NewUDPNameServer creates udp server object for remote resolving.
@@ -105,12 +106,11 @@ func NewClassicNameServer(address net.Destination, dispatcher routing.Dispatcher
 
 func newClassicNameServer(address net.Destination, name string, dispatcher routing.Dispatcher) *ClassicNameServer {
 	s := &ClassicNameServer{
-		address:    address,
-		ips:        make(map[string]record),
-		requests:   make(map[uint16]dnsRequest),
-		pub:        pubsub.NewService(),
-		name:       name,
-		dispatcher: dispatcher,
+		address:  address,
+		ips:      make(map[string]record),
+		requests: make(map[uint16]dnsRequest),
+		pub:      pubsub.NewService(),
+		name:     name,
 
 		channel: make(map[uint16]chan []byte),
 	}
@@ -118,11 +118,19 @@ func newClassicNameServer(address net.Destination, name string, dispatcher routi
 		Interval: time.Minute,
 		Execute:  s.Cleanup,
 	}
-	s.newUDPServer = func() udp.DispatcherI {
+	s.newUDPDispatcherFunc = func() udp.DispatcherI {
 		return udp.NewSplitDispatcher(dispatcher, s.HandleResponse)
 	}
-	s.udpServer = s.newUDPServer()
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
 	return s
+}
+
+func (s *ClassicNameServer) InterfaceUpdate() {
+	s.Lock()
+	s.udpServer = s.newUDPDispatcherFunc()
+	s.resetAt = time.Now()
+	s.Unlock()
 }
 
 func (s *ClassicNameServer) Close() error {
@@ -132,6 +140,7 @@ func (s *ClassicNameServer) Close() error {
 	s.ips = nil
 	s.requests = nil
 	s.tcpServer.Close()
+	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
 	s.Unlock()
 	return nil
 }
@@ -220,7 +229,7 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 	if err == errTruncated {
 		newError("truncated, retry over TCP").AtError().WriteToLog()
-		b, packErr := dns.PackMessage(req.msg)
+		b, packErr := protocol_dns.PackMessage(req.msg)
 		if packErr != nil {
 			newError(packErr).AtError().WriteToLog()
 			return
@@ -241,14 +250,14 @@ func (s *ClassicNameServer) HandleResponse(ctx context.Context, packet *udp_prot
 
 	var rec record
 	switch req.reqType {
-	case dnsmessage.TypeA:
+	case dns.TypeA:
 		rec.A = ipRec
-	case dnsmessage.TypeAAAA:
+	case dns.TypeAAAA:
 		rec.AAAA = ipRec
 	}
 
 	elapsed := time.Since(req.start)
-	newError(s.name, " got answer: ", req.domain, " ", req.reqType, " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
+	newError(s.name, " got answer: ", req.domain, " Type", dns.Type(req.reqType), " -> ", ipRec.IP, " ", elapsed).AtInfo().WriteToLog()
 	if len(req.domain) > 0 && (rec.A != nil || rec.AAAA != nil) {
 		s.updateIP(req.domain, rec)
 	}
@@ -291,7 +300,7 @@ func (s *ClassicNameServer) addPendingRequest(req *dnsRequest) {
 	s.Lock()
 	defer s.Unlock()
 
-	id := req.msg.ID
+	id := req.msg.Id
 	req.expire = time.Now().Add(time.Second * 8)
 	s.requests[id] = *req
 }
@@ -310,7 +319,7 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 
 	for _, req := range reqs {
 		s.addPendingRequest(req)
-		b, err := dns.PackMessage(req.msg)
+		b, err := protocol_dns.PackMessage(req.msg)
 		if err != nil {
 			newError("failed to pack dns query").Base(err).AtError().WriteToLog()
 			return
@@ -365,16 +374,15 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	case <-udpCtx.Done():
 		s.Lock()
 		delete(s.channel, id)
-		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
-			s.resetAccess.Lock()
-			if s.resetAt.After(startAt) {
-				return nil, ctx.Err()
-			}
-			s.udpServer = s.newUDPServer()
-			s.resetAt = time.Now()
-			s.resetAccess.Unlock()
-		}
 		s.Unlock()
+		if errors.Is(udpCtx.Err(), context.DeadlineExceeded) {
+			s.Lock()
+			if s.resetAt.Before(startAt) {
+				s.udpServer = s.newUDPDispatcherFunc()
+				s.resetAt = time.Now()
+			}
+			s.Unlock()
+		}
 		return nil, udpCtx.Err()
 	case response := <-ch:
 		s.Lock()
@@ -494,14 +502,12 @@ func (s *ClassicNameServer) QueryIPWithTTL(ctx context.Context, domain string, c
 		select {
 		case <-ctx.Done():
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				s.resetAccess.Lock()
-				if s.resetAt.After(startAt) {
-					s.resetAccess.Unlock()
-					return nil, time.Time{}, ctx.Err()
+				s.Lock()
+				if s.resetAt.Before(startAt) {
+					s.udpServer = s.newUDPDispatcherFunc()
+					s.resetAt = time.Now()
 				}
-				s.udpServer = s.newUDPServer()
-				s.resetAt = time.Now()
-				s.resetAccess.Unlock()
+				s.Unlock()
 			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
