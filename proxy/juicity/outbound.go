@@ -102,5 +102,8 @@ func (o *Outbound) InterfaceUpdate() {
 }
 
 func (o *Outbound) Close() error {
-	return o.client.CloseWithError(os.ErrClosed)
+	if o.client != nil {
+		return o.client.CloseWithError(os.ErrClosed)
+	}
+	return nil
 }
