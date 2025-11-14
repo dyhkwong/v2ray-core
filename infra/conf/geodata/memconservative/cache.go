@@ -1,13 +1,13 @@
 package memconservative
 
 import (
-	"os"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v4/app/router"
 	"github.com/v2fly/v2ray-core/v4/common/platform"
+	"github.com/v2fly/v2ray-core/v4/common/platform/filesystem"
 )
 
 type GeoIPCache map[string]*router.GeoIP
@@ -52,8 +52,8 @@ func (g GeoIPCache) Unmarshal(filename, code string) (*router.GeoIP, error) {
 
 	case errFailedToReadBytes, errFailedToReadExpectedLenBytes,
 		errInvalidGeodataFile, errInvalidGeodataVarintLength:
-		newError("failed to decode geoip file: ", filename, ", fallback to the original ReadFile method")
-		geoipBytes, err = os.ReadFile(asset)
+		newError("failed to decode geoip file: ", filename, ", fallback to the original ReadFile method").AtError().WriteToLog()
+		geoipBytes, err = filesystem.ReadFile(asset)
 		if err != nil {
 			return nil, err
 		}
@@ -117,8 +117,8 @@ func (g GeoSiteCache) Unmarshal(filename, code string) (*router.GeoSite, error) 
 
 	case errFailedToReadBytes, errFailedToReadExpectedLenBytes,
 		errInvalidGeodataFile, errInvalidGeodataVarintLength:
-		newError("failed to decode geoip file: ", filename, ", fallback to the original ReadFile method")
-		geositeBytes, err = os.ReadFile(asset)
+		newError("failed to decode geoip file: ", filename, ", fallback to the original ReadFile method").AtError().WriteToLog()
+		geositeBytes, err = filesystem.ReadFile(asset)
 		if err != nil {
 			return nil, err
 		}
