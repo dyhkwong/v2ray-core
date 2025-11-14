@@ -119,13 +119,14 @@ func handleInput(ctx context.Context, conn *connEntry, dest net.Destination, cal
 		}
 		timer.Update()
 		for _, b := range mb {
-			if b.Endpoint != nil {
-				dest = *b.Endpoint
-			}
-			callback(ctx, &udp.Packet{
+			packet := &udp.Packet{
 				Payload: b,
 				Source:  dest,
-			})
+			}
+			if b.Endpoint != nil {
+				packet.Source = *b.Endpoint
+			}
+			callback(ctx, packet)
 		}
 	}
 }
@@ -166,6 +167,9 @@ func (c *dispatcherConn) ReadFrom(p []byte) (int, net.Addr, error) {
 	case <-c.done.Wait():
 		return 0, nil, io.EOF
 	case packet := <-c.cache:
+		if packet.Source.Address.Family().IsDomain() {
+			newError("invalid address: ", packet.Source.Address).AtError().WriteToLog(session.ExportIDToError(c.ctx))
+		}
 		n := copy(p, packet.Payload.Bytes())
 		return n, &net.UDPAddr{
 			IP:   packet.Source.Address.IP(),

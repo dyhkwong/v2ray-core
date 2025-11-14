@@ -103,11 +103,11 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if b.IsEmpty() {
 			continue
 		}
-		target := &w.Target
+		target := w.Target
 		if b.Endpoint != nil {
-			target = b.Endpoint
+			target = *b.Endpoint
 		}
-		if _, err := w.writePacket(b.Bytes(), *target); err != nil {
+		if _, err := w.writePacket(b.Bytes(), target); err != nil {
 			return err
 		}
 	}
