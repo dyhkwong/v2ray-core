@@ -16,6 +16,14 @@ message ClientConfig {
   bytes server_identity = 5;
 }
 
+message ServerInverseRoleConfig {
+  v2ray.core.common.serial.TypedMessage round_tripper_client = 1;
+  v2ray.core.common.serial.TypedMessage security_config = 2;
+  string dest = 3;
+  string outbound_tag = 4;
+  bytes server_identity = 5;
+}
+
 message ServerConfig {
   v2ray.core.common.serial.TypedMessage round_tripper_server = 2;
   string listen = 3;

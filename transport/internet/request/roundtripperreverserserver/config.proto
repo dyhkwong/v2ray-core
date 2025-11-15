@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package v2ray.core.transport.internet.request.roundtripperreverserserver;
+option csharp_namespace = "V2Ray.Core.Transport.Internet.Request.RoundtripperReverseServer";
+option go_package = "github.com/v2fly/v2ray-core/v4/transport/internet/request/roundtripperreverserserver";
+option java_package = "com.v2ray.core.transport.internet.request.roundtripperreverserserver";
+option java_multiple_files = true;
+
+import "common/serial/typed_message.proto";
+
+message Config {
+  v2ray.core.common.serial.TypedMessage round_tripper_server = 2;
+  string listen = 3;
+  string access_passphrase = 4;
+}
