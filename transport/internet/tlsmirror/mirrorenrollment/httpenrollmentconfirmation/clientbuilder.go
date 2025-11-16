@@ -4,6 +4,7 @@
 package httpenrollmentconfirmation
 
 import (
+	"context"
 	"encoding/base32"
 	"net"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/v2fly/v2ray-core/v4/common"
-	"github.com/v2fly/v2ray-core/v4/common/signal/done"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/httponconnection"
 )
@@ -86,31 +86,16 @@ func (c *clientRoundtripper) roundTrip(request *http.Request) (*http.Response, e
 	}
 	defer c.currentConnLock.RUnlock()
 
-	timeoutTimer := time.NewTimer(30 * time.Second)
-	defer timeoutTimer.Stop()
+	timeoutContext, _ := context.WithTimeout(context.Background(), time.Second*30)
+	request = request.WithContext(timeoutContext)
 
-	waitForConnection := done.New()
-
-	var resp *http.Response
-	var error_resp_ error
-	var err error
-
-	go func() {
-		resp_, err_ := c.currentConn.RoundTrip(request)
-		resp = resp_
-		error_resp_ = err_
-		waitForConnection.Close()
-	}()
-
-	select {
-	case <-timeoutTimer.C:
-		err = newError("timeout during enrollment verification round trip")
-	case <-waitForConnection.Wait():
-		err = error_resp_
-	}
-
+	resp, err := c.currentConn.RoundTrip(request)
 	// Use the current connection to perform the round trip
 	if err != nil {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+
 		defer func() {
 			c.currentConnLock.RUnlock()
 			c.currentConnLock.Lock()
@@ -143,7 +128,7 @@ func (c *clientRoundtripper) createNewConnection() error {
 	c.currentConnInnerConn = conn
 	c.currentConn, err = httponconnection.NewSingleConnectionHTTPTransport(conn, "h2")
 	if err != nil {
-		conn.Close() // Close the connection if transport creation fails
+		_ = conn.Close() // Close the connection if transport creation fails
 		return newError("failed to create HTTP transport: ", err)
 	}
 	return nil
