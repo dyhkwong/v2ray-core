@@ -57,6 +57,8 @@ func NewServerInverseRole(ctx context.Context, config *ServerInverseRoleConfig) 
 
 	rttClient.OnTransportClientAssemblyReady(c)
 
+	go c.worker(ctx)
+
 	return c, nil
 }
 
@@ -80,6 +82,7 @@ func (c *ServerInverseRole) worker(ctx context.Context) {
 			newError("error polling remote for enrollment").Base(err).AtWarning().WriteToLog()
 		}
 	}
+	newError("inverse role server quitted").AtWarning().WriteToLog()
 }
 
 func (c *ServerInverseRole) Dial(ctx context.Context) (net.Conn, error) {
@@ -151,7 +154,7 @@ func (s *ServerInverseRole) pollRemoteForEnrollment(ctx context.Context) error {
 	if err != nil {
 		return newError("failed to marshal enrollment confirmation response").Base(err).AtError()
 	}
-	respAs := append(s.config.ServerIdentity, enrollmentReq.ClientIdentifier...) //nolint:gocritic
+	respAs := append(s.config.ServerIdentity, enrollmentReq.ReplyAddressTag...) //nolint:gocritic
 	_, err = s.rttClient.RoundTrip(ctx, request.Request{
 		Data:          respData,
 		ConnectionTag: respAs,
@@ -159,6 +162,7 @@ func (s *ServerInverseRole) pollRemoteForEnrollment(ctx context.Context) error {
 	if err != nil {
 		return newError("failed to send enrollment confirmation response back to remote").Base(err)
 	}
+	newError("successfully processed enrollment confirmation request").AtDebug().WriteToLog()
 	return nil
 }
 

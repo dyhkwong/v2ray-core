@@ -8,8 +8,10 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/signal/done"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/httponconnection"
 )
@@ -84,8 +86,30 @@ func (c *clientRoundtripper) roundTrip(request *http.Request) (*http.Response, e
 	}
 	defer c.currentConnLock.RUnlock()
 
+	timeoutTimer := time.NewTimer(30 * time.Second)
+	defer timeoutTimer.Stop()
+
+	waitForConnection := done.New()
+
+	var resp *http.Response
+	var error_resp_ error
+	var err error
+
+	go func() {
+		resp_, err_ := c.currentConn.RoundTrip(request)
+		resp = resp_
+		error_resp_ = err_
+		waitForConnection.Close()
+	}()
+
+	select {
+	case <-timeoutTimer.C:
+		err = newError("timeout during enrollment verification round trip")
+	case <-waitForConnection.Wait():
+		err = error_resp_
+	}
+
 	// Use the current connection to perform the round trip
-	resp, err := c.currentConn.RoundTrip(request)
 	if err != nil {
 		defer func() {
 			c.currentConnLock.RUnlock()

@@ -11,8 +11,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorcommon"
-
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/environment"
@@ -23,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorbase"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorcommon"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorenrollment"
 	"github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/tlstrafficgen"
 )
@@ -282,9 +281,15 @@ func (d *persistentMirrorTLSDialer) Dial(ctx context.Context,
 		if err != nil {
 			return nil, newError("failed to request new connection").Base(err)
 		}
+		timer := time.NewTimer(10 * time.Second)
+		defer timer.Stop()
 		select { // nolint: staticcheck
 		case conn := <-d.incomingConnections:
 			recvConn = conn
+		case <-timer.C:
+			return nil, newError("timeout waiting for incoming connection")
+		case <-ctx.Done():
+			return nil, newError("context done while waiting for incoming connection")
 		}
 	}
 

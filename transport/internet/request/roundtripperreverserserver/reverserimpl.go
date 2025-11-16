@@ -96,6 +96,9 @@ func (r *ReverserImpl) OnOtherRoundTrip(ctx context.Context, req request.Request
 		messageQueue: make(chan *reverserMessage, 1),
 	})
 	state := stateInterface.(*clientState)
+	defer func() {
+		r.clientTemporaryKeyToStateMap.Delete(string(sourceKey))
+	}()
 
 	serverStateInterface, ok := r.serverPublicKeyToStateMap.Load(string(destKey))
 	if ok {
