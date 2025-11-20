@@ -186,79 +186,38 @@ func (c *Config) parseServerName() string {
 
 func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	if c.PinnedPeerCertificateChainSha256 != nil {
-		hashValue := GenerateCertChainHash(rawCerts)
+		hash := GenerateCertChainHash(rawCerts)
 		if !slices.ContainsFunc(c.PinnedPeerCertificateChainSha256, func(b []byte) bool {
-			return hmac.Equal(b, hashValue)
+			return hmac.Equal(b, hash)
 		}) {
-			return newError("peer cert is unrecognized: ", base64.StdEncoding.EncodeToString(hashValue))
+			return newError("peer cert is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
 		}
 	}
 	if c.PinnedPeerCertificatePublicKeySha256 != nil {
-		leafHashValue, _ := GenerateCertPublicKeyHash(rawCerts[0])
-		matchAt := slices.IndexFunc(rawCerts, func(rawCert []byte) bool {
-			hashValue, _ := GenerateCertPublicKeyHash(rawCert)
-			return slices.ContainsFunc(c.PinnedPeerCertificatePublicKeySha256, func(b []byte) bool {
-				return hmac.Equal(b, hashValue)
-			})
-		})
-		if matchAt < 0 {
-			return newError("peer cert public key is unrecognized: ", base64.StdEncoding.EncodeToString(leafHashValue))
+		hash, err := GenerateCertPublicKeyHash(rawCerts[0])
+		if err != nil {
+			return err
 		}
-		if matchAt > 0 {
-			certs := make([]*x509.Certificate, matchAt+1)
-			for i, rawCert := range rawCerts[:matchAt+1] {
-				cert, _ := x509.ParseCertificate(rawCert)
-				certs[i] = cert
-			}
-			opts := x509.VerifyOptions{
-				Roots:         x509.NewCertPool(),
-				Intermediates: x509.NewCertPool(),
-			}
-			opts.Roots.AddCert(certs[matchAt])
-			for _, cert := range certs[1:] {
-				opts.Intermediates.AddCert(cert)
-			}
-			if _, err := certs[0].Verify(opts); err != nil {
-				return newError("peer cert public key is unrecognized: ", base64.StdEncoding.EncodeToString(leafHashValue))
-			}
+		if !slices.ContainsFunc(c.PinnedPeerCertificatePublicKeySha256, func(b []byte) bool {
+			return hmac.Equal(b, hash)
+		}) {
+			return newError("peer cert public key is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
 		}
 	}
 	if c.PinnedPeerCertificateSha256 != nil {
 		pinnedPeerCertificateSha256 := make([][]byte, len(c.PinnedPeerCertificateSha256))
-		for _, v := range c.PinnedPeerCertificateSha256 {
+		for i, v := range c.PinnedPeerCertificateSha256 {
 			b, err := hex.DecodeString(v)
 			if err != nil {
 				return err
 			}
-			pinnedPeerCertificateSha256 = append(pinnedPeerCertificateSha256, b)
+			pinnedPeerCertificateSha256[i] = b
 		}
-		leafHashValue := GenerateCertHash(rawCerts[0])
-		matchAt := slices.IndexFunc(rawCerts, func(rawCert []byte) bool {
-			hashValue := GenerateCertHash(rawCert)
-			return slices.ContainsFunc(pinnedPeerCertificateSha256, func(b []byte) bool {
-				return hmac.Equal(b, hashValue)
-			})
-		})
-		if matchAt < 0 {
-			return newError("peer cert sha256 is unrecognized: ", hex.EncodeToString(leafHashValue))
-		}
-		if matchAt > 0 {
-			certs := make([]*x509.Certificate, matchAt+1)
-			for i, rawCert := range rawCerts[:matchAt+1] {
-				cert, _ := x509.ParseCertificate(rawCert)
-				certs[i] = cert
-			}
-			opts := x509.VerifyOptions{
-				Roots:         x509.NewCertPool(),
-				Intermediates: x509.NewCertPool(),
-			}
-			opts.Roots.AddCert(certs[matchAt])
-			for _, cert := range certs[1:] {
-				opts.Intermediates.AddCert(cert)
-			}
-			if _, err := certs[0].Verify(opts); err != nil {
-				return newError("peer cert sha256 is unrecognized: ", hex.EncodeToString(leafHashValue))
-			}
+		hash := GenerateCertHash(rawCerts[0])
+		if !slices.ContainsFunc(pinnedPeerCertificateSha256, func(b []byte) bool {
+			return hmac.Equal(b, hash)
+		}) {
+			return newError("peer cert sha256 is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
 		}
 	}
 	return nil
