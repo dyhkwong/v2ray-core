@@ -17,11 +17,13 @@ const (
 )
 
 type Config struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	ServiceName   string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Host              string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	ServiceName       string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	MultiMode         bool                   `protobuf:"varint,98,opt,name=multi_mode,json=multiMode,proto3" json:"multi_mode,omitempty"`
+	ServiceNameCompat bool                   `protobuf:"varint,99,opt,name=service_name_compat,json=serviceNameCompat,proto3" json:"service_name_compat,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -68,14 +70,31 @@ func (x *Config) GetServiceName() string {
 	return ""
 }
 
+func (x *Config) GetMultiMode() bool {
+	if x != nil {
+		return x.MultiMode
+	}
+	return false
+}
+
+func (x *Config) GetServiceNameCompat() bool {
+	if x != nil {
+		return x.ServiceNameCompat
+	}
+	return false
+}
+
 var File_transport_internet_grpc_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_grpc_config_proto_rawDesc = "" +
 	"\n" +
-	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"]\n" +
+	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"\xac\x01\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName:\x1c\x82\xb5\x18\x18\n" +
+	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1d\n" +
+	"\n" +
+	"multi_mode\x18b \x01(\bR\tmultiMode\x12.\n" +
+	"\x13service_name_compat\x18c \x01(\bR\x11serviceNameCompat:\x1c\x82\xb5\x18\x18\n" +
 	"\ttransport\x12\x04grpc\x8a\xff)\x03gunB\x87\x01\n" +
 	"&com.v2ray.core.transport.internet.grpcP\x01Z6github.com/v2fly/v2ray-core/v5/transport/internet/grpc\xaa\x02\"V2Ray.Core.Transport.Internet.Grpcb\x06proto3"
 
