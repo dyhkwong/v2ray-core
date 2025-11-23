@@ -16,4 +16,7 @@ message Config {
 
   string host = 1;
   string service_name = 2;
+
+  bool multi_mode = 98;
+  bool service_name_compat = 99;
 }
