@@ -7,9 +7,15 @@ import (
 )
 
 type GunConfig struct {
-	ServiceName string `json:"serviceName"`
+	ServiceName       string `json:"serviceName"`
+	MultiMode         bool   `json:"multiMode"`
+	ServiceNameCompat bool   `json:"serviceNameCompat"`
 }
 
 func (g GunConfig) Build() (proto.Message, error) {
-	return &grpc.Config{ServiceName: g.ServiceName}, nil
+	return &grpc.Config{
+		ServiceName:       g.ServiceName,
+		MultiMode:         g.MultiMode,
+		ServiceNameCompat: g.ServiceNameCompat,
+	}, nil
 }
