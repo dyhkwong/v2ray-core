@@ -12,6 +12,8 @@ type GunConfig struct {
 	HealthCheckTimeout  int32  `json:"health_check_timeout"`
 	PermitWithoutStream bool   `json:"permit_without_stream"`
 	InitialWindowsSize  int32  `json:"initial_windows_size"`
+	MultiMode           bool   `json:"multiMode"`
+	ServiceNameCompat   bool   `json:"serviceNameCompat"`
 }
 
 func (g GunConfig) Build() (proto.Message, error) {
@@ -30,5 +32,7 @@ func (g GunConfig) Build() (proto.Message, error) {
 		HealthCheckTimeout:  g.HealthCheckTimeout,
 		PermitWithoutStream: g.PermitWithoutStream,
 		InitialWindowsSize:  g.InitialWindowsSize,
+		MultiMode:           g.MultiMode,
+		ServiceNameCompat:   g.ServiceNameCompat,
 	}, nil
 }
