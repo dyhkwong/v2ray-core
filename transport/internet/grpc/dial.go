@@ -92,8 +92,22 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	if err != nil {
 		return nil, newError("Cannot dial grpc").Base(err)
 	}
+	if grpcSettings.MultiMode {
+		client := encoding.NewGunMultiServiceClient(conn)
+		gunMultiService, err := client.(encoding.GunMultiServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+		if err != nil {
+			canceller()
+			return nil, newError("Cannot dial grpc").Base(err)
+		}
+		return encoding.NewGunMultiConn(gunMultiService, nil), nil
+	}
 	client := encoding.NewGunServiceClient(conn)
-	gunService, err := client.(encoding.GunServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+	var gunService grpc.BidiStreamingClient[encoding.Hunk, encoding.Hunk]
+	if grpcSettings.ServiceNameCompat {
+		gunService, err = client.(encoding.GunServiceClientXWithTunCustomNameX).TunCustomNameX(ctx, grpcSettings.ServiceName)
+	} else {
+		gunService, err = client.(encoding.GunServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+	}
 	if err != nil {
 		canceller()
 		return nil, newError("Cannot dial grpc").Base(err)
