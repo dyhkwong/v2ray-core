@@ -152,7 +152,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 						case net.PacketConn:
 							pc = rc
 						default:
-							return nil, newError("port hopping does not work with chain proxy")
+							pc = internet.NewConnWrapper(rc)
 						}
 						return pc, nil
 					},

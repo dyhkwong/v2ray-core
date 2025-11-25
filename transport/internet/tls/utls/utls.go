@@ -123,11 +123,11 @@ func uTLSConfigFromTLSConfig(config *systls.Config) (*utls.Config, error) { // n
 	}
 	if len(config.Certificates) > 0 {
 		certificates := make([]utls.Certificate, len(config.Certificates))
-		for _, certificate := range config.Certificates {
-			certificates = append(certificates, utls.Certificate{
+		for i, certificate := range config.Certificates {
+			certificates[i] = utls.Certificate{
 				Certificate: certificate.Certificate,
 				PrivateKey:  certificate.PrivateKey,
-			})
+			}
 		}
 		uconfig.Certificates = certificates
 	}
