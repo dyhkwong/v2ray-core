@@ -53,21 +53,23 @@ func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStr
 	return config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
-func ResolveAddress(dest net.Destination) (net.Addr, error) {
-	var destAddr *net.UDPAddr
+func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {
 	if dest.Address.Family().IsIP() {
-		destAddr = &net.UDPAddr{
+		return &net.UDPAddr{
 			IP:   dest.Address.IP(),
 			Port: int(dest.Port),
-		}
-	} else {
-		addr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
-		if err != nil {
-			return nil, err
-		}
-		destAddr = addr
+		}, nil
 	}
-	return destAddr, nil
+	if resolver != nil {
+		if addr := resolver(ctx, dest.Address.Domain()); addr != nil {
+			return &net.UDPAddr{
+				IP:   addr.IP(),
+				Port: int(dest.Port),
+			}, nil
+		}
+		return nil, newError("failed to resolve domain ", dest.Address.Domain())
+	}
+	return net.ResolveUDPAddr("udp", dest.NetAddr())
 }
 
 type connFactory struct {
@@ -88,13 +90,13 @@ func (f *connFactory) New(addr net.Addr) (net.PacketConn, error) {
 	return obfs.WrapPacketConn(conn, f.Obfuscator), nil
 }
 
-func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
+func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (hyClient.Client, error) {
 	tlsConfig, err := GetClientTLSConfig(dest, streamSettings)
 	if err != nil {
 		return nil, err
 	}
 
-	serverAddr, err := ResolveAddress(dest)
+	serverAddr, err := ResolveAddress(ctx, dest, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +157,7 @@ func CloseHyClient(state *transportConnectionState, dest net.Destination, stream
 	return nil
 }
 
-func GetHyClient(ctx context.Context, state *transportConnectionState, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
+func GetHyClient(ctx context.Context, state *transportConnectionState, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (hyClient.Client, error) {
 	var err error
 	var client hyClient.Client
 
@@ -167,7 +169,7 @@ func GetHyClient(ctx context.Context, state *transportConnectionState, dest net.
 			// retry
 			CloseHyClient(state, dest, streamSettings)
 		}
-		client, err = NewHyClient(ctx, dest, streamSettings)
+		client, err = NewHyClient(ctx, dest, streamSettings, resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -192,6 +194,7 @@ func CheckHyClientHealthy(client hyClient.Client) bool {
 }
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
+	dest.Network = net.Network_UDP
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	state, err := transportEnvironment.TransientStorage().Get(ctx, "hysteria2-transport-connection-state")
 	if err != nil {
@@ -211,7 +214,12 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	config := streamSettings.ProtocolSettings.(*Config)
 
-	client, err := GetHyClient(ctx, stateTyped, dest, streamSettings)
+	var resolver func(ctx context.Context, domain string) net.Address
+	outbound := session.OutboundFromContext(ctx)
+	if outbound != nil {
+		resolver = outbound.Resolver
+	}
+	client, err := GetHyClient(ctx, stateTyped, dest, streamSettings, resolver)
 	if err != nil {
 		CloseHyClient(stateTyped, dest, streamSettings)
 		return nil, err
@@ -223,7 +231,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		remote: quicConn.RemoteAddr(),
 	}
 
-	outbound := session.OutboundFromContext(ctx)
 	network := net.Network_TCP
 	if outbound != nil {
 		network = outbound.Target.Network
