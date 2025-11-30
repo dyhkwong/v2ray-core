@@ -15,6 +15,7 @@ import (
 	"github.com/v2fly/v2ray-core/v4/common/environment"
 	"github.com/v2fly/v2ray-core/v4/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/session"
 	"github.com/v2fly/v2ray-core/v4/common/task"
 	"github.com/v2fly/v2ray-core/v4/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
@@ -118,14 +119,24 @@ func (c *clientConnections) Close() error {
 	return nil
 }
 
-func (c *clientConnections) openConnection(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
+func (c *clientConnections) openConnection(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (internet.Connection, error) {
 	var destAddr *net.UDPAddr
-	if dest.Address.Family().IsIP() {
+	switch {
+	case dest.Address.Family().IsIP():
 		destAddr = &net.UDPAddr{
 			IP:   dest.Address.IP(),
 			Port: int(dest.Port),
 		}
-	} else {
+	case resolver != nil:
+		addr := resolver(ctx, dest.Address.Domain())
+		if addr == nil {
+			return nil, newError("failed to resolve domain ", dest.Address.Domain())
+		}
+		destAddr = &net.UDPAddr{
+			IP:   addr.IP(),
+			Port: int(dest.Port),
+		}
+	default:
 		addr, err := localdns.New().LookupIP(dest.Address.Domain())
 		if err != nil {
 			return nil, err
@@ -250,7 +261,12 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
 	}
 	stateTyped.scopedDialerAccess.Unlock()
-	return client.openConnection(ctx, dest, streamSettings)
+	var resolver func(ctx context.Context, domain string) net.Address
+	outbound := session.OutboundFromContext(ctx)
+	if outbound != nil {
+		resolver = outbound.Resolver
+	}
+	return client.openConnection(ctx, dest, streamSettings, resolver)
 }
 
 func init() {
