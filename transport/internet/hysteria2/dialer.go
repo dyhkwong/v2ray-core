@@ -31,10 +31,11 @@ type hysteriaClient struct {
 	ctx            context.Context
 	dest           net.Destination
 	streamSettings *internet.MemoryStreamConfig
+	resolver       func(ctx context.Context, domain string) net.Address
 }
 
 func (c *hysteriaClient) init() error {
-	client, err := NewHyClient(c.ctx, c.dest, c.streamSettings)
+	client, err := NewHyClient(c.ctx, c.dest, c.streamSettings, c.resolver)
 	if err != nil {
 		return err
 	}
@@ -154,24 +155,31 @@ func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStr
 	return config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
-func ResolveAddress(dest net.Destination) (net.Addr, error) {
-	var destAddr *net.UDPAddr
-	if dest.Address.Family().IsIP() {
-		destAddr = &net.UDPAddr{
+func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {
+	switch {
+	case dest.Address.Family().IsIP():
+		return &net.UDPAddr{
 			IP:   dest.Address.IP(),
 			Port: int(dest.Port),
+		}, nil
+	case resolver != nil:
+		if addr := resolver(ctx, dest.Address.Domain()); addr != nil {
+			return &net.UDPAddr{
+				IP:   addr.IP(),
+				Port: int(dest.Port),
+			}, nil
 		}
-	} else {
+		return nil, newError("failed to resolve domain ", dest.Address.Domain())
+	default:
 		addr, err := localdns.New().LookupIP(dest.Address.Domain())
 		if err != nil {
 			return nil, err
 		}
-		destAddr = &net.UDPAddr{
+		return &net.UDPAddr{
 			IP:   addr[0],
 			Port: int(dest.Port),
-		}
+		}, nil
 	}
-	return destAddr, nil
 }
 
 type connFactory struct {
@@ -192,13 +200,13 @@ func (f *connFactory) New(addr net.Addr) (net.PacketConn, error) {
 	return obfs.WrapPacketConn(conn, f.Obfuscator), nil
 }
 
-func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (hyClient.Client, error) {
+func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (hyClient.Client, error) {
 	tlsConfig, err := GetClientTLSConfig(dest, streamSettings)
 	if err != nil {
 		return nil, err
 	}
 
-	serverAddr, err := ResolveAddress(dest)
+	serverAddr, err := ResolveAddress(ctx, dest, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +267,7 @@ func CloseHyClient(state *transportConnectionState, dest net.Destination, stream
 	return nil
 }
 
-func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*hysteriaClient, dialerCanceller, error) {
+func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (*hysteriaClient, dialerCanceller, error) {
 	dest.Network = net.Network_UDP
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	state, err := transportEnvironment.TransientStorage().Get(ctx, "hysteria2-transport-connection-state")
@@ -288,6 +296,7 @@ func GetHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		ctx:            ctx,
 		dest:           dest,
 		streamSettings: streamSettings,
+		resolver:       resolver,
 	}
 	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
 	return client, canceller, nil
@@ -304,7 +313,12 @@ func CheckHyClientHealthy(quicConn *quic.Conn) bool {
 
 func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (internet.Connection, error) {
 	config := streamSettings.ProtocolSettings.(*Config)
-	client, canceller, err := GetHyClient(ctx, dest, streamSettings)
+	var resolver func(ctx context.Context, domain string) net.Address
+	outbound := session.OutboundFromContext(ctx)
+	if outbound != nil {
+		resolver = outbound.Resolver
+	}
+	client, canceller, err := GetHyClient(ctx, dest, streamSettings, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +332,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	if !CheckHyClientHealthy(quicConn) {
 		// retry
 		canceller()
-		client, canceller, err = GetHyClient(ctx, dest, streamSettings)
+		client, canceller, err = GetHyClient(ctx, dest, streamSettings, resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +348,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		remote: quicConn.RemoteAddr(),
 	}
 
-	outbound := session.OutboundFromContext(ctx)
 	network := net.Network_TCP
 	if outbound != nil {
 		network = outbound.Target.Network

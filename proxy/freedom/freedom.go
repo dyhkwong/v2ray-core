@@ -51,6 +51,7 @@ type Handler struct {
 	policyManager policy.Manager
 	dns           dns.Client
 	config        *Config
+	resolver      func(ctx context.Context, domain string) net.Address
 }
 
 // Init initializes the Handler with necessary parameters.
@@ -130,10 +131,16 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 			destination.Network = net.Network_UDP
 		}
 	}
-	if h.config.useIP() {
-		outbound.Resolver = func(ctx context.Context, domain string) net.Address {
+	switch {
+	case outbound.Resolver != nil:
+		h.resolver = outbound.Resolver
+	case outbound.TargetResolver != nil:
+		h.resolver = outbound.TargetResolver
+	case h.config.useIP():
+		h.resolver = func(ctx context.Context, domain string) net.Address {
 			return h.resolveIP(ctx, domain, dialer.Address())
 		}
+		outbound.Resolver = h.resolver
 	}
 	newError("opening connection to ", destination).WriteToLog(session.ExportIDToError(ctx))
 
@@ -305,8 +312,8 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			dest = w.dest
 		}
 		originalDest := dest
-		if w.handler.config.useIP() && dest.Address.Family().IsDomain() {
-			ip := w.handler.resolveIP(w.ctx, dest.Address.Domain(), nil)
+		if w.handler.resolver != nil && dest.Address.Family().IsDomain() {
+			ip := w.handler.resolver(w.ctx, dest.Address.Domain())
 			if ip != nil {
 				dest.Address = ip
 			} else {
