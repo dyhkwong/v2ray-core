@@ -213,7 +213,7 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		ctx = session.ContextWithOutbound(ctx, outbound)
 	}
 
-	if h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS {
+	if h.senderSettings != nil && h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS {
 		outbound.Resolver = func(ctx context.Context, domain string) net.Address {
 			return h.resolveIP(ctx, domain, h.Address(), h.senderSettings.DialDomainStrategy)
 		}
