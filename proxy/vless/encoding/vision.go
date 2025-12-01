@@ -280,11 +280,11 @@ func (w *VisionWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			mb[0] = XtlsPadding(nil, CommandPaddingContinue, &w.writeOnceUserUUID, true, w.ctx) // we do a long padding to hide vless header
 			return w.Writer.WriteMultiBuffer(mb)
 		}
-		isComplete := IsCompleteRecord(mb)
+		//isComplete := IsCompleteRecord(mb)
 		mb = ReshapeMultiBuffer(w.ctx, mb)
 		longPadding := w.trafficState.IsTLS
 		for i, b := range mb {
-			if w.trafficState.IsTLS && b.Len() >= 6 && bytes.Equal(TlsApplicationDataStart, b.BytesTo(3)) && isComplete {
+			if w.trafficState.IsTLS && b.Len() >= 6 && bytes.Equal(TlsApplicationDataStart, b.BytesTo(3)) /*&& isComplete*/ {
 				if w.trafficState.EnableXtls {
 					*switchToDirectCopy = true
 				}
