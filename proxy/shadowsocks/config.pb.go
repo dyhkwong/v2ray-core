@@ -34,32 +34,16 @@ const (
 	CipherType_AES_128_CFB        CipherType = 10
 	CipherType_AES_192_CFB        CipherType = 11
 	CipherType_AES_256_CFB        CipherType = 12
-	CipherType_AES_128_CFB8       CipherType = 13
-	CipherType_AES_192_CFB8       CipherType = 14
-	CipherType_AES_256_CFB8       CipherType = 15
-	CipherType_AES_128_OFB        CipherType = 16
-	CipherType_AES_192_OFB        CipherType = 17
-	CipherType_AES_256_OFB        CipherType = 18
-	CipherType_RC4                CipherType = 19
-	CipherType_RC4_MD5            CipherType = 20
-	CipherType_RC4_MD5_6          CipherType = 21
-	CipherType_BF_CFB             CipherType = 22
-	CipherType_CAST5_CFB          CipherType = 23
-	CipherType_DES_CFB            CipherType = 24
-	CipherType_RC2_CFB            CipherType = 25
-	CipherType_SEED_CFB           CipherType = 26
-	CipherType_IDEA_CFB           CipherType = 27
-	CipherType_CAMELLIA_128_CFB   CipherType = 28
-	CipherType_CAMELLIA_192_CFB   CipherType = 29
-	CipherType_CAMELLIA_256_CFB   CipherType = 30
-	CipherType_CAMELLIA_128_CFB8  CipherType = 31
-	CipherType_CAMELLIA_192_CFB8  CipherType = 32
-	CipherType_CAMELLIA_256_CFB8  CipherType = 33
-	CipherType_SALSA20            CipherType = 34
-	CipherType_CHACHA20           CipherType = 35
-	CipherType_CHACHA20_IETF      CipherType = 36
-	CipherType_XCHACHA20          CipherType = 37
-	CipherType_TABLE              CipherType = 38
+	CipherType_RC4_MD5            CipherType = 13
+	CipherType_BF_CFB             CipherType = 14
+	CipherType_CAMELLIA_128_CFB   CipherType = 15
+	CipherType_CAMELLIA_192_CFB   CipherType = 16
+	CipherType_CAMELLIA_256_CFB   CipherType = 17
+	CipherType_SALSA20            CipherType = 18
+	CipherType_CHACHA20           CipherType = 19
+	CipherType_CHACHA20_IETF      CipherType = 20
+	CipherType_XCHACHA20          CipherType = 21
+	CipherType_TABLE              CipherType = 22
 )
 
 // Enum value maps for CipherType.
@@ -78,32 +62,16 @@ var (
 		10: "AES_128_CFB",
 		11: "AES_192_CFB",
 		12: "AES_256_CFB",
-		13: "AES_128_CFB8",
-		14: "AES_192_CFB8",
-		15: "AES_256_CFB8",
-		16: "AES_128_OFB",
-		17: "AES_192_OFB",
-		18: "AES_256_OFB",
-		19: "RC4",
-		20: "RC4_MD5",
-		21: "RC4_MD5_6",
-		22: "BF_CFB",
-		23: "CAST5_CFB",
-		24: "DES_CFB",
-		25: "RC2_CFB",
-		26: "SEED_CFB",
-		27: "IDEA_CFB",
-		28: "CAMELLIA_128_CFB",
-		29: "CAMELLIA_192_CFB",
-		30: "CAMELLIA_256_CFB",
-		31: "CAMELLIA_128_CFB8",
-		32: "CAMELLIA_192_CFB8",
-		33: "CAMELLIA_256_CFB8",
-		34: "SALSA20",
-		35: "CHACHA20",
-		36: "CHACHA20_IETF",
-		37: "XCHACHA20",
-		38: "TABLE",
+		13: "RC4_MD5",
+		14: "BF_CFB",
+		15: "CAMELLIA_128_CFB",
+		16: "CAMELLIA_192_CFB",
+		17: "CAMELLIA_256_CFB",
+		18: "SALSA20",
+		19: "CHACHA20",
+		20: "CHACHA20_IETF",
+		21: "XCHACHA20",
+		22: "TABLE",
 	}
 	CipherType_value = map[string]int32{
 		"UNKNOWN":            0,
@@ -119,32 +87,16 @@ var (
 		"AES_128_CFB":        10,
 		"AES_192_CFB":        11,
 		"AES_256_CFB":        12,
-		"AES_128_CFB8":       13,
-		"AES_192_CFB8":       14,
-		"AES_256_CFB8":       15,
-		"AES_128_OFB":        16,
-		"AES_192_OFB":        17,
-		"AES_256_OFB":        18,
-		"RC4":                19,
-		"RC4_MD5":            20,
-		"RC4_MD5_6":          21,
-		"BF_CFB":             22,
-		"CAST5_CFB":          23,
-		"DES_CFB":            24,
-		"RC2_CFB":            25,
-		"SEED_CFB":           26,
-		"IDEA_CFB":           27,
-		"CAMELLIA_128_CFB":   28,
-		"CAMELLIA_192_CFB":   29,
-		"CAMELLIA_256_CFB":   30,
-		"CAMELLIA_128_CFB8":  31,
-		"CAMELLIA_192_CFB8":  32,
-		"CAMELLIA_256_CFB8":  33,
-		"SALSA20":            34,
-		"CHACHA20":           35,
-		"CHACHA20_IETF":      36,
-		"XCHACHA20":          37,
-		"TABLE":              38,
+		"RC4_MD5":            13,
+		"BF_CFB":             14,
+		"CAMELLIA_128_CFB":   15,
+		"CAMELLIA_192_CFB":   16,
+		"CAMELLIA_256_CFB":   17,
+		"SALSA20":            18,
+		"CHACHA20":           19,
+		"CHACHA20_IETF":      20,
+		"XCHACHA20":          21,
+		"TABLE":              22,
 	}
 )
 
@@ -463,7 +415,7 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\vplugin_args\x18\x04 \x03(\tR\n" +
 	"pluginArgs\x12,\n" +
 	"\x12plugin_working_dir\x18\x05 \x01(\tR\x10pluginWorkingDir\x12\x10\n" +
-	"\x03uot\x18\x06 \x01(\bR\x03uot*\x99\x05\n" +
+	"\x03uot\x18\x06 \x01(\bR\x03uot*\x8e\x03\n" +
 	"\n" +
 	"CipherType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0f\n" +
@@ -479,34 +431,18 @@ const file_proxy_shadowsocks_config_proto_rawDesc = "" +
 	"\vAES_128_CFB\x10\n" +
 	"\x12\x0f\n" +
 	"\vAES_192_CFB\x10\v\x12\x0f\n" +
-	"\vAES_256_CFB\x10\f\x12\x10\n" +
-	"\fAES_128_CFB8\x10\r\x12\x10\n" +
-	"\fAES_192_CFB8\x10\x0e\x12\x10\n" +
-	"\fAES_256_CFB8\x10\x0f\x12\x0f\n" +
-	"\vAES_128_OFB\x10\x10\x12\x0f\n" +
-	"\vAES_192_OFB\x10\x11\x12\x0f\n" +
-	"\vAES_256_OFB\x10\x12\x12\a\n" +
-	"\x03RC4\x10\x13\x12\v\n" +
-	"\aRC4_MD5\x10\x14\x12\r\n" +
-	"\tRC4_MD5_6\x10\x15\x12\n" +
+	"\vAES_256_CFB\x10\f\x12\v\n" +
+	"\aRC4_MD5\x10\r\x12\n" +
 	"\n" +
-	"\x06BF_CFB\x10\x16\x12\r\n" +
-	"\tCAST5_CFB\x10\x17\x12\v\n" +
-	"\aDES_CFB\x10\x18\x12\v\n" +
-	"\aRC2_CFB\x10\x19\x12\f\n" +
-	"\bSEED_CFB\x10\x1a\x12\f\n" +
-	"\bIDEA_CFB\x10\x1b\x12\x14\n" +
-	"\x10CAMELLIA_128_CFB\x10\x1c\x12\x14\n" +
-	"\x10CAMELLIA_192_CFB\x10\x1d\x12\x14\n" +
-	"\x10CAMELLIA_256_CFB\x10\x1e\x12\x15\n" +
-	"\x11CAMELLIA_128_CFB8\x10\x1f\x12\x15\n" +
-	"\x11CAMELLIA_192_CFB8\x10 \x12\x15\n" +
-	"\x11CAMELLIA_256_CFB8\x10!\x12\v\n" +
-	"\aSALSA20\x10\"\x12\f\n" +
-	"\bCHACHA20\x10#\x12\x11\n" +
-	"\rCHACHA20_IETF\x10$\x12\r\n" +
-	"\tXCHACHA20\x10%\x12\t\n" +
-	"\x05TABLE\x10&Bu\n" +
+	"\x06BF_CFB\x10\x0e\x12\x14\n" +
+	"\x10CAMELLIA_128_CFB\x10\x0f\x12\x14\n" +
+	"\x10CAMELLIA_192_CFB\x10\x10\x12\x14\n" +
+	"\x10CAMELLIA_256_CFB\x10\x11\x12\v\n" +
+	"\aSALSA20\x10\x12\x12\f\n" +
+	"\bCHACHA20\x10\x13\x12\x11\n" +
+	"\rCHACHA20_IETF\x10\x14\x12\r\n" +
+	"\tXCHACHA20\x10\x15\x12\t\n" +
+	"\x05TABLE\x10\x16Bu\n" +
 	" com.v2ray.core.proxy.shadowsocksP\x01Z0github.com/v2fly/v2ray-core/v5/proxy/shadowsocks\xaa\x02\x1cV2Ray.Core.Proxy.Shadowsocksb\x06proto3"
 
 var (

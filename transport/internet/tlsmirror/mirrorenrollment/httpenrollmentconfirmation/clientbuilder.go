@@ -1,10 +1,12 @@
 package httpenrollmentconfirmation
 
 import (
+	"context"
 	"encoding/base32"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror"
@@ -81,9 +83,16 @@ func (c *clientRoundtripper) roundTrip(request *http.Request) (*http.Response, e
 	}
 	defer c.currentConnLock.RUnlock()
 
-	// Use the current connection to perform the round trip
+	timeoutContext, _ := context.WithTimeout(context.Background(), time.Second*30) //nolint:govet
+	request = request.WithContext(timeoutContext)
+
 	resp, err := c.currentConn.RoundTrip(request)
+	// Use the current connection to perform the round trip
 	if err != nil {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+
 		defer func() {
 			c.currentConnLock.RUnlock()
 			c.currentConnLock.Lock()
@@ -116,7 +125,7 @@ func (c *clientRoundtripper) createNewConnection() error {
 	c.currentConnInnerConn = conn
 	c.currentConn, err = httponconnection.NewSingleConnectionHTTPTransport(conn, "h2")
 	if err != nil {
-		conn.Close() // Close the connection if transport creation fails
+		_ = conn.Close() // Close the connection if transport creation fails
 		return newError("failed to create HTTP transport: ", err)
 	}
 	return nil

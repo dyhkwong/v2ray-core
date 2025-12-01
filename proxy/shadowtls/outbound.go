@@ -38,23 +38,17 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		config.TlsSettings = &tls.Config{}
 	}
 	tlsConfig := config.TlsSettings.GetTLSConfig(tls.WithDestination(serverAddr)).Clone()
-	version := int(config.Version)
-	if version == 0 {
-		version = 1
-	}
-	if version == 1 {
-		tlsConfig.MinVersion = gotls.VersionTLS12
-		tlsConfig.MaxVersion = gotls.VersionTLS12
-	}
 	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
-	switch version {
-	case 1, 2:
+	switch config.Version {
+	case 0, 2:
 		tlsHandshakeFunc = func(ctx context.Context, conn net.Conn, _ shadowtls.TLSSessionIDGeneratorFunc) error {
 			tlsConn := gotls.Client(conn, tlsConfig)
 			return tlsConn.HandshakeContext(ctx)
 		}
 	case 3:
 		tlsHandshakeFunc = shadowtls.DefaultTLSHandshakeFunc(config.Password, tlsConfig)
+	default:
+		return nil, newError("unknown version")
 	}
 	o := &Outbound{
 		serverAddr: serverAddr,

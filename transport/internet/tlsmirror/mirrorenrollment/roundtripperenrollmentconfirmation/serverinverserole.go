@@ -3,7 +3,6 @@ package roundtripperenrollmentconfirmation
 import (
 	"context"
 	csrand "crypto/rand"
-	"io"
 	"net"
 
 	"google.golang.org/protobuf/proto"
@@ -18,7 +17,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tlsmirror"
 )
 
-func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
+func NewServerInverseRole(ctx context.Context, config *ServerInverseRoleConfig) (*ServerInverseRole, error) {
 	if ctx == nil {
 		return nil, newError("context cannot be nil")
 	}
@@ -47,7 +46,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		return nil, newError("failed to generate client temporary identifier").Base(err)
 	}
 
-	c := &Client{
+	c := &ServerInverseRole{
 		ctx:                       ctx,
 		config:                    config,
 		rttClient:                 rttClient,
@@ -56,11 +55,13 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 
 	rttClient.OnTransportClientAssemblyReady(c)
 
+	go c.worker(ctx)
+
 	return c, nil
 }
 
-type Client struct {
-	config    *ClientConfig
+type ServerInverseRole struct {
+	config    *ServerInverseRoleConfig
 	rttClient request.RoundTripperClient
 
 	clientTemporaryIdentifier []byte
@@ -68,14 +69,22 @@ type Client struct {
 	ctx context.Context
 
 	defaultOutboundTag string
+
+	enrollmentProcessor tlsmirror.ConnectionEnrollmentConfirmationProcessor
 }
 
-func (c *Client) OnConnectionEnrollmentConfirmationClientInstanceConfigReady(config tlsmirror.ConnectionEnrollmentConfirmationClientInstanceConfig) {
-	c.defaultOutboundTag = config.DefaultOutboundTag
+func (c *ServerInverseRole) worker(ctx context.Context) {
+	for ctx.Err() == nil {
+		err := c.pollRemoteForEnrollment(ctx)
+		if err != nil {
+			newError("error polling remote for enrollment").Base(err).AtWarning().WriteToLog()
+		}
+	}
+	newError("inverse role server quitted").AtWarning().WriteToLog()
 }
 
-func (c *Client) Dial(ctx context.Context) (net.Conn, error) {
-	transportEnvironment := envctx.EnvironmentFromContext(c.ctx).(environment.TransportEnvironment)
+func (c *ServerInverseRole) Dial(ctx context.Context) (net.Conn, error) {
+	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	dialer := transportEnvironment.OutboundDialer()
 	if dialer == nil {
 		return nil, newError("no outbound dialer available in transport environment")
@@ -85,12 +94,12 @@ func (c *Client) Dial(ctx context.Context) (net.Conn, error) {
 		return nil, newError("failed to parse destination address").Base(err).AtError()
 	}
 	dest.Network = v2net.Network_TCP
-	conn, err := dialer(c.ctx, dest, c.config.OutboundTag)
+	conn, err := dialer(ctx, dest, c.config.OutboundTag)
 	if err != nil {
 		return nil, newError("failed to dial to destination").Base(err).AtError()
 	}
 	if c.config.SecurityConfig != nil {
-		securityEngine, err := common.CreateObject(c.ctx, c.config.SecurityConfig)
+		securityEngine, err := common.CreateObject(ctx, c.config.SecurityConfig)
 		if err != nil {
 			return nil, newError("unable to create security engine from security settings").Base(err)
 		}
@@ -106,49 +115,57 @@ func (c *Client) Dial(ctx context.Context) (net.Conn, error) {
 	return conn, nil
 }
 
-func (c *Client) Tripper() request.Tripper {
+func (c *ServerInverseRole) Tripper() request.Tripper {
 	return c.rttClient
 }
 
-func (c *Client) AutoImplDialer() request.Dialer {
+func (c *ServerInverseRole) AutoImplDialer() request.Dialer {
 	return c
 }
 
-func (c *Client) VerifyConnectionEnrollment(req *tlsmirror.EnrollmentConfirmationReq) (*tlsmirror.EnrollmentConfirmationResp, error) {
-	connectionTagServerID := req.ServerIdentifier
-	if c.config.ServerIdentity != nil {
-		connectionTagServerID = c.config.ServerIdentity
-	}
-	var replyAddressTag [16]byte
-	_, err := io.ReadFull(csrand.Reader, replyAddressTag[:])
-	if err != nil {
-		return nil, newError("failed to generate reply address tag").Base(err)
-	}
+func (s *ServerInverseRole) OnConnectionEnrollmentConfirmationServerInstanceConfigReady(config tlsmirror.ConnectionEnrollmentConfirmationServerInstanceConfig) {
+	s.enrollmentProcessor = config.EnrollmentProcessor
+}
 
-	connectionTag := append(replyAddressTag[:], connectionTagServerID...) //nolint:gocritic
-	req.ClientIdentifier = c.clientTemporaryIdentifier
-	req.ReplyAddressTag = replyAddressTag[:]
-	wrappedData, err := proto.Marshal(req)
+func (s *ServerInverseRole) pollRemoteForEnrollment(ctx context.Context) error {
+	pollAs := s.config.ServerIdentity
+	req := request.Request{
+		ConnectionTag: pollAs,
+	}
+	resp, err := s.rttClient.RoundTrip(ctx, req)
 	if err != nil {
-		return nil, newError("failed to marshal enrollment confirmation request").Base(err)
+		return newError("failed to poll remote for enrollment").Base(err)
 	}
-	wreq := request.Request{
-		Data:          wrappedData,
-		ConnectionTag: connectionTag,
+	if resp.Data == nil {
+		return newError("no enrollment confirmation response received from remote")
 	}
-	resp, err := c.rttClient.RoundTrip(c.ctx, wreq)
+	enrollmentReq := &tlsmirror.EnrollmentConfirmationReq{}
+	err = proto.Unmarshal(resp.Data, enrollmentReq)
 	if err != nil {
-		return nil, newError("failed to perform round trip").Base(err)
+		return newError("failed to unmarshal enrollment confirmation request").Base(err).AtError()
 	}
-	confirmationResp := &tlsmirror.EnrollmentConfirmationResp{}
-	if err := proto.Unmarshal(resp.Data, confirmationResp); err != nil {
-		return nil, newError("failed to unmarshal enrollment confirmation response").Base(err)
+	enrollmentResp, err := s.enrollmentProcessor.VerifyConnectionEnrollment(enrollmentReq)
+	if err != nil {
+		return newError("failed to process enrollment confirmation request").Base(err).AtError()
 	}
-	return confirmationResp, nil
+	respData, err := proto.Marshal(enrollmentResp)
+	if err != nil {
+		return newError("failed to marshal enrollment confirmation response").Base(err).AtError()
+	}
+	respAs := append(s.config.ServerIdentity, enrollmentReq.ReplyAddressTag...) //nolint:gocritic
+	_, err = s.rttClient.RoundTrip(ctx, request.Request{
+		Data:          respData,
+		ConnectionTag: respAs,
+	})
+	if err != nil {
+		return newError("failed to send enrollment confirmation response back to remote").Base(err)
+	}
+	newError("successfully processed enrollment confirmation request").AtDebug().WriteToLog()
+	return nil
 }
 
 func init() {
-	common.Must(common.RegisterConfig((*ClientConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		return NewClient(ctx, config.(*ClientConfig))
+	common.Must(common.RegisterConfig((*ServerInverseRoleConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
+		return NewServerInverseRole(ctx, config.(*ServerInverseRoleConfig))
 	}))
 }

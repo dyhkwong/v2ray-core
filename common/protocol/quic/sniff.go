@@ -1,6 +1,7 @@
 package quic
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/aes"
 	"encoding/binary"
@@ -51,8 +52,8 @@ const (
 	hkdfLabelHeaderProtectionV2 = "quicv2 hp"
 )
 
-func SniffQUIC(b []byte) (*SniffHeader, error) {
-	if len(b) == 0 {
+func SniffQUIC(input []byte) (*SniffHeader, error) {
+	if len(input) == 0 {
 		return nil, common.ErrNoClue
 	}
 
@@ -66,6 +67,7 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 
 	validRange := rangelist.NewRangeList()
 	// Parse QUIC packets
+	b := input
 	for len(b) > 0 {
 		buffer := buf.FromBytes(b)
 		typeByte, err := buffer.ReadByte()
@@ -130,6 +132,8 @@ func SniffQUIC(b []byte) (*SniffHeader, error) {
 		if len(b) < hdrLen+int(packetLen) {
 			return nil, common.ErrNoClue // Not enough data to read as a QUIC packet. QUIC is UDP-based, so this is unlikely to happen.
 		}
+
+		b = bytes.Clone(b)
 
 		restPayload := b[hdrLen+int(packetLen):]
 		if !isQuicInitial { // Skip this packet if it's not initial packet

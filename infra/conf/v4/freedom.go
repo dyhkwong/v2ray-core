@@ -12,11 +12,10 @@ import (
 )
 
 type FreedomConfig struct {
-	DomainStrategy      string  `json:"domainStrategy"`
-	Timeout             *uint32 `json:"timeout"`
-	Redirect            string  `json:"redirect"`
-	UserLevel           uint32  `json:"userLevel"`
-	ProtocolReplacement string  `json:"protocolReplacement"`
+	DomainStrategy string  `json:"domainStrategy"`
+	Timeout        *uint32 `json:"timeout"`
+	Redirect       string  `json:"redirect"`
+	UserLevel      uint32  `json:"userLevel"`
 }
 
 // Build implements Buildable
@@ -58,16 +57,6 @@ func (c *FreedomConfig) Build() (proto.Message, error) {
 		if len(host) > 0 {
 			config.DestinationOverride.Server.Address = v2net.NewIPOrDomain(v2net.ParseAddress(host))
 		}
-	}
-	switch strings.ToLower(c.ProtocolReplacement) {
-	case "forcetcp", "force_tcp", "force-tcp":
-		config.ProtocolReplacement = freedom.ProtocolReplacement_FORCE_TCP
-	case "forceudp", "force_udp", "force-udp":
-		config.ProtocolReplacement = freedom.ProtocolReplacement_FORCE_UDP
-	case "identity", "":
-		config.ProtocolReplacement = freedom.ProtocolReplacement_IDENTITY
-	default:
-		return nil, newError("invalid protocol replacement: ", c.ProtocolReplacement)
 	}
 	return config, nil
 }

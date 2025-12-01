@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/des"
 	"crypto/md5"
 	"crypto/rc4"
 	"crypto/sha1"
@@ -14,11 +13,7 @@ import (
 	"github.com/aead/chacha20"
 	"github.com/aead/chacha20/chacha"
 	"github.com/dgryski/go-camellia"
-	"github.com/dgryski/go-rc2"
-	"github.com/geeksbaek/seed"
-	"github.com/kierdavis/cfb8"
 	"golang.org/x/crypto/blowfish"
-	"golang.org/x/crypto/cast5"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 
@@ -153,80 +148,10 @@ func (a *Account) getCipher() (Cipher, error) {
 			EncryptCreator: blockStream(aes.NewCipher, cipher.NewCFBEncrypter),
 			DecryptCreator: blockStream(aes.NewCipher, cipher.NewCFBDecrypter),
 		}, nil
-	case CipherType_AES_128_CFB8:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(aes.NewCipher, cfb8.NewDecrypter),
-		}, nil
-	case CipherType_AES_192_CFB8:
-		return &StreamCipher{
-			KeyBytes:       24,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(aes.NewCipher, cfb8.NewDecrypter),
-		}, nil
-	case CipherType_AES_256_CFB8:
-		return &StreamCipher{
-			KeyBytes:       32,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(aes.NewCipher, cfb8.NewDecrypter),
-		}, nil
-	case CipherType_AES_128_OFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-			DecryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-		}, nil
-	case CipherType_AES_192_OFB:
-		return &StreamCipher{
-			KeyBytes:       24,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-			DecryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-		}, nil
-	case CipherType_AES_256_OFB:
-		return &StreamCipher{
-			KeyBytes:       32,
-			IVBytes:        aes.BlockSize,
-			EncryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-			DecryptCreator: blockStream(aes.NewCipher, cipher.NewOFB),
-		}, nil
-	case CipherType_RC4:
-		return &StreamCipher{
-			KeyBytes: 16,
-			IVBytes:  0,
-			EncryptCreator: func(key []byte, iv []byte) (cipher.Stream, error) {
-				return rc4.NewCipher(key)
-			},
-			DecryptCreator: func(key []byte, iv []byte) (cipher.Stream, error) {
-				return rc4.NewCipher(key)
-			},
-		}, nil
 	case CipherType_RC4_MD5:
 		return &StreamCipher{
 			KeyBytes: 16,
 			IVBytes:  16,
-			EncryptCreator: func(key []byte, iv []byte) (cipher.Stream, error) {
-				h := md5.New()
-				h.Write(key)
-				h.Write(iv)
-				return rc4.NewCipher(h.Sum(nil))
-			},
-			DecryptCreator: func(key []byte, iv []byte) (cipher.Stream, error) {
-				h := md5.New()
-				h.Write(key)
-				h.Write(iv)
-				return rc4.NewCipher(h.Sum(nil))
-			},
-		}, nil
-	case CipherType_RC4_MD5_6:
-		return &StreamCipher{
-			KeyBytes: 16,
-			IVBytes:  6,
 			EncryptCreator: func(key []byte, iv []byte) (cipher.Stream, error) {
 				h := md5.New()
 				h.Write(key)
@@ -246,41 +171,6 @@ func (a *Account) getCipher() (Cipher, error) {
 			IVBytes:        blowfish.BlockSize,
 			EncryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return blowfish.NewCipher(key) }, cipher.NewCFBEncrypter),
 			DecryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return blowfish.NewCipher(key) }, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_CAST5_CFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        cast5.BlockSize,
-			EncryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return cast5.NewCipher(key) }, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return cast5.NewCipher(key) }, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_DES_CFB:
-		return &StreamCipher{
-			KeyBytes:       8,
-			IVBytes:        des.BlockSize,
-			EncryptCreator: blockStream(des.NewCipher, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(des.NewCipher, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_RC2_CFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        rc2.BlockSize,
-			EncryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return rc2.New(key, 16) }, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(func(key []byte) (cipher.Block, error) { return rc2.New(key, 16) }, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_SEED_CFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        seed.BlockSize,
-			EncryptCreator: blockStream(seed.NewCipher, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(seed.NewCipher, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_IDEA_CFB:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        8,
-			EncryptCreator: blockStream(crypto.NewIdeaCipher, cipher.NewCFBEncrypter),
-			DecryptCreator: blockStream(crypto.NewIdeaCipher, cipher.NewCFBDecrypter),
 		}, nil
 	case CipherType_CAMELLIA_128_CFB:
 		return &StreamCipher{
@@ -302,27 +192,6 @@ func (a *Account) getCipher() (Cipher, error) {
 			IVBytes:        camellia.BlockSize,
 			EncryptCreator: blockStream(camellia.New, cipher.NewCFBEncrypter),
 			DecryptCreator: blockStream(camellia.New, cipher.NewCFBDecrypter),
-		}, nil
-	case CipherType_CAMELLIA_128_CFB8:
-		return &StreamCipher{
-			KeyBytes:       16,
-			IVBytes:        camellia.BlockSize,
-			EncryptCreator: blockStream(camellia.New, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(camellia.New, cfb8.NewDecrypter),
-		}, nil
-	case CipherType_CAMELLIA_192_CFB8:
-		return &StreamCipher{
-			KeyBytes:       24,
-			IVBytes:        camellia.BlockSize,
-			EncryptCreator: blockStream(camellia.New, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(camellia.New, cfb8.NewDecrypter),
-		}, nil
-	case CipherType_CAMELLIA_256_CFB8:
-		return &StreamCipher{
-			KeyBytes:       32,
-			IVBytes:        camellia.BlockSize,
-			EncryptCreator: blockStream(camellia.New, cfb8.NewEncrypter),
-			DecryptCreator: blockStream(camellia.New, cfb8.NewDecrypter),
 		}, nil
 	case CipherType_SALSA20:
 		return &StreamCipher{
@@ -600,48 +469,16 @@ func CipherFromString(c string) CipherType {
 		return CipherType_AES_192_CFB
 	case "aes-256-cfb":
 		return CipherType_AES_256_CFB
-	case "aes-128-cfb8":
-		return CipherType_AES_128_CFB8
-	case "aes-192-cfb8":
-		return CipherType_AES_192_CFB8
-	case "aes-256-cfb8":
-		return CipherType_AES_256_CFB8
-	case "aes-128-ofb":
-		return CipherType_AES_128_OFB
-	case "aes-192-ofb":
-		return CipherType_AES_192_OFB
-	case "aes-256-ofb":
-		return CipherType_AES_256_OFB
-	case "rc4":
-		return CipherType_RC4
 	case "rc4-md5":
 		return CipherType_RC4_MD5
-	case "rc4-md5-6":
-		return CipherType_RC4_MD5_6
 	case "bf-cfb":
 		return CipherType_BF_CFB
-	case "cast5-cfb":
-		return CipherType_CAST5_CFB
-	case "des-cfb":
-		return CipherType_DES_CFB
-	case "rc2-cfb":
-		return CipherType_RC2_CFB
-	case "seed-cfb":
-		return CipherType_SEED_CFB
-	case "idea-cfb":
-		return CipherType_IDEA_CFB
 	case "camellia-128-cfb":
 		return CipherType_CAMELLIA_128_CFB
 	case "camellia-192-cfb":
 		return CipherType_CAMELLIA_192_CFB
 	case "camellia-256-cfb":
 		return CipherType_CAMELLIA_256_CFB
-	case "camellia-128-cfb8":
-		return CipherType_CAMELLIA_128_CFB8
-	case "camellia-192-cfb8":
-		return CipherType_CAMELLIA_192_CFB8
-	case "camellia-256-cfb8":
-		return CipherType_CAMELLIA_256_CFB8
 	case "salsa20":
 		return CipherType_SALSA20
 	case "chacha20":

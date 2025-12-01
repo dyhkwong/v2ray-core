@@ -278,9 +278,15 @@ func (d *persistentMirrorTLSDialer) Dial(ctx context.Context,
 		if err != nil {
 			return nil, newError("failed to request new connection").Base(err)
 		}
+		timer := time.NewTimer(10 * time.Second)
+		defer timer.Stop()
 		select { // nolint: staticcheck
 		case conn := <-d.incomingConnections:
 			recvConn = conn
+		case <-timer.C:
+			return nil, newError("timeout waiting for incoming connection")
+		case <-ctx.Done():
+			return nil, newError("context done while waiting for incoming connection")
 		}
 	}
 

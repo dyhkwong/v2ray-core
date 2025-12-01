@@ -75,7 +75,7 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 			tlsConfig := config.GetTLSConfig(tls.WithDestination(dest))
 			// https://github.com/grpc/grpc-go/blob/98959d9a4904e98bbf8b423ce6a3cb5d36f90ee1/credentials/tls.go#L205-L210
 			if tlsConfig.EncryptedClientHelloConfigList != nil && tlsConfig.MinVersion == 0 && (tlsConfig.MaxVersion == 0 || tlsConfig.MaxVersion >= gotls.VersionTLS13) {
-				config.MinVersion = gotls.VersionTLS13
+				tlsConfig.MinVersion = gotls.VersionTLS13
 			}
 			transportCredentials = credentials.NewTLS(tlsConfig)
 		}
@@ -92,8 +92,22 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	if err != nil {
 		return nil, newError("Cannot dial grpc").Base(err)
 	}
+	if grpcSettings.MultiMode {
+		client := encoding.NewGunMultiServiceClient(conn)
+		gunMultiService, err := client.(encoding.GunMultiServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+		if err != nil {
+			canceller()
+			return nil, newError("Cannot dial grpc").Base(err)
+		}
+		return encoding.NewGunMultiConn(gunMultiService, nil), nil
+	}
 	client := encoding.NewGunServiceClient(conn)
-	gunService, err := client.(encoding.GunServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+	var gunService grpc.BidiStreamingClient[encoding.Hunk, encoding.Hunk]
+	if grpcSettings.ServiceNameCompat {
+		gunService, err = client.(encoding.GunServiceClientXWithTunCustomNameX).TunCustomNameX(ctx, grpcSettings.ServiceName)
+	} else {
+		gunService, err = client.(encoding.GunServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
+	}
 	if err != nil {
 		canceller()
 		return nil, newError("Cannot dial grpc").Base(err)
@@ -167,6 +181,9 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 			return conn, err
 		}),
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 	canceller = func() {
 		stateTyped.scopedDialerAccess.Lock()
 		defer stateTyped.scopedDialerAccess.Unlock()
