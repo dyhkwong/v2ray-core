@@ -17,7 +17,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/environment/envctx"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
-	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
@@ -58,13 +57,13 @@ func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStr
 }
 
 func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {
-	if dest.Address.Family().IsIP() {
+	switch {
+	case dest.Address.Family().IsIP():
 		return &net.UDPAddr{
 			IP:   dest.Address.IP(),
 			Port: int(dest.Port),
 		}, nil
-	}
-	if resolver != nil {
+	case resolver != nil:
 		if addr := resolver(ctx, dest.Address.Domain()); addr != nil {
 			return &net.UDPAddr{
 				IP:   addr.IP(),
@@ -72,17 +71,16 @@ func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx
 			}, nil
 		}
 		return nil, newError("failed to resolve domain ", dest.Address.Domain())
+	default:
+		addr, err := localdns.New().LookupIP(dest.Address.Domain())
+		if err != nil {
+			return nil, err
+		}
+		return &net.UDPAddr{
+			IP:   addr[0],
+			Port: int(dest.Port),
+		}, nil
 	}
-	// SagerNet private
-	ips, err := localdns.New().LookupIP(dest.Address.Domain())
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, dns.ErrEmptyResponse
-	}
-	dest.Address = net.IPAddress(ips[0])
-	return net.ResolveUDPAddr("udp", dest.NetAddr())
 }
 
 type connFactory struct {

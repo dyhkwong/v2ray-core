@@ -6,7 +6,11 @@ import (
 
 	mieruclient "github.com/enfein/mieru/v3/apis/client"
 	mierucommon "github.com/enfein/mieru/v3/apis/common"
+	mierumodel "github.com/enfein/mieru/v3/apis/model"
 	mierupb "github.com/enfein/mieru/v3/pkg/appctl/appctlpb"
+	"github.com/sagernet/sing/common/buf"
+	"github.com/sagernet/sing/common/metadata"
+	"github.com/sagernet/sing/common/network"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -19,7 +23,62 @@ var (
 	_ mierucommon.PacketDialer = (*dialerWrapper)(nil)
 	_ mierucommon.DNSResolver  = (*resolverWrapper)(nil)
 	_ mierucommon.DNSResolver  = (*localResolverWrapper)(nil)
+	_ network.PacketConn       = (*udpAssociateWrapper)(nil)
+	_ network.FrontHeadroom    = (*udpAssociateWrapper)(nil)
 )
+
+var addressSerializer = metadata.NewSerializer(
+	metadata.AddressFamilyByte(0x01, metadata.AddressFamilyIPv4),
+	metadata.AddressFamilyByte(0x04, metadata.AddressFamilyIPv6),
+	metadata.AddressFamilyByte(0x03, metadata.AddressFamilyFqdn),
+)
+
+type udpAssociateWrapper struct {
+	*mierucommon.UDPAssociateWrapper
+}
+
+func (c *udpAssociateWrapper) ReadFrom(_ []byte) (int, net.Addr, error) {
+	panic("do not call ReadFrom, call ReadPacket instead")
+}
+
+func (c *udpAssociateWrapper) WriteTo(_ []byte, _ net.Addr) (int, error) {
+	panic("do not call WriteTo, call WritePacket instead")
+}
+
+func (c *udpAssociateWrapper) FrontHeadroom() int {
+	return metadata.MaxSocksaddrLength + 3
+}
+
+func (c *udpAssociateWrapper) ReadPacket(buffer *buf.Buffer) (metadata.Socksaddr, error) {
+	// mierucommon.UDPAssociateWrapper ReadFrom() does not support domain address
+	// so read and parse raw data
+	_, _, err := buffer.ReadPacketFrom(c.UDPAssociateWrapper.PacketConn) // nolint: staticcheck
+	if err != nil {
+		return metadata.Socksaddr{}, err
+	}
+	b, err := buffer.ReadBytes(3)
+	if err != nil {
+		return metadata.Socksaddr{}, err
+	}
+	if b[0] != 0x00 || b[1] != 0x00 || b[2] != 0x00 {
+		return metadata.Socksaddr{}, newError("invalid UDP header")
+	}
+	return addressSerializer.ReadAddrPort(buffer)
+}
+
+func (c *udpAssociateWrapper) WritePacket(buffer *buf.Buffer, destination metadata.Socksaddr) error {
+	addr := &mierumodel.NetAddrSpec{
+		Net: "udp",
+		AddrSpec: mierumodel.AddrSpec{
+			IP:   destination.Addr.AsSlice(),
+			FQDN: destination.Fqdn,
+			Port: int(destination.Port),
+		},
+	}
+	_, err := c.UDPAssociateWrapper.WriteTo(buffer.Bytes(), addr)
+	buffer.Release()
+	return err
+}
 
 type dialerWrapper struct {
 	dialer internet.Dialer

@@ -8,7 +8,6 @@ import (
 	"golang.zx2c4.com/wireguard/conn"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -28,6 +27,7 @@ type netReadInfo struct {
 type netBind struct {
 	workers   int
 	readQueue chan *netReadInfo
+	resolver  func(ctx context.Context, domain string) net.Address
 	closeOnce sync.Once
 }
 
@@ -38,29 +38,25 @@ func (bind *netBind) SetMark(mark uint32) error {
 
 // ParseEndpoint implements conn.Bind
 func (n *netBind) ParseEndpoint(s string) (conn.Endpoint, error) {
-	host, portStr, err := net.SplitHostPort(s)
+	dest, err := net.ParseDestination(s)
 	if err != nil {
 		return nil, err
 	}
-	port, err := net.PortFromString(portStr)
-	if err != nil {
-		return nil, err
-	}
-	dest := net.Destination{
-		Address: net.ParseAddress(host),
-		Port:    port,
-		Network: net.Network_UDP,
-	}
+	dest.Network = net.Network_UDP
 	if dest.Address.Family().IsDomain() {
-		// SagerNet private
-		ips, err := localdns.New().LookupIP(dest.Address.Domain())
-		if err != nil {
-			return nil, err
+		if n.resolver != nil {
+			addr := n.resolver(context.TODO(), dest.Address.Domain())
+			if addr == nil {
+				return nil, newError("failed to resolve domain ", dest.Address.Domain())
+			}
+			dest.Address = addr
+		} else {
+			addr, err := localdns.New().LookupIP(dest.Address.Domain())
+			if err != nil {
+				return nil, err
+			}
+			dest.Address = net.IPAddress(addr[0])
 		}
-		if len(ips) == 0 {
-			return nil, dns.ErrEmptyResponse
-		}
-		dest.Address = net.IPAddress(ips[0])
 	}
 	return &netEndpoint{
 		dest: dest,

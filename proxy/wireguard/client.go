@@ -72,7 +72,7 @@ func (c *Client) Close() (err error) {
 	return nil
 }
 
-func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (err error) {
+func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer, resolver func(ctx context.Context, domain string) net.Address) (err error) {
 	c.wgLock.Lock()
 	defer c.wgLock.Unlock()
 
@@ -97,7 +97,8 @@ func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer) (
 	// bind := conn.NewStdNetBind() // TODO: conn.Bind wrapper for dialer
 	c.bind = &netBindClient{
 		netBind: netBind{
-			workers: int(c.conf.NumWorkers),
+			workers:  int(c.conf.NumWorkers),
+			resolver: resolver,
 		},
 		ctx:      core.ToBackgroundDetachedContext(ctx),
 		dialer:   dialer,
@@ -124,7 +125,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("target not specified")
 	}
 
-	if err := c.processWireGuard(ctx, dialer); err != nil {
+	if err := c.processWireGuard(ctx, dialer, outbound.Resolver); err != nil {
 		return err
 	}
 

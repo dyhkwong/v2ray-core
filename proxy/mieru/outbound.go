@@ -125,8 +125,10 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	if destination.Network == net.Network_TCP {
 		return singbridge.ReturnError(bufio.CopyConn(ctx, singbridge.NewPipeConnWrapper(link), conn))
 	} else {
-		udpConn := mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(conn))
-		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), bufio.NewPacketConn(udpConn)))
+		packetConn := &udpAssociateWrapper{
+			UDPAssociateWrapper: mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(conn)),
+		}
+		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), packetConn))
 	}
 }
 
