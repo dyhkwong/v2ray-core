@@ -138,43 +138,35 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		hyConfig.ServerAddr = udpHopAddr
 	}
 
-	connFactory := &connFactory{
-		NewFunc: func(addr net.Addr) (net.PacketConn, error) {
-			if len(config.HopPorts) > 0 {
-				return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr), time.Duration(config.HopInterval)*time.Second,
-					func() (net.PacketConn, error) {
-						rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(serverAddr), streamSettings.SocketSettings)
-						if err != nil {
-							return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
-						}
-						var pc net.PacketConn
-						switch rc := rawConn.(type) {
-						case *internet.PacketConnWrapper:
-							pc = rc.Conn
-						case net.PacketConn:
-							pc = rc
-						default:
-							pc = internet.NewConnWrapper(rc)
-						}
-						return pc, nil
-					},
-				)
-			}
-			rawConn, err := internet.DialSystem(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
-			if err != nil {
-				return nil, newError("failed to dial to dest: ", err).AtWarning().Base(err)
-			}
-			var pc net.PacketConn
-			switch rc := rawConn.(type) {
-			case *internet.PacketConnWrapper:
-				pc = rc.Conn
-			case net.PacketConn:
-				pc = rc
-			default:
-				pc = internet.NewConnWrapper(rc)
-			}
-			return pc, nil
-		},
+	dialFunc := func(ctx context.Context, dest net.Destination, sockopt *internet.SocketConfig) (net.PacketConn, error) {
+		rawConn, err := internet.DialSystem(ctx, dest, sockopt)
+		if err != nil {
+			return nil, newError("failed to dial to dest: ", dest).AtWarning().Base(err)
+		}
+		switch rc := rawConn.(type) {
+		case *internet.PacketConnWrapper:
+			return rc.Conn, nil
+		case net.PacketConn:
+			return rc, nil
+		default:
+			return internet.NewConnWrapper(rawConn), nil
+		}
+	}
+
+	connFactory := &connFactory{}
+	if len(config.HopPorts) > 0 {
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
+			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr), time.Duration(config.HopInterval)*time.Second,
+				func(currentHopAddr net.Addr) (net.PacketConn, error) {
+					newError("hopping to ", net.DestinationFromAddr(currentHopAddr)).AtDebug().WriteToLog(session.ExportIDToError(ctx))
+					return dialFunc(ctx, net.DestinationFromAddr(currentHopAddr), streamSettings.SocketSettings)
+				},
+			)
+		}
+	} else {
+		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
+			return dialFunc(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
+		}
 	}
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
 		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))

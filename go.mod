@@ -10,7 +10,7 @@ require (
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152
 	github.com/dyhkwong/hysteria/core/v2 v2.6.5-1
-	github.com/dyhkwong/hysteria/extras/v2 v2.6.5-2
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.5-3
 	github.com/dyhkwong/sing-juicity v0.1.0-beta.2
 	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
@@ -42,8 +42,8 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
-	golang.org/x/sync v0.18.0
-	golang.org/x/sys v0.38.0
+	golang.org/x/sync v0.19.0
+	golang.org/x/sys v0.39.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
