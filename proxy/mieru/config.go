@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -89,6 +90,7 @@ func (d *dialerWrapper) DialContext(ctx context.Context, network, address string
 	if err != nil {
 		return nil, err
 	}
+	newError("dialing to ", destination).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	return d.dialer.Dial(ctx, destination)
 }
 
@@ -101,6 +103,7 @@ func (d *dialerWrapper) ListenPacket(ctx context.Context, network, _, raddr stri
 	if err != nil {
 		return nil, err
 	}
+	newError("dialing to ", destination).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	return internet.NewConnWrapper(conn), nil
 }
 

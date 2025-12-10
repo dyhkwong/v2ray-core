@@ -37,6 +37,9 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		Address: config.Address.AsAddress(),
 		Port:    net.Port(config.Port),
 	}
+	if len(config.PortRange) > 0 {
+		serverAddr.Port = 0
+	}
 	switch config.Protocol {
 	case "", "tcp":
 		serverAddr.Network = net.Network_TCP
