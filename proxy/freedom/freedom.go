@@ -140,9 +140,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		h.resolver = func(ctx context.Context, domain string) net.Address {
 			return h.resolveIP(ctx, domain, dialer.Address())
 		}
-	}
-	if outbound.Resolver != nil {
-		h.resolver = outbound.Resolver
+		outbound.Resolver = h.resolver
 	}
 	newError("opening connection to ", destination).WriteToLog(session.ExportIDToError(ctx))
 
