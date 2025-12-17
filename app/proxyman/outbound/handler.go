@@ -212,6 +212,16 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		outbound = new(session.Outbound)
 		ctx = session.ContextWithOutbound(ctx, outbound)
 	}
+	if h.senderSettings != nil && h.senderSettings.DialDomainStrategy != proxyman.SenderConfig_AS_IS {
+		outbound.Resolver = func(ctx context.Context, domain string) net.Address {
+			return h.resolveIP(ctx, domain, h.Address(), h.senderSettings.DialDomainStrategy)
+		}
+	}
+	if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
+		outbound.TargetResolver = func(ctx context.Context, domain string) net.Address {
+			return h.resolveIP(ctx, domain, h.Address(), h.senderSettings.DomainStrategy)
+		}
+	}
 	if outbound.Target.Network != net.Network_UDP && h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
 		if outbound.Target.Address != nil && outbound.Target.Address.Family().IsDomain() {
 			if addr := h.resolveIP(ctx, outbound.Target.Address.Domain(), h.Address(), h.senderSettings.DomainStrategy); addr != nil {
@@ -259,7 +269,7 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			writer.usedFakeIPs = usedFakeIPs
 		}
 		if h.senderSettings != nil && h.senderSettings.DomainStrategy != proxyman.SenderConfig_AS_IS {
-			writer.resolveIP = func(domain string) net.Address {
+			writer.resolver = func(domain string) net.Address {
 				return h.resolveIP(h.ctx, domain, h.Address(), h.senderSettings.DomainStrategy)
 			}
 			ipToDomain := new(sync.Map)
@@ -513,7 +523,7 @@ func (h *Handler) Close() error {
 
 	if closableProxy, ok := h.proxy.(common.Closable); ok {
 		if err := closableProxy.Close(); err != nil {
-			return newError("unable to close proxy").Base(err)
+			newError("unable to close proxy").Base(err).AtError().WriteToLog()
 		}
 	}
 

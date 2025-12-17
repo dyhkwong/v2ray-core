@@ -60,7 +60,7 @@ type EndpointOverrideWriter struct {
 	OriginalDest net.Address
 	fakedns      dns.FakeDNSEngine
 	usedFakeIPs  *sync.Map
-	resolveIP    func(domain string) net.Address
+	resolver     func(domain string) net.Address
 	ipToDomain   *sync.Map
 }
 
@@ -83,8 +83,8 @@ func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				b.Endpoint.Address = net.DomainAddress(domain)
 			}
 		}
-		if w.resolveIP != nil && w.ipToDomain != nil && b.Endpoint.Address.Family().IsDomain() {
-			if ip := w.resolveIP(b.Endpoint.Address.Domain()); ip != nil {
+		if w.resolver != nil && w.ipToDomain != nil && b.Endpoint.Address.Family().IsDomain() {
+			if ip := w.resolver(b.Endpoint.Address.Domain()); ip != nil {
 				w.ipToDomain.LoadOrStore(ip, b.Endpoint.Address)
 				b.Endpoint.Address = ip
 			} else {

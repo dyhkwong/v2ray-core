@@ -182,7 +182,7 @@ func (i *RelayInbound) Process(ctx context.Context, network net.Network, connect
 		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)
-		pc := &natPacketConn{connection}
+		pc := bufio.NewUnbindPacketConn(connection)
 		for {
 			mb, err := reader.ReadMultiBuffer()
 			if err != nil {

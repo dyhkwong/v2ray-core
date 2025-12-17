@@ -304,7 +304,7 @@ func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	startAt := time.Now()
 	resp, err := s.dohHTTPSContext(dnsCtx, request)
 	if err != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		if errors.Is(dnsCtx.Err(), context.DeadlineExceeded) {
 			s.Lock()
 			if s.resetAt.Before(startAt) {
 				s.httpClient.CloseIdleConnections()

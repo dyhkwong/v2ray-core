@@ -174,17 +174,17 @@ func (c *clientConnections) openConnection(ctx context.Context, dest net.Destina
 		KeepAlivePeriod:      time.Second * 15,
 	}
 
-	var pc net.PacketConn
-	switch rc := rawConn.(type) {
+	var packetConn net.PacketConn
+	switch rawConn := rawConn.(type) {
 	case *internet.PacketConnWrapper:
-		pc = rc.Conn
+		packetConn = rawConn.Conn
 	case net.PacketConn:
-		pc = rc
+		packetConn = rawConn
 	default:
-		pc = internet.NewConnWrapper(rc)
+		packetConn = internet.NewConnWrapper(rawConn)
 	}
 
-	sysConn, err := wrapSysConn(pc, streamSettings.ProtocolSettings.(*Config))
+	sysConn, err := wrapSysConn(packetConn, streamSettings.ProtocolSettings.(*Config))
 	if err != nil {
 		rawConn.Close()
 		return nil, err
