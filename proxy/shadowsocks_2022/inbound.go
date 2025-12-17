@@ -167,7 +167,7 @@ func (i *Inbound) Process(ctx context.Context, network net.Network, connection i
 		return singbridge.ReturnError(i.service.NewConnection(ctx, connection, metadata))
 	} else {
 		reader := buf.NewReader(connection)
-		pc := &natPacketConn{connection}
+		pc := bufio.NewUnbindPacketConn(connection)
 		for {
 			mb, err := reader.ReadMultiBuffer()
 			if err != nil {
@@ -235,18 +235,4 @@ func (i *Inbound) NewError(ctx context.Context, err error) {
 	if singbridge.ReturnError(err) != nil {
 		newError(err).AtWarning().WriteToLog(session.ExportIDToError(ctx))
 	}
-}
-
-type natPacketConn struct {
-	net.Conn
-}
-
-func (c *natPacketConn) ReadPacket(buffer *B.Buffer) (addr M.Socksaddr, err error) {
-	_, err = buffer.ReadFrom(c)
-	return addr, err
-}
-
-func (c *natPacketConn) WritePacket(buffer *B.Buffer, addr M.Socksaddr) error {
-	_, err := buffer.WriteTo(c)
-	return err
 }

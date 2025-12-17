@@ -7,15 +7,16 @@ import (
 	mieruclient "github.com/enfein/mieru/v3/apis/client"
 	mierucommon "github.com/enfein/mieru/v3/apis/common"
 	mierumodel "github.com/enfein/mieru/v3/apis/model"
-	"github.com/sagernet/sing/common/bufio"
 
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
-	"github.com/v2fly/v2ray-core/v5/common/singbridge"
+	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
 
 func init() {
@@ -125,14 +126,27 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return err
 	}
 
+	var reader buf.Reader
+	var writer buf.Writer
 	if destination.Network == net.Network_TCP {
-		return singbridge.ReturnError(bufio.CopyConn(ctx, singbridge.NewPipeConnWrapper(link), conn))
+		reader = buf.NewReader(conn)
+		writer = buf.NewWriter(conn)
 	} else {
-		packetConn := &udpAssociateWrapper{
+		packetConn := udp.NewMonoDestUDPConn(&udpAssociateWrapper{
 			UDPAssociateWrapper: mierucommon.NewUDPAssociateWrapper(mierucommon.NewPacketOverStreamTunnel(conn)),
-		}
-		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), packetConn))
+		}, udp.NewMonoDestUDPAddr(destination.Address, destination.Port))
+		reader = packetConn
+		writer = packetConn
 	}
+
+	if err := task.Run(ctx, func() error {
+		return buf.Copy(link.Reader, writer)
+	}, func() error {
+		return buf.Copy(reader, link.Writer)
+	}); err != nil {
+		return newError("connection ends").Base(err)
+	}
+	return nil
 }
 
 func (o *Outbound) InterfaceUpdate() {

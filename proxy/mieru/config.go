@@ -1,6 +1,7 @@
 package mieru
 
 import (
+	"bytes"
 	"context"
 	gonet "net"
 
@@ -8,15 +9,11 @@ import (
 	mierucommon "github.com/enfein/mieru/v3/apis/common"
 	mierumodel "github.com/enfein/mieru/v3/apis/model"
 	mierupb "github.com/enfein/mieru/v3/pkg/appctl/appctlpb"
-	"github.com/sagernet/sing/common/buf"
-	"github.com/sagernet/sing/common/metadata"
-	"github.com/sagernet/sing/common/network"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
 
 var (
@@ -24,61 +21,90 @@ var (
 	_ mierucommon.PacketDialer = (*dialerWrapper)(nil)
 	_ mierucommon.DNSResolver  = (*resolverWrapper)(nil)
 	_ mierucommon.DNSResolver  = (*localResolverWrapper)(nil)
-	_ network.PacketConn       = (*udpAssociateWrapper)(nil)
-	_ network.FrontHeadroom    = (*udpAssociateWrapper)(nil)
-)
-
-var addressSerializer = metadata.NewSerializer(
-	metadata.AddressFamilyByte(0x01, metadata.AddressFamilyIPv4),
-	metadata.AddressFamilyByte(0x04, metadata.AddressFamilyIPv6),
-	metadata.AddressFamilyByte(0x03, metadata.AddressFamilyFqdn),
+	_ net.PacketConn           = (*udpAssociateWrapper)(nil)
 )
 
 type udpAssociateWrapper struct {
 	*mierucommon.UDPAssociateWrapper
 }
 
-func (c *udpAssociateWrapper) ReadFrom(_ []byte) (int, net.Addr, error) {
-	panic("do not call ReadFrom, call ReadPacket instead")
-}
-
-func (c *udpAssociateWrapper) WriteTo(_ []byte, _ net.Addr) (int, error) {
-	panic("do not call WriteTo, call WritePacket instead")
-}
-
-func (c *udpAssociateWrapper) FrontHeadroom() int {
-	return metadata.MaxSocksaddrLength + 3
-}
-
-func (c *udpAssociateWrapper) ReadPacket(buffer *buf.Buffer) (metadata.Socksaddr, error) {
+func (c *udpAssociateWrapper) ReadFrom(p []byte) (int, net.Addr, error) {
 	// mierucommon.UDPAssociateWrapper ReadFrom() does not support domain address
 	// so read and parse raw data
-	_, _, err := buffer.ReadPacketFrom(c.UDPAssociateWrapper.PacketConn) // nolint: staticcheck
+	b := make([]byte, len(p)+256)
+	n, _, err := c.PacketConn.ReadFrom(b)
 	if err != nil {
-		return metadata.Socksaddr{}, err
+		return 0, nil, err
 	}
-	b, err := buffer.ReadBytes(3)
-	if err != nil {
-		return metadata.Socksaddr{}, err
+	b = b[:n]
+	if n <= 6 {
+		return 0, nil, newError("packet size ", n, "is too short to hold UDP associate header")
 	}
-	if b[0] != 0x00 || b[1] != 0x00 || b[2] != 0x00 {
-		return metadata.Socksaddr{}, newError("invalid UDP header")
+	if b[0] != 0x00 || b[1] != 0x00 {
+		return 0, nil, newError("invalid UDP header")
 	}
-	return addressSerializer.ReadAddrPort(buffer)
+	if b[2] != 0x00 {
+		return 0, nil, newError("UDP fragment is not supported")
+	}
+	var dest mierumodel.NetAddrSpec
+	r := bytes.NewReader(b[3:])
+	if err = dest.ReadFromSocks5(r); err != nil {
+		return 0, nil, err
+	}
+	var addr net.Addr
+	if dest.FQDN != "" {
+		addr = udp.NewMonoDestUDPAddr(net.DomainAddress(dest.FQDN), net.Port(dest.Port))
+	} else {
+		addr = &net.UDPAddr{
+			IP:   dest.IP,
+			Port: dest.Port,
+		}
+	}
+	n, err = r.Read(p)
+	return n, addr, err
 }
 
-func (c *udpAssociateWrapper) WritePacket(buffer *buf.Buffer, destination metadata.Socksaddr) error {
-	addr := &mierumodel.NetAddrSpec{
-		Net: "udp",
-		AddrSpec: mierumodel.AddrSpec{
-			IP:   destination.Addr.AsSlice(),
-			FQDN: destination.Fqdn,
-			Port: int(destination.Port),
-		},
+func (c *udpAssociateWrapper) WriteTo(p []byte, addr net.Addr) (int, error) {
+	var destAddr net.Addr
+	switch addr := addr.(type) {
+	case *net.UDPAddr:
+		destAddr = addr
+	case *udp.MonoDestUDPAddr:
+		if addr.Address.Family().IsDomain() {
+			destAddr = &mierumodel.NetAddrSpec{
+				Net: "udp",
+				AddrSpec: mierumodel.AddrSpec{
+					FQDN: addr.Address.Domain(),
+					Port: int(addr.Port),
+				},
+			}
+		} else {
+			destAddr = &net.UDPAddr{
+				IP:   addr.Address.IP(),
+				Port: int(addr.Port),
+			}
+		}
+	default:
+		dest, err := net.ParseDestination("udp:" + addr.String())
+		if err != nil {
+			return 0, err
+		}
+		if dest.Address.Family().IsDomain() {
+			destAddr = &mierumodel.NetAddrSpec{
+				Net: "udp",
+				AddrSpec: mierumodel.AddrSpec{
+					FQDN: dest.Address.Domain(),
+					Port: int(dest.Port),
+				},
+			}
+		} else {
+			destAddr = &net.UDPAddr{
+				IP:   dest.Address.IP(),
+				Port: int(dest.Port),
+			}
+		}
 	}
-	_, err := c.UDPAssociateWrapper.WriteTo(buffer.Bytes(), addr)
-	buffer.Release()
-	return err
+	return c.UDPAssociateWrapper.WriteTo(p, destAddr)
 }
 
 type dialerWrapper struct {
@@ -90,7 +116,6 @@ func (d *dialerWrapper) DialContext(ctx context.Context, network, address string
 	if err != nil {
 		return nil, err
 	}
-	newError("dialing to ", destination).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	return d.dialer.Dial(ctx, destination)
 }
 
@@ -103,7 +128,6 @@ func (d *dialerWrapper) ListenPacket(ctx context.Context, network, _, raddr stri
 	if err != nil {
 		return nil, err
 	}
-	newError("dialing to ", destination).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	return internet.NewConnWrapper(conn), nil
 }
 
@@ -173,30 +197,34 @@ func buildMieruClientConfig(config *ClientConfig, dialer *dialerWrapper, resolve
 	}
 	serverEndpoint := &mierupb.ServerEndpoint{}
 	if len(config.PortRange) == 0 {
+		port := int32(config.Port)
 		serverEndpoint.PortBindings = append(serverEndpoint.PortBindings, &mierupb.PortBinding{
-			Port:     proto.Int32(int32(config.Port)),
+			Port:     &port,
 			Protocol: transportProtocol,
 		})
 	} else {
 		for _, portRange := range config.PortRange {
 			serverEndpoint.PortBindings = append(serverEndpoint.PortBindings, &mierupb.PortBinding{
-				PortRange: proto.String(portRange),
+				PortRange: &portRange,
 				Protocol:  transportProtocol,
 			})
 		}
 	}
 	switch config.Address.AsAddress().Family() {
 	case net.AddressFamilyDomain:
-		serverEndpoint.DomainName = proto.String(config.Address.AsAddress().Domain())
+		domain := config.Address.AsAddress().Domain()
+		serverEndpoint.DomainName = &domain
 	case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
-		serverEndpoint.IpAddress = proto.String(config.Address.AsAddress().IP().String())
+		ip := config.Address.AsAddress().IP().String()
+		serverEndpoint.IpAddress = &ip
 	}
+	profileName := "mieru"
 	return &mieruclient.ClientConfig{
 		Profile: &mierupb.ClientProfile{
-			ProfileName: proto.String("mieru"),
+			ProfileName: &profileName,
 			User: &mierupb.User{
-				Name:     proto.String(config.Username),
-				Password: proto.String(config.Password),
+				Name:     &config.Username,
+				Password: &config.Password,
 			},
 			Servers: []*mierupb.ServerEndpoint{
 				serverEndpoint,

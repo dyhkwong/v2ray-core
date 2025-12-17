@@ -6,6 +6,16 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
+func NewMonoDestUDPAddr(address net.Address, port net.Port) net.Addr {
+	if !address.Family().IsDomain() {
+		return &net.UDPAddr{IP: address.IP(), Port: int(port)}
+	}
+	return &MonoDestUDPAddr{
+		Address: address,
+		Port:    port,
+	}
+}
+
 type MonoDestUDPAddr struct {
 	Address net.Address
 	Port    net.Port
@@ -40,19 +50,20 @@ func (m *MonoDestUDPConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		return nil, err
 	}
 	buffer.Resize(0, int32(nBytes))
-	if udpAddr, ok := addr.(*net.UDPAddr); ok {
+	switch addr := addr.(type) {
+	case *net.UDPAddr:
 		buffer.Endpoint = &net.Destination{
-			Address: net.IPAddress(udpAddr.IP),
-			Port:    net.Port(udpAddr.Port),
+			Address: net.IPAddress(addr.IP),
+			Port:    net.Port(addr.Port),
 			Network: net.Network_UDP,
 		}
-	} else if monoDestUDPAddr, ok := addr.(*MonoDestUDPAddr); ok {
+	case *MonoDestUDPAddr:
 		buffer.Endpoint = &net.Destination{
-			Address: monoDestUDPAddr.Address,
-			Port:    monoDestUDPAddr.Port,
+			Address: addr.Address,
+			Port:    addr.Port,
 			Network: net.Network_UDP,
 		}
-	} else {
+	default:
 		dest, err := net.ParseDestination(addr.Network() + ":" + addr.String())
 		if err != nil {
 			buffer.Release()
@@ -72,11 +83,7 @@ func (m *MonoDestUDPConn) WriteMultiBuffer(buffer buf.MultiBuffer) error {
 	for _, b := range buffer {
 		dest := m.dest
 		if b.Endpoint != nil {
-			if !b.Endpoint.Address.Family().IsDomain() {
-				dest = &net.UDPAddr{IP: b.Endpoint.Address.IP(), Port: int(b.Endpoint.Port)}
-			} else {
-				dest = &MonoDestUDPAddr{Address: b.Endpoint.Address, Port: b.Endpoint.Port}
-			}
+			dest = NewMonoDestUDPAddr(b.Endpoint.Address, b.Endpoint.Port)
 		}
 		_, err := m.WriteTo(b.Bytes(), dest)
 		if err != nil {

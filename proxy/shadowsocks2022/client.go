@@ -2,7 +2,6 @@ package shadowsocks2022
 
 import (
 	"context"
-	gonet "net"
 	"strconv"
 	"sync"
 	"time"
@@ -213,13 +212,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		if err != nil {
 			return newError("failed to get UDP udpSession").Base(err)
 		}
-		var addr net.Addr
-		if !destination.Address.Family().IsDomain() {
-			addr = &gonet.UDPAddr{IP: destination.Address.IP(), Port: int(destination.Port)}
-		} else {
-			addr = &udp.MonoDestUDPAddr{Address: destination.Address, Port: destination.Port}
-		}
-		monoDestUDPConn := udp.NewMonoDestUDPConn(udpSession, addr)
+		monoDestUDPConn := udp.NewMonoDestUDPConn(udpSession, udp.NewMonoDestUDPAddr(destination.Address, destination.Port))
 		requestDone := func() error {
 			return buf.Copy(link.Reader, monoDestUDPConn, buf.UpdateActivity(timer))
 		}

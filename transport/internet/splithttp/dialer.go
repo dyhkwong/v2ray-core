@@ -173,16 +173,16 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				if err != nil {
 					return nil, err
 				}
-				var pc net.PacketConn
-				switch rc := rawConn.(type) {
+				var packetConn net.PacketConn
+				switch rawConn := rawConn.(type) {
 				case *internet.PacketConnWrapper:
-					pc = rc.Conn
+					packetConn = rawConn.Conn
 				case net.PacketConn:
-					pc = rc
+					packetConn = rawConn
 				default:
-					pc = internet.NewConnWrapper(rc)
+					packetConn = internet.NewConnWrapper(rawConn)
 				}
-				return quic.DialEarly(detachedCtx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.DialEarly(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	case "2":

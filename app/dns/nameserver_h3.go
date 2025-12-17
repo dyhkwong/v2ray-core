@@ -60,16 +60,16 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 					if err != nil {
 						return nil, err
 					}
-					var pc net.PacketConn
-					switch rc := rawConn.(type) {
+					var packetConn net.PacketConn
+					switch rawConn := rawConn.(type) {
 					case *internet.PacketConnWrapper:
-						pc = rc.Conn
+						packetConn = rawConn.Conn
 					case net.PacketConn:
-						pc = rc
+						packetConn = rawConn
 					default:
-						pc = internet.NewConnWrapper(rc)
+						packetConn = internet.NewConnWrapper(rawConn)
 					}
-					return quic.DialEarly(ctx, pc, rawConn.RemoteAddr(), tlsCfg, cfg)
+					return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 				},
 			},
 		}

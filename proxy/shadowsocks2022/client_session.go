@@ -233,14 +233,15 @@ func (c *ClientUDPSessionConn) WriteTo(p []byte, addr gonet.Addr) (n int, err er
 	c.nextWritePacketID += 1
 	var address net.Address
 	var port int
-	if udpAddr, ok := addr.(*net.UDPAddr); ok {
-		address = net.IPAddress(udpAddr.IP)
-		port = udpAddr.Port
-	} else if monoDestUDPAddr, ok := addr.(*udp.MonoDestUDPAddr); ok {
-		address = monoDestUDPAddr.Address
-		port = int(monoDestUDPAddr.Port)
-	} else {
-		dest, err := net.ParseDestination(addr.Network() + ":" + addr.String())
+	switch addr := addr.(type) {
+	case *net.UDPAddr:
+		address = net.IPAddress(addr.IP)
+		port = addr.Port
+	case *udp.MonoDestUDPAddr:
+		address = addr.Address
+		port = int(addr.Port)
+	default:
+		dest, err := net.ParseDestination(addr.String())
 		if err != nil {
 			return 0, newError("unable to parse destination").Base(err)
 		}
@@ -302,12 +303,7 @@ func (c *ClientUDPSessionConn) ReadFrom(p []byte) (n int, addr net.Addr, err err
 			}
 			trackedState.lastSeen = time.Now()
 
-			if !resp.Address.Family().IsDomain() {
-				addr = &net.UDPAddr{IP: resp.Address.IP(), Port: resp.Port}
-			} else {
-				port, _ := net.PortFromInt(uint32(resp.Port))
-				addr = &udp.MonoDestUDPAddr{Address: resp.Address, Port: port}
-			}
+			addr = udp.NewMonoDestUDPAddr(resp.Address, net.Port(resp.Port))
 		}
 		return n, addr, nil
 	}
