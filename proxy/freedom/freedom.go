@@ -140,6 +140,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		h.resolver = func(ctx context.Context, domain string) net.Address {
 			return h.resolveIP(ctx, domain, dialer.Address())
 		}
+		outbound.Resolver = h.resolver
 	}
 	if outbound.Resolver != nil {
 		h.resolver = outbound.Resolver
