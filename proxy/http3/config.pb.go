@@ -22,8 +22,8 @@ type ClientConfig struct {
 	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	Level         uint32                 `protobuf:"varint,3,opt,name=level,proto3" json:"level,omitempty"`
-	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
+	Username      *string                `protobuf:"bytes,4,opt,name=username,proto3,oneof" json:"username,omitempty"`
+	Password      *string                `protobuf:"bytes,5,opt,name=password,proto3,oneof" json:"password,omitempty"`
 	Headers       map[string]string      `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -81,15 +81,15 @@ func (x *ClientConfig) GetLevel() uint32 {
 }
 
 func (x *ClientConfig) GetUsername() string {
-	if x != nil {
-		return x.Username
+	if x != nil && x.Username != nil {
+		return *x.Username
 	}
 	return ""
 }
 
 func (x *ClientConfig) GetPassword() string {
-	if x != nil {
-		return x.Password
+	if x != nil && x.Password != nil {
+		return *x.Password
 	}
 	return ""
 }
@@ -105,18 +105,20 @@ var File_proxy_http3_config_proto protoreflect.FileDescriptor
 
 const file_proxy_http3_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18proxy/http3/config.proto\x12\x16v2ray.core.proxy.http3\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xcd\x02\n" +
+	"\x18proxy/http3/config.proto\x12\x16v2ray.core.proxy.http3\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\"\xf1\x02\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x14\n" +
-	"\x05level\x18\x03 \x01(\rR\x05level\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\x12K\n" +
+	"\x05level\x18\x03 \x01(\rR\x05level\x12\x1f\n" +
+	"\busername\x18\x04 \x01(\tH\x00R\busername\x88\x01\x01\x12\x1f\n" +
+	"\bpassword\x18\x05 \x01(\tH\x01R\bpassword\x88\x01\x01\x12K\n" +
 	"\aheaders\x18\x06 \x03(\v21.v2ray.core.proxy.http3.ClientConfig.HeadersEntryR\aheaders\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x15\x82\xb5\x18\x11\n" +
-	"\boutbound\x12\x05http3Bc\n" +
+	"\boutbound\x12\x05http3B\v\n" +
+	"\t_usernameB\v\n" +
+	"\t_passwordBc\n" +
 	"\x1acom.v2ray.core.proxy.http3P\x01Z*github.com/v2fly/v2ray-core/v5/proxy/http3\xaa\x02\x16V2Ray.Core.Proxy.Http3b\x06proto3"
 
 var (
@@ -152,6 +154,7 @@ func file_proxy_http3_config_proto_init() {
 	if File_proxy_http3_config_proto != nil {
 		return
 	}
+	file_proxy_http3_config_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
