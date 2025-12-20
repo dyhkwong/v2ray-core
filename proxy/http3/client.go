@@ -212,11 +212,11 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		Host:   target,
 	}
 
-	username, password, headers := config.GetUsername(), config.GetPassword(), config.GetHeaders()
-	if username != "" && password != "" {
-		auth := username + ":" + password
+	if config.Username != nil || config.Password != nil {
+		auth := config.GetUsername() + ":" + config.GetPassword()
 		req.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 	}
+	headers := config.GetHeaders()
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
