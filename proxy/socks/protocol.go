@@ -280,6 +280,9 @@ func ReadUsernamePassword(reader io.Reader) (string, string, error) {
 		return "", "", err
 	}
 	nUsername := int32(buffer.Byte(1))
+	if nUsername == 0 {
+		newError("empty username violates RFC 1929").AtWarning().WriteToLog()
+	}
 
 	buffer.Clear()
 	if _, err := buffer.ReadFullFrom(reader, nUsername); err != nil {
@@ -292,6 +295,9 @@ func ReadUsernamePassword(reader io.Reader) (string, string, error) {
 		return "", "", err
 	}
 	nPassword := int32(buffer.Byte(0))
+	if nPassword == 0 {
+		newError("empty password violates RFC 1929").AtWarning().WriteToLog()
+	}
 
 	buffer.Clear()
 	if _, err := buffer.ReadFullFrom(reader, nPassword); err != nil {
@@ -531,6 +537,18 @@ func ClientHandshake(request *protocol.RequestHeader, reader io.Reader, writer i
 	if authByte == authPassword {
 		b.Clear()
 		account := request.User.Account.(*Account)
+		if len(account.Username) == 0 {
+			newError("empty username violates RFC 1929").AtWarning().WriteToLog()
+		}
+		if len(account.Username) > 255 {
+			return nil, newError("username too long").AtWarning()
+		}
+		if len(account.Password) == 0 {
+			newError("empty password violates RFC 1929").AtWarning().WriteToLog()
+		}
+		if len(account.Password) > 255 {
+			return nil, newError("password too long").AtWarning()
+		}
 		common.Must(b.WriteByte(0x01))
 		common.Must(b.WriteByte(byte(len(account.Username))))
 		common.Must2(b.WriteString(account.Username))

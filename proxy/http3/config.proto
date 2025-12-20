@@ -12,7 +12,7 @@ message ClientConfig {
   v2ray.core.common.net.IPOrDomain address = 1;
   uint32 port = 2;
   uint32 level = 3;
-  string username = 4;
-  string password = 5;
+  optional string username = 4;
+  optional string password = 5;
   map<string,string> headers = 6;
 }
