@@ -186,10 +186,8 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, targ
 	if user != nil && user.Account != nil {
 		account := user.Account.(*Account)
 		username, password, headers := account.GetUsername(), account.GetPassword(), account.GetHeaders()
-		if username != "" && password != "" {
-			auth := username + ":" + password
-			req.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
-		}
+		auth := username + ":" + password
+		req.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}
