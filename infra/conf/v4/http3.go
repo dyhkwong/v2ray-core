@@ -11,8 +11,8 @@ type HTTP3ClientConfig struct {
 	Address  *cfgcommon.Address `json:"address"`
 	Port     uint16             `json:"port"`
 	Level    byte               `json:"level"`
-	Username string             `json:"username"`
-	Password string             `json:"password"`
+	Username *string            `json:"username"`
+	Password *string            `json:"password"`
 	Headers  map[string]string  `json:"headers"`
 }
 
