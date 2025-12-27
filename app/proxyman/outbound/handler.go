@@ -3,6 +3,7 @@ package outbound
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	sing_mux "github.com/sagernet/sing-mux"
 	"github.com/sagernet/sing/common/bufio"
@@ -73,7 +74,7 @@ type Handler struct {
 	fakedns              dns.FakeDNSEngine
 	muxPacketEncoding    packetaddr.PacketAddrType
 	pool                 *internet.ConnectionPool
-	closed               bool
+	closed               atomic.Bool
 	transportEnvironment environment.TransportEnvironment
 	globalIdx            uint64
 }
@@ -361,7 +362,7 @@ func (h *Handler) Address() net.Address {
 
 // Dial implements internet.Dialer.
 func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Connection, error) {
-	if h.closed {
+	if h.closed.Load() {
 		return nil, newError("handler closed")
 	}
 	if h.senderSettings != nil {
@@ -511,7 +512,7 @@ func (h *Handler) interfaceUpdated() {
 
 // Close implements common.Closable.
 func (h *Handler) Close() error {
-	h.closed = true
+	h.closed.Store(true)
 	h.pool.ResetConnections()
 
 	if h.mux != nil {
