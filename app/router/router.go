@@ -92,10 +92,11 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
+	r.Lock()
 	if r.closed {
+		r.Unlock()
 		return nil, nil, newError("router closed")
 	}
-	r.Lock()
 	r.taskCount++
 	r.Unlock()
 	defer func() {
@@ -145,8 +146,8 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
-	r.closed = true
 	r.Lock()
+	r.closed = true
 	if r.taskCount == 0 {
 		close(r.done)
 	}

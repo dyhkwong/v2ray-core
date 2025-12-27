@@ -24,7 +24,7 @@ require (
 	github.com/pires/go-proxyproto v0.8.1
 	github.com/quic-go/quic-go v0.56.0
 	github.com/refraction-networking/utls v1.8.1
-	github.com/sagernet/sing v0.8.0-beta.6
+	github.com/sagernet/sing v0.8.0-beta.8
 	github.com/sagernet/sing-mux v0.3.3
 	github.com/sagernet/sing-quic v0.6.0-beta.4
 	github.com/sagernet/sing-shadowsocks v0.2.9
@@ -43,7 +43,7 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.39.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
-	google.golang.org/grpc v1.77.0
+	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 	h12.io/socks v1.0.3
@@ -83,6 +83,6 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

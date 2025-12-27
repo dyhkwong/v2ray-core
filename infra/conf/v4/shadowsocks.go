@@ -32,7 +32,7 @@ type ShadowsocksServerConfig struct {
 	PacketEncoding   string                   `json:"packetEncoding"`
 	Plugin           string                   `json:"plugin"`
 	PluginOpts       string                   `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList    `json:"pluginArgs"`
+	PluginArgs       []string                 `json:"pluginArgs"`
 	PluginWorkingDir string                   `json:"pluginWorkingDir"`
 	Clients          []*ShadowsocksUserConfig `json:"clients"`
 	Users            []*ShadowsocksUserConfig `json:"users"`
@@ -61,9 +61,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 				}
 				config.Plugin = v.Plugin
 				config.PluginOpts = v.PluginOpts
-				if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-					config.PluginArgs = *v.PluginArgs
-				}
+				config.PluginArgs = v.PluginArgs
 				config.PluginWorkingDir = v.PluginWorkingDir
 				return config, nil
 			} else {
@@ -82,9 +80,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 				}
 				config.Plugin = v.Plugin
 				config.PluginOpts = v.PluginOpts
-				if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-					config.PluginArgs = *v.PluginArgs
-				}
+				config.PluginArgs = v.PluginArgs
 				config.PluginWorkingDir = v.PluginWorkingDir
 				return config, nil
 			}
@@ -97,9 +93,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 		config.Network = v.NetworkList.Build()
 		config.Plugin = v.Plugin
 		config.PluginOpts = v.PluginOpts
-		if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-			config.PluginArgs = *v.PluginArgs
-		}
+		config.PluginArgs = v.PluginArgs
 		config.PluginWorkingDir = v.PluginWorkingDir
 		return config, nil
 	}
@@ -132,9 +126,7 @@ func (v *ShadowsocksServerConfig) Build() (proto.Message, error) {
 
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 
 	return config, nil
@@ -156,7 +148,7 @@ type ShadowsocksClientConfig struct {
 	Servers          []*ShadowsocksServerTarget `json:"servers"`
 	Plugin           string                     `json:"plugin"`
 	PluginOpts       string                     `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList      `json:"pluginArgs"`
+	PluginArgs       []string                   `json:"pluginArgs"`
 	PluginWorkingDir string                     `json:"pluginWorkingDir"`
 	UoT              bool                       `json:"uot"`
 }
@@ -184,9 +176,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 			config.Key = server.Password
 			config.Plugin = v.Plugin
 			config.PluginOpts = v.PluginOpts
-			if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-				config.PluginArgs = *v.PluginArgs
-			}
+			config.PluginArgs = v.PluginArgs
 			config.PluginWorkingDir = v.PluginWorkingDir
 			config.Uot = v.UoT
 			return config, nil
@@ -235,9 +225,7 @@ func (v *ShadowsocksClientConfig) Build() (proto.Message, error) {
 	config.Server = serverSpecs
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 
 	config.Uot = v.UoT

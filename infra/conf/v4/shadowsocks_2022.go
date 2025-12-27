@@ -17,7 +17,7 @@ type Shadowsocks2022ServerConfig struct {
 	Users            []*Shadowsocks2022UserConfig `json:"users"`
 	Plugin           string                       `json:"plugin"`
 	PluginOpts       string                       `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList        `json:"pluginArgs"`
+	PluginArgs       []string                     `json:"pluginArgs"`
 	PluginWorkingDir string                       `json:"pluginWorkingDir"`
 }
 
@@ -35,9 +35,7 @@ func (v *Shadowsocks2022ServerConfig) Build() (proto.Message, error) {
 	}
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 	return config, nil
 }
@@ -49,7 +47,7 @@ type Shadowsocks2022MultiUserServerConfig struct {
 	Users            []*Shadowsocks2022UserConfig `json:"users"`
 	Plugin           string                       `json:"plugin"`
 	PluginOpts       string                       `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList        `json:"pluginArgs"`
+	PluginArgs       []string                     `json:"pluginArgs"`
 	PluginWorkingDir string                       `json:"pluginWorkingDir"`
 }
 
@@ -80,9 +78,7 @@ func (v *Shadowsocks2022MultiUserServerConfig) Build() (proto.Message, error) {
 	}
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 	return config, nil
 }
@@ -102,7 +98,7 @@ type Shadowsocks2022RelayServerConfig struct {
 	Destinations     []*Shadowsocks2022RelayDestinationConfig `json:"destinations"`
 	Plugin           string                                   `json:"plugin"`
 	PluginOpts       string                                   `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList                    `json:"pluginArgs"`
+	PluginArgs       []string                                 `json:"pluginArgs"`
 	PluginWorkingDir string                                   `json:"pluginWorkingDir"`
 }
 
@@ -132,23 +128,21 @@ func (v *Shadowsocks2022RelayServerConfig) Build() (proto.Message, error) {
 	}
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 	return config, nil
 }
 
 type Shadowsocks2022ClientConfig struct {
-	Address          *cfgcommon.Address    `json:"address"`
-	Port             uint16                `json:"port"`
-	Method           string                `json:"method"`
-	Key              string                `json:"key"`
-	Plugin           string                `json:"plugin"`
-	PluginOpts       string                `json:"pluginOpts"`
-	PluginArgs       *cfgcommon.StringList `json:"pluginArgs"`
-	PluginWorkingDir string                `json:"pluginWorkingDir"`
-	UoT              bool                  `json:"uot"`
+	Address          *cfgcommon.Address `json:"address"`
+	Port             uint16             `json:"port"`
+	Method           string             `json:"method"`
+	Key              string             `json:"key"`
+	Plugin           string             `json:"plugin"`
+	PluginOpts       string             `json:"pluginOpts"`
+	PluginArgs       []string           `json:"pluginArgs"`
+	PluginWorkingDir string             `json:"pluginWorkingDir"`
+	UoT              bool               `json:"uot"`
 }
 
 func (v *Shadowsocks2022ClientConfig) Build() (proto.Message, error) {
@@ -163,9 +157,7 @@ func (v *Shadowsocks2022ClientConfig) Build() (proto.Message, error) {
 	}
 	config.Plugin = v.Plugin
 	config.PluginOpts = v.PluginOpts
-	if v.PluginArgs != nil && len(*v.PluginArgs) > 0 {
-		config.PluginArgs = *v.PluginArgs
-	}
+	config.PluginArgs = v.PluginArgs
 	config.PluginWorkingDir = v.PluginWorkingDir
 	config.Uot = v.UoT
 	return config, nil

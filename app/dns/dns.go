@@ -39,9 +39,10 @@ type DNS struct {
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
 
-	closed bool
-	tasks  uint64
-	done   chan interface{}
+	mu        sync.Mutex
+	closed    bool
+	taskCount uint64
+	done      chan interface{}
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -239,12 +240,12 @@ func (s *DNS) Start() error {
 
 // Close implements common.Closable.
 func (s *DNS) Close() error {
+	s.mu.Lock()
 	s.closed = true
-	s.Lock()
-	if s.tasks == 0 {
+	if s.taskCount == 0 {
 		close(s.done)
 	}
-	s.Unlock()
+	s.mu.Unlock()
 	go func() {
 		<-s.done
 		for _, c := range s.clients {
@@ -306,19 +307,20 @@ func (s *DNS) QueryRaw(request []byte) ([]byte, error) {
 }
 
 func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
+	s.mu.Lock()
 	if s.closed {
+		s.mu.Unlock()
 		return nil, newError("dns client closed")
 	}
-	s.Lock()
-	s.tasks++
-	s.Unlock()
+	s.taskCount++
+	s.mu.Unlock()
 	defer func() {
-		s.Lock()
-		s.tasks--
-		if s.tasks == 0 && s.closed {
+		s.mu.Lock()
+		s.taskCount--
+		if s.taskCount == 0 && s.closed {
 			close(s.done)
 		}
-		s.Unlock()
+		s.mu.Unlock()
 	}()
 
 	requestMsg := new(dns.Msg)
@@ -405,9 +407,12 @@ func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 	}
 	errs := []error{}
 	for _, client := range clients {
+		s.mu.Lock()
 		if s.closed {
+			s.mu.Unlock()
 			return nil, newError("dns client closed")
 		}
+		s.mu.Unlock()
 		response, err := client.QueryRaw(s.ctx, request,
 			fakeEnabled && (qType == dns.TypeA || qType == dns.TypeAAAA),
 		)
@@ -428,19 +433,20 @@ func (s *DNS) lookupIPInternal(domain string, option feature_dns.IPOption) ([]ne
 }
 
 func (s *DNS) lookupIPInternalWithTTL(domain string, option feature_dns.IPOption) ([]net.IP, time.Time, error) {
+	s.mu.Lock()
 	if s.closed {
+		s.mu.Unlock()
 		return nil, time.Time{}, newError("dns client closed")
 	}
-	s.Lock()
-	s.tasks++
-	s.Unlock()
+	s.taskCount++
+	s.mu.Unlock()
 	defer func() {
-		s.Lock()
-		s.tasks--
-		if s.tasks == 0 && s.closed {
+		s.mu.Lock()
+		s.taskCount--
+		if s.taskCount == 0 && s.closed {
 			close(s.done)
 		}
-		s.Unlock()
+		s.mu.Unlock()
 	}()
 
 	if domain == "" {
@@ -468,9 +474,12 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option feature_dns.IPOption
 	// Name servers lookup
 	errs := []error{}
 	for _, client := range s.sortClients(domain, option) {
+		s.mu.Lock()
 		if s.closed {
+			s.mu.Unlock()
 			return nil, time.Time{}, newError("dns client closed")
 		}
+		s.mu.Unlock()
 		ips, expireAt, err := client.QueryIPWithTTL(s.ctx, domain, option)
 		if len(ips) > 0 {
 			return ips, expireAt, nil

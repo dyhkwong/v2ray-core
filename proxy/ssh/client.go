@@ -59,27 +59,22 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 		Address: config.Address.AsAddress(),
 		Port:    net.Port(config.Port),
 	}
-	if config.User == "" {
-		config.User = "root"
-	}
-	if config.HostKeyAlgorithms != nil && len(config.HostKeyAlgorithms) == 0 {
-		config.HostKeyAlgorithms = nil
-	}
 
+	if config.Password != nil {
+		c.auth = append(c.auth, ssh.Password(*config.Password))
+	}
 	if config.PrivateKey != "" {
 		var signer ssh.Signer
 		var err error
-		if config.Password == "" {
-			signer, err = ssh.ParsePrivateKey([]byte(config.PrivateKey))
+		if config.PrivateKeyPassphrase != nil {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(config.PrivateKey), []byte(*config.PrivateKeyPassphrase))
 		} else {
-			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(config.PrivateKey), []byte(config.Password))
+			signer, err = ssh.ParsePrivateKey([]byte(config.PrivateKey))
 		}
 		if err != nil {
 			return newError("parse private key").Base(err)
 		}
-		c.auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
-	} else if config.Password != "" {
-		c.auth = []ssh.AuthMethod{ssh.Password(config.Password)}
+		c.auth = append(c.auth, ssh.PublicKeys(signer))
 	}
 
 	var publicKeys []ssh.PublicKey
@@ -88,7 +83,7 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 			return r == '\r' || r == '\n'
 		})
 		for _, line := range lines {
-			if line == "" {
+			if len(line) == 0 {
 				continue
 			}
 			publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(line))
@@ -109,7 +104,7 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 		}
 	} else {
 		c.hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			newError("please save server public key for verifying").AtError().WriteToLog()
+			newError("please save server public key for verification").AtError().WriteToLog()
 			newError(key.Type(), " ", base64.StdEncoding.EncodeToString(key.Marshal())).AtError().WriteToLog()
 			return nil
 		}

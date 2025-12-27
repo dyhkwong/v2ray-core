@@ -142,9 +142,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		}
 		outbound.Resolver = h.resolver
 	}
-	if outbound.Resolver != nil {
-		h.resolver = outbound.Resolver
-	}
 	newError("opening connection to ", destination).WriteToLog(session.ExportIDToError(ctx))
 
 	input := link.Reader

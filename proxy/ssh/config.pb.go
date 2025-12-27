@@ -18,18 +18,19 @@ const (
 )
 
 type Config struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Address           *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port              uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	User              string                 `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
-	Password          string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
-	PrivateKey        string                 `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
-	PublicKey         string                 `protobuf:"bytes,6,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	HostKeyAlgorithms []string               `protobuf:"bytes,7,rep,name=host_key_algorithms,json=hostKeyAlgorithms,proto3" json:"host_key_algorithms,omitempty"`
-	ClientVersion     string                 `protobuf:"bytes,8,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
-	UserLevel         uint32                 `protobuf:"varint,9,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Address              *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port                 uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	User                 string                 `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	Password             *string                `protobuf:"bytes,4,opt,name=password,proto3,oneof" json:"password,omitempty"`
+	PrivateKey           string                 `protobuf:"bytes,5,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	PrivateKeyPassphrase *string                `protobuf:"bytes,6,opt,name=private_key_passphrase,json=privateKeyPassphrase,proto3,oneof" json:"private_key_passphrase,omitempty"`
+	PublicKey            string                 `protobuf:"bytes,7,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	HostKeyAlgorithms    []string               `protobuf:"bytes,8,rep,name=host_key_algorithms,json=hostKeyAlgorithms,proto3" json:"host_key_algorithms,omitempty"`
+	ClientVersion        string                 `protobuf:"bytes,9,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
+	UserLevel            uint32                 `protobuf:"varint,10,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -84,8 +85,8 @@ func (x *Config) GetUser() string {
 }
 
 func (x *Config) GetPassword() string {
-	if x != nil {
-		return x.Password
+	if x != nil && x.Password != nil {
+		return *x.Password
 	}
 	return ""
 }
@@ -93,6 +94,13 @@ func (x *Config) GetPassword() string {
 func (x *Config) GetPrivateKey() string {
 	if x != nil {
 		return x.PrivateKey
+	}
+	return ""
+}
+
+func (x *Config) GetPrivateKeyPassphrase() string {
+	if x != nil && x.PrivateKeyPassphrase != nil {
+		return *x.PrivateKeyPassphrase
 	}
 	return ""
 }
@@ -129,21 +137,25 @@ var File_proxy_ssh_config_proto protoreflect.FileDescriptor
 
 const file_proxy_ssh_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16proxy/ssh/config.proto\x12\x14v2ray.core.proxy.ssh\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xd4\x02\n" +
+	"\x16proxy/ssh/config.proto\x12\x14v2ray.core.proxy.ssh\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xbc\x03\n" +
 	"\x06Config\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x12\n" +
-	"\x04user\x18\x03 \x01(\tR\x04user\x12\x1a\n" +
-	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x1f\n" +
+	"\x04user\x18\x03 \x01(\tR\x04user\x12\x1f\n" +
+	"\bpassword\x18\x04 \x01(\tH\x00R\bpassword\x88\x01\x01\x12\x1f\n" +
 	"\vprivate_key\x18\x05 \x01(\tR\n" +
-	"privateKey\x12\x1d\n" +
+	"privateKey\x129\n" +
+	"\x16private_key_passphrase\x18\x06 \x01(\tH\x01R\x14privateKeyPassphrase\x88\x01\x01\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x06 \x01(\tR\tpublicKey\x12.\n" +
-	"\x13host_key_algorithms\x18\a \x03(\tR\x11hostKeyAlgorithms\x12%\n" +
-	"\x0eclient_version\x18\b \x01(\tR\rclientVersion\x12\x1d\n" +
+	"public_key\x18\a \x01(\tR\tpublicKey\x12.\n" +
+	"\x13host_key_algorithms\x18\b \x03(\tR\x11hostKeyAlgorithms\x12%\n" +
+	"\x0eclient_version\x18\t \x01(\tR\rclientVersion\x12\x1d\n" +
 	"\n" +
-	"user_level\x18\t \x01(\rR\tuserLevel:\x13\x82\xb5\x18\x0f\n" +
-	"\boutbound\x12\x03sshB]\n" +
+	"user_level\x18\n" +
+	" \x01(\rR\tuserLevel:\x13\x82\xb5\x18\x0f\n" +
+	"\boutbound\x12\x03sshB\v\n" +
+	"\t_passwordB\x19\n" +
+	"\x17_private_key_passphraseB]\n" +
 	"\x18com.v2ray.core.proxy.sshP\x01Z(github.com/v2fly/v2ray-core/v5/proxy/ssh\xaa\x02\x14V2Ray.Core.Proxy.SSHb\x06proto3"
 
 var (
@@ -177,6 +189,7 @@ func file_proxy_ssh_config_proto_init() {
 	if File_proxy_ssh_config_proto != nil {
 		return
 	}
+	file_proxy_ssh_config_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

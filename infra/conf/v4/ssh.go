@@ -8,30 +8,30 @@ import (
 )
 
 type SSHClientConfig struct {
-	Address           *cfgcommon.Address    `json:"address"`
-	Port              uint32                `json:"port"`
-	User              string                `json:"user"`
-	Password          string                `json:"password"`
-	PrivateKey        string                `json:"privateKey"`
-	PublicKey         string                `json:"publicKey"`
-	ClientVersion     string                `json:"clientVersion"`
-	HostKeyAlgorithms *cfgcommon.StringList `json:"hostKeyAlgorithms"`
-	UserLevel         uint32                `json:"userLevel"`
+	Address              *cfgcommon.Address `json:"address"`
+	Port                 uint32             `json:"port"`
+	User                 string             `json:"user"`
+	Password             *string            `json:"password"`
+	PrivateKey           string             `json:"privateKey"`
+	PrivateKeyPassPhrase *string            `json:"privateKeyPassphrase"`
+	PublicKey            string             `json:"publicKey"`
+	ClientVersion        string             `json:"clientVersion"`
+	HostKeyAlgorithms    []string           `json:"hostKeyAlgorithms"`
+	UserLevel            uint32             `json:"userLevel"`
 }
 
 func (v *SSHClientConfig) Build() (proto.Message, error) {
 	c := &ssh.Config{
-		Address:       v.Address.Build(),
-		Port:          v.Port,
-		User:          v.User,
-		Password:      v.Password,
-		PrivateKey:    v.PrivateKey,
-		PublicKey:     v.PublicKey,
-		ClientVersion: v.ClientVersion,
-		UserLevel:     v.UserLevel,
-	}
-	if v.HostKeyAlgorithms != nil {
-		c.HostKeyAlgorithms = *v.HostKeyAlgorithms
+		Address:              v.Address.Build(),
+		Port:                 v.Port,
+		User:                 v.User,
+		Password:             v.Password,
+		PrivateKey:           v.PrivateKey,
+		PrivateKeyPassphrase: v.PrivateKeyPassPhrase,
+		PublicKey:            v.PublicKey,
+		ClientVersion:        v.ClientVersion,
+		HostKeyAlgorithms:    v.HostKeyAlgorithms,
+		UserLevel:            v.UserLevel,
 	}
 	return c, nil
 }
