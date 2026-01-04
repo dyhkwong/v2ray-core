@@ -388,7 +388,21 @@ func DecodeUDPPacket(packet *buf.Buffer) (*protocol.RequestHeader, error) {
 }
 
 func EncodeUDPPacket(request *protocol.RequestHeader, data []byte) (*buf.Buffer, error) {
-	b := buf.New()
+	var addrPortLen int32
+	switch request.Address.Family() {
+	case net.AddressFamilyDomain:
+		if protocol.IsDomainTooLong(request.Address.Domain()) {
+			return nil, newError("Super long domain is not supported: ", request.Address.Domain())
+		}
+		addrPortLen = 1 + 1 + int32(len(request.Address.Domain())) + 2
+	case net.AddressFamilyIPv4:
+		addrPortLen = 1 + 4 + 2
+	case net.AddressFamilyIPv6:
+		addrPortLen = 1 + 16 + 2
+	default:
+		panic("Unknown address type.")
+	}
+	b := buf.NewWithSize(3 + addrPortLen + int32(len(data)))
 	common.Must2(b.Write([]byte{0, 0, 0 /* Fragment */}))
 	if err := addrParser.WriteAddressPort(b, request.Address, request.Port); err != nil {
 		b.Release()
@@ -399,7 +413,21 @@ func EncodeUDPPacket(request *protocol.RequestHeader, data []byte) (*buf.Buffer,
 }
 
 func EncodeUDPPacketFromAddress(address net.Destination, data []byte) (*buf.Buffer, error) {
-	b := buf.New()
+	var addrPortLen int32
+	switch address.Address.Family() {
+	case net.AddressFamilyDomain:
+		if protocol.IsDomainTooLong(address.Address.Domain()) {
+			return nil, newError("Super long domain is not supported: ", address.Address.Domain())
+		}
+		addrPortLen = 1 + 1 + int32(len(address.Address.Domain())) + 2
+	case net.AddressFamilyIPv4:
+		addrPortLen = 1 + 4 + 2
+	case net.AddressFamilyIPv6:
+		addrPortLen = 1 + 16 + 2
+	default:
+		panic("Unknown address type.")
+	}
+	b := buf.NewWithSize(3 + addrPortLen + int32(len(data)))
 	common.Must2(b.Write([]byte{0, 0, 0 /* Fragment */}))
 	if err := addrParser.WriteAddressPort(b, address.Address, address.Port); err != nil {
 		b.Release()
