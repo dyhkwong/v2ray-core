@@ -166,6 +166,7 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 			}
 			return conn, err
 		}),
+		grpc.WithDisableServiceConfig(),
 	)
 	if err != nil {
 		return nil, nil, err
