@@ -158,6 +158,7 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 			detachedContext := core.ToBackgroundDetachedContext(ctx)
 			return internet.DialSystem(detachedContext, net.TCPDestination(address, port), streamSettings.SocketSettings)
 		}),
+		grpc.WithDisableServiceConfig(),
 	)
 	if err != nil {
 		return nil, nil, err
