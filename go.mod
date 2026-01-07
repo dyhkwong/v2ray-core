@@ -11,7 +11,7 @@ require (
 	github.com/dyhkwong/hysteria/core/v2 v2.6.5-1
 	github.com/dyhkwong/hysteria/extras/v2 v2.6.5-3
 	github.com/dyhkwong/sing-juicity v0.1.0-beta.2
-	github.com/enfein/mieru/v3 v3.26.0
+	github.com/enfein/mieru/v3 v3.26.2
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0

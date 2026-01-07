@@ -191,8 +191,33 @@ func EncodeUDPPacket(request *protocol.RequestHeader, payload []byte, protocolPl
 	user := request.User
 	account := user.Account.(*MemoryAccount)
 
-	buffer := buf.New()
 	ivLen := account.Cipher.IVSize()
+	// Calculate required buffer size: IV + address length + payload + AEAD overhead (16)
+
+	var addrPortLen int32
+	switch request.Address.Family() {
+	case net.AddressFamilyDomain:
+		if protocol.IsDomainTooLong(request.Address.Domain()) {
+			return nil, newError("Super long domain is not supported: ", request.Address.Domain())
+		}
+		addrPortLen = 1 + 1 + int32(len(request.Address.Domain())) + 2
+	case net.AddressFamilyIPv4:
+		addrPortLen = 1 + 4 + 2
+	case net.AddressFamilyIPv6:
+		addrPortLen = 1 + 16 + 2
+	default:
+		panic("Unknown address type.")
+	}
+
+	neededSize := ivLen + addrPortLen + int32(len(payload)) + 16
+
+	var buffer *buf.Buffer
+	if neededSize > buf.Size {
+		buffer = buf.NewWithSize(neededSize)
+	} else {
+		buffer = buf.New()
+	}
+
 	if ivLen > 0 {
 		common.Must2(buffer.ReadFullFrom(rand.Reader, ivLen))
 	}
