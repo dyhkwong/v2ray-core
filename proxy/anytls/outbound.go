@@ -97,3 +97,5 @@ func (o *Outbound) InterfaceUpdate() {
 }
 
 func (*Outbound) DisallowMuxCool() {}
+
+func (*Outbound) DisallowTransportLayer() {}
