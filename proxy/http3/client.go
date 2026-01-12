@@ -378,3 +378,7 @@ func init() {
 }
 
 func (*Client) DisallowMuxCool() {}
+
+func (*Client) DisallowTransportLayer() {}
+
+func (*Client) DisallowSecurityLayer() {}

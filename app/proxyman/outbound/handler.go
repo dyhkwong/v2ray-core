@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"sync/atomic"
 
@@ -174,6 +175,25 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	})
 
 	h.proxy = proxyHandler
+
+	if _, ok := proxyHandler.(interface{ DisallowTransportLayer() }); ok {
+		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil {
+			if h.senderSettings.StreamSettings.ProtocolName != "tcp" {
+				return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.ProtocolName)
+			}
+			if transportSettings, err := h.senderSettings.StreamSettings.GetEffectiveTransportSettings(); err == nil {
+				// do not import extra packages for selective compilation
+				if headerSettings := reflect.ValueOf(transportSettings).Elem().FieldByName("HeaderSettings"); !headerSettings.IsNil() && headerSettings.Elem().FieldByName("TypeUrl").String() != "types.v2fly.org/v2ray.core.transport.internet.headers.noop.ConnectionConfig" {
+					return nil, newError("protocol does not support tcp header")
+				}
+			}
+		}
+	}
+	if _, ok := proxyHandler.(interface{ DisallowSecurityLayer() }); ok {
+		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil && len(h.senderSettings.StreamSettings.SecurityType) > 0 {
+			return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.SecurityType)
+		}
+	}
 
 	if h.senderSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
 		config := h.senderSettings.Smux
