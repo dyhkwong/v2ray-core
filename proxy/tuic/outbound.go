@@ -179,3 +179,7 @@ func (o *Outbound) SingUotEnabled() bool {
 }
 
 func (*Outbound) DisallowMuxCool() {}
+
+func (*Outbound) DisallowTransportLayer() {}
+
+func (*Outbound) DisallowSecurityLayer() {}

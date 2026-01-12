@@ -118,3 +118,7 @@ func (o *Outbound) Close() error {
 }
 
 func (*Outbound) DisallowMuxCool() {}
+
+func (*Outbound) DisallowTransportLayer() {}
+
+func (*Outbound) DisallowSecurityLayer() {}
