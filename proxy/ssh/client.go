@@ -237,3 +237,7 @@ func (c *Client) Close() error {
 }
 
 func (*Client) DisallowMuxCool() {}
+
+func (*Client) DisallowTransportLayer() {}
+
+func (*Client) DisallowSecurityLayer() {}
