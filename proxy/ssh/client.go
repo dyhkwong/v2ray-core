@@ -41,12 +41,13 @@ var (
 )
 
 type Client struct {
-	sync.Mutex
 	config          *Config
 	sessionPolicy   policy.Session
 	server          net.Destination
 	client          *ssh.Client
+	clientLock      sync.Mutex
 	auth            []ssh.AuthMethod
+	connectLock     sync.Mutex
 	hostKeyCallback ssh.HostKeyCallback
 	resetAt         time.Time
 }
@@ -140,12 +141,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			c.Lock()
+			c.clientLock.Lock()
 			if c.resetAt.Before(startAt) {
 				client.Close()
 				c.client = nil
 			}
-			c.Unlock()
+			c.clientLock.Unlock()
 		}
 		return newError("failed to open ssh proxy connection").Base(err)
 	}
@@ -168,12 +169,14 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
-	c.Lock()
+	c.connectLock.Lock()
+	defer c.connectLock.Unlock()
+	c.clientLock.Lock()
 	if c.client != nil {
-		c.Unlock()
+		c.clientLock.Unlock()
 		return c.client, nil
 	}
-	c.Unlock()
+	c.clientLock.Unlock()
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 	var conn internet.Connection
@@ -209,16 +212,16 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 
 	client := ssh.NewClient(clientConn, chans, reqs)
 
-	c.Lock()
+	c.clientLock.Lock()
 	c.client = client
-	c.Unlock()
+	c.clientLock.Unlock()
 	go func() {
 		err := client.Wait()
 		newError("ssh client closed").Base(err).AtDebug().WriteToLog()
+		c.clientLock.Lock()
 		client.Close()
-		c.Lock()
 		c.client = nil
-		c.Unlock()
+		c.clientLock.Unlock()
 	}()
 	return client, nil
 }
@@ -229,11 +232,11 @@ func (c *Client) InterfaceUpdate() {
 }
 
 func (c *Client) Close() error {
-	c.Lock()
+	c.clientLock.Lock()
 	if c.client != nil {
 		c.client.Close()
 	}
 	c.client = nil
-	c.Unlock()
+	c.clientLock.Unlock()
 	return nil
 }

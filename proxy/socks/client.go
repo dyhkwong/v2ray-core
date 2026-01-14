@@ -55,7 +55,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		c.dns = v.GetFeature(dns.ClientType()).(dns.Client)
 	}
 
-	// c.uot = config.Uot
+	c.uot = config.Uot
 
 	return c, nil
 }
