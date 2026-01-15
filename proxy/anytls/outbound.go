@@ -95,3 +95,7 @@ func (o *Outbound) InterfaceUpdate() {
 		_ = o.client.Close()
 	}
 }
+
+func (*Outbound) DisallowMuxCool() {}
+
+func (*Outbound) DisallowTransportLayer() {}

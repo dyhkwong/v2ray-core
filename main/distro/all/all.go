@@ -61,16 +61,13 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/proxy/vmess/outbound"
 
 	// Developer preview proxies
-	_ "github.com/v2fly/v2ray-core/v5/proxy/vlite/inbound"
-	_ "github.com/v2fly/v2ray-core/v5/proxy/vlite/outbound"
-	_ "github.com/v2fly/v2ray-core/v5/proxy/wireguard"
-
 	_ "github.com/v2fly/v2ray-core/v5/proxy/anytls"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/hysteria2"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/juicity"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/mieru"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/shadowsocks2022"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/tuic"
+	_ "github.com/v2fly/v2ray-core/v5/proxy/wireguard"
 
 	// Transports
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/domainsocket"
@@ -95,8 +92,6 @@ import (
 
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/meek"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/request/stereotype/mekya"
-
-	_ "github.com/v2fly/v2ray-core/v5/transport/internet/dtls"
 
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/httpupgrade"
 

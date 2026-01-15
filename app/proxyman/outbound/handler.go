@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"sync/atomic"
 
@@ -125,11 +126,19 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		return nil, newError("not an outbound handler")
 	}
 
-	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
-		return nil, newError("Mux.Cool is conflict with sing-mux")
-	}
 	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil {
 		config := h.senderSettings.MultiplexSettings
+		if config.Enabled {
+			if _, ok := proxyHandler.(interface{ DisallowMuxCool() }); ok {
+				return nil, newError("protocol does not support Mux.Cool")
+			}
+			if h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
+				return nil, newError("Mux.Cool is conflict with sing-mux")
+			}
+			if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
+				return nil, newError("Mux.Cool is conflict with sing-uot")
+			}
+		}
 		if config.Concurrency < 1 || config.Concurrency > 1024 {
 			return nil, newError("invalid mux concurrency: ", config.Concurrency).AtWarning()
 		}
@@ -167,11 +176,33 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 
 	h.proxy = proxyHandler
 
+	if _, ok := proxyHandler.(interface{ DisallowTransportLayer() }); ok {
+		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil {
+			if h.senderSettings.StreamSettings.ProtocolName != "tcp" {
+				return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.ProtocolName)
+			}
+			if transportSettings, err := h.senderSettings.StreamSettings.GetEffectiveTransportSettings(); err == nil {
+				// do not import extra packages for selective compilation
+				if headerSettings := reflect.ValueOf(transportSettings).Elem().FieldByName("HeaderSettings"); !headerSettings.IsNil() && headerSettings.Elem().FieldByName("TypeUrl").String() != "types.v2fly.org/v2ray.core.transport.internet.headers.noop.ConnectionConfig" {
+					return nil, newError("protocol does not support tcp header")
+				}
+			}
+		}
+	}
+	if _, ok := proxyHandler.(interface{ DisallowSecurityLayer() }); ok {
+		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil && len(h.senderSettings.StreamSettings.SecurityType) > 0 {
+			return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.SecurityType)
+		}
+	}
+
 	if h.senderSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
 		config := h.senderSettings.Smux
 		if config.Enabled {
-			if _, ok := proxyHandler.(proxy.SupportSingMux); !ok {
+			if _, ok := proxyHandler.(interface{ SupportSingMux() }); !ok {
 				return nil, newError("protocol does not support sing-mux")
+			}
+			if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
+				return nil, newError("sing-mux is conflict with sing-uot")
 			}
 			h.smux, err = sing_mux.NewClient(sing_mux.Options{
 				Dialer:         singbridge.NewOutboundDialerWrapper(proxyHandler, h),
@@ -492,8 +523,8 @@ func (h *Handler) Start() error {
 }
 
 func (h *Handler) interfaceUpdated() {
-	if interfaceUpdate, ok := h.proxy.(proxy.InterfaceUpdate); ok {
-		interfaceUpdate.InterfaceUpdate()
+	if fn, ok := h.proxy.(interface{ InterfaceUpdate() }); ok {
+		fn.InterfaceUpdate()
 	}
 	if h.smux != nil {
 		h.smux.Reset()

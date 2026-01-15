@@ -78,8 +78,6 @@ type Handler struct {
 	encryption     *encryption.ClientInstance
 }
 
-func (h *Handler) SupportSingMux() {}
-
 // New creates a new VLess outbound handler.
 func New(ctx context.Context, config *Config) (*Handler, error) {
 	serverList := protocol.NewServerList()
@@ -398,3 +396,5 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	return nil
 }
+
+func (h *Handler) SupportSingMux() {}

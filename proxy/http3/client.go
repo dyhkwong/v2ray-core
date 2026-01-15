@@ -353,3 +353,9 @@ func init() {
 		return NewClient(ctx, config.(*ClientConfig))
 	}))
 }
+
+func (*Client) DisallowMuxCool() {}
+
+func (*Client) DisallowTransportLayer() {}
+
+func (*Client) DisallowSecurityLayer() {}

@@ -42,8 +42,6 @@ type Outbound struct {
 	uotClient *uot.Client
 }
 
-func (o *Outbound) SupportSingMux() {}
-
 func (o *Outbound) Close() error {
 	if o.plugin != nil {
 		return o.plugin.Close()
@@ -180,4 +178,10 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		serverConn := o.method.DialPacketConn(connection)
 		return singbridge.ReturnError(bufio.CopyPacketConn(ctx, singbridge.NewPacketConnWrapper(link, destination), serverConn))
 	}
+}
+
+func (*Outbound) SupportSingMux() {}
+
+func (o *Outbound) SingUotEnabled() bool {
+	return o.uotClient != nil
 }

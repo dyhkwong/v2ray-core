@@ -55,7 +55,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		c.dns = v.GetFeature(dns.ClientType()).(dns.Client)
 	}
 
-	// c.uot = config.Uot
+	c.uot = config.Uot
 
 	return c, nil
 }
@@ -249,4 +249,8 @@ func init() {
 	common.Must(common.RegisterConfig((*ClientConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		return NewClient(ctx, config.(*ClientConfig))
 	}))
+}
+
+func (c *Client) SingUotEnabled() bool {
+	return c.uot
 }

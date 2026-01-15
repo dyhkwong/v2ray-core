@@ -51,7 +51,7 @@ type dialerConf struct {
 }
 
 type transportConnectionState struct {
-	scopedDialerMap    map[dialerConf]DialerClient
+	scopedDialerMap    map[dialerConf]*XmuxManager
 	scopedDialerAccess sync.Mutex
 }
 
@@ -65,14 +65,14 @@ func (t *transportConnectionState) Close() error {
 	return nil
 }
 
-func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
+func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, *XmuxClient, error) {
 	config := streamSettings.ProtocolSettings.(*Config)
 	if reality.ConfigFromStreamSettings(streamSettings) == nil && config.UseBrowserForwarding {
 		newError("using browser dialer").WriteToLog(session.ExportIDToError(ctx))
 		return &BrowserDialerClient{
 			dialer:          core.MustFromContext(ctx).GetFeature(extension.BrowserDialerType()).(extension.BrowserDialer),
 			transportConfig: config,
-		}, nil
+		}, nil, nil
 	}
 
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
@@ -82,7 +82,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 		transportEnvironment.TransientStorage().Put(ctx, "splithttp-transport-connection-state", state)
 		state, err = transportEnvironment.TransientStorage().Get(ctx, "splithttp-transport-connection-state")
 		if err != nil {
-			return nil, newError("failed to get splithttp transport connection state").Base(err)
+			return nil, nil, newError("failed to get splithttp transport connection state").Base(err)
 		}
 	}
 	stateTyped := state.(*transportConnectionState)
@@ -91,18 +91,24 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 	defer stateTyped.scopedDialerAccess.Unlock()
 
 	if stateTyped.scopedDialerMap == nil {
-		stateTyped.scopedDialerMap = make(map[dialerConf]DialerClient)
+		stateTyped.scopedDialerMap = make(map[dialerConf]*XmuxManager)
 	}
 
-	client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]
+	xmuxManager, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]
 
-	if !found || client.IsClosed() {
-		client = createHTTPClient(ctx, dest, streamSettings)
-		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = client
-		return client, nil
+	if !found {
+		transportConfig := streamSettings.ProtocolSettings.(*Config)
+		xmuxManager, err = NewXmuxManager(transportConfig.Xmux, func() XmuxConn {
+			return createHTTPClient(ctx, dest, streamSettings)
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = xmuxManager
 	}
 
-	return client, nil
+	xmuxClient := xmuxManager.GetXmuxClient(ctx)
+	return xmuxClient.XmuxConn.(DialerClient), xmuxClient, nil
 }
 
 func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) string {
@@ -264,7 +270,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	requestURL.Path = transportConfiguration.GetNormalizedPath() + sessionIdUuid.String()
 	requestURL.RawQuery = transportConfiguration.GetNormalizedQuery()
 
-	httpClient, err := getHTTPClient(ctx, dest, streamSettings)
+	httpClient, xmuxClient, err := getHTTPClient(ctx, dest, streamSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -279,6 +285,70 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	newError(fmt.Sprintf("XHTTP is dialing to %s, mode %s, HTTP version %s, host %s", dest, mode, httpVersion, requestURL.Host)).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 
+	requestURLForDownload := requestURL
+	httpClientForDownload := httpClient
+	xmuxClientForDownload := xmuxClient
+	if transportConfiguration.DownloadSettings != nil {
+		if mode == "stream-one" {
+			return nil, newError(`Can not use "downloadSettings" in "stream-one" mode.`)
+		}
+		streamSettingsForDownload, err := toMemoryStreamConfig(transportConfiguration.DownloadSettings)
+		if err != nil {
+			return nil, err
+		}
+		dest := net.Destination{
+			Address: transportConfiguration.DownloadSettings.Address.AsAddress(),
+			Port:    net.Port(transportConfiguration.DownloadSettings.Port),
+			Network: net.Network_TCP,
+		}
+		var tlsConfigForDownload *tls.Config
+		var realityConfigForDownload *reality.Config
+		switch cfg := streamSettingsForDownload.SecuritySettings.(type) {
+		case *tls.Config:
+			tlsConfigForDownload = cfg
+		case *utls.Config:
+			tlsConfigForDownload = cfg.GetTlsConfig()
+		case *reality.Config:
+			realityConfigForDownload = cfg
+		}
+		httpVersionForDownload := decideHTTPVersion(tlsConfigForDownload, realityConfigForDownload)
+		if httpVersionForDownload == "3" {
+			dest.Network = net.Network_UDP
+		}
+		if tlsConfigForDownload != nil || realityConfigForDownload != nil {
+			requestURLForDownload.Scheme = "https"
+		} else {
+			requestURLForDownload.Scheme = "http"
+		}
+		downloadConfig := streamSettingsForDownload.ProtocolSettings.(*Config)
+		requestURLForDownload.Host = downloadConfig.Host
+		if requestURLForDownload.Host == "" && tlsConfigForDownload != nil {
+			requestURLForDownload.Host = tlsConfigForDownload.ServerName
+		}
+		if requestURLForDownload.Host == "" && realityConfigForDownload != nil {
+			requestURLForDownload.Host = realityConfigForDownload.ServerName
+		}
+		if requestURLForDownload.Host == "" {
+			requestURLForDownload.Host = dest.Address.String()
+		}
+		requestURLForDownload.Path = downloadConfig.GetNormalizedPath() + sessionIdUuid.String()
+		requestURLForDownload.RawQuery = downloadConfig.GetNormalizedQuery()
+		memoryConfig := streamSettingsForDownload.toInternetMemoryStreamConfig()
+		memoryConfig.SocketSettings = streamSettings.SocketSettings
+		httpClientForDownload, xmuxClientForDownload, err = getHTTPClient(ctx, dest, memoryConfig)
+		if err != nil {
+			return nil, err
+		}
+		newError(fmt.Sprintf("XHTTP is downloading from %s, mode %s, HTTP version %s, host %s", dest, "stream-down", httpVersionForDownload, requestURLForDownload.Host)).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+	}
+
+	if xmuxClient != nil {
+		xmuxClient.OpenUsage.Add(1)
+	}
+	if xmuxClientForDownload != nil && xmuxClientForDownload != xmuxClient {
+		xmuxClientForDownload.OpenUsage.Add(1)
+	}
+
 	var closed atomic.Int32
 
 	reader, writer := io.Pipe()
@@ -288,23 +358,38 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 			if closed.Add(1) > 1 {
 				return
 			}
+			if xmuxClient != nil {
+				xmuxClient.OpenUsage.Add(-1)
+			}
+			if xmuxClientForDownload != nil && xmuxClientForDownload != xmuxClient {
+				xmuxClientForDownload.OpenUsage.Add(-1)
+			}
 		},
 	}
 
 	if mode == "stream-one" {
 		requestURL.Path = transportConfiguration.GetNormalizedPath()
+		if xmuxClient != nil {
+			xmuxClient.LeftRequests.Add(-1)
+		}
 		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), reader, false)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
 		return internet.Connection(conn), nil
 	} else { // stream-down
-		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClient.OpenStream(ctx, requestURL.String(), nil, false)
+		if xmuxClientForDownload != nil {
+			xmuxClientForDownload.LeftRequests.Add(-1)
+		}
+		conn.reader, conn.remoteAddr, conn.localAddr, err = httpClientForDownload.OpenStream(ctx, requestURL.String(), nil, false)
 		if err != nil { // browser dialer only
 			return nil, err
 		}
 	}
 	if mode == "stream-up" {
+		if xmuxClient != nil {
+			xmuxClient.LeftRequests.Add(-1)
+		}
 		_, _, _, err = httpClient.OpenStream(ctx, requestURL.String(), reader, true)
 		if err != nil { // browser dialer only
 			return nil, err
@@ -363,10 +448,12 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 			lastWrite = time.Now()
 
-			httpClient, err = getHTTPClient(ctx, dest, streamSettings)
-			if err != nil {
-				newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
-				break
+			if xmuxClient != nil && (xmuxClient.LeftRequests.Add(-1) <= 0 || (xmuxClient.UnreusableAt != time.Time{} && lastWrite.After(xmuxClient.UnreusableAt))) {
+				httpClient, xmuxClient, err = getHTTPClient(ctx, dest, streamSettings)
+				if err != nil {
+					newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+					break
+				}
 			}
 
 			go func() {

@@ -162,3 +162,9 @@ func (o *Outbound) Close() error {
 	o.Unlock()
 	return nil
 }
+
+func (*Outbound) DisallowMuxCool() {}
+
+func (*Outbound) DisallowTransportLayer() {}
+
+func (*Outbound) DisallowSecurityLayer() {}

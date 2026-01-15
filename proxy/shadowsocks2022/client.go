@@ -35,8 +35,6 @@ type Client struct {
 	uot bool
 }
 
-func (c *Client) SupportSingMux() {}
-
 func (c *Client) Close() error {
 	if c.plugin != nil {
 		return c.plugin.Close()
@@ -331,4 +329,10 @@ func init() {
 		}
 		return NewClient(ctx, clientConfig)
 	}))
+}
+
+func (*Client) SupportSingMux() {}
+
+func (c *Client) SingUotEnabled() bool {
+	return c.uot
 }

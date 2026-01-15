@@ -7,6 +7,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/v2fly/v2ray-core/v5/common/serial"
+	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
 type RangeConfig struct {
@@ -146,4 +149,62 @@ func (c *Config) GetNormalizedScMinPostsIntervalMs() *RangeConfig {
 
 func (c *Config) GetNormalizedXPaddingBytes() *RangeConfig {
 	return newRandRangeConfig(100, 1000, c.XPaddingBytes)
+}
+
+func (c *XmuxConfig) GetNormalizedMaxConcurrency() *RangeConfig {
+	return newRandRangeConfig(0, 0, c.MaxConcurrency)
+}
+
+func (c *XmuxConfig) GetNormalizedMaxConnections() *RangeConfig {
+	return newRandRangeConfig(0, 0, c.MaxConnections)
+}
+
+func (c *XmuxConfig) GetNormalizedCMaxReuseTimes() *RangeConfig {
+	return newRandRangeConfig(0, 0, c.CMaxReuseTimes)
+}
+
+func (c *XmuxConfig) GetNormalizedHMaxRequestTimes() *RangeConfig {
+	return newRandRangeConfig(0, 0, c.HMaxRequestTimes)
+}
+
+func (c *XmuxConfig) GetNormalizedHMaxReusableSecs() *RangeConfig {
+	return newRandRangeConfig(0, 0, c.HMaxReusableSecs)
+}
+
+type memoryStreamConfig struct {
+	ProtocolSettings any
+	SecurityType     string
+	SecuritySettings any
+}
+
+func toMemoryStreamConfig(s *DownloadConfig) (*memoryStreamConfig, error) {
+	transportSettings := s.TransportSettings
+	if transportSettings == nil {
+		transportSettings = serial.ToTypedMessage(new(Config))
+	}
+	ets, err := serial.GetInstanceOf(transportSettings)
+	if err != nil {
+		return nil, err
+	}
+	mss := &memoryStreamConfig{
+		ProtocolSettings: ets,
+	}
+	if len(s.SecurityType) > 0 {
+		ess, err := serial.GetInstanceOf(s.SecuritySettings)
+		if err != nil {
+			return nil, err
+		}
+		mss.SecurityType = s.SecurityType
+		mss.SecuritySettings = ess
+	}
+	return mss, nil
+}
+
+func (c *memoryStreamConfig) toInternetMemoryStreamConfig() *internet.MemoryStreamConfig {
+	return &internet.MemoryStreamConfig{
+		ProtocolName:     "splithttp",
+		ProtocolSettings: c.ProtocolSettings,
+		SecurityType:     c.SecurityType,
+		SecuritySettings: c.SecuritySettings,
+	}
 }
