@@ -54,7 +54,7 @@ func domainToMatcher(domain *routercommon.Domain) (strmatcher.Matcher, error) {
 
 	matcher, err := matcherType.New(domain.Value)
 	if err != nil {
-		return nil, newError("failed to create domain matcher").Base(err)
+		return nil, newError("failed to create str matcher").Base(err)
 	}
 
 	return matcher, nil
