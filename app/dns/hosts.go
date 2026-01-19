@@ -44,7 +44,8 @@ func NewStaticHosts(hosts []*HostMapping, legacy map[string]*net.IPOrDomain) (*S
 	for _, mapping := range hosts {
 		matcher, err := toStrMatcher(mapping.Type, mapping.Domain)
 		if err != nil {
-			return nil, newError("failed to create domain matcher").Base(err)
+			newError("failed to create domain matcher, type: ", mapping.Type, ", value: ", mapping.Domain).Base(err).AtError().WriteToLog()
+			continue
 		}
 		id := g.Add(matcher)
 		ips := make([]net.Address, 0, len(mapping.Ip)+1)
