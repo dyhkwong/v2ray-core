@@ -18,17 +18,74 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ClientConfig_DomainStrategy int32
+
+const (
+	ClientConfig_USE_IP     ClientConfig_DomainStrategy = 0
+	ClientConfig_USE_IP4    ClientConfig_DomainStrategy = 1
+	ClientConfig_USE_IP6    ClientConfig_DomainStrategy = 2
+	ClientConfig_PREFER_IP4 ClientConfig_DomainStrategy = 3
+	ClientConfig_PREFER_IP6 ClientConfig_DomainStrategy = 4
+)
+
+// Enum value maps for ClientConfig_DomainStrategy.
+var (
+	ClientConfig_DomainStrategy_name = map[int32]string{
+		0: "USE_IP",
+		1: "USE_IP4",
+		2: "USE_IP6",
+		3: "PREFER_IP4",
+		4: "PREFER_IP6",
+	}
+	ClientConfig_DomainStrategy_value = map[string]int32{
+		"USE_IP":     0,
+		"USE_IP4":    1,
+		"USE_IP6":    2,
+		"PREFER_IP4": 3,
+		"PREFER_IP6": 4,
+	}
+)
+
+func (x ClientConfig_DomainStrategy) Enum() *ClientConfig_DomainStrategy {
+	p := new(ClientConfig_DomainStrategy)
+	*p = x
+	return p
+}
+
+func (x ClientConfig_DomainStrategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ClientConfig_DomainStrategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_proxy_http3_config_proto_enumTypes[0].Descriptor()
+}
+
+func (ClientConfig_DomainStrategy) Type() protoreflect.EnumType {
+	return &file_proxy_http3_config_proto_enumTypes[0]
+}
+
+func (x ClientConfig_DomainStrategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ClientConfig_DomainStrategy.Descriptor instead.
+func (ClientConfig_DomainStrategy) EnumDescriptor() ([]byte, []int) {
+	return file_proxy_http3_config_proto_rawDescGZIP(), []int{0, 0}
+}
+
 type ClientConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Level         uint32                 `protobuf:"varint,3,opt,name=level,proto3" json:"level,omitempty"`
-	Username      *string                `protobuf:"bytes,4,opt,name=username,proto3,oneof" json:"username,omitempty"`
-	Password      *string                `protobuf:"bytes,5,opt,name=password,proto3,oneof" json:"password,omitempty"`
-	Headers       map[string]string      `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	TlsSettings   *tls.Config            `protobuf:"bytes,7,opt,name=tls_settings,json=tlsSettings,proto3" json:"tls_settings,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState      `protogen:"open.v1"`
+	Address        *net.IPOrDomain             `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port           uint32                      `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Level          uint32                      `protobuf:"varint,3,opt,name=level,proto3" json:"level,omitempty"`
+	Username       *string                     `protobuf:"bytes,4,opt,name=username,proto3,oneof" json:"username,omitempty"`
+	Password       *string                     `protobuf:"bytes,5,opt,name=password,proto3,oneof" json:"password,omitempty"`
+	Headers        map[string]string           `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	TlsSettings    *tls.Config                 `protobuf:"bytes,7,opt,name=tls_settings,json=tlsSettings,proto3" json:"tls_settings,omitempty"`
+	TrustTunnelUdp bool                        `protobuf:"varint,1000,opt,name=trust_tunnel_udp,json=trustTunnelUdp,proto3" json:"trust_tunnel_udp,omitempty"`
+	DomainStrategy ClientConfig_DomainStrategy `protobuf:"varint,1001,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.http3.ClientConfig_DomainStrategy" json:"domain_strategy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -110,11 +167,25 @@ func (x *ClientConfig) GetTlsSettings() *tls.Config {
 	return nil
 }
 
+func (x *ClientConfig) GetTrustTunnelUdp() bool {
+	if x != nil {
+		return x.TrustTunnelUdp
+	}
+	return false
+}
+
+func (x *ClientConfig) GetDomainStrategy() ClientConfig_DomainStrategy {
+	if x != nil {
+		return x.DomainStrategy
+	}
+	return ClientConfig_USE_IP
+}
+
 var File_proxy_http3_config_proto protoreflect.FileDescriptor
 
 const file_proxy_http3_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18proxy/http3/config.proto\x12\x16v2ray.core.proxy.http3\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\x1a#transport/internet/tls/config.proto\"\xbf\x03\n" +
+	"\x18proxy/http3/config.proto\x12\x16v2ray.core.proxy.http3\x1a\x18common/net/address.proto\x1a common/protoext/extensions.proto\x1a#transport/internet/tls/config.proto\"\xa1\x05\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x14\n" +
@@ -122,10 +193,21 @@ const file_proxy_http3_config_proto_rawDesc = "" +
 	"\busername\x18\x04 \x01(\tH\x00R\busername\x88\x01\x01\x12\x1f\n" +
 	"\bpassword\x18\x05 \x01(\tH\x01R\bpassword\x88\x01\x01\x12K\n" +
 	"\aheaders\x18\x06 \x03(\v21.v2ray.core.proxy.http3.ClientConfig.HeadersEntryR\aheaders\x12L\n" +
-	"\ftls_settings\x18\a \x01(\v2).v2ray.core.transport.internet.tls.ConfigR\vtlsSettings\x1a:\n" +
+	"\ftls_settings\x18\a \x01(\v2).v2ray.core.transport.internet.tls.ConfigR\vtlsSettings\x12)\n" +
+	"\x10trust_tunnel_udp\x18\xe8\a \x01(\bR\x0etrustTunnelUdp\x12]\n" +
+	"\x0fdomain_strategy\x18\xe9\a \x01(\x0e23.v2ray.core.proxy.http3.ClientConfig.DomainStrategyR\x0edomainStrategy\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x15\x82\xb5\x18\x11\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"V\n" +
+	"\x0eDomainStrategy\x12\n" +
+	"\n" +
+	"\x06USE_IP\x10\x00\x12\v\n" +
+	"\aUSE_IP4\x10\x01\x12\v\n" +
+	"\aUSE_IP6\x10\x02\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP4\x10\x03\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP6\x10\x04:\x15\x82\xb5\x18\x11\n" +
 	"\boutbound\x12\x05http3B\v\n" +
 	"\t_usernameB\v\n" +
 	"\t_passwordBc\n" +
@@ -143,22 +225,25 @@ func file_proxy_http3_config_proto_rawDescGZIP() []byte {
 	return file_proxy_http3_config_proto_rawDescData
 }
 
+var file_proxy_http3_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_proxy_http3_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_proxy_http3_config_proto_goTypes = []any{
-	(*ClientConfig)(nil),   // 0: v2ray.core.proxy.http3.ClientConfig
-	nil,                    // 1: v2ray.core.proxy.http3.ClientConfig.HeadersEntry
-	(*net.IPOrDomain)(nil), // 2: v2ray.core.common.net.IPOrDomain
-	(*tls.Config)(nil),     // 3: v2ray.core.transport.internet.tls.Config
+	(ClientConfig_DomainStrategy)(0), // 0: v2ray.core.proxy.http3.ClientConfig.DomainStrategy
+	(*ClientConfig)(nil),             // 1: v2ray.core.proxy.http3.ClientConfig
+	nil,                              // 2: v2ray.core.proxy.http3.ClientConfig.HeadersEntry
+	(*net.IPOrDomain)(nil),           // 3: v2ray.core.common.net.IPOrDomain
+	(*tls.Config)(nil),               // 4: v2ray.core.transport.internet.tls.Config
 }
 var file_proxy_http3_config_proto_depIdxs = []int32{
-	2, // 0: v2ray.core.proxy.http3.ClientConfig.address:type_name -> v2ray.core.common.net.IPOrDomain
-	1, // 1: v2ray.core.proxy.http3.ClientConfig.headers:type_name -> v2ray.core.proxy.http3.ClientConfig.HeadersEntry
-	3, // 2: v2ray.core.proxy.http3.ClientConfig.tls_settings:type_name -> v2ray.core.transport.internet.tls.Config
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 0: v2ray.core.proxy.http3.ClientConfig.address:type_name -> v2ray.core.common.net.IPOrDomain
+	2, // 1: v2ray.core.proxy.http3.ClientConfig.headers:type_name -> v2ray.core.proxy.http3.ClientConfig.HeadersEntry
+	4, // 2: v2ray.core.proxy.http3.ClientConfig.tls_settings:type_name -> v2ray.core.transport.internet.tls.Config
+	0, // 3: v2ray.core.proxy.http3.ClientConfig.domain_strategy:type_name -> v2ray.core.proxy.http3.ClientConfig.DomainStrategy
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proxy_http3_config_proto_init() }
@@ -172,13 +257,14 @@ func file_proxy_http3_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_http3_config_proto_rawDesc), len(file_proxy_http3_config_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_proxy_http3_config_proto_goTypes,
 		DependencyIndexes: file_proxy_http3_config_proto_depIdxs,
+		EnumInfos:         file_proxy_http3_config_proto_enumTypes,
 		MessageInfos:      file_proxy_http3_config_proto_msgTypes,
 	}.Build()
 	File_proxy_http3_config_proto = out.File

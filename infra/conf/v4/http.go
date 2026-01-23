@@ -2,6 +2,7 @@ package v4
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 
@@ -56,7 +57,9 @@ type HTTPRemoteConfig struct {
 }
 
 type HTTPClientConfig struct {
-	Servers []*HTTPRemoteConfig `json:"servers"`
+	Servers        []*HTTPRemoteConfig `json:"servers"`
+	TrustTunnelUDP bool                `json:"trustTunnelUDP"`
+	DomainStrategy string              `json:"domainStrategy"`
 }
 
 func (v *HTTPClientConfig) Build() (proto.Message, error) {
@@ -81,5 +84,22 @@ func (v *HTTPClientConfig) Build() (proto.Message, error) {
 		}
 		config.Server[idx] = server
 	}
+
+	config.TrustTunnelUdp = v.TrustTunnelUDP
+	switch strings.ToLower(v.DomainStrategy) {
+	case "useip", "":
+		config.DomainStrategy = http.ClientConfig_USE_IP
+	case "useipv4":
+		config.DomainStrategy = http.ClientConfig_USE_IP4
+	case "useipv6":
+		config.DomainStrategy = http.ClientConfig_USE_IP6
+	case "preferipv4":
+		config.DomainStrategy = http.ClientConfig_PREFER_IP4
+	case "preferipv6":
+		config.DomainStrategy = http.ClientConfig_PREFER_IP6
+	default:
+		return nil, newError("unsupported domain strategy: ", v.DomainStrategy)
+	}
+
 	return config, nil
 }
