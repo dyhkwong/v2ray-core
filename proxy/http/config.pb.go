@@ -16,6 +16,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ClientConfig_DomainStrategy int32
+
+const (
+	ClientConfig_USE_IP     ClientConfig_DomainStrategy = 0
+	ClientConfig_USE_IP4    ClientConfig_DomainStrategy = 1
+	ClientConfig_USE_IP6    ClientConfig_DomainStrategy = 2
+	ClientConfig_PREFER_IP4 ClientConfig_DomainStrategy = 3
+	ClientConfig_PREFER_IP6 ClientConfig_DomainStrategy = 4
+)
+
+// Enum value maps for ClientConfig_DomainStrategy.
+var (
+	ClientConfig_DomainStrategy_name = map[int32]string{
+		0: "USE_IP",
+		1: "USE_IP4",
+		2: "USE_IP6",
+		3: "PREFER_IP4",
+		4: "PREFER_IP6",
+	}
+	ClientConfig_DomainStrategy_value = map[string]int32{
+		"USE_IP":     0,
+		"USE_IP4":    1,
+		"USE_IP6":    2,
+		"PREFER_IP4": 3,
+		"PREFER_IP6": 4,
+	}
+)
+
+func (x ClientConfig_DomainStrategy) Enum() *ClientConfig_DomainStrategy {
+	p := new(ClientConfig_DomainStrategy)
+	*p = x
+	return p
+}
+
+func (x ClientConfig_DomainStrategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ClientConfig_DomainStrategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_proxy_http_config_proto_enumTypes[0].Descriptor()
+}
+
+func (ClientConfig_DomainStrategy) Type() protoreflect.EnumType {
+	return &file_proxy_http_config_proto_enumTypes[0]
+}
+
+func (x ClientConfig_DomainStrategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ClientConfig_DomainStrategy.Descriptor instead.
+func (ClientConfig_DomainStrategy) EnumDescriptor() ([]byte, []int) {
+	return file_proxy_http_config_proto_rawDescGZIP(), []int{2, 0}
+}
+
 type Account struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
@@ -151,9 +206,13 @@ func (x *ServerConfig) GetUserLevel() uint32 {
 type ClientConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sever is a list of HTTP server addresses.
-	Server        []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Server []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
+	// Deprecated: Do not use.
+	TrustTunnelUdp bool `protobuf:"varint,1000,opt,name=trust_tunnel_udp,json=trustTunnelUdp,proto3" json:"trust_tunnel_udp,omitempty"`
+	// Deprecated: Do not use.
+	DomainStrategy ClientConfig_DomainStrategy `protobuf:"varint,1001,opt,name=domain_strategy,json=domainStrategy,proto3,enum=v2ray.core.proxy.http.ClientConfig_DomainStrategy" json:"domain_strategy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -193,6 +252,20 @@ func (x *ClientConfig) GetServer() []*protocol.ServerEndpoint {
 	return nil
 }
 
+func (x *ClientConfig) GetTrustTunnelUdp() bool {
+	if x != nil {
+		return x.TrustTunnelUdp
+	}
+	return false
+}
+
+func (x *ClientConfig) GetDomainStrategy() ClientConfig_DomainStrategy {
+	if x != nil {
+		return x.DomainStrategy
+	}
+	return ClientConfig_USE_IP
+}
+
 var File_proxy_http_config_proto protoreflect.FileDescriptor
 
 const file_proxy_http_config_proto_rawDesc = "" +
@@ -213,9 +286,20 @@ const file_proxy_http_config_proto_rawDesc = "" +
 	"user_level\x18\x04 \x01(\rR\tuserLevel\x1a;\n" +
 	"\rAccountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"R\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb3\x02\n" +
 	"\fClientConfig\x12B\n" +
-	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06serverB`\n" +
+	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\x12)\n" +
+	"\x10trust_tunnel_udp\x18\xe8\a \x01(\bR\x0etrustTunnelUdp\x12\\\n" +
+	"\x0fdomain_strategy\x18\xe9\a \x01(\x0e22.v2ray.core.proxy.http.ClientConfig.DomainStrategyR\x0edomainStrategy\"V\n" +
+	"\x0eDomainStrategy\x12\n" +
+	"\n" +
+	"\x06USE_IP\x10\x00\x12\v\n" +
+	"\aUSE_IP4\x10\x01\x12\v\n" +
+	"\aUSE_IP6\x10\x02\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP4\x10\x03\x12\x0e\n" +
+	"\n" +
+	"PREFER_IP6\x10\x04B`\n" +
 	"\x19com.v2ray.core.proxy.httpP\x01Z)github.com/v2fly/v2ray-core/v5/proxy/http\xaa\x02\x15V2Ray.Core.Proxy.Httpb\x06proto3"
 
 var (
@@ -230,24 +314,27 @@ func file_proxy_http_config_proto_rawDescGZIP() []byte {
 	return file_proxy_http_config_proto_rawDescData
 }
 
+var file_proxy_http_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_proxy_http_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proxy_http_config_proto_goTypes = []any{
-	(*Account)(nil),                 // 0: v2ray.core.proxy.http.Account
-	(*ServerConfig)(nil),            // 1: v2ray.core.proxy.http.ServerConfig
-	(*ClientConfig)(nil),            // 2: v2ray.core.proxy.http.ClientConfig
-	nil,                             // 3: v2ray.core.proxy.http.Account.HeadersEntry
-	nil,                             // 4: v2ray.core.proxy.http.ServerConfig.AccountsEntry
-	(*protocol.ServerEndpoint)(nil), // 5: v2ray.core.common.protocol.ServerEndpoint
+	(ClientConfig_DomainStrategy)(0), // 0: v2ray.core.proxy.http.ClientConfig.DomainStrategy
+	(*Account)(nil),                  // 1: v2ray.core.proxy.http.Account
+	(*ServerConfig)(nil),             // 2: v2ray.core.proxy.http.ServerConfig
+	(*ClientConfig)(nil),             // 3: v2ray.core.proxy.http.ClientConfig
+	nil,                              // 4: v2ray.core.proxy.http.Account.HeadersEntry
+	nil,                              // 5: v2ray.core.proxy.http.ServerConfig.AccountsEntry
+	(*protocol.ServerEndpoint)(nil),  // 6: v2ray.core.common.protocol.ServerEndpoint
 }
 var file_proxy_http_config_proto_depIdxs = []int32{
-	3, // 0: v2ray.core.proxy.http.Account.headers:type_name -> v2ray.core.proxy.http.Account.HeadersEntry
-	4, // 1: v2ray.core.proxy.http.ServerConfig.accounts:type_name -> v2ray.core.proxy.http.ServerConfig.AccountsEntry
-	5, // 2: v2ray.core.proxy.http.ClientConfig.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: v2ray.core.proxy.http.Account.headers:type_name -> v2ray.core.proxy.http.Account.HeadersEntry
+	5, // 1: v2ray.core.proxy.http.ServerConfig.accounts:type_name -> v2ray.core.proxy.http.ServerConfig.AccountsEntry
+	6, // 2: v2ray.core.proxy.http.ClientConfig.server:type_name -> v2ray.core.common.protocol.ServerEndpoint
+	0, // 3: v2ray.core.proxy.http.ClientConfig.domain_strategy:type_name -> v2ray.core.proxy.http.ClientConfig.DomainStrategy
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proxy_http_config_proto_init() }
@@ -260,13 +347,14 @@ func file_proxy_http_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_http_config_proto_rawDesc), len(file_proxy_http_config_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_proxy_http_config_proto_goTypes,
 		DependencyIndexes: file_proxy_http_config_proto_depIdxs,
+		EnumInfos:         file_proxy_http_config_proto_enumTypes,
 		MessageInfos:      file_proxy_http_config_proto_msgTypes,
 	}.Build()
 	File_proxy_http_config_proto = out.File

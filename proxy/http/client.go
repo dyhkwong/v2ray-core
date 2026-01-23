@@ -20,6 +20,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	uot "github.com/v2fly/v2ray-core/v5/common/trusttunneluot"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/proxy"
 	"github.com/v2fly/v2ray-core/v5/transport"
@@ -32,6 +34,11 @@ type Client struct {
 	policyManager policy.Manager
 	transport     map[net.Destination]*http.Transport
 	transportLock sync.Mutex
+
+	// Deprecated. Do not use.
+	trustTunnelUDP bool
+	// Deprecated. Do not use.
+	resolver func(domain string) (net.Address, error)
 }
 
 func (c *Client) Close() error {
@@ -56,11 +63,38 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	}
 
 	v := core.MustFromContext(ctx)
-	return &Client{
+	client := &Client{
 		serverPicker:  protocol.NewRoundRobinServerPicker(serverList),
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 		transport:     make(map[net.Destination]*http.Transport),
-	}, nil
+	}
+	if config.TrustTunnelUdp {
+		client.trustTunnelUDP = true
+		dnsClient := v.GetFeature(dns.ClientType()).(dns.Client)
+		client.resolver = func(domain string) (net.Address, error) {
+			ips, err := dns.LookupIPWithOption(dnsClient, domain, dns.IPOption{
+				IPv4Enable: config.DomainStrategy != ClientConfig_USE_IP6,
+				IPv6Enable: config.DomainStrategy != ClientConfig_USE_IP4,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(ips) == 0 {
+				return nil, dns.ErrEmptyResponse
+			}
+			if config.DomainStrategy == ClientConfig_PREFER_IP4 || config.DomainStrategy == ClientConfig_PREFER_IP6 {
+				var addr net.Address
+				for _, ip := range ips {
+					addr = net.IPAddress(ip)
+					if addr.Family().IsIPv4() == (config.DomainStrategy == ClientConfig_PREFER_IP4) {
+						return addr, nil
+					}
+				}
+			}
+			return net.IPAddress(ips[0]), nil
+		}
+	}
+	return client, nil
 }
 
 // Process implements proxy.Outbound.Process. We first create a socket tunnel via HTTP CONNECT method, then redirect all inbound traffic to that tunnel.
@@ -71,9 +105,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 	target := outbound.Target
 	targetAddr := target.NetAddr()
-
 	if target.Network == net.Network_UDP {
-		return newError("UDP is not supported by HTTP outbound")
+		if !c.trustTunnelUDP {
+			return newError("UDP is not supported by HTTP outbound")
+		}
+		targetAddr = uot.MagicAddress
 	}
 
 	var server *protocol.ServerSpec
@@ -98,15 +134,16 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
+	isH2 := false
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
 		server = c.serverPicker.PickServer()
 		dest := server.Destination()
 		user = server.PickUser()
-		httpConn, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload)
-		if err != nil {
-			return err
+		var retErr error
+		conn, isH2, retErr = c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload)
+		if retErr != nil {
+			return retErr
 		}
-		conn = httpConn
 		return nil
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
@@ -120,6 +157,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}()
 
+	var targetIP net.Address
+	if target.Network == net.Network_UDP && target.Address.Family().IsDomain() {
+		if ip, err := c.resolver(target.Address.Domain()); err != nil {
+			return err
+		} else {
+			targetIP = ip
+		}
+	} else {
+		targetIP = target.Address
+	}
+
 	p := c.policyManager.ForLevel(0)
 	if user != nil {
 		p = c.policyManager.ForLevel(user.Level)
@@ -130,10 +178,20 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	requestFunc := func() error {
 		defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
+		if target.Network == net.Network_UDP {
+			userAgent := uot.DefaultH1UserAgent
+			if isH2 {
+				userAgent = uot.DefaultH2UserAgent
+			}
+			return buf.Copy(link.Reader, uot.NewWriter(conn, target, targetIP, userAgent), buf.UpdateActivity(timer))
+		}
 		return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 	}
 	responseFunc := func() error {
 		defer timer.SetTimeout(p.Timeouts.UplinkOnly)
+		if target.Network == net.Network_UDP {
+			return buf.Copy(uot.NewReader(conn, target, targetIP), link.Writer, buf.UpdateActivity(timer))
+		}
 		return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 	}
 
@@ -146,7 +204,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 // setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte) (net.Conn, error) {
+func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte) (net.Conn, bool, error) {
 	c.transportLock.Lock()
 	transport := c.transport[dest]
 	if transport == nil {
@@ -247,24 +305,26 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	resp, err := transport.RoundTrip(req) // nolint: bodyclose
 	if err != nil {
-		return nil, err
+		pw.Close()
+		wg.Wait()
+		return nil, false, err
 	}
 	wg.Wait()
 	if pErr != nil {
-		return nil, pErr
+		return nil, false, pErr
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, newError("Proxy responded with non 200 code: " + resp.Status)
+		return nil, false, newError("Proxy responded with non 200 code: " + resp.Status)
 	}
 	if nextProto != "h2" {
 		httpConn := &httpConn{in: pw, out: resp.Body}
 		if _, err = httpConn.Write(firstPayload); err != nil {
 			httpConn.Close()
-			return nil, err
+			return nil, false, err
 		}
-		return httpConn, nil
+		return httpConn, false, nil
 	}
-	return &httpConn{in: pw, out: resp.Body}, nil
+	return &httpConn{in: pw, out: resp.Body}, true, nil
 }
 
 type httpConn struct {
