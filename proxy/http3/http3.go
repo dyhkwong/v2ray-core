@@ -58,6 +58,18 @@ func wrapPacketConn(rawConn net.PacketConn, readCounter, writeCounter stats.Coun
 	return conn
 }
 
+func (c *setBufferConn) SetReadBuffer(bytes int) error {
+	return c.setReadBufferFn.SetReadBuffer(bytes)
+}
+
+func (c *setBufferConn) SetWriteBuffer(bytes int) error {
+	return c.setWriteBufferFn.SetWriteBuffer(bytes)
+}
+
+func (c *syscallConn) SyscallConn() (syscall.RawConn, error) {
+	return c.syscallConnFn.SyscallConn()
+}
+
 func (c *conn) ReadFrom(p []byte) (int, net.Addr, error) {
 	n, addr, err := c.PacketConn.ReadFrom(p)
 	if c.readCounter != nil {
