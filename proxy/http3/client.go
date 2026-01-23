@@ -22,6 +22,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	uot "github.com/v2fly/v2ray-core/v5/common/trusttunneluot"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/proxy"
@@ -36,6 +38,11 @@ type Client struct {
 	policyManager policy.Manager
 	transport     *http3.Transport
 	transportLock sync.Mutex
+
+	// Deprecated. Do not use.
+	trustTunnelUDP bool
+	// Deprecated. Do not use.
+	resolver func(domain string) (net.Address, error)
 }
 
 func (c *Client) Close() error {
@@ -52,11 +59,38 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		Port:    net.Port(config.Port),
 		Network: net.Network_UDP,
 	}
-	return &Client{
+	client := &Client{
 		config:        config,
 		serverAddress: serverAddress,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
-	}, nil
+	}
+	if config.TrustTunnelUdp {
+		client.trustTunnelUDP = true
+		dnsClient := v.GetFeature(dns.ClientType()).(dns.Client)
+		client.resolver = func(domain string) (net.Address, error) {
+			ips, err := dns.LookupIPWithOption(dnsClient, domain, dns.IPOption{
+				IPv4Enable: config.DomainStrategy != ClientConfig_USE_IP6,
+				IPv6Enable: config.DomainStrategy != ClientConfig_USE_IP4,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(ips) == 0 {
+				return nil, dns.ErrEmptyResponse
+			}
+			if config.DomainStrategy == ClientConfig_PREFER_IP4 || config.DomainStrategy == ClientConfig_PREFER_IP6 {
+				var addr net.Address
+				for _, ip := range ips {
+					addr = net.IPAddress(ip)
+					if addr.Family().IsIPv4() == (config.DomainStrategy == ClientConfig_PREFER_IP4) {
+						return addr, nil
+					}
+				}
+			}
+			return net.IPAddress(ips[0]), nil
+		}
+	}
+	return client, nil
 }
 
 func (c *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
@@ -68,7 +102,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	targetAddr := target.NetAddr()
 
 	if target.Network == net.Network_UDP {
-		return newError("UDP is not supported by HTTP outbound")
+		if !c.trustTunnelUDP {
+			return newError("UDP is not supported by HTTP outbound")
+		}
+		targetAddr = uot.MagicAddress
 	}
 
 	var conn internet.Connection
@@ -106,6 +143,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}()
 
+	var targetIP net.Address
+	if target.Network == net.Network_UDP && target.Address.Family().IsDomain() {
+		if ip, err := c.resolver(target.Address.Domain()); err != nil {
+			return err
+		} else {
+			targetIP = ip
+		}
+	} else {
+		targetIP = target.Address
+	}
+
 	p := c.policyManager.ForLevel(c.config.Level)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -113,10 +161,16 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	requestFunc := func() error {
 		defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
+		if target.Network == net.Network_UDP {
+			return buf.Copy(link.Reader, uot.NewWriter(conn, target, targetIP, uot.DefaultH3UserAgent), buf.UpdateActivity(timer))
+		}
 		return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 	}
 	responseFunc := func() error {
 		defer timer.SetTimeout(p.Timeouts.UplinkOnly)
+		if target.Network == net.Network_UDP {
+			return buf.Copy(uot.NewReader(conn, target, targetIP), link.Writer, buf.UpdateActivity(timer))
+		}
 		return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 	}
 
@@ -219,6 +273,8 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 	}()
 	resp, err := transport.RoundTrip(req) // nolint: bodyclose
 	if err != nil {
+		pw.Close()
+		wg.Wait()
 		return nil, err
 	}
 	wg.Wait()
