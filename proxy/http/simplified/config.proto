@@ -20,4 +20,17 @@ message ClientConfig {
 
   v2ray.core.common.net.IPOrDomain address = 1;
   uint32 port = 2;
+
+  // Deprecated: Do not use.
+  bool trust_tunnel_udp = 1000;
+  // Deprecated: Do not use.
+  DomainStrategy domain_strategy = 1001;
+
+  enum DomainStrategy {
+    USE_IP = 0;
+    USE_IP4 = 1;
+    USE_IP6 = 2;
+    PREFER_IP4 = 3;
+    PREFER_IP6 = 4;
+  }
 }
