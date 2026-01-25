@@ -151,10 +151,9 @@ func (x *ServerConfig) GetUserLevel() uint32 {
 type ClientConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sever is a list of HTTP server addresses.
-	Server             []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
-	H1SkipWaitForReply bool                       `protobuf:"varint,2,opt,name=h1_skip_wait_for_reply,json=h1SkipWaitForReply,proto3" json:"h1_skip_wait_for_reply,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	Server        []*protocol.ServerEndpoint `protobuf:"bytes,1,rep,name=server,proto3" json:"server,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -194,13 +193,6 @@ func (x *ClientConfig) GetServer() []*protocol.ServerEndpoint {
 	return nil
 }
 
-func (x *ClientConfig) GetH1SkipWaitForReply() bool {
-	if x != nil {
-		return x.H1SkipWaitForReply
-	}
-	return false
-}
-
 var File_proxy_http_config_proto protoreflect.FileDescriptor
 
 const file_proxy_http_config_proto_rawDesc = "" +
@@ -221,10 +213,9 @@ const file_proxy_http_config_proto_rawDesc = "" +
 	"user_level\x18\x04 \x01(\rR\tuserLevel\x1a;\n" +
 	"\rAccountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x86\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"R\n" +
 	"\fClientConfig\x12B\n" +
-	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06server\x122\n" +
-	"\x16h1_skip_wait_for_reply\x18\x02 \x01(\bR\x12h1SkipWaitForReplyB`\n" +
+	"\x06server\x18\x01 \x03(\v2*.v2ray.core.common.protocol.ServerEndpointR\x06serverB`\n" +
 	"\x19com.v2ray.core.proxy.httpP\x01Z)github.com/v2fly/v2ray-core/v4/proxy/http\xaa\x02\x15V2Ray.Core.Proxy.Httpb\x06proto3"
 
 var (

@@ -3,17 +3,14 @@
 package http
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/base64"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"sync"
 	"time"
-
-	"golang.org/x/net/http2"
 
 	core "github.com/v2fly/v2ray-core/v4"
 	"github.com/v2fly/v2ray-core/v4/common"
@@ -33,27 +30,17 @@ import (
 )
 
 type Client struct {
-	serverPicker       protocol.ServerPicker
-	policyManager      policy.Manager
-	h1SkipWaitForReply bool
-	cachedH2Mutex      sync.Mutex
-	cachedH2Conns      map[net.Destination]h2Conn
+	serverPicker  protocol.ServerPicker
+	policyManager policy.Manager
+	transport     map[net.Destination]*http.Transport
+	transportLock sync.Mutex
 }
 
 func (c *Client) Close() error {
-	c.cachedH2Mutex.Lock()
-	for _, cachedH2Conn := range c.cachedH2Conns {
-		_ = cachedH2Conn.h2Conn.Close()
-		_ = cachedH2Conn.rawConn.Close()
-	}
-	clear(c.cachedH2Conns)
-	c.cachedH2Mutex.Unlock()
+	c.transportLock.Lock()
+	clear(c.transport)
+	c.transportLock.Unlock()
 	return nil
-}
-
-type h2Conn struct {
-	rawConn net.Conn
-	h2Conn  *http2.ClientConn
 }
 
 // NewClient create a new http client based on the given config.
@@ -72,10 +59,9 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 
 	v := core.MustFromContext(ctx)
 	return &Client{
-		serverPicker:       protocol.NewRoundRobinServerPicker(serverList),
-		policyManager:      v.GetFeature(policy.ManagerType()).(policy.Manager),
-		h1SkipWaitForReply: config.H1SkipWaitForReply,
-		cachedH2Conns:      make(map[net.Destination]h2Conn),
+		serverPicker:  protocol.NewRoundRobinServerPicker(serverList),
+		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
+		transport:     make(map[net.Destination]*http.Transport),
 	}, nil
 }
 
@@ -92,22 +78,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("UDP is not supported by HTTP outbound")
 	}
 
+	var server *protocol.ServerSpec
 	var user *protocol.MemoryUser
 	var conn internet.Connection
 
 	var firstPayload []byte
-
 	if reader, ok := link.Reader.(buf.TimeoutReader); ok {
 		// 0-RTT optimization for HTTP/2: If the payload comes very soon, it can be
 		// transmitted together. Note we should not get stuck here, as the payload may
 		// not exist (considering to access MySQL database via a HTTP proxy, where the
 		// server sends hello to the client first).
 		waitTime := proxy.FirstPayloadTimeout
-		if c.h1SkipWaitForReply {
-			// Some server require first write to be present in client hello.
-			// Increase timeout to if the client have explicitly requested to skip waiting for reply.
-			waitTime = time.Second
-		}
 		if mbuf, _ := reader.ReadMultiBufferTimeout(waitTime); mbuf != nil {
 			mlen := mbuf.Len()
 			firstPayload = bytespool.Alloc(mlen)
@@ -120,29 +101,20 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server := c.serverPicker.PickServer()
+		server = c.serverPicker.PickServer()
 		dest := server.Destination()
 		user = server.PickUser()
-
-		netConn, firstResp, err := c.setUpHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
-		if netConn != nil {
-			if _, ok := netConn.(*http2Conn); !ok && !c.h1SkipWaitForReply {
-				if _, err := netConn.Write(firstPayload); err != nil {
-					netConn.Close()
-					return err
-				}
-			}
-			if firstResp != nil {
-				if err := link.Writer.WriteMultiBuffer(firstResp); err != nil {
-					return err
-				}
-			}
-			conn = internet.Connection(netConn)
+		httpConn, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload)
+		if err != nil {
+			return err
 		}
-		return err
+		conn = httpConn
+		return nil
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
+
+	newError("tunneling request to ", target, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -175,12 +147,62 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	return nil
 }
 
-// setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte, writeFirstPayloadInH1 bool,
-) (net.Conn, buf.MultiBuffer, error) {
+// setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
+func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, firstPayload []byte) (net.Conn, error) {
+	c.transportLock.Lock()
+	transport := c.transport[dest]
+	if transport == nil {
+		protocols := new(http.Protocols)
+		protocols.SetHTTP1(true)
+		protocols.SetUnencryptedHTTP2(true)
+		transport = &http.Transport{
+			Protocols: protocols,
+			HTTP2: &http.HTTP2Config{
+				SendPingTimeout: time.Second * 10,
+			},
+			DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+				detachedCtx := core.ToBackgroundDetachedContext(ctx)
+				rawConn, err := dialer.Dial(detachedCtx, dest)
+				if err != nil {
+					return nil, err
+				}
+				iConn := rawConn
+				if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+					iConn = statConn.Connection
+				}
+				nextProto := ""
+				if connALPNGetter, ok := iConn.(security.ConnectionApplicationProtocol); ok {
+					nextProto, err = connALPNGetter.GetConnectionApplicationProtocol()
+					if err != nil {
+						rawConn.Close()
+						return nil, err
+					}
+				}
+				switch nextProto {
+				case "", "http/1.1":
+					protocols.SetHTTP1(true)
+					protocols.SetUnencryptedHTTP2(false)
+					return rawConn, nil
+				case "h2":
+					protocols.SetHTTP1(false)
+					protocols.SetUnencryptedHTTP2(true)
+					return rawConn, nil
+				default:
+					rawConn.Close()
+					return nil, newError("negotiated unsupported application layer protocol: " + nextProto)
+				}
+			},
+		}
+		c.transport[dest] = transport
+	}
+	c.transportLock.Unlock()
+
 	req := &http.Request{
 		Method: http.MethodConnect,
-		URL:    &url.URL{Host: target},
+		URL: &url.URL{
+			Host:   target,
+			Scheme: "http",
+		},
 		Header: make(http.Header),
 		Host:   target,
 	}
@@ -195,176 +217,98 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		}
 	}
 
-	connectHTTP1 := func(rawConn net.Conn) (net.Conn, buf.MultiBuffer, error) {
-		req.Header.Set("Proxy-Connection", "Keep-Alive")
-
-		if !writeFirstPayloadInH1 {
-			err := req.Write(rawConn)
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
+	var pErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	nextProto := ""
+	pr, pw := io.Pipe()
+	req.Body = pr
+	req.Header.Set("Proxy-Connection", "Keep-Alive") // Go HTTP/2 will remove this header automatically
+	trace := &httptrace.ClientTrace{
+		GotConn: func(info httptrace.GotConnInfo) {
+			iConn := info.Conn
+			if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+				iConn = statConn.Connection
 			}
-		} else {
-			buffer := bytes.NewBuffer(nil)
-			err := req.Write(buffer)
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
+			if connALPNGetter, ok := iConn.(security.ConnectionApplicationProtocol); ok {
+				nextProto, _ = connALPNGetter.GetConnectionApplicationProtocol()
 			}
-			_, err = io.Copy(buffer, bytes.NewReader(firstPayload))
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
+			switch nextProto {
+			case "", "http/1.1":
+				go func() {
+					wg.Done()
+				}()
+			case "h2":
+				go func() {
+					_, pErr = pw.Write(firstPayload)
+					wg.Done()
+				}()
 			}
-			_, err = rawConn.Write(buffer.Bytes())
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
-			}
-		}
-		bufferedReader := bufio.NewReader(rawConn)
-		resp, err := http.ReadResponse(bufferedReader, req)
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			rawConn.Close()
-			return nil, nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		if bufferedReader.Buffered() > 0 {
-			payload, err := buf.ReadFrom(io.LimitReader(bufferedReader, int64(bufferedReader.Buffered())))
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, newError("unable to drain buffer: ").Base(err)
-			}
-			return rawConn, payload, nil
-		}
-		return rawConn, nil, nil
+		},
 	}
-
-	connectHTTP2 := func(rawConn net.Conn, h2clientConn *http2.ClientConn) (net.Conn, error) {
-		pr, pw := io.Pipe()
-		req.Body = pr
-
-		var pErr error
-		var wg sync.WaitGroup
-		wg.Add(1)
-
-		go func() {
-			_, pErr = pw.Write(firstPayload)
-			wg.Done()
-		}()
-
-		resp, err := h2clientConn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			rawConn.Close()
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	resp, err := transport.RoundTrip(req) // nolint: bodyclose
+	if err != nil {
+		return nil, err
+	}
+	wg.Wait()
+	if pErr != nil {
+		return nil, pErr
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, newError("Proxy responded with non 200 code: " + resp.Status)
+	}
+	if nextProto != "h2" {
+		httpConn := &httpConn{in: pw, out: resp.Body}
+		if _, err = httpConn.Write(firstPayload); err != nil {
+			httpConn.Close()
 			return nil, err
 		}
-
-		wg.Wait()
-		if pErr != nil {
-			rawConn.Close()
-			return nil, pErr
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			rawConn.Close()
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return newHTTP2Conn(rawConn, pw, resp.Body), nil
+		return httpConn, nil
 	}
-
-	c.cachedH2Mutex.Lock()
-	cachedConn, cachedConnFound := c.cachedH2Conns[dest]
-	c.cachedH2Mutex.Unlock()
-
-	if cachedConnFound {
-		rc, cc := cachedConn.rawConn, cachedConn.h2Conn
-		if cc.CanTakeNewRequest() {
-			proxyConn, err := connectHTTP2(rc, cc)
-			if err != nil {
-				c.cachedH2Mutex.Lock()
-				delete(c.cachedH2Conns, dest)
-				c.cachedH2Mutex.Unlock()
-				return nil, nil, err
-			}
-			return proxyConn, nil, nil
-		}
-	}
-
-	rawConn, err := dialer.Dial(ctx, dest)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	iConn := rawConn
-	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
-		iConn = statConn.Connection
-	}
-
-	nextProto := ""
-	if connALPNGetter, ok := iConn.(security.ConnectionApplicationProtocol); ok {
-		nextProto, err = connALPNGetter.GetConnectionApplicationProtocol()
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-	}
-
-	switch nextProto {
-	case "", "http/1.1":
-		return connectHTTP1(rawConn)
-	case "h2":
-		t := http2.Transport{
-			ReadIdleTimeout: time.Second * 15,
-		}
-		h2clientConn, err := t.NewClientConn(rawConn)
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-
-		proxyConn, err := connectHTTP2(rawConn, h2clientConn)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		c.cachedH2Mutex.Lock()
-		c.cachedH2Conns[dest] = h2Conn{
-			rawConn: rawConn,
-			h2Conn:  h2clientConn,
-		}
-		c.cachedH2Mutex.Unlock()
-
-		return proxyConn, nil, err
-	default:
-		rawConn.Close()
-		return nil, nil, newError("negotiated unsupported application layer protocol: " + nextProto)
-	}
+	return &httpConn{in: pw, out: resp.Body}, nil
 }
 
-func newHTTP2Conn(c net.Conn, pipedReqBody *io.PipeWriter, respBody io.ReadCloser) net.Conn {
-	return &http2Conn{Conn: c, in: pipedReqBody, out: respBody}
-}
-
-type http2Conn struct {
-	net.Conn
+type httpConn struct {
 	in  *io.PipeWriter
 	out io.ReadCloser
 }
 
-func (h *http2Conn) Read(p []byte) (n int, err error) {
+func (h *httpConn) Read(p []byte) (n int, err error) {
 	return h.out.Read(p)
 }
 
-func (h *http2Conn) Write(p []byte) (n int, err error) {
+func (h *httpConn) Write(p []byte) (n int, err error) {
 	return h.in.Write(p)
 }
 
-func (h *http2Conn) Close() error {
+func (c *httpConn) RemoteAddr() net.Addr {
+	return &net.TCPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *httpConn) LocalAddr() net.Addr {
+	return &net.TCPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *httpConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetWriteDeadline(t time.Time) error {
+	return nil
+}
+
+func (h *httpConn) Close() error {
 	h.in.Close()
 	return h.out.Close()
 }

@@ -4,6 +4,7 @@ package http3
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -34,36 +35,30 @@ import (
 
 type Client struct {
 	config        *ClientConfig
+	serverAddress net.Destination
 	policyManager policy.Manager
-	cachedH3Mutex sync.Mutex
-	cachedH3Conns map[net.Destination]h3Conn
+	transport     *http3.Transport
+	transportLock sync.Mutex
 }
 
 func (c *Client) Close() error {
-	c.cachedH3Mutex.Lock()
-	for _, cachedH3Conn := range c.cachedH3Conns {
-		_ = cachedH3Conn.h3Conn.CloseWithError(0, "")
-		_ = cachedH3Conn.rawConn.Close()
-	}
-	clear(c.cachedH3Conns)
-	c.cachedH3Mutex.Unlock()
+	c.transportLock.Lock()
+	c.transport = nil
+	c.transportLock.Unlock()
 	return nil
-}
-
-type h3Conn struct {
-	rawConn      net.Conn
-	quicConn     *quic.Conn
-	h3Conn       *http3.ClientConn
-	readCounter  stats.Counter
-	writeCounter stats.Counter
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 	v := core.MustFromContext(ctx)
+	serverAddress := net.Destination{
+		Address: config.Address.AsAddress(),
+		Port:    net.Port(config.Port),
+		Network: net.Network_UDP,
+	}
 	return &Client{
 		config:        config,
+		serverAddress: serverAddress,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
-		cachedH3Conns: make(map[net.Destination]h3Conn),
 	}, nil
 }
 
@@ -82,7 +77,6 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	var conn internet.Connection
 
 	var firstPayload []byte
-
 	if reader, ok := link.Reader.(buf.TimeoutReader); ok {
 		waitTime := proxy.FirstPayloadTimeout
 		if mbuf, _ := reader.ReadMultiBufferTimeout(waitTime); mbuf != nil {
@@ -97,15 +91,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		netConn, err := c.setUpHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
+		httpConn, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
 		if err != nil {
 			return err
 		}
-		conn = netConn
+		conn = httpConn
 		return nil
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
+
+	newError("tunneling request to ", target, " via ", c.serverAddress.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -135,8 +131,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	return nil
 }
 
-// setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig) (net.Conn, error) {
+// setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
+func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte, config *ClientConfig) (net.Conn, error) {
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -156,17 +152,70 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 		return nil, newError("tls not enabled")
 	}
 
-	req := &http.Request{
-		Method: http.MethodConnect,
-		URL:    &url.URL{Host: target},
-		Header: make(http.Header),
-		Host:   target,
-	}
-
 	dest := net.Destination{
 		Address: config.Address.AsAddress(),
 		Port:    net.Port(config.Port),
 		Network: net.Network_UDP,
+	}
+	c.transportLock.Lock()
+	transport := c.transport
+	if transport == nil {
+		transport = &http3.Transport{
+			QUICConfig: &quic.Config{
+				KeepAlivePeriod: time.Second * 10,
+			},
+			Dial: func(_ context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+				detachedCtx := core.ToBackgroundDetachedContext(ctx)
+				rawConn, err := dialer.Dial(detachedCtx, dest)
+				if err != nil {
+					return nil, err
+				}
+				var readCounter, writeCounter stats.Counter
+				iConn := rawConn
+				statConn, ok := iConn.(*internet.StatCouterConnection)
+				if ok {
+					iConn = statConn.Connection
+				}
+				var packetConn net.PacketConn
+				switch iConn := iConn.(type) {
+				case *internet.PacketConnWrapper:
+					if statConn != nil {
+						readCounter = statConn.ReadCounter
+						writeCounter = statConn.WriteCounter
+					}
+					packetConn = wrapPacketConn(iConn.Conn, readCounter, writeCounter)
+				case net.PacketConn:
+					if statConn != nil {
+						readCounter = statConn.ReadCounter
+						writeCounter = statConn.WriteCounter
+					}
+					packetConn = wrapPacketConn(iConn, readCounter, writeCounter)
+				default:
+					packetConn = internet.NewConnWrapper(iConn)
+				}
+				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(),
+					tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
+					cfg,
+				)
+				if err != nil {
+					rawConn.Close()
+					return nil, err
+				}
+				return quicConn, nil
+			},
+		}
+		c.transport = transport
+	}
+	c.transportLock.Unlock()
+
+	req := &http.Request{
+		Method: http.MethodConnect,
+		URL: &url.URL{
+			Host:   target,
+			Scheme: "https",
+		},
+		Header: make(http.Header),
+		Host:   target,
 	}
 	if config.Username != nil || config.Password != nil {
 		auth := config.GetUsername() + ":" + config.GetPassword()
@@ -177,152 +226,71 @@ func (c *Client) setUpHTTPTunnel(ctx context.Context, target string, dialer inte
 		req.Header.Set(key, value)
 	}
 
-	connectHTTP3 := func(rawConn net.Conn, h3clientConn *http3.ClientConn, readCounter, writeCounter stats.Counter) (net.Conn, error) {
-		pr, pw := io.Pipe()
-		req.Body = pr
-
-		var pErr error
-		var wg sync.WaitGroup
-		wg.Add(1)
-
-		go func() {
-			_, pErr = pw.Write(firstPayload)
-			wg.Done()
-		}()
-
-		resp, err := h3clientConn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			return nil, err
-		}
-
-		wg.Wait()
-		if pErr != nil {
-			return nil, pErr
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return &http3Conn{
-			Conn:         rawConn,
-			in:           pw,
-			out:          resp.Body,
-			readCounter:  readCounter,
-			writeCounter: writeCounter,
-		}, nil
-	}
-
-	c.cachedH3Mutex.Lock()
-	cachedConn, found := c.cachedH3Conns[dest]
-	c.cachedH3Mutex.Unlock()
-
-	if found {
-		rawConn, quicConn, h3Conn := cachedConn.rawConn, cachedConn.quicConn, cachedConn.h3Conn
-		readCounter, writeCounter := cachedConn.readCounter, cachedConn.writeCounter
-		select {
-		case <-h3Conn.Context().Done():
-		default:
-			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
-			if err != nil {
-				quicConn.CloseWithError(0, "")
-				rawConn.Close()
-				c.cachedH3Mutex.Lock()
-				delete(c.cachedH3Conns, dest)
-				c.cachedH3Mutex.Unlock()
-				return nil, err
-			}
-			return proxyConn, nil
-		}
-	}
-
-	rawConn, err := dialer.Dial(ctx, dest)
+	pr, pw := io.Pipe()
+	req.Body = pr
+	var pErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		_, pErr = pw.Write(firstPayload)
+		wg.Done()
+	}()
+	resp, err := transport.RoundTrip(req) // nolint: bodyclose
 	if err != nil {
 		return nil, err
 	}
-
-	var readCounter, writeCounter stats.Counter
-	iConn := rawConn
-	statConn, ok := iConn.(*internet.StatCouterConnection)
-	if ok {
-		iConn = statConn.Connection
+	wg.Wait()
+	if pErr != nil {
+		return nil, pErr
 	}
-
-	var packetConn net.PacketConn
-	switch iConn := iConn.(type) {
-	case *internet.PacketConnWrapper:
-		packetConn = iConn.Conn
-		if statConn != nil {
-			readCounter = statConn.ReadCounter
-			writeCounter = statConn.WriteCounter
-		}
-	case net.PacketConn:
-		packetConn = iConn
-		if statConn != nil {
-			readCounter = statConn.ReadCounter
-			writeCounter = statConn.WriteCounter
-		}
-	default:
-		packetConn = internet.NewConnWrapper(iConn)
+	if resp.StatusCode != http.StatusOK {
+		return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 	}
-
-	quicConn, err := quic.Dial(ctx, packetConn, rawConn.RemoteAddr(),
-		tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
-		&quic.Config{
-			KeepAlivePeriod:      time.Second * 15,
-			HandshakeIdleTimeout: time.Second * 8,
-		})
-	if err != nil {
-		rawConn.Close()
-		return nil, err
-	}
-
-	t := &http3.Transport{}
-	h3clientConn := t.NewClientConn(quicConn)
-	proxyConn, err := connectHTTP3(rawConn, h3clientConn, readCounter, writeCounter)
-	if err != nil {
-		quicConn.CloseWithError(0, "")
-		rawConn.Close()
-		return nil, err
-	}
-
-	c.cachedH3Mutex.Lock()
-	c.cachedH3Conns[dest] = h3Conn{
-		rawConn:      rawConn,
-		quicConn:     quicConn,
-		h3Conn:       h3clientConn,
-		readCounter:  readCounter,
-		writeCounter: writeCounter,
-	}
-	c.cachedH3Mutex.Unlock()
-
-	return proxyConn, err
+	return &httpConn{in: pw, out: resp.Body}, err
 }
 
-type http3Conn struct {
-	net.Conn
-	in           *io.PipeWriter
-	out          io.ReadCloser
-	readCounter  stats.Counter
-	writeCounter stats.Counter
+type httpConn struct {
+	in  *io.PipeWriter
+	out io.ReadCloser
 }
 
-func (c *http3Conn) Read(p []byte) (n int, err error) {
+func (c *httpConn) Read(p []byte) (n int, err error) {
 	n, err = c.out.Read(p)
-	if c.readCounter != nil {
-		c.readCounter.Add(int64(n))
-	}
 	return n, err
 }
 
-func (c *http3Conn) Write(p []byte) (n int, err error) {
+func (c *httpConn) Write(p []byte) (n int, err error) {
 	n, err = c.in.Write(p)
-	if c.writeCounter != nil {
-		c.writeCounter.Add(int64(n))
-	}
 	return n, err
 }
 
-func (c *http3Conn) Close() error {
+func (c *httpConn) RemoteAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *httpConn) LocalAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *httpConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetWriteDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) Close() error {
 	c.in.Close()
 	return c.out.Close()
 }
