@@ -25,7 +25,6 @@ func init() {
 					Port:    simplifiedClient.Port,
 				},
 			},
-			H1SkipWaitForReply: simplifiedClient.H1SkipWaitForReply,
 		}
 		return common.CreateObject(ctx, fullClient)
 	}))
