@@ -38,6 +38,9 @@ func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
 
 func (t *transportConnectionState) Close() error {
 	t.scopedDialerAccess.Lock()
+	for _, client := range t.scopedDialerMap {
+		client.CloseIdleConnections()
+	}
 	clear(t.scopedDialerMap)
 	t.scopedDialerAccess.Unlock()
 	return nil
@@ -181,6 +184,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	response, err := client.Do(request) // nolint: bodyclose
 	if err != nil {
+		client.CloseIdleConnections()
 		canceller()
 		return nil, newError("failed to dial to ", dest).Base(err).AtWarning()
 	}

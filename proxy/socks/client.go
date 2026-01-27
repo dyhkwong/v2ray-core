@@ -209,14 +209,16 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		requestFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
 			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				return buf.Copy(link.Reader, uot.NewWriter(conn, &destination), buf.UpdateActivity(timer))
+				return buf.Copy(link.Reader, uot.NewWriter(buf.NewBufferedWriter(buf.NewWriter(conn)), &destination), buf.UpdateActivity(timer))
 			}
 			return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 		}
 		responseFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
 			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				return buf.Copy(uot.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+				return buf.Copy(uot.NewReader(&buf.BufferedReader{
+					Reader: buf.NewReader(conn),
+				}), link.Writer, buf.UpdateActivity(timer))
 			}
 			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 		}

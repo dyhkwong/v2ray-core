@@ -31,6 +31,7 @@ import (
 
 type Client struct {
 	config        *ClientConfig
+	serverAddress net.Destination
 	policyManager policy.Manager
 	cachedH3Mutex sync.Mutex
 	cachedH3Conns map[net.Destination]h3Conn
@@ -63,12 +64,15 @@ type h3Conn struct {
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
-	if config.TlsSettings == nil {
-		return nil, newError("empty TLS settings")
+	serverAddress := net.Destination{
+		Address: config.Address.AsAddress(),
+		Port:    net.Port(config.Port),
+		Network: net.Network_UDP,
 	}
 	v := core.MustFromContext(ctx)
 	return &Client{
 		config:        config,
+		serverAddress: serverAddress,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 		cachedH3Conns: make(map[net.Destination]h3Conn),
 	}, nil
@@ -113,6 +117,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
+
+	newError("tunneling request to ", target, " via ", c.serverAddress.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	defer func() {
 		if err := conn.Close(); err != nil {

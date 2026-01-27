@@ -36,7 +36,7 @@ func NewH3NameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServe
 						cnc.ConnectionInputMulti(link.Writer),
 						cnc.ConnectionOutputMultiUDP(link.Reader),
 					)
-					return quic.DialEarly(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
+					return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, cfg)
 				},
 			},
 		}
@@ -69,7 +69,7 @@ func NewH3LocalNameServer(url *url.URL) *DoHNameServer {
 					default:
 						packetConn = internet.NewConnWrapper(rawConn)
 					}
-					return quic.DialEarly(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+					return quic.Dial(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 				},
 			},
 		}

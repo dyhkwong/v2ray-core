@@ -77,7 +77,8 @@ func NewDomainMatcher(matcherType string, domains []*routercommon.Domain) (*Doma
 	for _, domain := range domains {
 		matcher, err := domainToMatcher(domain)
 		if err != nil {
-			return nil, err
+			newError("failed to create domain matcher, type: ", domain.Type, ", value:", domain.Value).Base(err).AtError().WriteToLog()
+			continue
 		}
 		indexMatcher.Add(matcher)
 	}

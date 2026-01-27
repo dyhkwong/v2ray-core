@@ -138,7 +138,8 @@ func establishDomainRules(s *DNS, config *Config, nsClientMap map[int]int) error
 		for _, domain := range ns.PrioritizedDomain {
 			domainRule, err := toStrMatcher(domain.Type, domain.Domain)
 			if err != nil {
-				return newError("failed to create prioritized domain").Base(err).AtWarning()
+				newError("failed to create prioritized domain, type: ", domain.Type, ", value: ", domain.Domain).Base(err).AtError().WriteToLog()
+				continue
 			}
 			originalRuleIdx := ruleCurr
 			if ruleCurr < len(ns.OriginalRules) {

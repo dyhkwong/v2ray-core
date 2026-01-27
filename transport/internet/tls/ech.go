@@ -86,13 +86,7 @@ func QueryRecord(domain string, server string) ([]byte, error) {
 
 func dohQuery(server string, domain string) ([]byte, uint32, error) {
 	m := new(dns.Msg)
-	m.Question = []dns.Question{
-		{
-			Name:   dns.Fqdn(domain),
-			Qtype:  dns.TypeHTTPS,
-			Qclass: dns.ClassINET,
-		},
-	}
+	m.SetQuestion(dns.Fqdn(domain), dns.TypeHTTPS)
 	m.Id = 0
 	msg, err := m.Pack()
 	if err != nil {

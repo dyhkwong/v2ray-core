@@ -26,38 +26,34 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 
 	dns := dnsReadConfig()
 
-	done := make(chan any)
-	var udpConn *net.UDPConn
-	go func() {
-		udpConn, err = net.DialUDP("udp", nil, &net.UDPAddr{
-			IP:   dns[0].AsSlice(),
-			Port: 53,
-			Zone: dns[0].Zone(),
-		})
-		close(done)
-	}()
-	select {
-	case <-time.After(time.Second * 5):
-		return nil, context.DeadlineExceeded
-	case <-done:
-		if err != nil {
-			return nil, err
-		}
-		defer udpConn.Close()
+	dialer := new(net.Dialer)
+
+	udpAddr := &net.UDPAddr{
+		IP:   dns[0].AsSlice(),
+		Port: 53,
+		Zone: dns[0].Zone(),
 	}
+	udpCtx, udpCancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer udpCancel()
+	udpConn, err := dialer.DialContext(udpCtx, "udp", udpAddr.String())
+	if err != nil {
+		return nil, err
+	}
+	defer udpConn.Close()
+
+	udpConn.SetDeadline(time.Now().Add(time.Second * 5))
 
 	if _, err := udpConn.Write(request); err != nil {
 		return nil, err
 	}
 
 	response := make([]byte, buf.Size)
-	var n int
-	n, err = udpConn.Read(response)
+	n, err := udpConn.Read(response)
 	if err != nil {
 		return nil, err
 	}
-	err = message.Unpack(response[:n])
-	if err != nil {
+
+	if err = message.Unpack(response[:n]); err != nil {
 		return nil, newError("failed to parse dns response").Base(err)
 	}
 
@@ -66,30 +62,30 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 	}
 
 	newError("truncated, retry over TCP").AtError().WriteToLog()
-	done = make(chan any)
-	var tcpConn *net.TCPConn
-	go func() {
-		tcpConn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
-			IP:   dns[0].AsSlice(),
-			Port: 53,
-			Zone: dns[0].Zone(),
-		})
-		close(done)
-	}()
-	select {
-	case <-time.After(time.Second * 5):
-		return nil, context.DeadlineExceeded
-	case <-done:
-		if err != nil {
-			return nil, err
-		}
-		defer tcpConn.Close()
+
+	tcpAddr := &net.TCPAddr{
+		IP:   dns[0].AsSlice(),
+		Port: 53,
+		Zone: dns[0].Zone(),
 	}
+	tcpCtx, tcpCancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer tcpCancel()
+	tcpConn, err := dialer.DialContext(tcpCtx, "tcp", tcpAddr.String())
+	if err != nil {
+		return nil, err
+	}
+	defer tcpConn.Close()
+
+	tcpConn.SetDeadline(time.Now().Add(time.Second * 5))
 
 	reqBuf := buf.NewWithSize(2 + int32(len(request)))
 	defer reqBuf.Release()
-	binary.Write(reqBuf, binary.BigEndian, uint16(len(request)))
-	reqBuf.Write(request)
+	if err := binary.Write(reqBuf, binary.BigEndian, uint16(len(request))); err != nil {
+		return nil, err
+	}
+	if _, err := reqBuf.Write(request); err != nil {
+		return nil, err
+	}
 	if _, err := tcpConn.Write(reqBuf.Bytes()); err != nil {
 		return nil, err
 	}
@@ -98,11 +94,11 @@ var defaultRawQueryFunc = func(request []byte) ([]byte, error) {
 		return nil, err
 	}
 	response = make([]byte, length)
-	if n, err = io.ReadFull(tcpConn, response); err != nil {
+	n, err = io.ReadFull(tcpConn, response)
+	if err != nil {
 		return nil, err
 	}
-	err = message.Unpack(response[:n])
-	if err != nil {
+	if err = message.Unpack(response[:n]); err != nil {
 		return nil, newError("failed to parse dns response").Base(err)
 	}
 	return response[:n], nil

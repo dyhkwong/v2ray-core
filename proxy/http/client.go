@@ -123,8 +123,9 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
+	var server *protocol.ServerSpec
 	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server := c.serverPicker.PickServer()
+		server = c.serverPicker.PickServer()
 		dest := server.Destination()
 		user = server.PickUser()
 
@@ -147,6 +148,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}); err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
+
+	newError("tunneling request to ", target, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	defer func() {
 		if err := conn.Close(); err != nil {
