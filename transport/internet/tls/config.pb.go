@@ -240,6 +240,7 @@ type Config struct {
 	Ciphersuites                         []uint32 `protobuf:"varint,19,rep,packed,name=ciphersuites,proto3" json:"ciphersuites,omitempty"`
 	PinnedPeerCertificatePublicKeySha256 [][]byte `protobuf:"bytes,900,rep,name=pinned_peer_certificate_public_key_sha256,json=pinnedPeerCertificatePublicKeySha256,proto3" json:"pinned_peer_certificate_public_key_sha256,omitempty"`
 	PinnedPeerCertificateSha256          []string `protobuf:"bytes,901,rep,name=pinned_peer_certificate_sha256,json=pinnedPeerCertificateSha256,proto3" json:"pinned_peer_certificate_sha256,omitempty"`
+	EchConfigList                        string   `protobuf:"bytes,902,opt,name=ech_config_list,json=echConfigList,proto3" json:"ech_config_list,omitempty"`
 	unknownFields                        protoimpl.UnknownFields
 	sizeCache                            protoimpl.SizeCache
 }
@@ -393,6 +394,13 @@ func (x *Config) GetPinnedPeerCertificateSha256() []string {
 	return nil
 }
 
+func (x *Config) GetEchConfigList() string {
+	if x != nil {
+		return x.EchConfigList
+	}
+	return ""
+}
+
 var File_transport_internet_tls_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_tls_config_proto_rawDesc = "" +
@@ -408,7 +416,7 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\fENCIPHERMENT\x10\x00\x12\x14\n" +
 	"\x10AUTHORITY_VERIFY\x10\x01\x12\x13\n" +
 	"\x0fAUTHORITY_ISSUE\x10\x02\x12\x1b\n" +
-	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xe0\b\n" +
+	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\x89\t\n" +
 	"\x06Config\x12-\n" +
 	"\x0eallow_insecure\x18\x01 \x01(\bB\x06\x82\xb5\x18\x02(\x01R\rallowInsecure\x12P\n" +
 	"\vcertificate\x18\x02 \x03(\v2..v2ray.core.transport.internet.tls.CertificateR\vcertificate\x12\x1f\n" +
@@ -431,7 +439,8 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\x10ech_query_domain\x18\x12 \x01(\tR\x0eechQueryDomain\x12\"\n" +
 	"\fciphersuites\x18\x13 \x03(\rR\fciphersuites\x12X\n" +
 	")pinned_peer_certificate_public_key_sha256\x18\x84\a \x03(\fR$pinnedPeerCertificatePublicKeySha256\x12D\n" +
-	"\x1epinned_peer_certificate_sha256\x18\x85\a \x03(\tR\x1bpinnedPeerCertificateSha256\"I\n" +
+	"\x1epinned_peer_certificate_sha256\x18\x85\a \x03(\tR\x1bpinnedPeerCertificateSha256\x12'\n" +
+	"\x0fech_config_list\x18\x86\a \x01(\tR\rechConfigList\"I\n" +
 	"\n" +
 	"TLSVersion\x12\v\n" +
 	"\aDefault\x10\x00\x12\n" +
