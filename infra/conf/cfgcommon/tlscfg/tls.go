@@ -27,6 +27,7 @@ type TLSConfig struct {
 	ECHConfig                            string                `json:"echConfig"`
 	ECHDOHServer                         string                `json:"echDohServer"`
 	ECHQueryDomain                       string                `json:"echQueryDomain"`
+	ECHConfigList                        string                `json:"echConfigList"`
 	MinVersion                           string                `json:"minVersion"`
 	MaxVersion                           string                `json:"maxVersion"`
 	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
@@ -92,6 +93,7 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 
 	config.Ech_DOHserver = c.ECHDOHServer
 	config.EchQueryDomain = c.ECHQueryDomain
+	config.EchConfigList = c.ECHConfigList
 
 	switch strings.ToLower(c.MinVersion) {
 	case "tls1_0", "tls1.0":
