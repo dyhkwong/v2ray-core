@@ -3,6 +3,8 @@ package splithttp
 import (
 	"context"
 	gotls "crypto/tls"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -92,11 +94,27 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 	h.config.WriteResponseHeader(writer)
 
-	sessionId := ""
-	subpath := strings.Split(request.URL.Path[len(h.path):], "/")
-	if len(subpath) > 0 {
-		sessionId = subpath[0]
+	xPaddingConfig := &XPaddingConfig{
+		Length: int(h.config.GetNormalizedXPaddingBytes().rand()),
 	}
+
+	if h.config.XPaddingObfsMode {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: h.config.XPaddingPlacement,
+			Key:       h.config.XPaddingKey,
+			Header:    h.config.XPaddingHeader,
+		}
+		xPaddingConfig.Method = PaddingMethod(h.config.XPaddingMethod)
+	} else {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: PlacementHeader,
+			Header:    "X-Padding",
+		}
+	}
+
+	h.config.ApplyXPaddingToHeader(writer.Header(), xPaddingConfig)
+
+	sessionId, seqStr := h.config.ExtractMetaFromRequest(request, h.path)
 
 	var remoteAddr net.Addr
 	var err error
@@ -126,13 +144,29 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		currentSession = h.upsertSession(sessionId)
 	}
 
-	if request.Method == "POST" && sessionId != "" { // stream-up, packet-up
-		seq := ""
-		if len(subpath) > 1 {
-			seq = subpath[1]
-		}
+	uplinkHTTPMethod := h.config.GetNormalizedUplinkHTTPMethod()
+	isUplinkRequest := false
 
-		if seq == "" {
+	if uplinkHTTPMethod != "GET" && request.Method == uplinkHTTPMethod {
+		isUplinkRequest = true
+	}
+
+	uplinkDataPlacement := h.config.GetNormalizedUplinkDataPlacement()
+	uplinkDataKey := h.config.UplinkDataKey
+
+	switch uplinkDataPlacement {
+	case PlacementHeader:
+		if request.Header.Get(uplinkDataKey+"-Upstream") == "1" {
+			isUplinkRequest = true
+		}
+	case PlacementCookie:
+		if c, _ := request.Cookie(uplinkDataKey + "_upstream"); c != nil && c.Value == "1" {
+			isUplinkRequest = true
+		}
+	}
+
+	if isUplinkRequest && sessionId != "" { // stream-up, packet-up
+		if seqStr == "" {
 			httpSC := &httpServerConn{
 				Instance:       done.New(),
 				Reader:         request.Body,
@@ -157,14 +191,69 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		payload, err := io.ReadAll(request.Body)
+		var payload []byte
+
+		if uplinkDataPlacement != PlacementBody {
+			var encodedStr string
+			switch uplinkDataPlacement {
+			case PlacementHeader:
+				dataLenStr := request.Header.Get(uplinkDataKey + "-Length")
+
+				if dataLenStr != "" {
+					dataLen, _ := strconv.Atoi(dataLenStr)
+					var chunks []string
+					i := 0
+
+					for {
+						chunk := request.Header.Get(fmt.Sprintf("%s-%d", uplinkDataKey, i))
+						if chunk == "" {
+							break
+						}
+						chunks = append(chunks, chunk)
+						i++
+					}
+
+					encodedStr = strings.Join(chunks, "")
+					if len(encodedStr) != dataLen {
+						encodedStr = ""
+					}
+				}
+			case PlacementCookie:
+				var chunks []string
+				i := 0
+
+				for {
+					cookieName := fmt.Sprintf("%s_%d", uplinkDataKey, i)
+					if c, _ := request.Cookie(cookieName); c != nil {
+						chunks = append(chunks, c.Value)
+						i++
+					} else {
+						break
+					}
+				}
+
+				if len(chunks) > 0 {
+					encodedStr = strings.Join(chunks, "")
+				}
+			}
+
+			if encodedStr != "" {
+				payload, err = base64.RawURLEncoding.DecodeString(encodedStr)
+			} else {
+				newError("failed to extract data from key " + uplinkDataKey + " placed in " + uplinkDataPlacement).Base(err).AtError().WriteToLog()
+				writer.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			payload, err = io.ReadAll(request.Body)
+		}
 		if err != nil {
 			newError("failed to upload (ReadAll)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		seqInt, err := strconv.ParseUint(seq, 10, 64)
+		seq, err := strconv.ParseUint(seqStr, 10, 64)
 		if err != nil {
 			newError("failed to upload (ParseUint)").Base(err).WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -173,7 +262,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		err = currentSession.uploadQueue.Push(Packet{
 			Payload: payload,
-			Seq:     seqInt,
+			Seq:     seq,
 		})
 		if err != nil {
 			newError("failed to upload (PushPayload)").Base(err).WriteToLog()

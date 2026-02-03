@@ -3,6 +3,7 @@ package splithttp
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	gonet "net"
@@ -19,11 +20,11 @@ import (
 type DialerClient interface {
 	IsClosed() bool
 
-	// ctx, url, body, uploadOnly
-	OpenStream(context.Context, string, io.Reader, bool) (io.ReadCloser, net.Addr, net.Addr, error)
+	// ctx, url, sessionId, body, uploadOnly
+	OpenStream(context.Context, string, string, io.Reader, bool) (io.ReadCloser, net.Addr, net.Addr, error)
 
-	// ctx, url, body, contentLength
-	PostPacket(context.Context, string, io.Reader, int64) error
+	// ctx, url, sessionId, seqStr, body, contentLength
+	PostPacket(context.Context, string, string, string, io.Reader, int64) error
 }
 
 // implements splithttp.DialerClient in terms of direct network connections
@@ -41,7 +42,7 @@ func (c *DefaultDialerClient) IsClosed() bool {
 	return c.closed
 }
 
-func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body io.Reader, uploadOnly bool) (wrc io.ReadCloser, remoteAddr, localAddr gonet.Addr, err error) {
+func (c *DefaultDialerClient) OpenStream(ctx context.Context, url, sessionId string, body io.Reader, uploadOnly bool) (wrc io.ReadCloser, remoteAddr, localAddr gonet.Addr, err error) {
 	// this is done when the TCP/UDP connection to the server was established,
 	// and we can unblock the Dial function and print correct net addresses in
 	// logs
@@ -56,18 +57,42 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 
 	method := "GET" // stream-down
 	if body != nil {
-		method = "POST" // stream-up/one
+		method = c.transportConfig.GetNormalizedUplinkHTTPMethod() // stream-up/one
 	}
-	var req *http.Request
-	req, err = http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
+	req, err := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
 	if err != nil {
 		return wrc, remoteAddr, localAddr, err
 	}
-	req.Header, err = c.transportConfig.GetRequestHeader(url)
+	req.Header, err = c.transportConfig.GetRequestHeader()
 	if err != nil {
 		return wrc, remoteAddr, localAddr, err
 	}
-	if method == "POST" && !c.transportConfig.NoGRPCHeader {
+
+	xPaddingConfig := &XPaddingConfig{
+		Length: int(c.transportConfig.GetNormalizedXPaddingBytes().rand()),
+	}
+
+	if c.transportConfig.XPaddingObfsMode {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: c.transportConfig.XPaddingPlacement,
+			Key:       c.transportConfig.XPaddingKey,
+			Header:    c.transportConfig.XPaddingHeader,
+			RawURL:    url,
+		}
+		xPaddingConfig.Method = PaddingMethod(c.transportConfig.XPaddingMethod)
+	} else {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: PlacementQueryInHeader,
+			Key:       "x_padding",
+			Header:    "Referer",
+			RawURL:    url,
+		}
+	}
+
+	c.transportConfig.ApplyXPaddingToRequest(req, xPaddingConfig)
+	c.transportConfig.ApplyMetaToRequest(req, sessionId, "")
+
+	if method == c.transportConfig.GetNormalizedUplinkHTTPMethod() && !c.transportConfig.NoGRPCHeader {
 		req.Header.Set("Content-Type", "application/grpc")
 	}
 
@@ -102,16 +127,87 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 	return wrc, remoteAddr, localAddr, err
 }
 
-func (c *DefaultDialerClient) PostPacket(ctx context.Context, url string, body io.Reader, contentLength int64) error {
-	req, err := http.NewRequestWithContext(context.WithoutCancel(ctx), "POST", url, body)
+func (c *DefaultDialerClient) PostPacket(ctx context.Context, url, sessionId, seqStr string, body io.Reader, contentLength int64) error {
+	var encodedData string
+	dataPlacement := c.transportConfig.GetNormalizedUplinkDataPlacement()
+
+	if dataPlacement != PlacementBody {
+		data, err := io.ReadAll(body)
+		if err != nil {
+			return err
+		}
+		encodedData = base64.RawURLEncoding.EncodeToString(data)
+		body = nil
+		contentLength = 0
+	}
+
+	method := c.transportConfig.GetNormalizedUplinkHTTPMethod()
+	req, err := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
 	if err != nil {
 		return err
 	}
 	req.ContentLength = contentLength
-	req.Header, err = c.transportConfig.GetRequestHeader(url)
+	req.Header, err = c.transportConfig.GetRequestHeader()
 	if err != nil {
 		return err
 	}
+
+	if dataPlacement != PlacementBody {
+		key := c.transportConfig.UplinkDataKey
+		chunkSize := int(c.transportConfig.UplinkChunkSize)
+
+		switch dataPlacement {
+		case PlacementHeader:
+			for i := 0; i < len(encodedData); i += chunkSize {
+				end := i + chunkSize
+				if end > len(encodedData) {
+					end = len(encodedData)
+				}
+				chunk := encodedData[i:end]
+				headerKey := fmt.Sprintf("%s-%d", key, i/chunkSize)
+				req.Header.Set(headerKey, chunk)
+			}
+
+			req.Header.Set(key+"-Length", fmt.Sprintf("%d", len(encodedData)))
+			req.Header.Set(key+"-Upstream", "1")
+		case PlacementCookie:
+			for i := 0; i < len(encodedData); i += chunkSize {
+				end := i + chunkSize
+				if end > len(encodedData) {
+					end = len(encodedData)
+				}
+				chunk := encodedData[i:end]
+				cookieName := fmt.Sprintf("%s_%d", key, i/chunkSize)
+				req.AddCookie(&http.Cookie{Name: cookieName, Value: chunk})
+			}
+
+			req.AddCookie(&http.Cookie{Name: key + "_upstream", Value: "1"})
+		}
+	}
+
+	xPaddingConfig := &XPaddingConfig{
+		Length: int(c.transportConfig.GetNormalizedXPaddingBytes().rand()),
+	}
+
+	if c.transportConfig.XPaddingObfsMode {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: c.transportConfig.XPaddingPlacement,
+			Key:       c.transportConfig.XPaddingKey,
+			Header:    c.transportConfig.XPaddingHeader,
+			RawURL:    url,
+		}
+		xPaddingConfig.Method = PaddingMethod(c.transportConfig.XPaddingMethod)
+	} else {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: PlacementQueryInHeader,
+			Key:       "x_padding",
+			Header:    "Referer",
+			RawURL:    url,
+		}
+	}
+
+	c.transportConfig.ApplyXPaddingToRequest(req, xPaddingConfig)
+	c.transportConfig.ApplyMetaToRequest(req, sessionId, seqStr)
 
 	if c.httpVersion != "1.1" {
 		resp, err := c.client.Do(req)
