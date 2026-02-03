@@ -17,17 +17,40 @@ func (c *BrowserDialerClient) IsClosed() bool {
 	panic("not implemented yet")
 }
 
-func (c *BrowserDialerClient) OpenStream(ctx context.Context, url string, body io.Reader, uploadOnly bool) (io.ReadCloser, net.Addr, net.Addr, error) {
+func (c *BrowserDialerClient) OpenStream(ctx context.Context, url, _ string, body io.Reader, uploadOnly bool) (io.ReadCloser, net.Addr, net.Addr, error) {
 	if body != nil {
 		return nil, nil, nil, newError("bidirectional streaming for browser dialer not implemented yet")
 	}
 
-	requestHeader, err := c.transportConfig.GetRequestHeader(url)
+	header, err := c.transportConfig.GetRequestHeader()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	conn, err := c.dialer.DialGet(url, requestHeader)
+	xPaddingConfig := &XPaddingConfig{
+		Length: int(c.transportConfig.GetNormalizedXPaddingBytes().rand()),
+	}
+
+	if c.transportConfig.XPaddingObfsMode {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: c.transportConfig.XPaddingPlacement,
+			Key:       c.transportConfig.XPaddingKey,
+			Header:    c.transportConfig.XPaddingHeader,
+			RawURL:    url,
+		}
+		xPaddingConfig.Method = PaddingMethod(c.transportConfig.XPaddingMethod)
+	} else {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: PlacementQueryInHeader,
+			Key:       "x_padding",
+			Header:    "Referer",
+			RawURL:    url,
+		}
+	}
+
+	c.transportConfig.ApplyXPaddingToHeader(header, xPaddingConfig)
+
+	conn, err := c.dialer.DialGet(url, header)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -35,16 +58,39 @@ func (c *BrowserDialerClient) OpenStream(ctx context.Context, url string, body i
 	return newConnection(conn), conn.RemoteAddr(), conn.LocalAddr(), nil
 }
 
-func (c *BrowserDialerClient) PostPacket(ctx context.Context, url string, body io.Reader, contentLength int64) error {
+func (c *BrowserDialerClient) PostPacket(ctx context.Context, url, _, _ string, body io.Reader, contentLength int64) error {
 	bytes, err := io.ReadAll(body)
 	if err != nil {
 		return err
 	}
 
-	requestHeader, err := c.transportConfig.GetRequestHeader(url)
+	header, err := c.transportConfig.GetRequestHeader()
 	if err != nil {
 		return err
 	}
 
-	return c.dialer.DialPost(url, requestHeader, bytes)
+	xPaddingConfig := &XPaddingConfig{
+		Length: int(c.transportConfig.GetNormalizedXPaddingBytes().rand()),
+	}
+
+	if c.transportConfig.XPaddingObfsMode {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: c.transportConfig.XPaddingPlacement,
+			Key:       c.transportConfig.XPaddingKey,
+			Header:    c.transportConfig.XPaddingHeader,
+			RawURL:    url,
+		}
+		xPaddingConfig.Method = PaddingMethod(c.transportConfig.XPaddingMethod)
+	} else {
+		xPaddingConfig.Placement = XPaddingPlacement{
+			Placement: PlacementQueryInHeader,
+			Key:       "x_padding",
+			Header:    "Referer",
+			RawURL:    url,
+		}
+	}
+
+	c.transportConfig.ApplyXPaddingToHeader(header, xPaddingConfig)
+
+	return c.dialer.DialPost(url, header, bytes)
 }

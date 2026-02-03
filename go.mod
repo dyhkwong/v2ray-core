@@ -22,7 +22,7 @@ require (
 	github.com/pires/go-proxyproto v0.9.2
 	github.com/quic-go/quic-go v0.59.0
 	github.com/refraction-networking/utls v1.8.2
-	github.com/sagernet/sing v0.8.0-beta.12
+	github.com/sagernet/sing v0.8.0-beta.15
 	github.com/sagernet/sing-mux v0.3.4
 	github.com/sagernet/sing-quic v0.6.0-beta.11
 	github.com/sagernet/sing-shadowsocks v0.2.9
