@@ -174,7 +174,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		request.Command = protocol.RequestCommandTCP
 	} else {
 		if c.uot {
-			request.Address = net.DomainAddress(uot.MagicAddress)
+			request.Address = net.DomainAddress(uot.MagicAddressV2)
 			request.Port = 0
 			request.Command = protocol.RequestCommandTCP
 		} else {
@@ -240,8 +240,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 				return newError("failed to write request").Base(err)
 			}
 
-			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				bodyWriter = uot.NewBufferedWriter(bodyWriter, &destination)
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddressV2) {
+				bodyWriter = uot.NewWriterV2(bodyWriter, destination)
 			}
 
 			if err = buf.CopyOnceTimeout(link.Reader, bodyWriter, proxy.FirstPayloadTimeout); err != nil && err != buf.ErrNotTimeoutReader && err != buf.ErrReadTimeout {
@@ -263,8 +263,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 				return err
 			}
 
-			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				responseReader = uot.NewBufferedReader(responseReader)
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddressV2) {
+				responseReader = uot.NewReaderV2(responseReader)
 			}
 
 			return buf.Copy(responseReader, link.Writer, buf.UpdateActivity(timer))

@@ -26,5 +26,17 @@ message ServerConfig {
 message ClientConfig {
   // Sever is a list of HTTP server addresses.
   repeated v2ray.core.common.protocol.ServerEndpoint server = 1;
-  bool h1_skip_wait_for_reply = 2;
+
+  // Deprecated: Do not use.
+  bool trust_tunnel_udp = 1000;
+  // Deprecated: Do not use.
+  DomainStrategy domain_strategy = 1001;
+
+  enum DomainStrategy {
+    USE_IP = 0;
+    USE_IP4 = 1;
+    USE_IP6 = 2;
+    PREFER_IP4 = 3;
+    PREFER_IP6 = 4;
+  }
 }

@@ -25,7 +25,8 @@ func init() {
 					Port:    simplifiedClient.Port,
 				},
 			},
-			H1SkipWaitForReply: simplifiedClient.H1SkipWaitForReply,
+			TrustTunnelUdp: simplifiedClient.TrustTunnelUdp,
+			DomainStrategy: http.ClientConfig_DomainStrategy(simplifiedClient.DomainStrategy),
 		}
 		return common.CreateObject(ctx, fullClient)
 	}))

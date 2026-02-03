@@ -96,6 +96,7 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 		client := encoding.NewGunMultiServiceClient(conn)
 		gunMultiService, err := client.(encoding.GunMultiServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
 		if err != nil {
+			conn.Close()
 			canceller()
 			return nil, newError("Cannot dial grpc").Base(err)
 		}
@@ -109,6 +110,7 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 		gunService, err = client.(encoding.GunServiceClientX).TunCustomName(ctx, grpcSettings.ServiceName)
 	}
 	if err != nil {
+		conn.Close()
 		canceller()
 		return nil, newError("Cannot dial grpc").Base(err)
 	}
@@ -184,14 +186,6 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 	)
 	if err != nil {
 		return nil, nil, err
-	}
-	canceller = func() {
-		stateTyped.scopedDialerAccess.Lock()
-		defer stateTyped.scopedDialerAccess.Unlock()
-		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
-		if err != nil {
-			conn.Close()
-		}
 	}
 	stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = conn
 	return conn, canceller, err

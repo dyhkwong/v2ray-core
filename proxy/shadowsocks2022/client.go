@@ -150,7 +150,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		defer TCPRequestBuffer.Release()
 
 		if c.uot && originalNetwork == net.Network_UDP {
-			err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, net.DomainAddress(uot.MagicAddress),
+			err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, net.DomainAddress(uot.MagicAddressV2),
 				0, nil, TCPRequestBuffer)
 		} else {
 			err = request.EncodeTCPRequestHeader(effectivePsk, c.config.Ipsk, destination.Address,
@@ -167,8 +167,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		requestDone := func() error {
 			encodedWriter := request.CreateClientC2SWriter(conn)
 			if c.uot && originalNetwork == net.Network_UDP {
-				w := uot.NewBufferedWriter(encodedWriter, &destination)
-				return buf.Copy(link.Reader, w, buf.UpdateActivity(timer))
+				return buf.Copy(link.Reader, uot.NewWriterV2(encodedWriter, destination), buf.UpdateActivity(timer))
 			}
 			return buf.Copy(link.Reader, encodedWriter, buf.UpdateActivity(timer))
 		}
@@ -187,7 +186,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 				return newError("failed to create client S2C reader").Base(err)
 			}
 			if c.uot && originalNetwork == net.Network_UDP {
-				return buf.Copy(uot.NewBufferedReader(
+				return buf.Copy(uot.NewReaderV2(
 					&buf.BufferedReader{
 						Reader: encodedReader,
 						Buffer: buf.MultiBuffer{initialPayload},

@@ -77,6 +77,7 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url string, body i
 		resp, err = c.client.Do(req)
 		if err != nil {
 			if !uploadOnly { // stream-down is enough
+				c.client.CloseIdleConnections()
 				c.closed = true
 				newError("failed to " + method + " " + url).Base(err).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 			}
@@ -115,6 +116,7 @@ func (c *DefaultDialerClient) PostPacket(ctx context.Context, url string, body i
 	if c.httpVersion != "1.1" {
 		resp, err := c.client.Do(req)
 		if err != nil {
+			c.client.CloseIdleConnections()
 			c.closed = true
 			return err
 		}
@@ -154,6 +156,7 @@ func (c *DefaultDialerClient) PostPacket(ctx context.Context, url string, body i
 				if h1UploadConn.UnreadedResponsesCount > 0 {
 					resp, err := http.ReadResponse(h1UploadConn.RespBufReader, req)
 					if err != nil {
+						c.client.CloseIdleConnections()
 						c.closed = true
 						return fmt.Errorf("error while reading response: %s", err.Error())
 					}

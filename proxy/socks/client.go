@@ -134,7 +134,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	if destination.Network == net.Network_UDP {
 		if c.uot {
-			request.Address = net.DomainAddress(uot.MagicAddress)
+			request.Address = net.DomainAddress(uot.MagicAddressV2)
 			request.Port = 0
 			request.Command = protocol.RequestCommandTCP
 		} else {
@@ -208,15 +208,15 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	if request.Command == protocol.RequestCommandTCP {
 		requestFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
-			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				return buf.Copy(link.Reader, uot.NewWriter(conn, &destination), buf.UpdateActivity(timer))
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddressV2) {
+				return buf.Copy(link.Reader, uot.NewWriterV2(buf.NewWriter(conn), destination), buf.UpdateActivity(timer))
 			}
 			return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 		}
 		responseFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
-			if c.uot && request.Address == net.DomainAddress(uot.MagicAddress) {
-				return buf.Copy(uot.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+			if c.uot && request.Address == net.DomainAddress(uot.MagicAddressV2) {
+				return buf.Copy(uot.NewReaderV2(buf.NewReader(conn)), link.Writer, buf.UpdateActivity(timer))
 			}
 			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 		}

@@ -60,6 +60,13 @@ func (t *transportConnectionState) IsTransientStorageLifecycleReceiver() {
 
 func (t *transportConnectionState) Close() error {
 	t.scopedDialerAccess.Lock()
+	for _, manager := range t.scopedDialerMap {
+		for _, client := range manager.xmuxClients {
+			if c, ok := client.XmuxConn.(*DefaultDialerClient); ok && !c.closed {
+				c.client.CloseIdleConnections()
+			}
+		}
+	}
 	clear(t.scopedDialerMap)
 	t.scopedDialerAccess.Unlock()
 	return nil
@@ -188,7 +195,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				default:
 					packetConn = internet.NewConnWrapper(rawConn)
 				}
-				return quic.DialEarly(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
+				return quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsCfg, cfg)
 			},
 		}
 	case "2":

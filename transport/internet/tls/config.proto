@@ -93,4 +93,6 @@ message Config {
 
   repeated bytes pinned_peer_certificate_public_key_sha256 = 900;
   repeated string pinned_peer_certificate_sha256 = 901;
+
+  string ech_config_list = 902;
 }

@@ -159,6 +159,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
+	newError("tunneling request to ", destination).WriteToLog(session.ExportIDToError(ctx))
+
 	p := c.policyManager.ForLevel(0)
 
 	ctx, cancel := context.WithCancel(ctx)
