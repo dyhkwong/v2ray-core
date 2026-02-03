@@ -192,6 +192,19 @@ type Config struct {
 	ScMaxBufferedPosts   int64                  `protobuf:"varint,9,opt,name=scMaxBufferedPosts,proto3" json:"scMaxBufferedPosts,omitempty"`
 	Xmux                 *XmuxConfig            `protobuf:"bytes,10,opt,name=xmux,proto3,oneof" json:"xmux,omitempty"`
 	DownloadSettings     *DownloadConfig        `protobuf:"bytes,11,opt,name=downloadSettings,proto3,oneof" json:"downloadSettings,omitempty"`
+	XPaddingObfsMode     bool                   `protobuf:"varint,12,opt,name=xPaddingObfsMode,proto3" json:"xPaddingObfsMode,omitempty"`
+	XPaddingKey          string                 `protobuf:"bytes,13,opt,name=xPaddingKey,proto3" json:"xPaddingKey,omitempty"`
+	XPaddingHeader       string                 `protobuf:"bytes,14,opt,name=xPaddingHeader,proto3" json:"xPaddingHeader,omitempty"`
+	XPaddingPlacement    string                 `protobuf:"bytes,15,opt,name=xPaddingPlacement,proto3" json:"xPaddingPlacement,omitempty"`
+	XPaddingMethod       string                 `protobuf:"bytes,16,opt,name=xPaddingMethod,proto3" json:"xPaddingMethod,omitempty"`
+	UplinkHTTPMethod     string                 `protobuf:"bytes,17,opt,name=uplinkHTTPMethod,proto3" json:"uplinkHTTPMethod,omitempty"`
+	SessionPlacement     string                 `protobuf:"bytes,18,opt,name=sessionPlacement,proto3" json:"sessionPlacement,omitempty"`
+	SessionKey           string                 `protobuf:"bytes,19,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`
+	SeqPlacement         string                 `protobuf:"bytes,20,opt,name=seqPlacement,proto3" json:"seqPlacement,omitempty"`
+	SeqKey               string                 `protobuf:"bytes,21,opt,name=seqKey,proto3" json:"seqKey,omitempty"`
+	UplinkDataPlacement  string                 `protobuf:"bytes,22,opt,name=uplinkDataPlacement,proto3" json:"uplinkDataPlacement,omitempty"`
+	UplinkDataKey        string                 `protobuf:"bytes,23,opt,name=uplinkDataKey,proto3" json:"uplinkDataKey,omitempty"`
+	UplinkChunkSize      uint32                 `protobuf:"varint,24,opt,name=uplinkChunkSize,proto3" json:"uplinkChunkSize,omitempty"`
 	UseBrowserForwarding bool                   `protobuf:"varint,99,opt,name=use_browser_forwarding,json=useBrowserForwarding,proto3" json:"use_browser_forwarding,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
@@ -304,6 +317,97 @@ func (x *Config) GetDownloadSettings() *DownloadConfig {
 	return nil
 }
 
+func (x *Config) GetXPaddingObfsMode() bool {
+	if x != nil {
+		return x.XPaddingObfsMode
+	}
+	return false
+}
+
+func (x *Config) GetXPaddingKey() string {
+	if x != nil {
+		return x.XPaddingKey
+	}
+	return ""
+}
+
+func (x *Config) GetXPaddingHeader() string {
+	if x != nil {
+		return x.XPaddingHeader
+	}
+	return ""
+}
+
+func (x *Config) GetXPaddingPlacement() string {
+	if x != nil {
+		return x.XPaddingPlacement
+	}
+	return ""
+}
+
+func (x *Config) GetXPaddingMethod() string {
+	if x != nil {
+		return x.XPaddingMethod
+	}
+	return ""
+}
+
+func (x *Config) GetUplinkHTTPMethod() string {
+	if x != nil {
+		return x.UplinkHTTPMethod
+	}
+	return ""
+}
+
+func (x *Config) GetSessionPlacement() string {
+	if x != nil {
+		return x.SessionPlacement
+	}
+	return ""
+}
+
+func (x *Config) GetSessionKey() string {
+	if x != nil {
+		return x.SessionKey
+	}
+	return ""
+}
+
+func (x *Config) GetSeqPlacement() string {
+	if x != nil {
+		return x.SeqPlacement
+	}
+	return ""
+}
+
+func (x *Config) GetSeqKey() string {
+	if x != nil {
+		return x.SeqKey
+	}
+	return ""
+}
+
+func (x *Config) GetUplinkDataPlacement() string {
+	if x != nil {
+		return x.UplinkDataPlacement
+	}
+	return ""
+}
+
+func (x *Config) GetUplinkDataKey() string {
+	if x != nil {
+		return x.UplinkDataKey
+	}
+	return ""
+}
+
+func (x *Config) GetUplinkChunkSize() uint32 {
+	if x != nil {
+		return x.UplinkChunkSize
+	}
+	return 0
+}
+
 func (x *Config) GetUseBrowserForwarding() bool {
 	if x != nil {
 		return x.UseBrowserForwarding
@@ -329,7 +433,7 @@ const file_transport_internet_splithttp_config_proto_rawDesc = "" +
 	"\x12transport_settings\x18\x03 \x01(\v2\x14.google.protobuf.AnyR\x11transportSettings\x12#\n" +
 	"\rsecurity_type\x18\x04 \x01(\tR\fsecurityType\x12A\n" +
 	"\x11security_settings\x18\x05 \x01(\v2\x14.google.protobuf.AnyR\x10securitySettings\x12T\n" +
-	"\x0fsocket_settings\x18\x06 \x01(\v2+.v2ray.core.transport.internet.SocketConfigR\x0esocketSettings\"\xcf\x05\n" +
+	"\x0fsocket_settings\x18\x06 \x01(\v2+.v2ray.core.transport.internet.SocketConfigR\x0esocketSettings\"\xd1\t\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
@@ -342,7 +446,22 @@ const file_transport_internet_splithttp_config_proto_rawDesc = "" +
 	"\x12scMaxBufferedPosts\x18\t \x01(\x03R\x12scMaxBufferedPosts\x12G\n" +
 	"\x04xmux\x18\n" +
 	" \x01(\v2..v2ray.transport.internet.splithttp.XmuxConfigH\x00R\x04xmux\x88\x01\x01\x12c\n" +
-	"\x10downloadSettings\x18\v \x01(\v22.v2ray.transport.internet.splithttp.DownloadConfigH\x01R\x10downloadSettings\x88\x01\x01\x124\n" +
+	"\x10downloadSettings\x18\v \x01(\v22.v2ray.transport.internet.splithttp.DownloadConfigH\x01R\x10downloadSettings\x88\x01\x01\x12*\n" +
+	"\x10xPaddingObfsMode\x18\f \x01(\bR\x10xPaddingObfsMode\x12 \n" +
+	"\vxPaddingKey\x18\r \x01(\tR\vxPaddingKey\x12&\n" +
+	"\x0exPaddingHeader\x18\x0e \x01(\tR\x0exPaddingHeader\x12,\n" +
+	"\x11xPaddingPlacement\x18\x0f \x01(\tR\x11xPaddingPlacement\x12&\n" +
+	"\x0exPaddingMethod\x18\x10 \x01(\tR\x0exPaddingMethod\x12*\n" +
+	"\x10uplinkHTTPMethod\x18\x11 \x01(\tR\x10uplinkHTTPMethod\x12*\n" +
+	"\x10sessionPlacement\x18\x12 \x01(\tR\x10sessionPlacement\x12\x1e\n" +
+	"\n" +
+	"sessionKey\x18\x13 \x01(\tR\n" +
+	"sessionKey\x12\"\n" +
+	"\fseqPlacement\x18\x14 \x01(\tR\fseqPlacement\x12\x16\n" +
+	"\x06seqKey\x18\x15 \x01(\tR\x06seqKey\x120\n" +
+	"\x13uplinkDataPlacement\x18\x16 \x01(\tR\x13uplinkDataPlacement\x12$\n" +
+	"\ruplinkDataKey\x18\x17 \x01(\tR\ruplinkDataKey\x12(\n" +
+	"\x0fuplinkChunkSize\x18\x18 \x01(\rR\x0fuplinkChunkSize\x124\n" +
 	"\x16use_browser_forwarding\x18c \x01(\bR\x14useBrowserForwarding\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
