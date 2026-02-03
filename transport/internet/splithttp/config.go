@@ -4,12 +4,20 @@ import (
 	"crypto/rand"
 	"math/big"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
+)
+
+const (
+	PlacementQueryInHeader = "queryInHeader"
+	PlacementCookie        = "cookie"
+	PlacementHeader        = "header"
+	PlacementQuery         = "query"
+	PlacementPath          = "path"
+	PlacementBody          = "body"
 )
 
 type RangeConfig struct {
@@ -95,30 +103,13 @@ func (c *Config) GetNormalizedQuery() string {
 	if len(pathAndQuery) > 1 {
 		query = pathAndQuery[1]
 	}
-	if query != "" {
-		query += "&"
-	}
-	query += "x_padding=" + strings.Repeat("X", int(c.GetNormalizedXPaddingBytes().From))
 	return query
 }
 
-func (c *Config) GetRequestHeader(rawURL string) (http.Header, error) {
+func (c *Config) GetRequestHeader() (http.Header, error) {
 	header := http.Header{}
 	for k, v := range c.Headers {
 		header.Add(k, v)
-	}
-	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
-		u, err := url.Parse(rawURL)
-		if err != nil {
-			return nil, err
-		}
-		// https://www.rfc-editor.org/rfc/rfc7541.html#appendix-B
-		// h2's HPACK Header Compression feature employs a huffman encoding using a static table.
-		// 'X' is assigned an 8 bit code, so HPACK compression won't change actual padding length on the wire.
-		// https://www.rfc-editor.org/rfc/rfc9204.html#section-4.1.2-2
-		// h3's similar QPACK feature uses the same huffman table.
-		u.RawQuery = "x_padding=" + strings.Repeat("X", int(c.GetNormalizedXPaddingBytes().rand()))
-		header.Set("Referer", u.String())
 	}
 	return header, nil
 }
@@ -126,10 +117,7 @@ func (c *Config) GetRequestHeader(rawURL string) (http.Header, error) {
 func (c *Config) WriteResponseHeader(writer http.ResponseWriter) {
 	// CORS headers for the browser dialer
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
-	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-	if paddingLen := c.GetNormalizedXPaddingBytes().rand(); paddingLen > 0 {
-		writer.Header().Set("X-Padding", strings.Repeat("X", int(paddingLen)))
-	}
+	writer.Header().Set("Access-Control-Allow-Methods", "*")
 }
 
 func (c *Config) GetNormalizedScMaxBufferedPosts() int {
@@ -147,8 +135,146 @@ func (c *Config) GetNormalizedScMinPostsIntervalMs() *RangeConfig {
 	return newRandRangeConfig(30, 30, c.ScMinPostsIntervalMs)
 }
 
-func (c *Config) GetNormalizedXPaddingBytes() *RangeConfig {
-	return newRandRangeConfig(100, 1000, c.XPaddingBytes)
+func (c *Config) GetNormalizedUplinkHTTPMethod() string {
+	if len(c.UplinkHTTPMethod) == 0 {
+		return "POST"
+	}
+	return c.UplinkHTTPMethod
+}
+
+func (c *Config) GetNormalizedSessionPlacement() string {
+	if c.SessionPlacement == "" {
+		return PlacementPath
+	}
+	return c.SessionPlacement
+}
+
+func (c *Config) GetNormalizedSeqPlacement() string {
+	if c.SeqPlacement == "" {
+		return PlacementPath
+	}
+	return c.SeqPlacement
+}
+
+func (c *Config) GetNormalizedUplinkDataPlacement() string {
+	if c.UplinkDataPlacement == "" {
+		return PlacementBody
+	}
+	return c.UplinkDataPlacement
+}
+
+func (c *Config) GetNormalizedSessionKey() string {
+	if c.SessionKey != "" {
+		return c.SessionKey
+	}
+	switch c.GetNormalizedSessionPlacement() {
+	case PlacementHeader:
+		return "X-Session"
+	case PlacementCookie, PlacementQuery:
+		return "x_session"
+	default:
+		return ""
+	}
+}
+
+func (c *Config) GetNormalizedSeqKey() string {
+	if c.SeqKey != "" {
+		return c.SeqKey
+	}
+	switch c.GetNormalizedSeqPlacement() {
+	case PlacementHeader:
+		return "X-Seq"
+	case PlacementCookie, PlacementQuery:
+		return "x_seq"
+	default:
+		return ""
+	}
+}
+
+func (c *Config) ApplyMetaToRequest(req *http.Request, sessionId string, seqStr string) {
+	sessionPlacement := c.GetNormalizedSessionPlacement()
+	seqPlacement := c.GetNormalizedSeqPlacement()
+	sessionKey := c.GetNormalizedSessionKey()
+	seqKey := c.GetNormalizedSeqKey()
+
+	if sessionId != "" {
+		switch sessionPlacement {
+		case PlacementPath:
+			req.URL.Path = appendToPath(req.URL.Path, sessionId)
+		case PlacementQuery:
+			q := req.URL.Query()
+			q.Set(sessionKey, sessionId)
+			req.URL.RawQuery = q.Encode()
+		case PlacementHeader:
+			req.Header.Set(sessionKey, sessionId)
+		case PlacementCookie:
+			req.AddCookie(&http.Cookie{Name: sessionKey, Value: sessionId})
+		}
+	}
+
+	if seqStr != "" {
+		switch seqPlacement {
+		case PlacementPath:
+			req.URL.Path = appendToPath(req.URL.Path, seqStr)
+		case PlacementQuery:
+			q := req.URL.Query()
+			q.Set(seqKey, seqStr)
+			req.URL.RawQuery = q.Encode()
+		case PlacementHeader:
+			req.Header.Set(seqKey, seqStr)
+		case PlacementCookie:
+			req.AddCookie(&http.Cookie{Name: seqKey, Value: seqStr})
+		}
+	}
+}
+
+func (c *Config) ExtractMetaFromRequest(req *http.Request, path string) (sessionId string, seqStr string) {
+	sessionPlacement := c.GetNormalizedSessionPlacement()
+	seqPlacement := c.GetNormalizedSeqPlacement()
+	sessionKey := c.GetNormalizedSessionKey()
+	seqKey := c.GetNormalizedSeqKey()
+
+	if sessionPlacement == PlacementPath && seqPlacement == PlacementPath {
+		subpath := strings.Split(req.URL.Path[len(path):], "/")
+		if len(subpath) > 0 {
+			sessionId = subpath[0]
+		}
+		if len(subpath) > 1 {
+			seqStr = subpath[1]
+		}
+		return sessionId, seqStr
+	}
+
+	switch sessionPlacement {
+	case PlacementQuery:
+		sessionId = req.URL.Query().Get(sessionKey)
+	case PlacementHeader:
+		sessionId = req.Header.Get(sessionKey)
+	case PlacementCookie:
+		if cookie, e := req.Cookie(sessionKey); e == nil {
+			sessionId = cookie.Value
+		}
+	}
+
+	switch seqPlacement {
+	case PlacementQuery:
+		seqStr = req.URL.Query().Get(seqKey)
+	case PlacementHeader:
+		seqStr = req.Header.Get(seqKey)
+	case PlacementCookie:
+		if cookie, e := req.Cookie(seqKey); e == nil {
+			seqStr = cookie.Value
+		}
+	}
+
+	return sessionId, seqStr
+}
+
+func appendToPath(path, value string) string {
+	if strings.HasSuffix(path, "/") {
+		return path + value
+	}
+	return path + "/" + value
 }
 
 func (c *XmuxConfig) GetNormalizedMaxConcurrency() *RangeConfig {

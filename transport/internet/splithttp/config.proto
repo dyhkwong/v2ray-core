@@ -43,5 +43,18 @@ message Config {
   int64 scMaxBufferedPosts = 9;
   optional XmuxConfig xmux = 10;
   optional DownloadConfig downloadSettings = 11;
+  bool xPaddingObfsMode = 12;
+  string xPaddingKey = 13;
+  string xPaddingHeader = 14;
+  string xPaddingPlacement = 15;
+  string xPaddingMethod = 16;
+  string uplinkHTTPMethod = 17;
+  string sessionPlacement = 18;
+  string sessionKey = 19;
+  string seqPlacement = 20;
+  string seqKey = 21;
+  string uplinkDataPlacement = 22;
+  string uplinkDataKey = 23;
+  uint32 uplinkChunkSize = 24;
   bool use_browser_forwarding = 99;
 }

@@ -389,6 +389,19 @@ type SplitHTTPConfig struct {
 	Mode                 string               `json:"mode"`
 	Headers              map[string]string    `json:"headers"`
 	XPaddingBytes        string               `json:"xPaddingBytes"`
+	XPaddingObfsMode     bool                 `json:"xPaddingObfsMode"`
+	XPaddingKey          string               `json:"xPaddingKey"`
+	XPaddingHeader       string               `json:"xPaddingHeader"`
+	XPaddingPlacement    string               `json:"xPaddingPlacement"`
+	XPaddingMethod       string               `json:"xPaddingMethod"`
+	UplinkHTTPMethod     string               `json:"uplinkHTTPMethod"`
+	SessionPlacement     string               `json:"sessionPlacement"`
+	SessionKey           string               `json:"sessionKey"`
+	SeqPlacement         string               `json:"seqPlacement"`
+	SeqKey               string               `json:"seqKey"`
+	UplinkDataPlacement  string               `json:"uplinkDataPlacement"`
+	UplinkDataKey        string               `json:"uplinkDataKey"`
+	UplinkChunkSize      uint32               `json:"uplinkChunkSize"`
 	NoGRPCHeader         bool                 `json:"noGRPCHeader"`
 	ScMaxEachPostBytes   string               `json:"scMaxEachPostBytes"`
 	ScMinPostsIntervalMs string               `json:"scMinPostsIntervalMs"`
@@ -516,11 +529,114 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		Mode:                 c.Mode,
 		Headers:              c.Headers,
 		XPaddingBytes:        c.XPaddingBytes,
+		XPaddingObfsMode:     c.XPaddingObfsMode,
+		XPaddingKey:          c.XPaddingKey,
+		XPaddingHeader:       c.XPaddingHeader,
+		XPaddingPlacement:    c.XPaddingPlacement,
+		XPaddingMethod:       c.XPaddingMethod,
+		UplinkHTTPMethod:     c.UplinkHTTPMethod,
+		SessionPlacement:     c.SessionPlacement,
+		SeqPlacement:         c.SeqPlacement,
+		SessionKey:           c.SessionKey,
+		SeqKey:               c.SeqKey,
+		UplinkDataPlacement:  c.UplinkDataPlacement,
+		UplinkDataKey:        c.UplinkDataKey,
+		UplinkChunkSize:      c.UplinkChunkSize,
 		NoGRPCHeader:         c.NoGRPCHeader,
 		ScMaxEachPostBytes:   c.ScMaxEachPostBytes,
 		ScMinPostsIntervalMs: c.ScMinPostsIntervalMs,
 		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
 		UseBrowserForwarding: c.UseBrowserForwarding,
+	}
+	if config.XPaddingKey == "" {
+		config.XPaddingKey = "x_padding"
+	}
+	if config.XPaddingHeader == "" {
+		config.XPaddingHeader = "X-Padding"
+	}
+	switch config.XPaddingPlacement {
+	case "":
+		config.XPaddingPlacement = "queryInHeader"
+	case "cookie", "header", "query", "queryInHeader":
+	default:
+		return nil, newError("unsupported padding placement: " + config.XPaddingPlacement)
+	}
+	switch config.XPaddingMethod {
+	case "":
+		config.XPaddingMethod = "repeat-x"
+	case "repeat-x", "tokenish":
+	default:
+		return nil, newError("unsupported padding method: " + config.XPaddingMethod)
+	}
+	switch config.UplinkDataPlacement {
+	case "":
+		config.UplinkDataPlacement = "body"
+	case "body":
+	case "cookie", "header":
+		if config.Mode != "packet-up" {
+			return nil, newError("UplinkDataPlacement can be " + config.UplinkDataPlacement + " only in packet-up mode")
+		}
+	default:
+		return nil, newError("unsupported uplink data placement: " + config.UplinkDataPlacement)
+	}
+	if config.UplinkHTTPMethod == "" {
+		config.UplinkHTTPMethod = "POST"
+	}
+	config.UplinkHTTPMethod = strings.ToUpper(config.UplinkHTTPMethod)
+	if config.UplinkHTTPMethod == "GET" && config.Mode != "packet-up" {
+		return nil, newError("uplinkHTTPMethod can be GET only in packet-up mode")
+	}
+	switch config.SessionPlacement {
+	case "":
+		config.SessionPlacement = "path"
+	case "path", "cookie", "header", "query":
+	default:
+		return nil, newError("unsupported session placement: " + config.SessionPlacement)
+	}
+	switch config.SeqPlacement {
+	case "":
+		config.SeqPlacement = "path"
+	case "path":
+	case "cookie", "header", "query":
+		if config.SessionPlacement == "path" {
+			return nil, newError("SeqPlacement must be path when SessionPlacement is path")
+		}
+	default:
+		return nil, newError("unsupported seq placement: " + config.SeqPlacement)
+	}
+	if config.SessionPlacement != "path" && config.SessionKey == "" {
+		switch config.SessionPlacement {
+		case "cookie", "query":
+			config.SessionKey = "x_session"
+		case "header":
+			config.SessionKey = "X-Session"
+		}
+	}
+	if config.SeqPlacement != "path" && config.SeqKey == "" {
+		switch config.SeqPlacement {
+		case "cookie", "query":
+			config.SeqKey = "x_seq"
+		case "header":
+			config.SeqKey = "X-Seq"
+		}
+	}
+	if config.UplinkDataPlacement != "body" && config.UplinkDataKey == "" {
+		switch config.UplinkDataPlacement {
+		case "cookie":
+			config.UplinkDataKey = "x_data"
+		case "header":
+			config.UplinkDataKey = "X-Data"
+		}
+	}
+	if config.UplinkChunkSize == 0 {
+		switch config.UplinkDataPlacement {
+		case "cookie":
+			config.UplinkChunkSize = 3 * 1024 // 3KB
+		case "header":
+			config.UplinkChunkSize = 4 * 1024 // 4KB
+		}
+	} else if config.UplinkChunkSize < 64 {
+		config.UplinkChunkSize = 64
 	}
 	if c.Xmux != nil {
 		config.Xmux = &splithttp.XmuxConfig{
