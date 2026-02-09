@@ -16,7 +16,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -85,10 +84,6 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("UDP is not supported by HTTP outbound")
 	}
 
-	var server *protocol.ServerSpec
-	var user *protocol.MemoryUser
-	var conn internet.Connection
-
 	var firstPayload []byte
 	if reader, ok := link.Reader.(buf.TimeoutReader); ok {
 		// 0-RTT optimization for HTTP/2: If the payload comes very soon, it can be
@@ -107,27 +102,16 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
-	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server = c.serverPicker.PickServer()
-		dest := server.Destination()
-		user = server.PickUser()
-		httpConn, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload)
-		if err != nil {
-			return err
-		}
-		conn = httpConn
-		return nil
-	}); err != nil {
+	server := c.serverPicker.PickServer()
+	dest := server.Destination()
+	user := server.PickUser()
+	conn, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload)
+	if err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
+	defer conn.Close()
 
 	newError("tunneling request to ", target, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
-
-	defer func() {
-		if err := conn.Close(); err != nil {
-			newError("failed to closed connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
-		}
-	}()
 
 	p := c.policyManager.ForLevel(0)
 	if user != nil {

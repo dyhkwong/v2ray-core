@@ -9,7 +9,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -57,25 +56,14 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	destination := outbound.Target
 	network := destination.Network
 
-	var server *protocol.ServerSpec
-	var conn internet.Connection
-
-	err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server = c.serverPicker.PickServer()
-		rawConn, err := dialer.Dial(ctx, server.Destination())
-		if err != nil {
-			return err
-		}
-
-		conn = rawConn
-		return nil
-	})
+	server := c.serverPicker.PickServer()
+	conn, err := dialer.Dial(ctx, server.Destination())
 	if err != nil {
 		return newError("failed to find an available destination").AtWarning().Base(err)
 	}
-	newError("tunneling request to ", destination, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
-
 	defer conn.Close()
+
+	newError("tunneling request to ", destination, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	user := server.PickUser()
 	account, ok := user.Account.(*MemoryAccount)
