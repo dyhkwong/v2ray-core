@@ -12,7 +12,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/net/uot"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -125,45 +124,33 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		network = net.Network_TCP
 	}
 
-	var server *protocol.ServerSpec
-	var conn internet.Connection
-	var user *protocol.MemoryUser
-
-	err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server = c.serverPicker.PickServer()
-		user = server.PickUser()
-		_, ok := user.Account.(*MemoryAccount)
-		if !ok {
-			return newError("user account is not valid")
-		}
-
-		var dest net.Destination
-		if network == net.Network_TCP && c.plugin != nil {
-			dest = c.pluginOverride
-		} else {
-			dest = server.Destination()
-			dest.Network = network
-		}
-
-		rawConn, err := dialer.Dial(ctx, dest)
-		if err != nil {
-			return err
-		}
-
-		if network == net.Network_TCP && c.streamPlugin != nil {
-			conn = c.streamPlugin.StreamConn(rawConn)
-		} else {
-			conn = rawConn
-		}
-
-		return nil
-	})
+	server := c.serverPicker.PickServer()
+	user := server.PickUser()
+	_, ok := user.Account.(*MemoryAccount)
+	if !ok {
+		return newError("user account is not valid")
+	}
+	var dest net.Destination
+	if network == net.Network_TCP && c.plugin != nil {
+		dest = c.pluginOverride
+	} else {
+		dest = server.Destination()
+		dest.Network = network
+	}
+	rawConn, err := dialer.Dial(ctx, dest)
 	if err != nil {
 		return newError("failed to find an available destination").AtWarning().Base(err)
 	}
-	newError("tunneling request to ", destination, " via ", network, ":", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
+	var conn internet.Connection
+	if network == net.Network_TCP && c.streamPlugin != nil {
+		conn = c.streamPlugin.StreamConn(rawConn)
+	} else {
+		conn = rawConn
+	}
 	defer conn.Close()
+
+	newError("tunneling request to ", destination, " via ", network, ":", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	request := &protocol.RequestHeader{
 		Version: Version,

@@ -19,7 +19,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -89,7 +88,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("UDP is not supported by HTTP outbound")
 	}
 
-	var conn internet.Connection
+	newError("tunneling request to ", targetAddr, " via ", c.serverAddress.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	var firstPayload []byte
 
@@ -106,22 +105,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
-	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		netConn, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
-		if err != nil {
-			return err
-		}
-		conn = netConn
-		return nil
-	}); err != nil {
+	conn, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload, c.config)
+	if err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
-
-	defer func() {
-		if err := conn.Close(); err != nil {
-			newError("failed to closed connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
-		}
-	}()
+	defer conn.Close()
 
 	newError("tunneling request to ", target, " via ", c.serverAddress.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
