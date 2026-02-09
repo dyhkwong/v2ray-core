@@ -134,7 +134,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			if err != nil {
 				return err
 			}
-			conn = rawConn
+
+			if network == net.Network_TCP && c.streamPlugin != nil {
+				conn = c.streamPlugin.StreamConn(rawConn)
+			} else {
+				conn = rawConn
+			}
 
 			return nil
 		})
