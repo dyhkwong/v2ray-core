@@ -16,7 +16,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -174,15 +173,8 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 	c.clientLock.Unlock()
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
-	var conn internet.Connection
-	err := retry.ExponentialBackoff(5, 100).On(func() error {
-		rawConn, err := dialer.Dial(ctx, c.server)
-		if err != nil {
-			return err
-		}
-		conn = rawConn
-		return nil
-	})
+
+	conn, err := dialer.Dial(ctx, c.server)
 	if err != nil {
 		return nil, err
 	}
