@@ -24,7 +24,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
@@ -400,15 +399,9 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
 			ctx = policy.ContextWithBufferPolicy(ctx, sessionPolicy.Buffer)
 
-			var conn net.Conn
-			if err := retry.ExponentialBackoff(5, 100).On(func() error {
-				var dialer net.Dialer
-				conn, err = dialer.DialContext(ctx, fb.Type, fb.Dest)
-				if err != nil {
-					return err
-				}
-				return nil
-			}); err != nil {
+			var dialer net.Dialer
+			conn, err := dialer.DialContext(ctx, fb.Type, fb.Dest)
+			if err != nil {
 				return newError("failed to dial to " + fb.Dest).Base(err).AtWarning()
 			}
 			defer conn.Close()
