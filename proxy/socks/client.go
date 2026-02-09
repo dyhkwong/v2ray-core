@@ -11,7 +11,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/net/uot"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -70,31 +69,15 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	destination := outbound.Target
 
 	// Outbound server.
-	var server *protocol.ServerSpec
+	server := c.serverPicker.PickServer()
 	// Outbound server's destination.
-	var dest net.Destination
+	dest := server.Destination()
 	// Connection to the outbound server.
-	var conn internet.Connection
-
-	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server = c.serverPicker.PickServer()
-		dest = server.Destination()
-		rawConn, err := dialer.Dial(ctx, dest)
-		if err != nil {
-			return err
-		}
-		conn = rawConn
-
-		return nil
-	}); err != nil {
+	conn, err := dialer.Dial(ctx, dest)
+	if err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
-
-	defer func() {
-		if err := conn.Close(); err != nil {
-			newError("failed to closed connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
-		}
-	}()
+	defer conn.Close()
 
 	p := c.policyManager.ForLevel(0)
 
@@ -153,7 +136,6 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	var udpRequest *protocol.RequestHeader
-	var err error
 	if request.Version == socks4Version {
 		err = ClientHandshake4(request, conn, conn)
 		if err != nil {
