@@ -17,7 +17,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	udp_proto "github.com/v2fly/v2ray-core/v5/common/protocol/udp"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -417,15 +416,9 @@ func (s *Server) fallback(ctx context.Context, sid errors.ExportOption, err erro
 	timer := signal.CancelAfterInactivity(ctx, cancel, sessionPolicy.Timeouts.ConnectionIdle)
 	ctx = policy.ContextWithBufferPolicy(ctx, sessionPolicy.Buffer)
 
-	var conn net.Conn
-	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		var dialer net.Dialer
-		conn, err = dialer.DialContext(ctx, fb.Type, fb.Dest)
-		if err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	var dialer net.Dialer
+	conn, err := dialer.DialContext(ctx, fb.Type, fb.Dest)
+	if err != nil {
 		return newError("failed to dial to " + fb.Dest).Base(err).AtWarning()
 	}
 	defer conn.Close()
