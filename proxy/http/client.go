@@ -20,7 +20,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -100,8 +99,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("UDP is not supported by HTTP outbound")
 	}
 
-	var user *protocol.MemoryUser
-	var conn internet.Connection
+	server := c.serverPicker.PickServer()
+	dest := server.Destination()
 
 	var firstPayload []byte
 
@@ -127,37 +126,23 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
-	var server *protocol.ServerSpec
-	if err := retry.ExponentialBackoff(5, 100).On(func() error {
-		server = c.serverPicker.PickServer()
-		dest := server.Destination()
-		user = server.PickUser()
-
-		netConn, firstResp, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
-		if netConn != nil {
-			if _, ok := netConn.(*http2Conn); !ok && !c.h1SkipWaitForReply {
-				if _, err := netConn.Write(firstPayload); err != nil {
-					netConn.Close()
-					return err
-				}
-			}
-			if firstResp != nil {
-				if err := link.Writer.WriteMultiBuffer(firstResp); err != nil {
-					return err
-				}
-			}
-			conn = internet.Connection(netConn)
-		}
-		return err
-	}); err != nil {
+	user := server.PickUser()
+	conn, firstResp, err := c.setupHTTPTunnel(ctx, dest, targetAddr, user, dialer, firstPayload, c.h1SkipWaitForReply)
+	if err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
-
-	defer func() {
-		if err := conn.Close(); err != nil {
-			newError("failed to closed connection").Base(err).WriteToLog(session.ExportIDToError(ctx))
+	defer conn.Close()
+	if _, ok := conn.(*http2Conn); !ok && !c.h1SkipWaitForReply {
+		if _, err := conn.Write(firstPayload); err != nil {
+			conn.Close()
+			return err
 		}
-	}()
+	}
+	if firstResp != nil {
+		if err := link.Writer.WriteMultiBuffer(firstResp); err != nil {
+			return err
+		}
+	}
 
 	newError("tunneling request to ", target, " via ", server.Destination().NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
