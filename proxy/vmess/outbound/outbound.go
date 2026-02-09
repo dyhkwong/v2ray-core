@@ -15,7 +15,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/platform"
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
@@ -61,19 +60,8 @@ func New(ctx context.Context, config *Config) (*Handler, error) {
 
 // Process implements proxy.Outbound.Process().
 func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	var rec *protocol.ServerSpec
-	var conn internet.Connection
-
-	err := retry.ExponentialBackoff(5, 200).On(func() error {
-		rec = h.serverPicker.PickServer()
-		rawConn, err := dialer.Dial(ctx, rec.Destination())
-		if err != nil {
-			return err
-		}
-		conn = rawConn
-
-		return nil
-	})
+	rec := h.serverPicker.PickServer()
+	conn, err := dialer.Dial(ctx, rec.Destination())
 	if err != nil {
 		return newError("failed to find an available destination").Base(err).AtWarning()
 	}
