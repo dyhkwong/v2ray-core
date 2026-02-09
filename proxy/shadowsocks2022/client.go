@@ -13,7 +13,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/packetaddr"
 	"github.com/v2fly/v2ray-core/v5/common/net/uot"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -119,33 +118,24 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	if network == net.Network_TCP {
-		var conn internet.Connection
-		err := retry.ExponentialBackoff(5, 100).On(func() error {
-			var dest net.Destination
-			if network == net.Network_TCP && c.plugin != nil {
-				dest = c.pluginOverride
-			} else {
-				dest = net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port))
-			}
-			dest.Network = network
-			rawConn, err := dialer.Dial(ctx, dest)
-			if err != nil {
-				return err
-			}
-
-			if network == net.Network_TCP && c.streamPlugin != nil {
-				conn = c.streamPlugin.StreamConn(rawConn)
-			} else {
-				conn = rawConn
-			}
-
-			return nil
-		})
+		var dest net.Destination
+		if network == net.Network_TCP && c.plugin != nil {
+			dest = c.pluginOverride
+		} else {
+			dest = net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port))
+		}
+		dest.Network = network
+		conn, err := dialer.Dial(ctx, dest)
 		if err != nil {
 			return newError("failed to find an available destination").AtWarning().Base(err)
 		}
-		newError("tunneling request to ", destination, " via ", network, ":", net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port)).NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 		defer conn.Close()
+
+		if c.streamPlugin != nil {
+			conn = c.streamPlugin.StreamConn(conn)
+		}
+
+		newError("tunneling request to ", destination, " via ", network, ":", net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port)).NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 		request := &TCPRequest{
 			keyDerivation: keyDerivation,
@@ -242,17 +232,9 @@ func (c *Client) getUDPSession(ctx context.Context, network net.Network, dialer 
 
 	sessionState, err := clientUDPState.GetOrCreateSession(func() (*ClientUDPSession, error) {
 		var conn internet.Connection
-		err := retry.ExponentialBackoff(5, 100).On(func() error {
-			dest := net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port))
-			dest.Network = network
-			rawConn, err := dialer.Dial(ctx, dest)
-			if err != nil {
-				return err
-			}
-			conn = rawConn
-
-			return nil
-		})
+		dest := net.TCPDestination(c.config.Address.AsAddress(), net.Port(c.config.Port))
+		dest.Network = network
+		conn, err := dialer.Dial(ctx, dest)
 		if err != nil {
 			return nil, newError("failed to find an available destination").AtWarning().Base(err)
 		}

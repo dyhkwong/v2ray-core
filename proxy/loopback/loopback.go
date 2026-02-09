@@ -8,7 +8,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
-	"github.com/v2fly/v2ray-core/v5/common/retry"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
@@ -33,38 +32,23 @@ func (l *Loopback) Process(ctx context.Context, link *transport.Link, _ internet
 	input := link.Reader
 	output := link.Writer
 
-	var conn internet.Connection
-	err := retry.ExponentialBackoff(5, 100).On(func() error {
-		dialDest := destination
-
-		content := new(session.Content)
-
-		ctx = session.ContextWithContent(ctx, content)
-
-		inbound := session.InboundFromContext(ctx)
-
-		inbound.Tag = l.config.InboundTag
-
-		ctx = session.ContextWithInbound(ctx, inbound)
-
-		rawConn, err := l.dispatcherInstance.Dispatch(ctx, dialDest)
-		if err != nil {
-			return err
-		}
-
-		var readerOpt cnc.ConnectionOption
-		if dialDest.Network == net.Network_TCP {
-			readerOpt = cnc.ConnectionOutputMulti(rawConn.Reader)
-		} else {
-			readerOpt = cnc.ConnectionOutputMultiUDP(rawConn.Reader)
-		}
-
-		conn = cnc.NewConnection(cnc.ConnectionInputMulti(rawConn.Writer), readerOpt)
-		return nil
-	})
+	dialDest := destination
+	content := new(session.Content)
+	ctx = session.ContextWithContent(ctx, content)
+	inbound := session.InboundFromContext(ctx)
+	inbound.Tag = l.config.InboundTag
+	ctx = session.ContextWithInbound(ctx, inbound)
+	rawConn, err := l.dispatcherInstance.Dispatch(ctx, dialDest)
 	if err != nil {
 		return newError("failed to open connection to ", destination).Base(err)
 	}
+	var readerOpt cnc.ConnectionOption
+	if dialDest.Network == net.Network_TCP {
+		readerOpt = cnc.ConnectionOutputMulti(rawConn.Reader)
+	} else {
+		readerOpt = cnc.ConnectionOutputMultiUDP(rawConn.Reader)
+	}
+	conn := cnc.NewConnection(cnc.ConnectionInputMulti(rawConn.Writer), readerOpt)
 	defer conn.Close()
 
 	requestDone := func() error {
