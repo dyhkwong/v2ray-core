@@ -12,13 +12,10 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 )
 
 type wrappedError struct {
@@ -39,27 +36,15 @@ type Cmd struct {
 	Args          []string
 	Env           []string
 	Dir           string
-	Stdin         io.Reader
 	Stdout        io.Writer
 	Stderr        io.Writer
-	ExtraFiles    []*os.File
-	SysProcAttr   *syscall.SysProcAttr
 	Process       *os.Process
 	ctx           context.Context
-	Err           error
-	Cancel        func() error
-	WaitDelay     time.Duration
+	err           error
 	childIOFiles  []io.Closer
 	parentIOPipes []io.Closer
 	goroutine     []func() error
 	goroutineErr  <-chan error
-	ctxResult     <-chan ctxResult
-	lookPathErr   error
-}
-
-type ctxResult struct {
-	err   error
-	timer *time.Timer
 }
 
 func interfaceEqual(a, b any) bool {
@@ -77,37 +62,12 @@ func (c *Cmd) argv() []string {
 }
 
 func (c *Cmd) childStdin() (*os.File, error) {
-	if c.Stdin == nil {
-		f, err := os.Open(os.DevNull)
-		if err != nil {
-			return nil, err
-		}
-		c.childIOFiles = append(c.childIOFiles, f)
-		return f, nil
-	}
-
-	if f, ok := c.Stdin.(*os.File); ok {
-		return f, nil
-	}
-
-	pr, pw, err := os.Pipe()
+	f, err := os.Open(os.DevNull)
 	if err != nil {
 		return nil, err
 	}
-
-	c.childIOFiles = append(c.childIOFiles, pr)
-	c.parentIOPipes = append(c.parentIOPipes, pw)
-	c.goroutine = append(c.goroutine, func() error {
-		_, err := io.Copy(pw, c.Stdin)
-		if skipStdinCopyError(err) {
-			err = nil
-		}
-		if err1 := pw.Close(); err == nil {
-			err = err1
-		}
-		return err
-	})
-	return pr, nil
+	c.childIOFiles = append(c.childIOFiles, f)
+	return f, nil
 }
 
 func (c *Cmd) childStdout() (*os.File, error) {
@@ -172,19 +132,13 @@ func (c *Cmd) Start() error {
 		}
 	}()
 
-	if c.Path == "" && c.Err == nil && c.lookPathErr == nil {
-		c.Err = errors.New("exec: no command")
+	if c.Path == "" && c.err == nil {
+		c.err = errors.New("exec: no command")
 	}
-	if c.Err != nil || c.lookPathErr != nil {
-		if c.lookPathErr != nil {
-			return c.lookPathErr
-		}
-		return c.Err
+	if c.err != nil {
+		return c.err
 	}
 	lp := c.Path
-	if c.Cancel != nil && c.ctx == nil {
-		return errors.New("exec: command with a non-nil Cancel was not created with CommandContext")
-	}
 	if c.ctx != nil {
 		select {
 		case <-c.ctx.Done():
@@ -193,7 +147,7 @@ func (c *Cmd) Start() error {
 		}
 	}
 
-	childFiles := make([]*os.File, 0, 3+len(c.ExtraFiles))
+	childFiles := make([]*os.File, 0, 3)
 	stdin, err := c.childStdin()
 	if err != nil {
 		return err
@@ -209,7 +163,6 @@ func (c *Cmd) Start() error {
 		return err
 	}
 	childFiles = append(childFiles, stderr)
-	childFiles = append(childFiles, c.ExtraFiles...)
 
 	env, err := c.environ()
 	if err != nil {
@@ -220,7 +173,6 @@ func (c *Cmd) Start() error {
 		Dir:   c.Dir,
 		Files: childFiles,
 		Env:   env,
-		Sys:   c.SysProcAttr,
 	})
 	if err != nil {
 		return err
@@ -229,7 +181,6 @@ func (c *Cmd) Start() error {
 
 	if len(c.goroutine) > 0 {
 		goroutineErr := make(chan error, 1)
-		c.goroutineErr = goroutineErr
 
 		type goroutineStatus struct {
 			running  int
@@ -256,74 +207,7 @@ func (c *Cmd) Start() error {
 		c.goroutine = nil
 	}
 
-	if (c.Cancel != nil || c.WaitDelay != 0) && c.ctx != nil && c.ctx.Done() != nil {
-		resultc := make(chan ctxResult)
-		c.ctxResult = resultc
-		go c.watchCtx(resultc)
-	}
-
 	return nil
-}
-
-func (c *Cmd) watchCtx(resultc chan<- ctxResult) {
-	select {
-	case resultc <- ctxResult{}:
-		return
-	case <-c.ctx.Done():
-	}
-
-	var err error
-	if c.Cancel != nil {
-		if interruptErr := c.Cancel(); interruptErr == nil {
-			err = c.ctx.Err()
-		} else if errors.Is(interruptErr, os.ErrProcessDone) {
-		} else {
-			err = wrappedError{
-				prefix: "exec: canceling Cmd",
-				err:    interruptErr,
-			}
-		}
-	}
-	if c.WaitDelay == 0 {
-		resultc <- ctxResult{err: err}
-		return
-	}
-
-	timer := time.NewTimer(c.WaitDelay)
-	select {
-	case resultc <- ctxResult{err: err, timer: timer}:
-		return
-	case <-timer.C:
-	}
-
-	killed := false
-	if killErr := c.Process.Kill(); killErr == nil {
-		killed = true
-	} else if !errors.Is(killErr, os.ErrProcessDone) {
-		err = wrappedError{
-			prefix: "exec: killing Cmd",
-			err:    killErr,
-		}
-	}
-
-	if c.goroutineErr != nil {
-		select {
-		case goroutineErr := <-c.goroutineErr:
-			if err == nil && !killed {
-				err = goroutineErr
-			}
-		default:
-			closeDescriptors(c.parentIOPipes)
-			_ = <-c.goroutineErr
-			if err == nil {
-				err = exec.ErrWaitDelay
-			}
-		}
-
-		c.goroutineErr = nil
-	}
-
-	resultc <- ctxResult{err: err}
 }
 
 func (c *Cmd) environ() ([]string, error) {
@@ -350,17 +234,13 @@ func (c *Cmd) environ() ([]string, error) {
 }
 
 func dedupEnv(env []string) ([]string, error) {
-	return dedupEnvCase(false, false, env)
-}
-
-func dedupEnvCase(caseInsensitive, nulOK bool, env []string) ([]string, error) {
 	var err error
 	out := make([]string, 0, len(env))
 	saw := make(map[string]bool, len(env))
 	for n := len(env); n > 0; n-- {
 		kv := env[n-1]
 
-		if !nulOK && strings.IndexByte(kv, 0) != -1 {
+		if strings.IndexByte(kv, 0) != -1 {
 			err = errors.New("exec: environment variable contains NUL")
 			continue
 		}
@@ -376,9 +256,6 @@ func dedupEnvCase(caseInsensitive, nulOK bool, env []string) ([]string, error) {
 			continue
 		}
 		k := kv[:i]
-		if caseInsensitive {
-			k = strings.ToLower(k)
-		}
 		if saw[k] {
 			continue
 		}
@@ -393,9 +270,4 @@ func dedupEnvCase(caseInsensitive, nulOK bool, env []string) ([]string, error) {
 	}
 
 	return out, err
-}
-
-func skipStdinCopyError(err error) bool {
-	pe, ok := err.(*fs.PathError)
-	return ok && pe.Op == "write" && pe.Path == "|1" && pe.Err == syscall.EPIPE
 }

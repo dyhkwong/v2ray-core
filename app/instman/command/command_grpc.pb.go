@@ -83,13 +83,13 @@ type InstanceManagementServiceServer interface {
 type UnimplementedInstanceManagementServiceServer struct{}
 
 func (UnimplementedInstanceManagementServiceServer) ListInstance(context.Context, *ListInstanceReq) (*ListInstanceResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListInstance not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ListInstance not implemented")
 }
 func (UnimplementedInstanceManagementServiceServer) AddInstance(context.Context, *AddInstanceReq) (*AddInstanceResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddInstance not implemented")
+	return nil, status.Error(codes.Unimplemented, "method AddInstance not implemented")
 }
 func (UnimplementedInstanceManagementServiceServer) StartInstance(context.Context, *StartInstanceReq) (*StartInstanceResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StartInstance not implemented")
+	return nil, status.Error(codes.Unimplemented, "method StartInstance not implemented")
 }
 func (UnimplementedInstanceManagementServiceServer) mustEmbedUnimplementedInstanceManagementServiceServer() {
 }
@@ -103,7 +103,7 @@ type UnsafeInstanceManagementServiceServer interface {
 }
 
 func RegisterInstanceManagementServiceServer(s grpc.ServiceRegistrar, srv InstanceManagementServiceServer) {
-	// If the following call pancis, it indicates UnimplementedInstanceManagementServiceServer was
+	// If the following call panics, it indicates UnimplementedInstanceManagementServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

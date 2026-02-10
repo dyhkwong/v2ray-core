@@ -105,16 +105,16 @@ type RoutingServiceServer interface {
 type UnimplementedRoutingServiceServer struct{}
 
 func (UnimplementedRoutingServiceServer) SubscribeRoutingStats(*SubscribeRoutingStatsRequest, grpc.ServerStreamingServer[RoutingContext]) error {
-	return status.Errorf(codes.Unimplemented, "method SubscribeRoutingStats not implemented")
+	return status.Error(codes.Unimplemented, "method SubscribeRoutingStats not implemented")
 }
 func (UnimplementedRoutingServiceServer) TestRoute(context.Context, *TestRouteRequest) (*RoutingContext, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TestRoute not implemented")
+	return nil, status.Error(codes.Unimplemented, "method TestRoute not implemented")
 }
 func (UnimplementedRoutingServiceServer) GetBalancerInfo(context.Context, *GetBalancerInfoRequest) (*GetBalancerInfoResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetBalancerInfo not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GetBalancerInfo not implemented")
 }
 func (UnimplementedRoutingServiceServer) OverrideBalancerTarget(context.Context, *OverrideBalancerTargetRequest) (*OverrideBalancerTargetResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OverrideBalancerTarget not implemented")
+	return nil, status.Error(codes.Unimplemented, "method OverrideBalancerTarget not implemented")
 }
 func (UnimplementedRoutingServiceServer) mustEmbedUnimplementedRoutingServiceServer() {}
 func (UnimplementedRoutingServiceServer) testEmbeddedByValue()                        {}
@@ -127,7 +127,7 @@ type UnsafeRoutingServiceServer interface {
 }
 
 func RegisterRoutingServiceServer(s grpc.ServiceRegistrar, srv RoutingServiceServer) {
-	// If the following call pancis, it indicates UnimplementedRoutingServiceServer was
+	// If the following call panics, it indicates UnimplementedRoutingServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

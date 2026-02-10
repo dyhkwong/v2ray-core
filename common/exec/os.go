@@ -13,7 +13,7 @@ import (
 )
 
 func startProcess(name string, argv []string, attr *os.ProcAttr) (*os.Process, error) {
-	if attr != nil && attr.Sys == nil && attr.Dir != "" {
+	if attr != nil && attr.Dir != "" {
 		if _, err := os.Stat(attr.Dir); err != nil {
 			pe := err.(*os.PathError)
 			pe.Op = "chdir"
@@ -24,7 +24,6 @@ func startProcess(name string, argv []string, attr *os.ProcAttr) (*os.Process, e
 	sysattr := &syscall.ProcAttr{
 		Dir: attr.Dir,
 		Env: attr.Env,
-		Sys: attr.Sys,
 	}
 	if sysattr.Env == nil {
 		sysattr.Env = syscall.Environ()
