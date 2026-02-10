@@ -132,6 +132,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 
 	if network == net.Network_TCP {
+		if o.streamPlugin != nil {
+			connection = o.streamPlugin.StreamConn(connection)
+		}
 		serverConn := o.method.DialEarlyConn(connection, singbridge.ToSocksAddr(destination))
 		var handshake bool
 		if timeoutReader, isTimeoutReader := link.Reader.(buf.TimeoutReader); isTimeoutReader {
