@@ -81,7 +81,6 @@ func (o *Outbound) getClient(dialer internet.Dialer) (*shadowtls.Client, error) 
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
-
 	tlsConfig := tlsSettings.GetTLSConfig(tls.WithDestination(o.serverAddr))
 	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
 	switch o.config.Version {
