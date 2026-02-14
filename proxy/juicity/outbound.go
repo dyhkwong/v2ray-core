@@ -59,7 +59,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return o, nil
 }
 
-func (o *Outbound) getClient(dialer internet.Dialer) (*juicity.Client, error) {
+func (o *Outbound) getClient(ctx context.Context, dialer internet.Dialer) (*juicity.Client, error) {
 	o.create.Lock()
 	defer o.create.Unlock()
 	if o.closed {
@@ -89,7 +89,10 @@ func (o *Outbound) getClient(dialer internet.Dialer) (*juicity.Client, error) {
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
-	tlsConfig := tlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	tlsConfig, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	if err != nil {
+		return nil, err
+	}
 
 	options := o.options
 	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
@@ -105,7 +108,7 @@ func (o *Outbound) getClient(dialer internet.Dialer) (*juicity.Client, error) {
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	client, err := o.getClient(dialer)
+	client, err := o.getClient(ctx, dialer)
 	if err != nil {
 		return err
 	}

@@ -73,6 +73,6 @@ func Server(c net.Conn, config *tls.Config) net.Conn {
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		return NewTLSSecurityEngineFromConfig(config.(*Config))
+		return NewTLSSecurityEngineFromConfig(ctx, config.(*Config))
 	}))
 }
