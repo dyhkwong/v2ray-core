@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/tls"
 	"crypto/x509"
@@ -233,8 +234,16 @@ func (a *alwaysFlushWriter) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-// GetTLSConfig converts this Config into tls.Config.
 func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
+	return c.getTLSConfig(context.TODO(), opts...)
+}
+
+func (c *Config) GetTLSConfigWithContext(ctx context.Context, opts ...Option) *tls.Config {
+	return c.getTLSConfig(ctx, opts...)
+}
+
+// GetTLSConfig converts this Config into tls.Config.
+func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 	root, err := c.getCertPool()
 	if err != nil {
 		newError("failed to load system root certificate").AtError().Base(err).WriteToLog()
@@ -323,17 +332,30 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 		config.MaxVersion = tls.VersionTLS13
 	}
 
-	if len(c.EchConfig) > 0 || len(c.Ech_DOHserver) > 0 {
-		err := ApplyECH(c, config) //nolint: staticcheck
-		if err != nil {            //nolint: staticcheck
-			newError("unable to set ECH").AtError().Base(err).WriteToLog()
-		}
-	}
-
 	if len(c.Ciphersuites) > 0 {
 		config.CipherSuites = make([]uint16, 0, len(c.Ciphersuites))
 		for _, cs := range c.Ciphersuites {
 			config.CipherSuites = append(config.CipherSuites, uint16(cs))
+		}
+	}
+
+	if c.Ech != nil && c.Ech.Enabled {
+		if len(c.Ech.Key) > 0 && (len(c.Ech.Config) > 0 || len(c.Ech.QueryDomain) > 0) {
+			newError("both ech client and ech server are set").AtError().WriteToLog()
+		}
+		if len(c.Ech.Key) > 0 {
+			echKeys, err := unmarshalECHKeys(c.Ech.Key)
+			if err != nil {
+				newError(err).AtError().WriteToLog()
+			} else {
+				config.EncryptedClientHelloKeys = echKeys
+			}
+		} else {
+			if err := c.applyECH(ctx, config); err != nil {
+				newError("unable to set ech config").AtError().WriteToLog()
+				// force connection fail
+				config.EncryptedClientHelloConfigList = []byte{}
+			}
 		}
 	}
 
