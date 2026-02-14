@@ -49,7 +49,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return o, nil
 }
 
-func (o *Outbound) newClient(dialer internet.Dialer) (*shadowtls.Client, error) {
+func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*shadowtls.Client, error) {
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -68,8 +68,7 @@ func (o *Outbound) newClient(dialer internet.Dialer) (*shadowtls.Client, error) 
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
-
-	tlsConfig := tlsSettings.GetTLSConfig(tls.WithDestination(o.serverAddr))
+	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, tls.WithDestination(o.serverAddr))
 	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
 	switch o.config.Version {
 	case 0, 2:
@@ -93,7 +92,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	client := o.client
 	if client == nil {
 		var err error
-		client, err = o.newClient(dialer)
+		client, err = o.newClient(ctx, dialer)
 		if err != nil {
 			o.Unlock()
 			return err
