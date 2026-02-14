@@ -80,7 +80,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return o, nil
 }
 
-func (o *Outbound) newClient(dialer internet.Dialer) (*tuic.Client, error) {
+func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*tuic.Client, error) {
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -99,7 +99,7 @@ func (o *Outbound) newClient(dialer internet.Dialer) (*tuic.Client, error) {
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
-	tlsConfig := tlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr))
+	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr))
 	if len(tlsSettings.NextProtocol) == 0 {
 		// TUIC does not send ALPN if not explicitly set
 		tlsConfig.NextProtos = nil
@@ -116,7 +116,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	client := o.client
 	if client == nil {
 		var err error
-		client, err = o.newClient(dialer)
+		client, err = o.newClient(ctx, dialer)
 		if err != nil {
 			o.Unlock()
 			return err
