@@ -140,13 +140,12 @@ func (t *transportConnectionState) Close() error {
 
 var MBps uint64 = 1000000 / 8 // MByte
 
-func GetClientTLSConfig(dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
+func GetClientTLSConfig(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-
-	return config.GetTLSConfig(tls.WithDestination(dest), tls.WithNextProto("h3")), nil
+	return config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
 func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {
@@ -195,7 +194,7 @@ func (f *connFactory) New(addr net.Addr) (net.PacketConn, error) {
 }
 
 func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig, resolver func(ctx context.Context, domain string) net.Address) (hyClient.Client, error) {
-	tlsConfig, err := GetClientTLSConfig(dest, streamSettings)
+	tlsConfig, err := GetClientTLSConfig(ctx, dest, streamSettings)
 	if err != nil {
 		return nil, err
 	}

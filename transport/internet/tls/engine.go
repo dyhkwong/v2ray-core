@@ -1,11 +1,14 @@
 package tls
 
 import (
+	"context"
+
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
 )
 
 type Engine struct {
+	ctx    context.Context
 	config *Config
 }
 
@@ -21,10 +24,13 @@ func (e *Engine) Client(conn net.Conn, opts ...security.Option) (security.Conn, 
 			return nil, newError("unknown option")
 		}
 	}
-	tlsConn := Client(conn, e.config.GetTLSConfig(options...))
+	tlsConn := Client(conn, e.config.GetTLSConfigWithContext(e.ctx, options...))
 	return tlsConn, nil
 }
 
-func NewTLSSecurityEngineFromConfig(config *Config) (security.Engine, error) {
-	return &Engine{config: config}, nil
+func NewTLSSecurityEngineFromConfig(ctx context.Context, config *Config) (security.Engine, error) {
+	return &Engine{
+		ctx:    ctx,
+		config: config,
+	}, nil
 }
