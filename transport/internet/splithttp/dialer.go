@@ -179,7 +179,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				MaxIncomingStreams: -1,
 				KeepAlivePeriod:    h3KeepalivePeriod,
 			},
-			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
+			TLSClientConfig: tlsConfig.GetTLSConfigWithContext(ctx, tls.WithDestination(dest)),
 			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (*quic.Conn, error) {
 				detachedCtx := core.ToBackgroundDetachedContext(ctx)
 				rawConn, err := internet.DialSystem(detachedCtx, dest, streamSettings.SocketSettings)

@@ -188,7 +188,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 					packetConn = internet.NewConnWrapper(iConn)
 				}
 				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(),
-					tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
+					tlsSettings.GetTLSConfigWithContext(detachedCtx, v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
 					cfg,
 				)
 				if err != nil {

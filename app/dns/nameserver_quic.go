@@ -2,6 +2,7 @@ package dns
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -25,7 +26,6 @@ import (
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 // NextProtoDQ - During connection establishment, DNS/QUIC support is indicated
@@ -540,7 +540,7 @@ func (s *QUICNameServer) getConnection(ctx context.Context) (*quic.Conn, error) 
 }
 
 func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error) {
-	tlsConfig := tls.Config{
+	tlsConfig := &tls.Config{
 		ServerName: func() string {
 			switch s.destination.Address.Family() {
 			case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
@@ -551,6 +551,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 				panic("unknown address family")
 			}
 		}(),
+		NextProtos: []string{NextProtoDQ},
 	}
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout: handshakeIdleTimeout,
@@ -566,7 +567,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 			cnc.ConnectionInputMulti(link.Writer),
 			cnc.ConnectionOutputMultiUDP(link.Reader),
 		)
-		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig, quicConfig)
 	}
 
 	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
@@ -582,7 +583,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 	default:
 		packetConn = internet.NewConnWrapper(rawConn)
 	}
-	return quic.Dial(ctx, packetConn, rawConn.RemoteAddr(), tlsConfig.GetTLSConfig(tls.WithNextProto(NextProtoDQ)), quicConfig)
+	return quic.Dial(ctx, packetConn, rawConn.RemoteAddr(), tlsConfig, quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (*quic.Stream, error) {

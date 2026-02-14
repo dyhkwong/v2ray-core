@@ -257,7 +257,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 						packetConn = internet.NewConnWrapper(iConn)
 					}
 					tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
-					tlsConfig := tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					tlsConfig := tlsSettings.GetTLSConfigWithContext(detachedCtx, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
 					quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsConfig, cfg)
 					if err != nil {
 						rawConn.Close()
