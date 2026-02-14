@@ -225,10 +225,11 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 				if tlsSettings == nil {
 					tlsSettings = &v2tls.Config{}
 				}
-				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(),
-					tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(dest)),
-					cfg,
-				)
+				tlsConfig, err := tlsSettings.GetTLSConfig(detachedCtx, v2tls.WithNextProto("h3"), v2tls.WithDestination(dest))
+				if err != nil {
+					return nil, err
+				}
+				quicConn, err := quic.Dial(detachedCtx, packetConn, rawConn.RemoteAddr(), tlsConfig, cfg)
 				if err != nil {
 					rawConn.Close()
 					return nil, err

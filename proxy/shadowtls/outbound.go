@@ -39,7 +39,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if config.TlsSettings == nil {
 		config.TlsSettings = &tls.Config{}
 	}
-	tlsConfig := config.TlsSettings.GetTLSConfig(tls.WithDestination(serverAddr)).Clone()
+	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, tls.WithDestination(serverAddr))
+	if err != nil {
+		return nil, err
+	}
 	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
 	switch config.Version {
 	case 0, 2:

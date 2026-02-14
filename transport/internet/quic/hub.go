@@ -120,7 +120,12 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 		ConnectionIDLength: 12,
 	}
 
-	qListener, err := tr.Listen(tlsConfig.GetTLSConfig(), quicConfig)
+	tlsCfg, err := tlsConfig.GetTLSConfig(ctx)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	qListener, err := tr.Listen(tlsCfg, quicConfig)
 	if err != nil {
 		conn.Close()
 		return nil, err

@@ -14,14 +14,18 @@ import (
 
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
-func NewUTLSSecurityEngineFromConfig(config *Config) (security.Engine, error) {
+func NewUTLSSecurityEngineFromConfig(ctx context.Context, config *Config) (security.Engine, error) {
 	if config.TlsConfig == nil {
 		return nil, newError("mandatory field tls_config is not specified")
 	}
-	return &Engine{config: config}, nil
+	return &Engine{
+		ctx:    ctx,
+		config: config,
+	}, nil
 }
 
 type Engine struct {
+	ctx    context.Context
 	config *Config
 }
 
@@ -39,7 +43,10 @@ func (e Engine) Client(conn net.Conn, opts ...security.Option) (security.Conn, e
 			return nil, newError("unknown option")
 		}
 	}
-	tlsConfig := e.config.TlsConfig.GetTLSConfig(options...)
+	tlsConfig, err := e.config.TlsConfig.GetTLSConfig(e.ctx, options...)
+	if err != nil {
+		return nil, err
+	}
 	utlsConfig, err := uTLSConfigFromTLSConfig(tlsConfig)
 	if err != nil {
 		return nil, newError("unable to generate utls config from tls config").Base(err)
@@ -136,6 +143,6 @@ func uTLSConfigFromTLSConfig(config *systls.Config) (*utls.Config, error) { // n
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
-		return NewUTLSSecurityEngineFromConfig(config.(*Config))
+		return NewUTLSSecurityEngineFromConfig(ctx, config.(*Config))
 	}))
 }

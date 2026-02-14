@@ -50,7 +50,12 @@ func ListenWithSecuritySettings(ctx context.Context, address net.Address, port n
 	}
 
 	if config := v2tls.ConfigFromStreamSettings(streamSettings); config != nil {
-		if tlsConfig := config.GetTLSConfig(); tlsConfig != nil {
+		tlsConfig, err := config.GetTLSConfig(ctx)
+		if err != nil {
+			l.Close()
+			return nil, err
+		}
+		if tlsConfig != nil {
 			l = tls.NewListener(l, tlsConfig)
 		}
 	}

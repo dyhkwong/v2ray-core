@@ -72,7 +72,10 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	switch streamSettings.SecuritySettings.(type) {
 	case *tls.Config:
 		if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-			tlsConfig := config.GetTLSConfig(tls.WithDestination(dest))
+			tlsConfig, err := config.GetTLSConfig(ctx, tls.WithDestination(dest))
+			if err != nil {
+				return nil, err
+			}
 			// https://github.com/grpc/grpc-go/blob/98959d9a4904e98bbf8b423ce6a3cb5d36f90ee1/credentials/tls.go#L205-L210
 			if tlsConfig.EncryptedClientHelloConfigList != nil && tlsConfig.MinVersion == 0 && (tlsConfig.MaxVersion == 0 || tlsConfig.MaxVersion >= gotls.VersionTLS13) {
 				tlsConfig.MinVersion = gotls.VersionTLS13
