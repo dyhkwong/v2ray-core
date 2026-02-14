@@ -218,7 +218,10 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 				},
 				Dial: func(ctx context.Context, _ string, _ *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 					tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
-					tlsCfg := tlsSettings.GetTLSConfig(v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					tlsCfg, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					if err != nil {
+						return nil, err
+					}
 					ctx = core.ToBackgroundDetachedContext(ctx)
 					conn, err := dialer.Dial(core.ToBackgroundDetachedContext(ctx), c.serverAddress)
 					if err != nil {

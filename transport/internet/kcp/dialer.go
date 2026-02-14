@@ -89,7 +89,11 @@ func DialKCP(ctx context.Context, dest net.Destination, streamSettings *internet
 	var iConn internet.Connection = session
 
 	if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-		iConn = tls.Client(iConn, config.GetTLSConfig(tls.WithDestination(dest)))
+		tlsConfig, err := config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest))
+		if err != nil {
+			return nil, err
+		}
+		iConn = tls.Client(iConn, tlsConfig)
 	}
 
 	return iConn, nil
