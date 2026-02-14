@@ -138,7 +138,12 @@ func ListenWS(ctx context.Context, address net.Address, port net.Port, streamSet
 	if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
 		listener = utls.NewRealityListener(listener, config.GetREALITYConfig())
 	} else if config := v2tls.ConfigFromStreamSettings(streamSettings); config != nil {
-		if tlsConfig := config.GetTLSConfig(); tlsConfig != nil {
+		tlsConfig, err := config.GetTLSConfig(ctx)
+		if err != nil {
+			listener.Close()
+			return nil, err
+		}
+		if tlsConfig != nil {
 			listener = tls.NewListener(listener, tlsConfig)
 		}
 	}

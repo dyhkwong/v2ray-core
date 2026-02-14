@@ -229,17 +229,12 @@ type Config struct {
 	MaxVersion Config_TLSVersion `protobuf:"varint,10,opt,name=max_version,json=maxVersion,proto3,enum=v2ray.core.transport.internet.tls.Config_TLSVersion" json:"max_version,omitempty"`
 	// Whether or not to allow self-signed certificates when pinned_peer_certificate_chain_sha256 is present.
 	AllowInsecureIfPinnedPeerCertificate bool `protobuf:"varint,11,opt,name=allow_insecure_if_pinned_peer_certificate,json=allowInsecureIfPinnedPeerCertificate,proto3" json:"allow_insecure_if_pinned_peer_certificate,omitempty"`
-	// ECH Config in bytes format
-	EchConfig []byte `protobuf:"bytes,16,opt,name=ech_config,json=echConfig,proto3" json:"ech_config,omitempty"`
-	// DOH server to query HTTPS record for ECH
-	Ech_DOHserver string `protobuf:"bytes,17,opt,name=ech_DOHserver,json=echDOHserver,proto3" json:"ech_DOHserver,omitempty"`
-	// domain to query for https record
-	EchQueryDomain string `protobuf:"bytes,18,opt,name=ech_query_domain,json=echQueryDomain,proto3" json:"ech_query_domain,omitempty"`
 	// cipher suites to to be offered or accepted.
 	// This is an developer option.
-	Ciphersuites                         []uint32 `protobuf:"varint,19,rep,packed,name=ciphersuites,proto3" json:"ciphersuites,omitempty"`
-	PinnedPeerCertificatePublicKeySha256 [][]byte `protobuf:"bytes,900,rep,name=pinned_peer_certificate_public_key_sha256,json=pinnedPeerCertificatePublicKeySha256,proto3" json:"pinned_peer_certificate_public_key_sha256,omitempty"`
-	PinnedPeerCertificateSha256          []string `protobuf:"bytes,901,rep,name=pinned_peer_certificate_sha256,json=pinnedPeerCertificateSha256,proto3" json:"pinned_peer_certificate_sha256,omitempty"`
+	Ciphersuites                         []uint32    `protobuf:"varint,19,rep,packed,name=ciphersuites,proto3" json:"ciphersuites,omitempty"`
+	PinnedPeerCertificatePublicKeySha256 [][]byte    `protobuf:"bytes,900,rep,name=pinned_peer_certificate_public_key_sha256,json=pinnedPeerCertificatePublicKeySha256,proto3" json:"pinned_peer_certificate_public_key_sha256,omitempty"`
+	PinnedPeerCertificateSha256          []string    `protobuf:"bytes,901,rep,name=pinned_peer_certificate_sha256,json=pinnedPeerCertificateSha256,proto3" json:"pinned_peer_certificate_sha256,omitempty"`
+	Ech                                  *Config_ECH `protobuf:"bytes,902,opt,name=ech,proto3" json:"ech,omitempty"`
 	unknownFields                        protoimpl.UnknownFields
 	sizeCache                            protoimpl.SizeCache
 }
@@ -351,27 +346,6 @@ func (x *Config) GetAllowInsecureIfPinnedPeerCertificate() bool {
 	return false
 }
 
-func (x *Config) GetEchConfig() []byte {
-	if x != nil {
-		return x.EchConfig
-	}
-	return nil
-}
-
-func (x *Config) GetEch_DOHserver() string {
-	if x != nil {
-		return x.Ech_DOHserver
-	}
-	return ""
-}
-
-func (x *Config) GetEchQueryDomain() string {
-	if x != nil {
-		return x.EchQueryDomain
-	}
-	return ""
-}
-
 func (x *Config) GetCiphersuites() []uint32 {
 	if x != nil {
 		return x.Ciphersuites
@@ -393,6 +367,81 @@ func (x *Config) GetPinnedPeerCertificateSha256() []string {
 	return nil
 }
 
+func (x *Config) GetEch() *Config_ECH {
+	if x != nil {
+		return x.Ech
+	}
+	return nil
+}
+
+type Config_ECH struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Config        []byte                 `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	QueryDomain   string                 `protobuf:"bytes,3,opt,name=query_domain,json=queryDomain,proto3" json:"query_domain,omitempty"`
+	Key           []byte                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Config_ECH) Reset() {
+	*x = Config_ECH{}
+	mi := &file_transport_internet_tls_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Config_ECH) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Config_ECH) ProtoMessage() {}
+
+func (x *Config_ECH) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_internet_tls_config_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Config_ECH.ProtoReflect.Descriptor instead.
+func (*Config_ECH) Descriptor() ([]byte, []int) {
+	return file_transport_internet_tls_config_proto_rawDescGZIP(), []int{1, 0}
+}
+
+func (x *Config_ECH) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *Config_ECH) GetConfig() []byte {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *Config_ECH) GetQueryDomain() string {
+	if x != nil {
+		return x.QueryDomain
+	}
+	return ""
+}
+
+func (x *Config_ECH) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
 var File_transport_internet_tls_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_tls_config_proto_rawDesc = "" +
@@ -408,7 +457,7 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\fENCIPHERMENT\x10\x00\x12\x14\n" +
 	"\x10AUTHORITY_VERIFY\x10\x01\x12\x13\n" +
 	"\x0fAUTHORITY_ISSUE\x10\x02\x12\x1b\n" +
-	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xe0\b\n" +
+	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xb4\t\n" +
 	"\x06Config\x12-\n" +
 	"\x0eallow_insecure\x18\x01 \x01(\bB\x06\x82\xb5\x18\x02(\x01R\rallowInsecure\x12P\n" +
 	"\vcertificate\x18\x02 \x03(\v2..v2ray.core.transport.internet.tls.CertificateR\vcertificate\x12\x1f\n" +
@@ -424,14 +473,16 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\vmax_version\x18\n" +
 	" \x01(\x0e24.v2ray.core.transport.internet.tls.Config.TLSVersionR\n" +
 	"maxVersion\x12W\n" +
-	")allow_insecure_if_pinned_peer_certificate\x18\v \x01(\bR$allowInsecureIfPinnedPeerCertificate\x12\x1d\n" +
-	"\n" +
-	"ech_config\x18\x10 \x01(\fR\techConfig\x12#\n" +
-	"\rech_DOHserver\x18\x11 \x01(\tR\fechDOHserver\x12(\n" +
-	"\x10ech_query_domain\x18\x12 \x01(\tR\x0eechQueryDomain\x12\"\n" +
+	")allow_insecure_if_pinned_peer_certificate\x18\v \x01(\bR$allowInsecureIfPinnedPeerCertificate\x12\"\n" +
 	"\fciphersuites\x18\x13 \x03(\rR\fciphersuites\x12X\n" +
 	")pinned_peer_certificate_public_key_sha256\x18\x84\a \x03(\fR$pinnedPeerCertificatePublicKeySha256\x12D\n" +
-	"\x1epinned_peer_certificate_sha256\x18\x85\a \x03(\tR\x1bpinnedPeerCertificateSha256\"I\n" +
+	"\x1epinned_peer_certificate_sha256\x18\x85\a \x03(\tR\x1bpinnedPeerCertificateSha256\x12@\n" +
+	"\x03ech\x18\x86\a \x01(\v2-.v2ray.core.transport.internet.tls.Config.ECHR\x03ech\x1al\n" +
+	"\x03ECH\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
+	"\x06config\x18\x02 \x01(\fR\x06config\x12!\n" +
+	"\fquery_domain\x18\x03 \x01(\tR\vqueryDomain\x12\x10\n" +
+	"\x03key\x18\x04 \x01(\fR\x03key\"I\n" +
 	"\n" +
 	"TLSVersion\x12\v\n" +
 	"\aDefault\x10\x00\x12\n" +
@@ -443,7 +494,7 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\x06TLS1_2\x10\x03\x12\n" +
 	"\n" +
 	"\x06TLS1_3\x10\x04:\x13\x82\xb5\x18\x0f\n" +
-	"\bsecurity\x12\x03tlsB\x84\x01\n" +
+	"\bsecurity\x12\x03tlsJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12J\x04\b\x12\x10\x13B\x84\x01\n" +
 	"%com.v2ray.core.transport.internet.tlsP\x01Z5github.com/v2fly/v2ray-core/v5/transport/internet/tls\xaa\x02!V2Ray.Core.Transport.Internet.Tlsb\x06proto3"
 
 var (
@@ -459,23 +510,25 @@ func file_transport_internet_tls_config_proto_rawDescGZIP() []byte {
 }
 
 var file_transport_internet_tls_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_transport_internet_tls_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_transport_internet_tls_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_transport_internet_tls_config_proto_goTypes = []any{
 	(Certificate_Usage)(0), // 0: v2ray.core.transport.internet.tls.Certificate.Usage
 	(Config_TLSVersion)(0), // 1: v2ray.core.transport.internet.tls.Config.TLSVersion
 	(*Certificate)(nil),    // 2: v2ray.core.transport.internet.tls.Certificate
 	(*Config)(nil),         // 3: v2ray.core.transport.internet.tls.Config
+	(*Config_ECH)(nil),     // 4: v2ray.core.transport.internet.tls.Config.ECH
 }
 var file_transport_internet_tls_config_proto_depIdxs = []int32{
 	0, // 0: v2ray.core.transport.internet.tls.Certificate.usage:type_name -> v2ray.core.transport.internet.tls.Certificate.Usage
 	2, // 1: v2ray.core.transport.internet.tls.Config.certificate:type_name -> v2ray.core.transport.internet.tls.Certificate
 	1, // 2: v2ray.core.transport.internet.tls.Config.min_version:type_name -> v2ray.core.transport.internet.tls.Config.TLSVersion
 	1, // 3: v2ray.core.transport.internet.tls.Config.max_version:type_name -> v2ray.core.transport.internet.tls.Config.TLSVersion
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 4: v2ray.core.transport.internet.tls.Config.ech:type_name -> v2ray.core.transport.internet.tls.Config.ECH
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_transport_internet_tls_config_proto_init() }
@@ -489,7 +542,7 @@ func file_transport_internet_tls_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_internet_tls_config_proto_rawDesc), len(file_transport_internet_tls_config_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

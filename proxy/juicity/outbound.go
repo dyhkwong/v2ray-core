@@ -49,7 +49,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if config.TlsSettings == nil {
 		config.TlsSettings = &v2tls.Config{}
 	}
-	tlsConfig := config.TlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	if err != nil {
+		return nil, err
+	}
 
 	o.options = juicity.ClientOptions{
 		Context:       ctx,

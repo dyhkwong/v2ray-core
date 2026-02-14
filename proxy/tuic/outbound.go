@@ -70,7 +70,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if config.TlsSettings == nil {
 		config.TlsSettings = &v2tls.Config{}
 	}
-	tlsConfig := config.TlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr))
+	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, v2tls.WithDestination(o.serverAddr))
+	if err != nil {
+		return nil, err
+	}
 	if len(config.TlsSettings.NextProtocol) == 0 {
 		// TUIC does not send ALPN if not explicitly set
 		tlsConfig.NextProtos = nil

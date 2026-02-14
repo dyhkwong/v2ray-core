@@ -1,156 +1,155 @@
 package tls
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"io"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/miekg/dns"
+	"golang.org/x/crypto/cryptobyte"
 
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	feature_dns "github.com/v2fly/v2ray-core/v5/features/dns"
 )
 
-func ApplyECH(c *Config, config *tls.Config) error {
-	var echConfig []byte
-	var err error
-	var domain string
-
-	if len(c.EchConfig) > 0 {
-		echConfig = c.EchConfig
-	} else { // ECH config > DOH lookup
-		if c.EchQueryDomain == "" {
-			domain = config.ServerName
-		} else {
-			domain = c.EchQueryDomain
-		}
-		addr := net.ParseAddress(domain)
-		if !addr.Family().IsDomain() {
-			return newError("Using DOH for ECH needs SNI")
-		}
-		echConfig, err = QueryRecord(addr.Domain(), c.Ech_DOHserver)
-		if err != nil {
-			return err
-		}
-		if len(echConfig) == 0 {
-			return newError("no ech record found")
-		}
+func (c *Config) applyECH(ctx context.Context, config *tls.Config) error {
+	if len(c.Ech.Config) > 0 {
+		config.EncryptedClientHelloConfigList = c.Ech.Config
+		return nil
 	}
-
+	domain := config.ServerName
+	if len(c.Ech.QueryDomain) > 0 {
+		domain = c.Ech.QueryDomain
+	}
+	if len(domain) == 0 {
+		return newError("ech requires dnsname")
+	}
+	if addr := net.ParseAddress(domain); !addr.Family().IsDomain() {
+		return newError("ech requires dnsname")
+	}
+	echConfig, err := queryECH(ctx, domain)
+	if err != nil {
+		return err
+	}
 	config.EncryptedClientHelloConfigList = echConfig
 	return nil
 }
 
-type record struct {
-	record []byte
+type ech struct {
+	raw    []byte
 	expire time.Time
 }
 
 var (
-	dnsCache = make(map[string]record)
-	mutex    sync.RWMutex
+	echCache      = make(map[string]*ech)
+	echCacheMutex sync.RWMutex
 )
 
-func QueryRecord(domain string, server string) ([]byte, error) {
-	mutex.Lock()
-	rec, found := dnsCache[domain]
-	if found {
-		if rec.expire.After(time.Now()) {
-			mutex.Unlock()
-			return rec.record, nil
+func queryECH(ctx context.Context, domain string) ([]byte, error) {
+	echCacheMutex.Lock()
+	if ech, found := echCache[domain]; found {
+		if ech.expire.After(time.Now()) {
+			echCacheMutex.Unlock()
+			if ech.raw == nil {
+				return nil, newError("ech config not found")
+			}
+			return ech.raw, nil
 		}
-		delete(dnsCache, domain)
+		delete(echCache, domain)
 	}
-	mutex.Unlock()
+	echCacheMutex.Unlock()
 
-	newError("Trying to query ECH config for domain: ", domain, " with ECH server: ", server).AtDebug().WriteToLog()
-	record, ttl, err := dohQuery(server, domain)
+	instance := core.FromContext(ctx)
+	if instance == nil {
+		return nil, newError("nil instance")
+	}
+	dnsClient, ok := instance.GetFeature(feature_dns.ClientType()).(feature_dns.Client)
+	if !ok || dnsClient == nil {
+		return nil, newError("nil dns client")
+	}
+	dnsRawClient, ok := dnsClient.(feature_dns.RawQuery)
+	if !ok {
+		return nil, newError("dns client does not support raw query")
+	}
+
+	requestMsg := new(dns.Msg)
+	requestMsg.SetQuestion(dns.Fqdn(domain), dns.TypeHTTPS)
+	request, err := requestMsg.Pack()
 	if err != nil {
 		return nil, err
 	}
-
-	if ttl > 0 {
-		mutex.Lock()
-		defer mutex.Unlock()
-		rec.record = record
-		rec.expire = time.Now().Add(time.Second * time.Duration(ttl))
-		dnsCache[domain] = rec
-	}
-
-	return record, nil
-}
-
-func dohQuery(server string, domain string) ([]byte, uint32, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeHTTPS)
-	m.Id = 0
-	msg, err := m.Pack()
+	response, err := dnsRawClient.QueryRaw(request)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	tr := &http.Transport{
-		IdleConnTimeout:   90 * time.Second,
-		ForceAttemptHTTP2: true,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			dest, err := net.ParseDestination(network + ":" + addr)
-			if err != nil {
-				return nil, err
-			}
-			conn, err := internet.DialSystem(ctx, dest, nil)
-			if err != nil {
-				return nil, err
-			}
-			return conn, nil
-		},
+	responseMsg := new(dns.Msg)
+	if err := responseMsg.Unpack(response); err != nil {
+		return nil, err
 	}
-	client := &http.Client{
-		Timeout:   5 * time.Second,
-		Transport: tr,
-	}
-	req, err := http.NewRequest("POST", server, bytes.NewReader(msg))
-	if err != nil {
-		return nil, 0, err
-	}
-	req.Header.Set("Content-Type", "application/dns-message")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, 0, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, 0, newError("query failed with response code: ", resp.StatusCode)
-	}
-	respMsg := new(dns.Msg)
-	err = respMsg.Unpack(respBody)
-	if err != nil {
-		return nil, 0, err
-	}
-	for _, answer := range respMsg.Answer {
+	for _, answer := range responseMsg.Answer {
 		if answer.Header().Class == dns.ClassINET && answer.Header().Header().Rrtype == dns.TypeHTTPS {
 			if https, ok := answer.(*dns.HTTPS); ok {
+				ttl := answer.Header().Ttl
 				for _, v := range https.Value {
 					if echConfig, ok := v.(*dns.SVCBECHConfig); ok {
-						newError(context.Background(), "Get ECH config:", echConfig.String(), " TTL:", respMsg.Answer[0].Header().Ttl).AtDebug().WriteToLog()
-						return echConfig.ECH, answer.Header().Ttl, nil
+						if ttl > 0 {
+							echCacheMutex.Lock()
+							echCache[domain] = &ech{
+								raw:    echConfig.ECH,
+								expire: time.Now().Add(time.Second * time.Duration(ttl)),
+							}
+							echCacheMutex.Unlock()
+						}
+						return echConfig.ECH, nil
 					}
+				}
+				if ttl > 0 {
+					echCacheMutex.Lock()
+					echCache[domain] = &ech{
+						raw:    nil,
+						expire: time.Now().Add(time.Second * time.Duration(ttl)),
+					}
+					echCacheMutex.Unlock()
+					return nil, newError("ech config not found")
 				}
 			}
 		}
 	}
-	if respMsg.Rcode == dns.RcodeSuccess || respMsg.Rcode == dns.RcodeNameError {
-		for _, ns := range respMsg.Ns {
+	if responseMsg.Rcode == dns.RcodeSuccess || responseMsg.Rcode == dns.RcodeNameError {
+		for _, ns := range responseMsg.Ns {
 			if soa, ok := ns.(*dns.SOA); ok {
-				return nil, min(ns.Header().Ttl, soa.Minttl), nil
+				if ttl := min(ns.Header().Ttl, soa.Minttl); ttl > 0 {
+					echCacheMutex.Lock()
+					echCache[domain] = &ech{
+						raw:    nil,
+						expire: time.Now().Add(time.Second * time.Duration(ttl)),
+					}
+					echCacheMutex.Unlock()
+					return nil, newError("ech config not found")
+				}
 			}
 		}
 	}
-	return nil, 0, newError("no ech record found")
+	return nil, newError("ech config not found")
+}
+
+func unmarshalECHKeys(raw []byte) ([]tls.EncryptedClientHelloKey, error) {
+	var keys []tls.EncryptedClientHelloKey
+	rawString := cryptobyte.String(raw)
+	for !rawString.Empty() {
+		var key tls.EncryptedClientHelloKey
+		if !rawString.ReadUint16LengthPrefixed((*cryptobyte.String)(&key.PrivateKey)) {
+			return nil, newError("parse ech keys private key error")
+		}
+		if !rawString.ReadUint16LengthPrefixed((*cryptobyte.String)(&key.Config)) {
+			return nil, newError("parsing ech keys config error")
+		}
+		keys = append(keys, key)
+	}
+	if len(keys) == 0 {
+		return nil, newError("empty ech keys")
+	}
+	return keys, nil
 }
