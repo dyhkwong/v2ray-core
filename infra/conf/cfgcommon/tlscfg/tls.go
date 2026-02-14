@@ -24,14 +24,19 @@ type TLSConfig struct {
 	PinnedPeerCertificatePublicKeySha256 []string              `json:"pinnedPeerCertificatePublicKeySha256"`
 	PinnedPeerCertificateSha256          []string              `json:"pinnedPeerCertificateSha256"`
 	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
-	ECHConfig                            string                `json:"echConfig"`
-	ECHDOHServer                         string                `json:"echDohServer"`
-	ECHQueryDomain                       string                `json:"echQueryDomain"`
+	ECH                                  *ECHConfig            `json:"ech"`
 	MinVersion                           string                `json:"minVersion"`
 	MaxVersion                           string                `json:"maxVersion"`
 	AllowInsecureIfPinnedPeerCertificate bool                  `json:"allowInsecureIfPinnedPeerCertificate"`
 	Ciphersuites                         []uint32              `json:"ciphersuites"`
 	Fingerprint                          string                `json:"fingerprint"`
+}
+
+type ECHConfig struct {
+	Enabled     bool   `json:"enabled"`
+	Config      string `json:"config"`
+	QueryDomain string `json:"queryDomain"`
+	Key         string `json:"key"`
 }
 
 // Build implements Buildable.
@@ -82,16 +87,26 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 		config.PinnedPeerCertificateSha256 = c.PinnedPeerCertificateSha256
 	}
 
-	if c.ECHConfig != "" {
-		ECHConfig, err := base64.StdEncoding.DecodeString(c.ECHConfig)
-		if err != nil {
-			return nil, newError("invalid ECH Config", c.ECHConfig)
+	if c.ECH != nil {
+		config.Ech = &tls.Config_ECH{
+			Enabled:     c.ECH.Enabled,
+			QueryDomain: c.ECH.QueryDomain,
 		}
-		config.EchConfig = ECHConfig
+		if len(c.ECH.Config) > 0 {
+			echConfig, err := base64.StdEncoding.DecodeString(c.ECH.Config)
+			if err != nil {
+				return nil, err
+			}
+			config.Ech.Config = echConfig
+		}
+		if len(c.ECH.Key) > 0 {
+			echKey, err := base64.StdEncoding.DecodeString(c.ECH.Key)
+			if err != nil {
+				return nil, err
+			}
+			config.Ech.Key = echKey
+		}
 	}
-
-	config.Ech_DOHserver = c.ECHDOHServer
-	config.EchQueryDomain = c.ECHQueryDomain
 
 	switch strings.ToLower(c.MinVersion) {
 	case "tls1_0", "tls1.0":
