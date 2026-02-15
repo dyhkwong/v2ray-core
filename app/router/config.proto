@@ -146,6 +146,8 @@ message StrategyRandomConfig {
 
 message StrategyLeastPingConfig {
   string observer_tag = 7;
+
+  bool sticky_choice = 8;
 }
 
 message StrategyLeastLoadConfig {
