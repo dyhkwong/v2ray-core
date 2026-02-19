@@ -23,6 +23,7 @@ const (
 // data:application/vnd.v2ray.tlsmirror-enrollment;base64,<base64(payload)>
 // where payload is the marshaled Any message encoded with standard base64 (with padding).
 func LinkFromAny(a *serial.TypedMessage) (string, error) {
+	// Machine generated code
 	if a == nil {
 		return "", newError("nil Any")
 	}
@@ -38,6 +39,7 @@ func LinkFromAny(a *serial.TypedMessage) (string, error) {
 // AnyFromLink converts a string link (now primarily a data URL) back to *anypb.Any.
 // Accepted formats (strict): only data URLs matching the exact MIME type and base64 encoding.
 func AnyFromLink(link string) (*serial.TypedMessage, error) {
+	// Machine generated code
 	if link == "" {
 		return nil, newError("empty link")
 	}
