@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"sync"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/app/observatory"
@@ -15,6 +16,9 @@ type LeastPingStrategy struct {
 	observatory extension.Observatory
 
 	config *StrategyLeastPingConfig
+
+	lock       sync.Mutex
+	lastChoice string
 }
 
 func (l *LeastPingStrategy) GetPrincipleTarget(strings []string) []string {
@@ -55,6 +59,14 @@ func (l *LeastPingStrategy) PickOutbound(strings []string) string {
 				selectedOutboundName = v.OutboundTag
 				leastPing = v.Delay
 			}
+		}
+		{
+			l.lock.Lock()
+			if selectedOutboundName == "" && l.config.StickyChoice {
+				selectedOutboundName = l.lastChoice
+			}
+			l.lastChoice = selectedOutboundName
+			l.lock.Unlock()
 		}
 		return selectedOutboundName
 	}

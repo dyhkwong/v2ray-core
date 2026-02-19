@@ -27,10 +27,9 @@ func init() {
 
 type Outbound struct {
 	sync.Mutex
-	serverAddr      net.Destination
-	config          *ClientConfig
-	client          mieruclient.Client
-	clientIsRunning bool // do not use mieruclient.Client IsRunning() because Stop() takes too much time to finish
+	serverAddr net.Destination
+	config     *ClientConfig
+	client     mieruclient.Client
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -61,9 +60,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return newError("target not specified")
 	}
 
-	var client mieruclient.Client
 	o.Lock()
-	if o.client == nil || !o.clientIsRunning {
+	client := o.client
+	if client == nil {
 		dialer := &dialerWrapper{
 			dialer: dialer,
 		}
@@ -92,9 +91,6 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 			return err
 		}
 		o.client = client
-		o.clientIsRunning = true
-	} else {
-		client = o.client
 	}
 	o.Unlock()
 
@@ -155,9 +151,9 @@ func (o *Outbound) InterfaceUpdate() {
 
 func (o *Outbound) Close() error {
 	o.Lock()
-	if o.client != nil && o.clientIsRunning {
-		o.clientIsRunning = false
+	if o.client != nil {
 		go o.client.Stop() // this takes too much time to finish
+		o.client = nil
 	}
 	o.Unlock()
 	return nil

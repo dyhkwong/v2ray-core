@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/tls"
 	"crypto/x509"
@@ -217,7 +218,7 @@ func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Cert
 		if !slices.ContainsFunc(pinnedPeerCertificateSha256, func(b []byte) bool {
 			return hmac.Equal(b, hash)
 		}) {
-			return newError("peer cert sha256 is unrecognized: ", base64.StdEncoding.EncodeToString(hash))
+			return newError("peer cert sha256 is unrecognized: ", hex.EncodeToString(hash))
 		}
 	}
 	return nil
@@ -234,7 +235,7 @@ func (a *alwaysFlushWriter) Write(p []byte) (n int, err error) {
 }
 
 // GetTLSConfig converts this Config into tls.Config.
-func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
+func (c *Config) GetTLSConfig(ctx context.Context, opts ...Option) (*tls.Config, error) {
 	root, err := c.getCertPool()
 	if err != nil {
 		newError("failed to load system root certificate").AtError().Base(err).WriteToLog()
@@ -247,7 +248,7 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 			InsecureSkipVerify:     false,
 			NextProtos:             nil,
 			SessionTicketsDisabled: true,
-		}
+		}, nil
 	}
 
 	clientRoot, err := c.loadSelfCertPool(Certificate_AUTHORITY_VERIFY_CLIENT)
@@ -323,13 +324,6 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 		config.MaxVersion = tls.VersionTLS13
 	}
 
-	if len(c.EchConfig) > 0 || len(c.Ech_DOHserver) > 0 || len(c.EchConfigList) > 0 {
-		err := ApplyECH(c, config) //nolint: staticcheck
-		if err != nil {            //nolint: staticcheck
-			newError("unable to set ECH").AtError().Base(err).WriteToLog()
-		}
-	}
-
 	if len(c.Ciphersuites) > 0 {
 		config.CipherSuites = make([]uint16, 0, len(c.Ciphersuites))
 		for _, cs := range c.Ciphersuites {
@@ -337,7 +331,23 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 		}
 	}
 
-	return config
+	if c.Ech != nil && c.Ech.Enabled {
+		if len(c.Ech.Key) > 0 && (len(c.Ech.Config) > 0 || len(c.Ech.QueryDomain) > 0) {
+			return nil, newError("both ech client and ech server are set")
+		}
+		if len(c.Ech.Key) > 0 {
+			echKeys, err := unmarshalECHKeys(c.Ech.Key)
+			if err != nil {
+				return nil, err
+			}
+			config.EncryptedClientHelloKeys = echKeys
+		}
+		if err := c.applyECH(ctx, config); err != nil {
+			return nil, newError("unable to set ech config").AtError()
+		}
+	}
+
+	return config, nil
 }
 
 // Option for building TLS config.

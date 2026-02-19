@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/v2fly/v2ray-core/v5/common"
 	. "github.com/v2fly/v2ray-core/v5/transport/internet/splithttp"
 )
 
@@ -18,13 +19,16 @@ func TestMaxConnections(t *testing.T) {
 		MaxConnections: "4-4",
 	}
 
-	xmuxManager, _ := NewXmuxManager(xmuxConfig, func() XmuxConn {
-		return &fakeRoundTripper{}
+	xmuxManager, err := NewXmuxManager(xmuxConfig, func() (XmuxConn, error) {
+		return &fakeRoundTripper{}, nil
 	})
+	common.Must(err)
 
 	xmuxClients := make(map[any]struct{})
 	for range 8 {
-		xmuxClients[xmuxManager.GetXmuxClient(context.Background())] = struct{}{}
+		xmuxClient, err := xmuxManager.GetXmuxClient(context.Background())
+		common.Must(err)
+		xmuxClients[xmuxClient] = struct{}{}
 	}
 
 	if len(xmuxClients) != 4 {
@@ -37,13 +41,16 @@ func TestCMaxReuseTimes(t *testing.T) {
 		CMaxReuseTimes: "2-2",
 	}
 
-	xmuxManager, _ := NewXmuxManager(xmuxConfig, func() XmuxConn {
-		return &fakeRoundTripper{}
+	xmuxManager, err := NewXmuxManager(xmuxConfig, func() (XmuxConn, error) {
+		return &fakeRoundTripper{}, nil
 	})
+	common.Must(err)
 
 	xmuxClients := make(map[any]struct{})
 	for range 64 {
-		xmuxClients[xmuxManager.GetXmuxClient(context.Background())] = struct{}{}
+		xmuxClient, err := xmuxManager.GetXmuxClient(context.Background())
+		common.Must(err)
+		xmuxClients[xmuxClient] = struct{}{}
 	}
 
 	if len(xmuxClients) != 32 {
@@ -56,13 +63,15 @@ func TestMaxConcurrency(t *testing.T) {
 		MaxConcurrency: "2-2",
 	}
 
-	xmuxManager, _ := NewXmuxManager(xmuxConfig, func() XmuxConn {
-		return &fakeRoundTripper{}
+	xmuxManager, err := NewXmuxManager(xmuxConfig, func() (XmuxConn, error) {
+		return &fakeRoundTripper{}, nil
 	})
+	common.Must(err)
 
 	xmuxClients := make(map[any]struct{})
 	for range 64 {
-		xmuxClient := xmuxManager.GetXmuxClient(context.Background())
+		xmuxClient, err := xmuxManager.GetXmuxClient(context.Background())
+		common.Must(err)
 		xmuxClient.OpenUsage.Add(1)
 		xmuxClients[xmuxClient] = struct{}{}
 	}

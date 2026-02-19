@@ -2,6 +2,7 @@ package anytls
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	anytls "github.com/anytls/sing-anytls"
@@ -23,6 +24,7 @@ func init() {
 }
 
 type Outbound struct {
+	sync.Mutex
 	ctx                      context.Context
 	serverAddr               net.Destination
 	password                 string
@@ -48,9 +50,11 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	var err error
-	if o.client == nil {
-		o.client, err = anytls.NewClient(o.ctx, anytls.ClientConfig{
+	o.Lock()
+	client := o.client
+	if client == nil {
+		var err error
+		client, err = anytls.NewClient(o.ctx, anytls.ClientConfig{
 			Password:                 o.password,
 			IdleSessionCheckInterval: time.Duration(o.idleSessionCheckInterval) * time.Second,
 			IdleSessionTimeout:       time.Duration(o.idleSessionTimeout) * time.Second,
@@ -61,9 +65,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 			Logger: singbridge.NewLoggerWrapper(newError),
 		})
 		if err != nil {
+			o.Unlock()
 			return err
 		}
+		o.client = client
 	}
+	o.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -74,10 +81,11 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	var serverConn net.Conn
+	var err error
 	if destination.Network == net.Network_TCP {
-		serverConn, err = o.client.CreateProxy(ctx, singbridge.ToSocksAddr(destination))
+		serverConn, err = client.CreateProxy(ctx, singbridge.ToSocksAddr(destination))
 	} else {
-		serverConn, err = o.client.CreateProxy(ctx, uot.RequestDestination(uot.Version))
+		serverConn, err = client.CreateProxy(ctx, uot.RequestDestination(uot.Version))
 	}
 	if err != nil {
 		return err
@@ -91,9 +99,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) InterfaceUpdate() {
+	o.Lock()
 	if o.client != nil {
 		_ = o.client.Close()
+		o.client = nil
 	}
+	o.Unlock()
 }
 
 func (*Outbound) DisallowMuxCool() {}

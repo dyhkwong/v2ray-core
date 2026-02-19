@@ -105,7 +105,7 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 
 	if !found {
 		transportConfig := streamSettings.ProtocolSettings.(*Config)
-		xmuxManager, err = NewXmuxManager(transportConfig.Xmux, func() XmuxConn {
+		xmuxManager, err = NewXmuxManager(transportConfig.Xmux, func() (XmuxConn, error) {
 			return createHTTPClient(ctx, dest, streamSettings)
 		})
 		if err != nil {
@@ -114,7 +114,10 @@ func getHTTPClient(ctx context.Context, dest net.Destination, streamSettings *in
 		stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}] = xmuxManager
 	}
 
-	xmuxClient := xmuxManager.GetXmuxClient(ctx)
+	xmuxClient, err := xmuxManager.GetXmuxClient(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 	return xmuxClient.XmuxConn.(DialerClient), xmuxClient, nil
 }
 
@@ -137,7 +140,7 @@ func decideHTTPVersion(tlsConfig *tls.Config, realityConfig *reality.Config) str
 	return "2"
 }
 
-func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) DialerClient {
+func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (DialerClient, error) {
 	var tlsConfig *tls.Config
 	var realityConfig *reality.Config
 	switch cfg := streamSettings.SecuritySettings.(type) {
@@ -170,6 +173,10 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 
 	switch httpVersion {
 	case "3":
+		tlsCfg, err := tlsConfig.GetTLSConfig(ctx, tls.WithDestination(dest))
+		if err != nil {
+			return nil, err
+		}
 		transport = &http3.Transport{
 			QUICConfig: &quic.Config{
 				MaxIdleTimeout: connIdleTimeout,
@@ -179,7 +186,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 				MaxIncomingStreams: -1,
 				KeepAlivePeriod:    h3KeepalivePeriod,
 			},
-			TLSClientConfig: tlsConfig.GetTLSConfig(tls.WithDestination(dest)),
+			TLSClientConfig: tlsCfg,
 			Dial: func(_ context.Context, addr string, tlsCfg *gotls.Config, cfg *quic.Config) (*quic.Conn, error) {
 				detachedCtx := core.ToBackgroundDetachedContext(ctx)
 				rawConn, err := internet.DialSystem(detachedCtx, dest, streamSettings.SocketSettings)
@@ -230,7 +237,7 @@ func createHTTPClient(ctx context.Context, dest net.Destination, streamSettings 
 		dialUploadConn: dialContext,
 	}
 
-	return client
+	return client, nil
 }
 
 func init() {

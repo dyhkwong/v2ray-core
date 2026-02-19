@@ -201,9 +201,9 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 			if _, ok := proxyHandler.(interface{ SupportSingMux() }); !ok {
 				return nil, newError("protocol does not support sing-mux")
 			}
-			if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
+			/*if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
 				return nil, newError("sing-mux is conflict with sing-uot")
-			}
+			}*/
 			h.smux, err = sing_mux.NewClient(sing_mux.Options{
 				Dialer:         singbridge.NewOutboundDialerWrapper(proxyHandler, h),
 				Logger:         singbridge.NewLoggerWrapper(newError),
@@ -311,6 +311,10 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 		link.Reader = reader
 		link.Writer = writer
 	}
+	uot := false
+	if iface, ok := h.proxy.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() && outbound.Target.Network == net.Network_UDP {
+		uot = true
+	}
 	if h.mux != nil && (h.mux.Enabled || session.MuxPreferedFromContext(ctx)) {
 		if outbound.Target.Network == net.Network_UDP {
 			switch h.muxPacketEncoding {
@@ -335,7 +339,7 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			err.WriteToLog(session.ExportIDToError(ctx))
 			common.Interrupt(link.Writer)
 		}
-	} else if h.smux != nil {
+	} else if h.smux != nil && !uot {
 		outbound := session.OutboundFromContext(ctx)
 		if outbound.Target.Network == net.Network_TCP {
 			conn, err := h.smux.DialContext(ctx, network.NetworkTCP, singbridge.ToSocksAddr(outbound.Target))

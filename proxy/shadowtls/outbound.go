@@ -3,6 +3,7 @@ package shadowtls
 import (
 	"context"
 	gotls "crypto/tls"
+	"sync"
 
 	shadowtls "github.com/sagernet/sing-shadowtls"
 	"github.com/sagernet/sing/common/bufio"
@@ -23,6 +24,7 @@ func init() {
 }
 
 type Outbound struct {
+	sync.Mutex
 	serverAddr net.Destination
 	config     shadowtls.ClientConfig
 	client     *shadowtls.Client
@@ -37,7 +39,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if config.TlsSettings == nil {
 		config.TlsSettings = &tls.Config{}
 	}
-	tlsConfig := config.TlsSettings.GetTLSConfig(tls.WithDestination(serverAddr)).Clone()
+	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, tls.WithDestination(serverAddr))
+	if err != nil {
+		return nil, err
+	}
 	var tlsHandshakeFunc shadowtls.TLSHandshakeFunc
 	switch config.Version {
 	case 0, 2:
@@ -64,15 +69,20 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	if o.client == nil {
+	o.Lock()
+	client := o.client
+	if client == nil {
 		var err error
 		config := o.config
 		config.Dialer = singbridge.NewDialerWrapper(dialer)
-		o.client, err = shadowtls.NewClient(config)
+		client, err = shadowtls.NewClient(config)
 		if err != nil {
+			o.Unlock()
 			return err
 		}
+		o.client = client
 	}
+	o.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -84,7 +94,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
-	serverConn, err := o.client.DialContext(ctx)
+	serverConn, err := client.DialContext(ctx)
 	if err != nil {
 		return err
 	}

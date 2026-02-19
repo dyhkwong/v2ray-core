@@ -63,7 +63,7 @@ func (l *Listener) UDPHijacker(entry *hyServer.UdpSessionEntry, originalAddr str
 
 // Listen creates a new Listener based on configurations.
 func Listen(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, handler internet.ConnHandler) (internet.Listener, error) {
-	tlsConfig, err := GetServerTLSConfig(streamSettings)
+	tlsConfig, err := GetServerTLSConfig(ctx, streamSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +127,13 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 	return listener, nil
 }
 
-func GetServerTLSConfig(streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
+func GetServerTLSConfig(ctx context.Context, streamSettings *internet.MemoryStreamConfig) (*gotls.Config, error) {
 	config := tls.ConfigFromStreamSettings(streamSettings)
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
 
-	return config.GetTLSConfig(tls.WithNextProto("h3")), nil
+	return config.GetTLSConfig(ctx, tls.WithNextProto("h3"))
 }
 
 type Authenticator struct {

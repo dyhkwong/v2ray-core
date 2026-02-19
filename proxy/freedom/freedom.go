@@ -57,7 +57,6 @@ func (h *Handler) Init(config *Config, pm policy.Manager, d dns.Client) error {
 	h.config = config
 	h.policyManager = pm
 	h.dns = d
-
 	return nil
 }
 
@@ -138,9 +137,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	output := link.Writer
 
 	conn, err := dialer.Dial(ctx, destination)
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		return newError("failed to open connection to ", destination).Base(err)
 	}

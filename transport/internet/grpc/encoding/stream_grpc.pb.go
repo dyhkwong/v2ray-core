@@ -156,7 +156,7 @@ type GunMultiServiceServer interface {
 type UnimplementedGunMultiServiceServer struct{}
 
 func (UnimplementedGunMultiServiceServer) Tun(grpc.BidiStreamingServer[MultiHunk, MultiHunk]) error {
-	return status.Errorf(codes.Unimplemented, "method Tun not implemented")
+	return status.Error(codes.Unimplemented, "method Tun not implemented")
 }
 func (UnimplementedGunMultiServiceServer) mustEmbedUnimplementedGunMultiServiceServer() {}
 func (UnimplementedGunMultiServiceServer) testEmbeddedByValue()                         {}
@@ -169,7 +169,7 @@ type UnsafeGunMultiServiceServer interface {
 }
 
 func RegisterGunMultiServiceServer(s grpc.ServiceRegistrar, srv GunMultiServiceServer) {
-	// If the following call pancis, it indicates UnimplementedGunMultiServiceServer was
+	// If the following call panics, it indicates UnimplementedGunMultiServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.

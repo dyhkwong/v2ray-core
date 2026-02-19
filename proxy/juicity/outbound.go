@@ -3,6 +3,7 @@ package juicity
 import (
 	"context"
 	"os"
+	"sync"
 
 	juicity "github.com/dyhkwong/sing-juicity"
 	"github.com/sagernet/sing/common/bufio"
@@ -26,6 +27,7 @@ func init() {
 }
 
 type Outbound struct {
+	sync.Mutex
 	serverAddr net.Destination
 	options    juicity.ClientOptions
 	client     *juicity.Client
@@ -47,7 +49,10 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	if config.TlsSettings == nil {
 		config.TlsSettings = &v2tls.Config{}
 	}
-	tlsConfig := config.TlsSettings.GetTLSConfig(v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	if err != nil {
+		return nil, err
+	}
 
 	o.options = juicity.ClientOptions{
 		Context:       ctx,
@@ -61,15 +66,20 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	if o.client == nil {
+	o.Lock()
+	client := o.client
+	if client == nil {
 		var err error
 		options := o.options
 		options.Dialer = singbridge.NewDialerWrapper(dialer)
-		o.client, err = juicity.NewClient(options)
+		client, err = juicity.NewClient(options)
 		if err != nil {
+			o.Unlock()
 			return err
 		}
+		o.client = client
 	}
+	o.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -81,13 +91,13 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 
 	detachedCtx := core.ToBackgroundDetachedContext(ctx)
 	if destination.Network == net.Network_TCP {
-		serverConn, err := o.client.DialConn(detachedCtx, singbridge.ToSocksAddr(destination))
+		serverConn, err := client.DialConn(detachedCtx, singbridge.ToSocksAddr(destination))
 		if err != nil {
 			return err
 		}
 		return singbridge.ReturnError(bufio.CopyConn(detachedCtx, singbridge.NewPipeConnWrapper(link), serverConn))
 	} else {
-		serverConn, err := o.client.ListenPacket(detachedCtx, singbridge.ToSocksAddr(destination))
+		serverConn, err := client.ListenPacket(detachedCtx, singbridge.ToSocksAddr(destination))
 		if err != nil {
 			return err
 		}
@@ -102,6 +112,8 @@ func (o *Outbound) InterfaceUpdate() {
 }
 
 func (o *Outbound) Close() error {
+	o.Lock()
+	defer o.Unlock()
 	if o.client != nil {
 		return o.client.CloseWithError(os.ErrClosed)
 	}
