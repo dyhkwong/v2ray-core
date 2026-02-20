@@ -8,6 +8,7 @@ import (
 
 	"github.com/apernet/quic-go"
 	"github.com/apernet/quic-go/http3"
+	"github.com/v2fly/hysteria/core/v2/international/utils"
 	hyServer "github.com/v2fly/hysteria/core/v2/server"
 
 	"github.com/v2fly/v2ray-core/v4/common"
@@ -33,7 +34,7 @@ func (l *Listener) Close() error {
 	return l.hyServer.Close()
 }
 
-func (l *Listener) StreamHijacker(ft http3.FrameType, conn quic.Connection, stream quic.Stream, err error) (bool, error) {
+func (l *Listener) StreamHijacker(ft http3.FrameType, conn *quic.Conn, stream *utils.QStream, err error) (bool, error) {
 	// err always == nil
 
 	tcpConn := &HyConn{
