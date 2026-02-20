@@ -6,9 +6,10 @@ package wgcommon
 import (
 	"context"
 
+	"golang.zx2c4.com/wireguard/device"
+
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/common/packetswitch"
-	"golang.zx2c4.com/wireguard/device"
 )
 
 func NewWrappedWireguardDevice(ctx context.Context, config *DeviceConfig) (*WrappedWireguardDevice, error) {
