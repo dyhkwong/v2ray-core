@@ -9,8 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/v2fly/v2ray-core/v4/common/net"
 	"golang.zx2c4.com/wireguard/conn"
+
+	"github.com/v2fly/v2ray-core/v4/common/net"
 )
 
 // netPacketConnToWg is machine generated
