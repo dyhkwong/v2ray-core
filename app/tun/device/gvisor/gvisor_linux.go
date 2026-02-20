@@ -46,7 +46,7 @@ func New(options device.Options) (device.Device, error) {
 	t.fd = fd
 
 	if options.MTU > 0 {
-		setMTU(options.Name, int(options.MTU))
+		_ = setMTU(options.Name, int(options.MTU))
 	}
 
 	mtu, err := rawfile.GetMTU(options.Name)
@@ -75,8 +75,7 @@ func New(options device.Options) (device.Device, error) {
 }
 
 func (t *GvisorTUN) Close() {
-	unix.Close(t.fd)
-	return
+	_ = unix.Close(t.fd)
 }
 
 // Modified from golang.zx2c4.com/wireguard/tun/tun_linux.go
@@ -91,7 +90,7 @@ func setMTU(name string, n int) error {
 		return err
 	}
 
-	defer unix.Close(fd)
+	defer func() { _ = unix.Close(fd) }()
 
 	// do ioctl call
 	var ifr [ifReqSize]byte
