@@ -22,4 +22,5 @@ message ClientConfig {
   bool zero_rtt_handshake = 7;
   uint32 heartbeat = 8;
   bool udp_over_stream = 9;
+  bool disable_sni = 10;
 }

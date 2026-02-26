@@ -206,6 +206,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 			return nil, newError("tls not enabled")
 		}
 	}
+	if len(c.config.ServerNameToVerify) > 0 {
+		ctx = session.ContextWithServerNameToVerify(ctx, c.config.ServerNameToVerify)
+	}
 
 	c.transportLock.Lock()
 	transport := c.transport
@@ -220,6 +223,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 					detachedContext := core.ToBackgroundDetachedContext(ctx)
 					tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
 					tlsCfg, err := tlsSettings.GetTLSConfigWithContext(detachedContext, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					if err != nil {
+						return nil, err
+					}
 					conn, err := dialer.Dial(detachedContext, c.serverAddress)
 					if err != nil {
 						return nil, err
