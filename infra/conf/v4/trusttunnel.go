@@ -10,13 +10,14 @@ import (
 )
 
 type TrustTunnelClientConfig struct {
-	Address        *cfgcommon.Address `json:"address"`
-	Port           uint16             `json:"port"`
-	Level          byte               `json:"level"`
-	Username       string             `json:"username"`
-	Password       string             `json:"password"`
-	HTTP3          bool               `json:"http3"`
-	DomainStrategy string             `json:"domainStrategy"`
+	Address            *cfgcommon.Address `json:"address"`
+	Port               uint16             `json:"port"`
+	Level              byte               `json:"level"`
+	Username           string             `json:"username"`
+	Password           string             `json:"password"`
+	HTTP3              bool               `json:"http3"`
+	ServerNameToVerify string             `json:"serverNameToVerify"`
+	DomainStrategy     string             `json:"domainStrategy"`
 }
 
 func (c *TrustTunnelClientConfig) Build() (proto.Message, error) {
@@ -24,12 +25,13 @@ func (c *TrustTunnelClientConfig) Build() (proto.Message, error) {
 		return nil, newError("missing server address")
 	}
 	config := &trusttunnel.ClientConfig{
-		Address:  c.Address.Build(),
-		Port:     uint32(c.Port),
-		Level:    uint32(c.Level),
-		Username: c.Username,
-		Password: c.Password,
-		Http3:    c.HTTP3,
+		Address:            c.Address.Build(),
+		Port:               uint32(c.Port),
+		Level:              uint32(c.Level),
+		Username:           c.Username,
+		Password:           c.Password,
+		ServerNameToVerify: c.ServerNameToVerify,
+		Http3:              c.HTTP3,
 	}
 	switch strings.ToLower(c.DomainStrategy) {
 	case "useip", "":

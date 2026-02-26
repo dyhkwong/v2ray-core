@@ -20,6 +20,7 @@ message ClientConfig {
   string password = 5;
   bool http3 = 6;
   DomainStrategy domain_strategy = 7;
+  string server_name_to_verify = 8;
 
   enum DomainStrategy {
     USE_IP = 0;

@@ -215,6 +215,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 			return nil, httpVersionUndefined, newError("tls not enabled")
 		}
 	}
+	if len(c.config.ServerNameToVerify) > 0 {
+		ctx = session.ContextWithServerNameToVerify(ctx, c.config.ServerNameToVerify)
+	}
 
 	c.roundTripperLock.Lock()
 	roundTripper := c.roundTripper

@@ -15,6 +15,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/tls/cert"
+	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -355,6 +356,52 @@ func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 				newError("unable to set ech config").AtError().WriteToLog()
 				// force connection fail
 				config.EncryptedClientHelloConfigList = []byte{}
+			}
+		}
+	}
+
+	if session.DisableALPNByDefaultFromContext(ctx) && len(c.NextProtocol) == 0 {
+		config.NextProtos = nil
+	}
+
+	if session.DisableSNIFromContext(ctx) {
+		serverName := config.ServerName
+		config.ServerName = ""
+		if !config.InsecureSkipVerify {
+			config.InsecureSkipVerify = true
+			if c.PinnedPeerCertificateChainSha256 == nil && c.PinnedPeerCertificatePublicKeySha256 == nil && c.PinnedPeerCertificateSha256 == nil {
+				config.VerifyConnection = func(state tls.ConnectionState) error {
+					verifyOptions := x509.VerifyOptions{
+						Roots:         config.RootCAs,
+						DNSName:       serverName,
+						Intermediates: x509.NewCertPool(),
+					}
+					for _, cert := range state.PeerCertificates[1:] {
+						verifyOptions.Intermediates.AddCert(cert)
+					}
+					_, err := state.PeerCertificates[0].Verify(verifyOptions)
+					return err
+				}
+			}
+		}
+	}
+
+	if serverNameToVerify, ok := session.ServerNameToVerifyFromContext(ctx); ok {
+		if !config.InsecureSkipVerify {
+			config.InsecureSkipVerify = true
+			if c.PinnedPeerCertificateChainSha256 == nil && c.PinnedPeerCertificatePublicKeySha256 == nil && c.PinnedPeerCertificateSha256 == nil {
+				config.VerifyConnection = func(state tls.ConnectionState) error {
+					verifyOptions := x509.VerifyOptions{
+						Roots:         config.RootCAs,
+						DNSName:       serverNameToVerify,
+						Intermediates: x509.NewCertPool(),
+					}
+					for _, cert := range state.PeerCertificates[1:] {
+						verifyOptions.Intermediates.AddCert(cert)
+					}
+					_, err := state.PeerCertificates[0].Verify(verifyOptions)
+					return err
+				}
 			}
 		}
 	}

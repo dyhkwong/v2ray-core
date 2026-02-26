@@ -18,6 +18,9 @@ const (
 	trackedConnectionErrorKey
 	handlerSessionKey // nolint: varcheck
 	dispatcherKey
+	disableALPNByDefaultKey
+	disableSNIKey
+	serverNameToVerifyKey
 )
 
 // ContextWithID returns a new context with the given ID.
@@ -146,4 +149,37 @@ func DispatcherFromContext(ctx context.Context) routing.Dispatcher {
 		return dispatcher
 	}
 	return nil
+}
+
+func ContextWithDisableSNI(ctx context.Context, disableSNI bool) context.Context {
+	return context.WithValue(ctx, disableSNIKey, disableSNI)
+}
+
+func DisableSNIFromContext(ctx context.Context) bool {
+	if disableSNI, ok := ctx.Value(disableSNIKey).(bool); ok {
+		return disableSNI
+	}
+	return false
+}
+
+func ContextWithDisableALPNByDefault(ctx context.Context, disableALPNByDefault bool) context.Context {
+	return context.WithValue(ctx, disableALPNByDefaultKey, disableALPNByDefault)
+}
+
+func DisableALPNByDefaultFromContext(ctx context.Context) bool {
+	if disableALPNByDefault, ok := ctx.Value(disableALPNByDefaultKey).(bool); ok {
+		return disableALPNByDefault
+	}
+	return false
+}
+
+func ContextWithServerNameToVerify(ctx context.Context, serverNameToVerify string) context.Context {
+	return context.WithValue(ctx, serverNameToVerifyKey, serverNameToVerify)
+}
+
+func ServerNameToVerifyFromContext(ctx context.Context) (string, bool) {
+	if serverNameToVerify, ok := ctx.Value(serverNameToVerifyKey).(string); ok {
+		return serverNameToVerify, true
+	}
+	return "", false
 }
