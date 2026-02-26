@@ -34,6 +34,7 @@ type Outbound struct {
 	serverAddr    net.Destination
 	options       tuic.ClientOptions
 	client        *tuic.Client
+	disableSNI    bool
 	udpOverStream bool
 }
 
@@ -44,6 +45,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Port:    net.Port(config.Port),
 			Network: net.Network_UDP,
 		},
+		disableSNI:    config.DisableSni,
 		udpOverStream: config.UdpOverStream,
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
@@ -99,11 +101,10 @@ func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*tuic
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
+	// TUIC does not send ALPN if not explicitly set
+	ctx = session.ContextWithDisableALPNByDefault(ctx, true)
+	ctx = session.ContextWithDisableSNI(ctx, o.disableSNI)
 	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr))
-	if len(tlsSettings.NextProtocol) == 0 {
-		// TUIC does not send ALPN if not explicitly set
-		tlsConfig.NextProtos = nil
-	}
 
 	options := o.options
 	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
