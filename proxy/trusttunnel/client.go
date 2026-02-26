@@ -246,6 +246,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 			return nil, nil, newError("tls not enabled")
 		}
 	}
+	if len(c.config.ServerNameToVerify) > 0 {
+		ctx = session.ContextWithServerNameToVerify(ctx, c.config.ServerNameToVerify)
+	}
 
 	req := &http.Request{
 		Method: http.MethodConnect,
