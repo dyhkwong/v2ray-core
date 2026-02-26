@@ -88,7 +88,6 @@ func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*juic
 	if err != nil {
 		return nil, err
 	}
-
 	options := o.options
 	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
 	options.Dialer = singbridge.NewDialerWrapper(dialer)

@@ -206,6 +206,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 			return nil, newError("tls not enabled")
 		}
 	}
+	if len(c.config.ServerNameToVerify) > 0 {
+		ctx = session.ContextWithServerNameToVerify(ctx, c.config.ServerNameToVerify)
+	}
 
 	c.transportLock.Lock()
 	transport := c.transport
