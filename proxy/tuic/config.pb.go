@@ -28,6 +28,7 @@ type ClientConfig struct {
 	ZeroRttHandshake  bool                   `protobuf:"varint,7,opt,name=zero_rtt_handshake,json=zeroRttHandshake,proto3" json:"zero_rtt_handshake,omitempty"`
 	Heartbeat         uint32                 `protobuf:"varint,8,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
 	UdpOverStream     bool                   `protobuf:"varint,9,opt,name=udp_over_stream,json=udpOverStream,proto3" json:"udp_over_stream,omitempty"`
+	DisableSni        bool                   `protobuf:"varint,10,opt,name=disable_sni,json=disableSni,proto3" json:"disable_sni,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -125,11 +126,18 @@ func (x *ClientConfig) GetUdpOverStream() bool {
 	return false
 }
 
+func (x *ClientConfig) GetDisableSni() bool {
+	if x != nil {
+		return x.DisableSni
+	}
+	return false
+}
+
 var File_proxy_tuic_config_proto protoreflect.FileDescriptor
 
 const file_proxy_tuic_config_proto_rawDesc = "" +
 	"\n" +
-	"\x17proxy/tuic/config.proto\x12\x15v2ray.core.proxy.tuic\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xee\x02\n" +
+	"\x17proxy/tuic/config.proto\x12\x15v2ray.core.proxy.tuic\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\x8f\x03\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x12\n" +
@@ -139,7 +147,10 @@ const file_proxy_tuic_config_proto_rawDesc = "" +
 	"\x0eudp_relay_mode\x18\x06 \x01(\tR\fudpRelayMode\x12,\n" +
 	"\x12zero_rtt_handshake\x18\a \x01(\bR\x10zeroRttHandshake\x12\x1c\n" +
 	"\theartbeat\x18\b \x01(\rR\theartbeat\x12&\n" +
-	"\x0fudp_over_stream\x18\t \x01(\bR\rudpOverStream:\x14\x82\xb5\x18\x10\n" +
+	"\x0fudp_over_stream\x18\t \x01(\bR\rudpOverStream\x12\x1f\n" +
+	"\vdisable_sni\x18\n" +
+	" \x01(\bR\n" +
+	"disableSni:\x14\x82\xb5\x18\x10\n" +
 	"\boutbound\x12\x04tuicB`\n" +
 	"\x19com.v2ray.core.proxy.tuicP\x01Z)github.com/v2fly/v2ray-core/v5/proxy/tuic\xaa\x02\x15V2Ray.Core.Proxy.Tuicb\x06proto3"
 

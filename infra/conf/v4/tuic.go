@@ -16,6 +16,7 @@ type TuicClientConfig struct {
 	UDPRelayMode      string             `json:"udpRelayMode"`
 	Heartbeat         uint32             `json:"heartbeat"`
 	ZeroRTTHandshake  bool               `json:"zeroRTTHandshake"`
+	DisableSNI        bool               `json:"disableSNI"`
 	UDPOverStream     bool               `json:"udpOverStream"`
 }
 
@@ -32,6 +33,7 @@ func (c *TuicClientConfig) Build() (proto.Message, error) {
 		UdpRelayMode:      c.UDPRelayMode,
 		Heartbeat:         c.Heartbeat,
 		ZeroRttHandshake:  c.ZeroRTTHandshake,
+		DisableSni:        c.DisableSNI,
 		UdpOverStream:     c.UDPOverStream,
 	}, nil
 }
