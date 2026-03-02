@@ -19,7 +19,6 @@ var (
 	mode       *string
 )
 
-// machine generated
 var cmdEnrollmentLink = &base.Command{
 	UsageLine: "{{.Exec}} engineering tlsmirror-enrollment-link",
 	Flag: func() flag.FlagSet {

@@ -9,12 +9,12 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
-	"gvisor.dev/gvisor/pkg/rawfile"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 
 	"github.com/v2fly/v2ray-core/v5/app/tun/device"
 
 	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
+	"gvisor.dev/gvisor/pkg/tcpip/link/rawfile"
 	"gvisor.dev/gvisor/pkg/tcpip/link/tun"
 )
 
@@ -45,7 +45,7 @@ func New(options device.Options) (device.Device, error) {
 	t.fd = fd
 
 	if options.MTU > 0 {
-		_ = setMTU(options.Name, int(options.MTU))
+		setMTU(options.Name, int(options.MTU))
 	}
 
 	mtu, err := rawfile.GetMTU(options.Name)
@@ -73,8 +73,8 @@ func New(options device.Options) (device.Device, error) {
 	return t, nil
 }
 
-func (t *GvisorTUN) Close() {
-	_ = unix.Close(t.fd)
+func (t *GvisorTUN) Close() error {
+	return unix.Close(t.fd)
 }
 
 // Modified from golang.zx2c4.com/wireguard/tun/tun_linux.go
@@ -89,7 +89,7 @@ func setMTU(name string, n int) error {
 		return err
 	}
 
-	defer func() { _ = unix.Close(fd) }()
+	defer unix.Close(fd)
 
 	// do ioctl call
 	var ifr [ifReqSize]byte
