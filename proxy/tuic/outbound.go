@@ -2,8 +2,6 @@ package tuic
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"os"
 	"sync"
 	"time"
@@ -14,6 +12,7 @@ import (
 	"github.com/sagernet/sing/common/uot"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -35,6 +34,7 @@ type Outbound struct {
 	serverAddr    net.Destination
 	options       tuic.ClientOptions
 	client        *tuic.Client
+	disableSNI    bool
 	udpOverStream bool
 }
 
@@ -45,6 +45,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Port:    net.Port(config.Port),
 			Network: net.Network_UDP,
 		},
+		disableSNI:    config.DisableSni,
 		udpOverStream: config.UdpOverStream,
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
@@ -67,40 +68,8 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		return nil, newError("invalid congestion control: ", config.CongestionControl)
 	}
 
-	if config.TlsSettings == nil {
-		config.TlsSettings = &v2tls.Config{}
-	}
-	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, v2tls.WithDestination(o.serverAddr))
-	if err != nil {
-		return nil, err
-	}
-	if len(config.TlsSettings.NextProtocol) == 0 {
-		// TUIC does not send ALPN if not explicitly set
-		tlsConfig.NextProtos = nil
-	}
-	serverName := tlsConfig.ServerName
-	if config.DisableSni {
-		tlsConfig.ServerName = ""
-	}
-	if !tlsConfig.InsecureSkipVerify && config.DisableSni {
-		tlsConfig.InsecureSkipVerify = true
-		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
-			verifyOptions := x509.VerifyOptions{
-				Roots:         tlsConfig.RootCAs,
-				DNSName:       serverName,
-				Intermediates: x509.NewCertPool(),
-			}
-			for _, cert := range state.PeerCertificates[1:] {
-				verifyOptions.Intermediates.AddCert(cert)
-			}
-			_, err := state.PeerCertificates[0].Verify(verifyOptions)
-			return err
-		}
-	}
-
 	o.options = tuic.ClientOptions{
 		Context:           ctx,
-		TLSConfig:         singbridge.NewTLSConfigWrapper(tlsConfig),
 		ServerAddress:     singbridge.ToSocksAddr(o.serverAddr),
 		UUID:              uuid,
 		Password:          config.Password,
@@ -113,14 +82,42 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return o, nil
 }
 
+func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*tuic.Client, error) {
+	handler, ok := dialer.(*outbound.Handler)
+	if !ok {
+		panic("dialer is not *outbound.Handler")
+	}
+	if handler.MuxEnabled() {
+		return nil, newError("mux enabled")
+	}
+	if handler.TransportLayerEnabled() {
+		return nil, newError("transport layer enabled")
+	}
+	streamSettings := handler.StreamSettings()
+	if streamSettings == nil || streamSettings.SecurityType != "v2ray.core.transport.internet.tls.Config" {
+		return nil, newError("tls not enabled")
+	}
+	tlsSettings, ok := streamSettings.SecuritySettings.(*v2tls.Config)
+	if !ok {
+		return nil, newError("tls not enabled")
+	}
+	// TUIC does not send ALPN if not explicitly set
+	ctx = session.ContextWithDisableALPNByDefault(ctx, true)
+	ctx = session.ContextWithDisableSNI(ctx, o.disableSNI)
+	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr))
+
+	options := o.options
+	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
+	options.Dialer = singbridge.NewDialerWrapper(dialer)
+	return tuic.NewClient(options)
+}
+
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	o.Lock()
 	client := o.client
 	if client == nil {
 		var err error
-		options := o.options
-		options.Dialer = singbridge.NewDialerWrapper(dialer)
-		client, err = tuic.NewClient(options)
+		client, err = o.newClient(ctx, dialer)
 		if err != nil {
 			o.Unlock()
 			return err
@@ -180,9 +177,3 @@ func (o *Outbound) Close() error {
 func (o *Outbound) SingUotEnabled() bool {
 	return o.udpOverStream
 }
-
-func (*Outbound) DisallowMuxCool() {}
-
-func (*Outbound) DisallowTransportLayer() {}
-
-func (*Outbound) DisallowSecurityLayer() {}

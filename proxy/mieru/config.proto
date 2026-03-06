@@ -21,4 +21,5 @@ message ClientConfig {
   string protocol = 6;
   string multiplexing = 7;
   string handshake_mode = 8;
+  string traffic_pattern = 9;
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/protocol/tls/cert"
+	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
@@ -234,8 +235,16 @@ func (a *alwaysFlushWriter) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
+func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
+	return c.getTLSConfig(context.TODO(), opts...)
+}
+
+func (c *Config) GetTLSConfigWithContext(ctx context.Context, opts ...Option) *tls.Config {
+	return c.getTLSConfig(ctx, opts...)
+}
+
 // GetTLSConfig converts this Config into tls.Config.
-func (c *Config) GetTLSConfig(ctx context.Context, opts ...Option) (*tls.Config, error) {
+func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 	root, err := c.getCertPool()
 	if err != nil {
 		newError("failed to load system root certificate").AtError().Base(err).WriteToLog()
@@ -248,7 +257,7 @@ func (c *Config) GetTLSConfig(ctx context.Context, opts ...Option) (*tls.Config,
 			InsecureSkipVerify:     false,
 			NextProtos:             nil,
 			SessionTicketsDisabled: true,
-		}, nil
+		}
 	}
 
 	clientRoot, err := c.loadSelfCertPool(Certificate_AUTHORITY_VERIFY_CLIENT)
@@ -333,21 +342,71 @@ func (c *Config) GetTLSConfig(ctx context.Context, opts ...Option) (*tls.Config,
 
 	if c.Ech != nil && c.Ech.Enabled {
 		if len(c.Ech.Key) > 0 && (len(c.Ech.Config) > 0 || len(c.Ech.QueryDomain) > 0) {
-			return nil, newError("both ech client and ech server are set")
+			newError("both ech client and ech server are set").AtError().WriteToLog()
 		}
 		if len(c.Ech.Key) > 0 {
 			echKeys, err := unmarshalECHKeys(c.Ech.Key)
 			if err != nil {
-				return nil, err
+				newError(err).AtError().WriteToLog()
+			} else {
+				config.EncryptedClientHelloKeys = echKeys
 			}
-			config.EncryptedClientHelloKeys = echKeys
-		}
-		if err := c.applyECH(ctx, config); err != nil {
-			return nil, newError("unable to set ech config").AtError()
+		} else {
+			if err := c.applyECH(ctx, config); err != nil {
+				newError("unable to set ech config").AtError().WriteToLog()
+				// force connection fail
+				config.EncryptedClientHelloConfigList = []byte{}
+			}
 		}
 	}
 
-	return config, nil
+	if session.DisableALPNByDefaultFromContext(ctx) && len(c.NextProtocol) == 0 {
+		config.NextProtos = nil
+	}
+
+	if session.DisableSNIFromContext(ctx) {
+		serverName := config.ServerName
+		config.ServerName = ""
+		if !config.InsecureSkipVerify {
+			config.InsecureSkipVerify = true
+			if c.PinnedPeerCertificateChainSha256 == nil && c.PinnedPeerCertificatePublicKeySha256 == nil && c.PinnedPeerCertificateSha256 == nil {
+				config.VerifyConnection = func(state tls.ConnectionState) error {
+					verifyOptions := x509.VerifyOptions{
+						Roots:         config.RootCAs,
+						DNSName:       serverName,
+						Intermediates: x509.NewCertPool(),
+					}
+					for _, cert := range state.PeerCertificates[1:] {
+						verifyOptions.Intermediates.AddCert(cert)
+					}
+					_, err := state.PeerCertificates[0].Verify(verifyOptions)
+					return err
+				}
+			}
+		}
+	}
+
+	if serverNameToVerify, ok := session.ServerNameToVerifyFromContext(ctx); ok {
+		if !config.InsecureSkipVerify {
+			config.InsecureSkipVerify = true
+			if c.PinnedPeerCertificateChainSha256 == nil && c.PinnedPeerCertificatePublicKeySha256 == nil && c.PinnedPeerCertificateSha256 == nil {
+				config.VerifyConnection = func(state tls.ConnectionState) error {
+					verifyOptions := x509.VerifyOptions{
+						Roots:         config.RootCAs,
+						DNSName:       serverNameToVerify,
+						Intermediates: x509.NewCertPool(),
+					}
+					for _, cert := range state.PeerCertificates[1:] {
+						verifyOptions.Intermediates.AddCert(cert)
+					}
+					_, err := state.PeerCertificates[0].Verify(verifyOptions)
+					return err
+				}
+			}
+		}
+	}
+
+	return config
 }
 
 // Option for building TLS config.

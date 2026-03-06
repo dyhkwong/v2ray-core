@@ -1,7 +1,6 @@
 package tls_test
 
 import (
-	"context"
 	gotls "crypto/tls"
 	"crypto/x509"
 	"testing"
@@ -22,8 +21,7 @@ func TestCertificateIssuing(t *testing.T) {
 		},
 	}
 
-	tlsConfig, err := c.GetTLSConfig(context.TODO())
-	common.Must(err)
+	tlsConfig := c.GetTLSConfig()
 	v2rayCert, err := tlsConfig.GetCertificate(&gotls.ClientHelloInfo{
 		ServerName: "www.v2fly.org",
 	})
@@ -52,8 +50,7 @@ func TestExpiredCertificate(t *testing.T) {
 		},
 	}
 
-	tlsConfig, err := c.GetTLSConfig(context.TODO())
-	common.Must(err)
+	tlsConfig := c.GetTLSConfig()
 	v2rayCert, err := tlsConfig.GetCertificate(&gotls.ClientHelloInfo{
 		ServerName: "www.v2fly.org",
 	})
@@ -69,8 +66,7 @@ func TestExpiredCertificate(t *testing.T) {
 func TestInsecureCertificates(t *testing.T) {
 	c := &Config{}
 
-	tlsConfig, err := c.GetTLSConfig(context.TODO())
-	common.Must(err)
+	tlsConfig := c.GetTLSConfig()
 	if len(tlsConfig.CipherSuites) > 0 {
 		t.Fatal("Unexpected tls cipher suites list: ", tlsConfig.CipherSuites)
 	}
@@ -86,8 +82,7 @@ func BenchmarkCertificateIssuing(b *testing.B) {
 		},
 	}
 
-	tlsConfig, err := c.GetTLSConfig(context.TODO())
-	common.Must(err)
+	tlsConfig := c.GetTLSConfig()
 	lenCerts := len(tlsConfig.Certificates)
 
 	b.ResetTimer()

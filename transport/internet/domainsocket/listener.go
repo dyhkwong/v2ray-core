@@ -57,12 +57,7 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 	}
 
 	if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-		tlsConfig, err := config.GetTLSConfig(ctx)
-		if err != nil {
-			ln.Close()
-			return nil, err
-		}
-		ln.tlsConfig = tlsConfig
+		ln.tlsConfig = config.GetTLSConfig()
 	} else if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
 		ln.realityConfig = config.GetREALITYConfig()
 	}

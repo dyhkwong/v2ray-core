@@ -10,6 +10,7 @@ import (
 	"github.com/sagernet/sing/common/network"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -46,17 +47,8 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		return nil, newError("invalid uuid")
 	}
 
-	if config.TlsSettings == nil {
-		config.TlsSettings = &v2tls.Config{}
-	}
-	tlsConfig, err := config.TlsSettings.GetTLSConfig(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
-	if err != nil {
-		return nil, err
-	}
-
 	o.options = juicity.ClientOptions{
 		Context:       ctx,
-		TLSConfig:     singbridge.NewTLSConfigWrapper(tlsConfig),
 		ServerAddress: singbridge.ToSocksAddr(o.serverAddr),
 		UUID:          uuid,
 		Password:      config.Password,
@@ -65,14 +57,39 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return o, nil
 }
 
+func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*juicity.Client, error) {
+	handler, ok := dialer.(*outbound.Handler)
+	if !ok {
+		panic("dialer is not *outbound.Handler")
+	}
+	if handler.MuxEnabled() {
+		return nil, newError("mux enabled")
+	}
+	if handler.TransportLayerEnabled() {
+		return nil, newError("transport layer enabled")
+	}
+	streamSettings := handler.StreamSettings()
+	if streamSettings == nil || streamSettings.SecurityType != "v2ray.core.transport.internet.tls.Config" {
+		return nil, newError("tls not enabled")
+	}
+	tlsSettings, ok := streamSettings.SecuritySettings.(*v2tls.Config)
+	if !ok {
+		return nil, newError("tls not enabled")
+	}
+	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+
+	options := o.options
+	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
+	options.Dialer = singbridge.NewDialerWrapper(dialer)
+	return juicity.NewClient(options)
+}
+
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
 	o.Lock()
 	client := o.client
 	if client == nil {
 		var err error
-		options := o.options
-		options.Dialer = singbridge.NewDialerWrapper(dialer)
-		client, err = juicity.NewClient(options)
+		client, err = o.newClient(ctx, dialer)
 		if err != nil {
 			o.Unlock()
 			return err
@@ -119,9 +136,3 @@ func (o *Outbound) Close() error {
 	}
 	return nil
 }
-
-func (*Outbound) DisallowMuxCool() {}
-
-func (*Outbound) DisallowTransportLayer() {}
-
-func (*Outbound) DisallowSecurityLayer() {}

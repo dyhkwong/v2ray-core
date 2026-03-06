@@ -73,12 +73,8 @@ func Listen(ctx context.Context, address net.Address, port net.Port, settings *i
 	if config == nil {
 		s = grpc.NewServer()
 	} else {
-		tlsConfig, err := config.GetTLSConfig(ctx, tls.WithNextProto("h2"))
-		if err != nil {
-			return nil, err
-		}
 		// gRPC server may silently ignore TLS errors
-		s = grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig)))
+		s = grpc.NewServer(grpc.Creds(credentials.NewTLS(config.GetTLSConfig(tls.WithNextProto("h2")))))
 	}
 	listener.s = s
 

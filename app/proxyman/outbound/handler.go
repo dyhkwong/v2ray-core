@@ -1,8 +1,8 @@
 package outbound
 
 import (
+	"container/list"
 	"context"
-	"reflect"
 	"sync"
 	"sync/atomic"
 
@@ -31,6 +31,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/security"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
 	"github.com/v2fly/v2ray-core/v5/transport/pipe"
 )
 
@@ -61,23 +62,23 @@ func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter)
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
-	ctx                  context.Context
-	tag                  string
-	senderSettings       *proxyman.SenderConfig
-	streamSettings       *internet.MemoryStreamConfig
-	proxy                proxy.Outbound
-	outboundManager      outbound.Manager
-	mux                  *mux.ClientManager
-	smux                 *sing_mux.Client
-	uplinkCounter        stats.Counter
-	downlinkCounter      stats.Counter
-	dns                  dns.Client
-	fakedns              dns.FakeDNSEngine
-	muxPacketEncoding    packetaddr.PacketAddrType
-	pool                 *internet.ConnectionPool
-	closed               atomic.Bool
-	transportEnvironment environment.TransportEnvironment
-	globalIdx            uint64
+	ctx                     context.Context
+	tag                     string
+	senderSettings          *proxyman.SenderConfig
+	streamSettings          *internet.MemoryStreamConfig
+	proxy                   proxy.Outbound
+	outboundManager         outbound.Manager
+	mux                     *mux.ClientManager
+	smux                    *sing_mux.Client
+	uplinkCounter           stats.Counter
+	downlinkCounter         stats.Counter
+	dns                     dns.Client
+	fakedns                 dns.FakeDNSEngine
+	muxPacketEncoding       packetaddr.PacketAddrType
+	pool                    *internet.ConnectionPool
+	closed                  atomic.Bool
+	transportEnvironment    environment.TransportEnvironment
+	interfaceUpdateCallback *list.Element
 }
 
 // NewHandler create a new Handler based on the given configuration.
@@ -129,14 +130,11 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	if h.senderSettings != nil && h.senderSettings.MultiplexSettings != nil {
 		config := h.senderSettings.MultiplexSettings
 		if config.Enabled {
-			if _, ok := proxyHandler.(interface{ DisallowMuxCool() }); ok {
-				return nil, newError("protocol does not support Mux.Cool")
-			}
 			if h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
-				return nil, newError("Mux.Cool is conflict with sing-mux")
+				return nil, newError("mux conflicts with smux")
 			}
 			if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
-				return nil, newError("Mux.Cool is conflict with sing-uot")
+				return nil, newError("mux conflicts with uot")
 			}
 		}
 		if config.Concurrency < 1 || config.Concurrency > 1024 {
@@ -176,33 +174,14 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 
 	h.proxy = proxyHandler
 
-	if _, ok := proxyHandler.(interface{ DisallowTransportLayer() }); ok {
-		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil {
-			if h.senderSettings.StreamSettings.ProtocolName != "tcp" {
-				return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.ProtocolName)
-			}
-			if transportSettings, err := h.senderSettings.StreamSettings.GetEffectiveTransportSettings(); err == nil {
-				// do not import extra packages for selective compilation
-				if headerSettings := reflect.ValueOf(transportSettings).Elem().FieldByName("HeaderSettings"); !headerSettings.IsNil() && headerSettings.Elem().FieldByName("TypeUrl").String() != "types.v2fly.org/v2ray.core.transport.internet.headers.noop.ConnectionConfig" {
-					return nil, newError("protocol does not support tcp header")
-				}
-			}
-		}
-	}
-	if _, ok := proxyHandler.(interface{ DisallowSecurityLayer() }); ok {
-		if h.senderSettings != nil && h.senderSettings.StreamSettings != nil && len(h.senderSettings.StreamSettings.SecurityType) > 0 {
-			return nil, newError("protocol does not support ", h.senderSettings.StreamSettings.SecurityType)
-		}
-	}
-
 	if h.senderSettings != nil && h.senderSettings.Smux != nil && h.senderSettings.Smux.Enabled {
 		config := h.senderSettings.Smux
 		if config.Enabled {
-			if _, ok := proxyHandler.(interface{ SupportSingMux() }); !ok {
+			if iface, ok := proxyHandler.(interface{ SupportSingMux() bool }); !ok || !iface.SupportSingMux() {
 				return nil, newError("protocol does not support sing-mux")
 			}
 			/*if iface, ok := proxyHandler.(interface{ SingUotEnabled() bool }); ok && iface.SingUotEnabled() {
-				return nil, newError("sing-mux is conflict with sing-uot")
+				return nil, newError("smux conflicts with uot")
 			}*/
 			h.smux, err = sing_mux.NewClient(sing_mux.Options{
 				Dialer:         singbridge.NewOutboundDialerWrapper(proxyHandler, h),
@@ -215,7 +194,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 				// never brutal
 			})
 			if err != nil {
-				return nil, newError("unable to create sing-mux client").Base(err)
+				return nil, newError("unable to create smux client").Base(err)
 			}
 		}
 	}
@@ -227,7 +206,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	}
 	h.transportEnvironment = transportEnvironment
 
-	h.globalIdx = RegisterInterfaceUpdateFunc(h.interfaceUpdated)
+	h.interfaceUpdateCallback = RegisterInterfaceUpdateCallback(h.interfaceUpdate)
 
 	return h, nil
 }
@@ -521,12 +500,37 @@ func (h *Handler) GetOutbound() proxy.Outbound {
 	return h.proxy
 }
 
+func (h *Handler) MuxEnabled() bool {
+	return h.mux != nil && h.mux.Enabled
+}
+
+func (h *Handler) TransportLayerEnabled() bool {
+	if h.streamSettings == nil {
+		return false
+	}
+	if h.streamSettings.ProtocolName != "tcp" {
+		return true
+	}
+	protocolSettings, ok := h.streamSettings.ProtocolSettings.(*tcp.Config)
+	if !ok {
+		return true
+	}
+	if protocolSettings.HeaderSettings != nil && serial.V2TypeFromURL(protocolSettings.HeaderSettings.TypeUrl) != "v2ray.core.transport.internet.headers.noop.ConnectionConfig" {
+		return true
+	}
+	return false
+}
+
+func (h *Handler) StreamSettings() *internet.MemoryStreamConfig {
+	return h.streamSettings
+}
+
 // Start implements common.Runnable.
 func (h *Handler) Start() error {
 	return nil
 }
 
-func (h *Handler) interfaceUpdated() {
+func (h *Handler) interfaceUpdate() {
 	if fn, ok := h.proxy.(interface{ InterfaceUpdate() }); ok {
 		fn.InterfaceUpdate()
 	}
@@ -565,7 +569,7 @@ func (h *Handler) Close() error {
 
 	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 
-	UnRegisterInterfaceUpdateFunc(h.globalIdx)
+	UnRegisterInterfaceUpdateCallback(h.interfaceUpdateCallback)
 
 	return nil
 }

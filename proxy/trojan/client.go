@@ -185,4 +185,6 @@ func init() {
 	}))
 }
 
-func (*Client) SupportSingMux() {}
+func (*Client) SupportSingMux() bool {
+	return true
+}

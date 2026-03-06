@@ -8,6 +8,7 @@ import (
 	mierucommon "github.com/enfein/mieru/v3/apis/common"
 	mierumodel "github.com/enfein/mieru/v3/apis/model"
 
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -55,21 +56,34 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	outbound := session.OutboundFromContext(ctx)
-	if outbound == nil || !outbound.Target.IsValid() {
+	ob := session.OutboundFromContext(ctx)
+	if ob == nil || !ob.Target.IsValid() {
 		return newError("target not specified")
 	}
 
 	o.Lock()
 	client := o.client
 	if client == nil {
+		handler, ok := dialer.(*outbound.Handler)
+		if !ok {
+			panic("dialer is not *outbound.Handler")
+		}
+		if handler.MuxEnabled() {
+			return newError("mux enabled")
+		}
+		if handler.TransportLayerEnabled() {
+			return newError("transport layer enabled")
+		}
+		if streamSettings := handler.StreamSettings(); streamSettings != nil && streamSettings.SecurityType != "" {
+			return newError("tls enabled")
+		}
 		dialer := &dialerWrapper{
 			dialer: dialer,
 		}
 		var resolver mierucommon.DNSResolver
-		if outbound.Resolver != nil {
+		if ob.Resolver != nil {
 			resolver = &resolverWrapper{
-				resolver: outbound.Resolver,
+				resolver: ob.Resolver,
 			}
 		} else {
 			resolver = &localResolverWrapper{
@@ -94,7 +108,7 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 	o.Unlock()
 
-	destination := outbound.Target
+	destination := ob.Target
 
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
@@ -152,15 +166,9 @@ func (o *Outbound) InterfaceUpdate() {
 func (o *Outbound) Close() error {
 	o.Lock()
 	if o.client != nil {
-		go o.client.Stop() // this takes too much time to finish
+		o.client.Stop()
 		o.client = nil
 	}
 	o.Unlock()
 	return nil
 }
-
-func (*Outbound) DisallowMuxCool() {}
-
-func (*Outbound) DisallowTransportLayer() {}
-
-func (*Outbound) DisallowSecurityLayer() {}

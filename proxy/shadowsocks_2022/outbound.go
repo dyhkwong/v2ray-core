@@ -183,7 +183,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	}
 }
 
-func (*Outbound) SupportSingMux() {}
+func (*Outbound) SupportSingMux() bool {
+	return true
+}
 
 func (o *Outbound) SingUotEnabled() bool {
 	return o.uotClient != nil

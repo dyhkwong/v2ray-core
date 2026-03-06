@@ -313,7 +313,9 @@ func init() {
 	}))
 }
 
-func (*Client) SupportSingMux() {}
+func (*Client) SupportSingMux() bool {
+	return true
+}
 
 func (c *Client) SingUotEnabled() bool {
 	return c.uot

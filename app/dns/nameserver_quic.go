@@ -1,9 +1,10 @@
 package dns
 
 import (
+	"container/list"
 	"context"
+	"crypto/tls"
 	"encoding/binary"
-	"errors"
 	"io"
 	"net/url"
 	"sync"
@@ -25,7 +26,6 @@ import (
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 // NextProtoDQ - During connection establishment, DNS/QUIC support is indicated
@@ -37,15 +37,14 @@ const handshakeIdleTimeout = time.Second * 8
 // QUICNameServer implemented DNS over QUIC
 type QUICNameServer struct {
 	sync.RWMutex
-	ips         map[string]record
-	pub         *pubsub.Service
-	cleanup     *task.Periodic
-	name        string
-	destination net.Destination
-	connection  *quic.Conn
-	dispatcher  routing.Dispatcher
-	resetAt     time.Time
-	globalIdx   uint64
+	ips                     map[string]record
+	pub                     *pubsub.Service
+	cleanup                 *task.Periodic
+	name                    string
+	destination             net.Destination
+	connection              *quic.Conn
+	dispatcher              routing.Dispatcher
+	interfaceUpdateCallback *list.Element
 }
 
 // NewQUICRemoteNameServer creates DNS-over-QUIC client object for remote resolving
@@ -74,7 +73,7 @@ func NewQUICRemoteNameServer(url *url.URL, dispatcher routing.Dispatcher) (*QUIC
 		Execute:  s.Cleanup,
 	}
 
-	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
 
 	return s, nil
 }
@@ -104,15 +103,16 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 		Execute:  s.Cleanup,
 	}
 
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
+
 	return s, nil
 }
 
-func (s *QUICNameServer) InterfaceUpdate() {
+func (s *QUICNameServer) interfaceUpdate() {
 	s.Lock()
 	if s.connection != nil {
 		s.connection.CloseWithError(0, "")
 	}
-	s.resetAt = time.Now()
 	s.Unlock()
 }
 
@@ -124,7 +124,7 @@ func (s *QUICNameServer) Close() error {
 		s.connection.CloseWithError(0, "")
 	}
 	s.ips = nil
-	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
+	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()
 	return nil
 }
@@ -326,21 +326,6 @@ func (s *QUICNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, 
 	binary.Write(dnsReqBuf, binary.BigEndian, uint16(len(request)))
 	dnsReqBuf.Write(request)
 
-	var err error
-	startAt := time.Now()
-	defer func() {
-		if err != nil && errors.Is(dnsCtx.Err(), context.DeadlineExceeded) {
-			s.Lock()
-			if s.resetAt.Before(startAt) {
-				if s.connection != nil {
-					s.connection.CloseWithError(0, "")
-				}
-				s.resetAt = time.Now()
-			}
-			s.Unlock()
-		}
-	}()
-
 	conn, err := s.openStream(dnsCtx)
 	if err != nil {
 		return nil, newError("failed to open quic connection").Base(err)
@@ -463,7 +448,6 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 		}
 		close(done)
 	}()
-	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
@@ -474,16 +458,6 @@ func (s *QUICNameServer) QueryIPWithTTL(ctx context.Context, domain string, clie
 
 		select {
 		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				s.Lock()
-				if s.resetAt.Before(startAt) {
-					if s.connection != nil {
-						s.connection.CloseWithError(0, "")
-					}
-					s.resetAt = time.Now()
-				}
-				s.Unlock()
-			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}
@@ -540,7 +514,7 @@ func (s *QUICNameServer) getConnection(ctx context.Context) (*quic.Conn, error) 
 }
 
 func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error) {
-	tlsConfig := tls.Config{
+	tlsConfig := &tls.Config{
 		ServerName: func() string {
 			switch s.destination.Address.Family() {
 			case net.AddressFamilyIPv4, net.AddressFamilyIPv6:
@@ -551,6 +525,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 				panic("unknown address family")
 			}
 		}(),
+		NextProtos: []string{NextProtoDQ},
 	}
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout: handshakeIdleTimeout,
@@ -566,12 +541,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 			cnc.ConnectionInputMulti(link.Writer),
 			cnc.ConnectionOutputMultiUDP(link.Reader),
 		)
-		tlsCfg, err := tlsConfig.GetTLSConfig(detachedCtx, tls.WithNextProto(NextProtoDQ))
-		if err != nil {
-			rawConn.Close()
-			return nil, err
-		}
-		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsCfg, quicConfig)
+		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig, quicConfig)
 	}
 
 	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
@@ -587,12 +557,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 	default:
 		packetConn = internet.NewConnWrapper(rawConn)
 	}
-	tlsCfg, err := tlsConfig.GetTLSConfig(ctx, tls.WithNextProto(NextProtoDQ))
-	if err != nil {
-		rawConn.Close()
-		return nil, err
-	}
-	return quic.Dial(ctx, packetConn, rawConn.RemoteAddr(), tlsCfg, quicConfig)
+	return quic.Dial(ctx, packetConn, rawConn.RemoteAddr(), tlsConfig, quicConfig)
 }
 
 func (s *QUICNameServer) openStream(ctx context.Context) (*quic.Stream, error) {

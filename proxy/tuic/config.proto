@@ -8,7 +8,6 @@ option java_multiple_files = true;
 
 import "common/protoext/extensions.proto";
 import "common/net/address.proto";
-import "transport/internet/tls/config.proto";
 
 message ClientConfig {
   option (v2ray.core.common.protoext.message_opt).type = "outbound";
@@ -22,7 +21,6 @@ message ClientConfig {
   string udp_relay_mode = 6;
   bool zero_rtt_handshake = 7;
   uint32 heartbeat = 8;
-  bool disable_sni = 9;
-  v2ray.core.transport.internet.tls.Config tls_settings = 10;
-  bool udp_over_stream = 11;
+  bool udp_over_stream = 9;
+  bool disable_sni = 10;
 }

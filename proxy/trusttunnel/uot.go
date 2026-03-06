@@ -1,4 +1,4 @@
-package uot
+package trusttunnel
 
 import (
 	"bytes"
@@ -8,36 +8,34 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
-//go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
-
 var (
-	_ buf.Writer = (*writer)(nil)
-	_ buf.Reader = (*reader)(nil)
+	_ buf.Writer = (*uotWriter)(nil)
+	_ buf.Reader = (*uotReader)(nil)
 
-	DefaultH1UserAgent  = "Go-http-client/1.1" // net/http http.Transport
-	DefaultH2UserAgent  = "Go-http-client/2.0" // net/http http.Transport
-	DefaultH3UserAgent  = "quic-go HTTP/3"     // github.com/quic-go/quic-go/http3 http3.Transport
-	MagicAddress        = "_udp2"
+	defaultH1UserAgent  = "Go-http-client/1.1" // net/http http.Transport
+	defaultH2UserAgent  = "Go-http-client/2.0" // net/http http.Transport
+	defaultH3UserAgent  = "quic-go HTTP/3"     // github.com/quic-go/quic-go/http3 http3.Transport
+	uotMagicAddress     = "_udp2"
 	ipv4Padding         = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	ipv6LoopBackAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
 	zeroAddressPort     = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
-type reader struct {
+type uotReader struct {
 	net.Conn
 	dest   net.Destination
 	destIP net.Address
 }
 
-func NewReader(conn net.Conn, dest net.Destination, destIP net.Address) *reader {
-	return &reader{
+func newUoTReader(conn net.Conn, dest net.Destination, destIP net.Address) *uotReader {
+	return &uotReader{
 		Conn:   conn,
 		dest:   dest,
 		destIP: destIP,
 	}
 }
 
-func (r *reader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+func (r *uotReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	// Length
 	var length uint32
 	err := binary.Read(r, binary.BigEndian, &length)
@@ -89,24 +87,25 @@ func (r *reader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	return buf.MultiBuffer{payload}, nil
 }
 
-type writer struct {
+type uotWriter struct {
 	net.Conn
 	dest      net.Destination
 	destIP    net.Address
 	userAgent string
+	resolver  func(domain string) (net.Address, error)
 }
 
-func NewWriter(conn net.Conn, dest net.Destination, destIP net.Address, userAgent string) *writer {
-	w := &writer{
+func newUoTWriter(conn net.Conn, dest net.Destination, destIP net.Address, userAgent string, resolver func(domain string) (net.Address, error)) *uotWriter {
+	return &uotWriter{
 		Conn:      conn,
 		dest:      dest,
 		destIP:    destIP,
 		userAgent: userAgent,
+		resolver:  resolver,
 	}
-	return w
 }
 
-func (w *writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
+func (w *uotWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	defer buf.ReleaseMulti(mb)
 	if len(w.userAgent) > 255 {
 		return newError("App Name too long")
@@ -120,8 +119,12 @@ func (w *writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			if dest.Address == w.dest.Address {
 				dest.Address = w.destIP
 			} else {
-				newError("bind-like behavior is unsupported for UDP domain destination").AtError().WriteToLog()
-				continue
+				if ip, err := w.resolver(dest.Address.Domain()); err != nil {
+					newError(err).AtError().WriteToLog()
+					continue
+				} else {
+					dest.Address = ip
+				}
 			}
 		}
 		length := uint32(b.Len()) + 37 + uint32(len(w.userAgent))

@@ -196,13 +196,7 @@ func (c *clientConnections) openConnection(ctx context.Context, dest net.Destina
 		}
 	}
 
-	tlsCfg, err := tlsConfig.GetTLSConfig(ctx, tls.WithDestination(dest))
-	if err != nil {
-		sysConn.Close()
-		return nil, err
-	}
-
-	conn, err := tr.Dial(detachedContext, destAddr, tlsCfg, quicConfig)
+	conn, err := tr.Dial(detachedContext, destAddr, tlsConfig.GetTLSConfigWithContext(detachedContext, tls.WithDestination(dest)), quicConfig)
 	if err != nil {
 		sysConn.Close()
 		return nil, err

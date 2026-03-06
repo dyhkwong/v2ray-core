@@ -1,6 +1,6 @@
 module github.com/v2fly/v2ray-core/v5
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/adrg/xdg v0.5.3
@@ -8,10 +8,10 @@ require (
 	github.com/anytls/sing-anytls v0.0.11
 	github.com/apernet/quic-go v0.59.1-0.20260217092621-db4786c77a22
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
-	github.com/dyhkwong/hysteria/core/v2 v2.7.0-2
-	github.com/dyhkwong/hysteria/extras/v2 v2.7.0-2
-	github.com/dyhkwong/sing-juicity v0.1.0-beta.6
-	github.com/enfein/mieru/v3 v3.27.0
+	github.com/dyhkwong/hysteria/core/v2 v2.7.1-1
+	github.com/dyhkwong/hysteria/extras/v2 v2.7.1-1
+	github.com/dyhkwong/sing-juicity v0.1.1
+	github.com/enfein/mieru/v3 v3.28.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
@@ -22,9 +22,9 @@ require (
 	github.com/pires/go-proxyproto v0.11.0
 	github.com/quic-go/quic-go v0.59.0
 	github.com/refraction-networking/utls v1.8.2
-	github.com/sagernet/sing v0.8.0-beta.16
+	github.com/sagernet/sing v0.8.1
 	github.com/sagernet/sing-mux v0.3.4
-	github.com/sagernet/sing-quic v0.6.0-beta.13
+	github.com/sagernet/sing-quic v0.6.0
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/sagernet/sing-shadowsocks2 v0.2.2
 	github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11
@@ -36,7 +36,7 @@ require (
 	go.uber.org/mock v0.6.0
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.48.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
@@ -60,7 +60,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
-	github.com/sagernet/quic-go v0.59.0-sing-box-mod.2 // indirect
+	github.com/sagernet/quic-go v0.59.0-sing-box-mod.4 // indirect
 	github.com/sagernet/smux v1.5.50-sing-box-mod.1 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect

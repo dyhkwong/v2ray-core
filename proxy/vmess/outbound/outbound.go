@@ -270,4 +270,6 @@ func init() {
 	}
 }
 
-func (*Handler) SupportSingMux() {}
+func (*Handler) SupportSingMux() bool {
+	return true
+}

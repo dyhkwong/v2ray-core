@@ -9,6 +9,7 @@ import (
 	"github.com/sagernet/sing/common/bufio"
 	"github.com/sagernet/sing/common/uot"
 
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
@@ -54,6 +55,19 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	client := o.client
 	if client == nil {
 		var err error
+		handler, ok := dialer.(*outbound.Handler)
+		if !ok {
+			panic("dialer is not *outbound.Handler")
+		}
+		if handler.MuxEnabled() {
+			return newError("mux enabled")
+		}
+		if handler.TransportLayerEnabled() {
+			return newError("transport layer enabled")
+		}
+		if streamSettings := handler.StreamSettings(); streamSettings == nil || streamSettings.SecurityType == "" {
+			return newError("tls not enabled")
+		}
 		client, err = anytls.NewClient(o.ctx, anytls.ClientConfig{
 			Password:                 o.password,
 			IdleSessionCheckInterval: time.Duration(o.idleSessionCheckInterval) * time.Second,
@@ -106,7 +120,3 @@ func (o *Outbound) InterfaceUpdate() {
 	}
 	o.Unlock()
 }
-
-func (*Outbound) DisallowMuxCool() {}
-
-func (*Outbound) DisallowTransportLayer() {}

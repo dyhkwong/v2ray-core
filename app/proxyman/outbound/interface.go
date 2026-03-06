@@ -1,33 +1,32 @@
 package outbound
 
 import (
+	"container/list"
 	"sync"
 )
 
 var (
-	globalHandlerIdx       uint64
-	interfaceUpdatedFuncMu sync.Mutex
-	interfaceUpdatedFunc   = make(map[uint64]func())
+	interfaceUpdateCallbackMutex sync.Mutex
+	interfaceUpdateCallBackList  list.List
 )
 
-func RegisterInterfaceUpdateFunc(fn func()) uint64 {
-	interfaceUpdatedFuncMu.Lock()
-	defer interfaceUpdatedFuncMu.Unlock()
-	globalHandlerIdx++
-	interfaceUpdatedFunc[globalHandlerIdx] = fn
-	return globalHandlerIdx
+func RegisterInterfaceUpdateCallback(callback func()) *list.Element {
+	interfaceUpdateCallbackMutex.Lock()
+	defer interfaceUpdateCallbackMutex.Unlock()
+	return interfaceUpdateCallBackList.PushBack(callback)
 }
 
-func UnRegisterInterfaceUpdateFunc(idx uint64) {
-	interfaceUpdatedFuncMu.Lock()
-	delete(interfaceUpdatedFunc, idx)
-	interfaceUpdatedFuncMu.Unlock()
+func UnRegisterInterfaceUpdateCallback(callback *list.Element) {
+	interfaceUpdateCallbackMutex.Lock()
+	interfaceUpdateCallBackList.Remove(callback)
+	interfaceUpdateCallbackMutex.Unlock()
 }
 
 func InterfaceUpdate() {
-	interfaceUpdatedFuncMu.Lock()
-	for _, fn := range interfaceUpdatedFunc {
-		fn()
+	interfaceUpdateCallbackMutex.Lock()
+	for element := interfaceUpdateCallBackList.Front(); element != nil; element = element.Next() {
+		callback := element.Value.(func())
+		callback()
 	}
-	interfaceUpdatedFuncMu.Unlock()
+	interfaceUpdateCallbackMutex.Unlock()
 }

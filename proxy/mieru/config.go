@@ -8,6 +8,7 @@ import (
 	mieruclient "github.com/enfein/mieru/v3/apis/client"
 	mierucommon "github.com/enfein/mieru/v3/apis/common"
 	mierumodel "github.com/enfein/mieru/v3/apis/model"
+	mierutp "github.com/enfein/mieru/v3/apis/trafficpattern"
 	mierupb "github.com/enfein/mieru/v3/pkg/appctl/appctlpb"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -195,6 +196,14 @@ func buildMieruClientConfig(config *ClientConfig, dialer *dialerWrapper, resolve
 	default:
 		return nil, newError("unknown handshakeMode")
 	}
+	var trafficPattern *mierupb.TrafficPattern
+	if len(config.TrafficPattern) > 0 {
+		var err error
+		trafficPattern, err = mierutp.Decode(config.TrafficPattern)
+		if err != nil {
+			return nil, err
+		}
+	}
 	serverEndpoint := &mierupb.ServerEndpoint{}
 	if len(config.PortRange) == 0 {
 		port := int32(config.Port)
@@ -232,7 +241,8 @@ func buildMieruClientConfig(config *ClientConfig, dialer *dialerWrapper, resolve
 			Multiplexing: &mierupb.MultiplexingConfig{
 				Level: multiplexingLevel,
 			},
-			HandshakeMode: handshakeMode,
+			HandshakeMode:  handshakeMode,
+			TrafficPattern: trafficPattern,
 		},
 		Dialer:       dialer,
 		PacketDialer: dialer,

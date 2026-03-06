@@ -387,4 +387,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	return nil
 }
 
-func (h *Handler) SupportSingMux() {}
+func (*Handler) SupportSingMux() bool {
+	return true
+}

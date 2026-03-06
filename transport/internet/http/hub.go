@@ -145,13 +145,9 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 			ReadHeaderTimeout: time.Second * 4,
 		}
 	} else {
-		tlsConfig, err := config.GetTLSConfig(ctx, tls.WithNextProto("h2"))
-		if err != nil {
-			return nil, err
-		}
 		server = &http.Server{
 			Addr:              serial.Concat(address, ":", port),
-			TLSConfig:         tlsConfig,
+			TLSConfig:         config.GetTLSConfig(tls.WithNextProto("h2")),
 			Handler:           listener,
 			ReadHeaderTimeout: time.Second * 4,
 		}

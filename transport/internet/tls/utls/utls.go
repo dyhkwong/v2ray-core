@@ -43,10 +43,7 @@ func (e Engine) Client(conn net.Conn, opts ...security.Option) (security.Conn, e
 			return nil, newError("unknown option")
 		}
 	}
-	tlsConfig, err := e.config.TlsConfig.GetTLSConfig(e.ctx, options...)
-	if err != nil {
-		return nil, err
-	}
+	tlsConfig := e.config.TlsConfig.GetTLSConfigWithContext(e.ctx, options...)
 	utlsConfig, err := uTLSConfigFromTLSConfig(tlsConfig)
 	if err != nil {
 		return nil, newError("unable to generate utls config from tls config").Base(err)

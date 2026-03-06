@@ -13,12 +13,16 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	clog "github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/protocol/tls/cert"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/proxy/anytls"
 	"github.com/v2fly/v2ray-core/v5/proxy/dokodemo"
 	"github.com/v2fly/v2ray-core/v5/proxy/freedom"
 	"github.com/v2fly/v2ray-core/v5/testing/servers/tcp"
 	"github.com/v2fly/v2ray-core/v5/testing/servers/udp"
+	"github.com/v2fly/v2ray-core/v5/transport/internet"
+	transtcp "github.com/v2fly/v2ray-core/v5/transport/internet/tcp"
+	"github.com/v2fly/v2ray-core/v5/transport/internet/tls"
 )
 
 func TestAnyTLSTCP(t *testing.T) {
@@ -41,6 +45,15 @@ func TestAnyTLSTCP(t *testing.T) {
 				ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{
 					PortRange: net.SinglePortRange(serverPort),
 					Listen:    net.NewIPOrDomain(net.LocalHostIP),
+					StreamSettings: &internet.StreamConfig{
+						ProtocolName: "tcp",
+						SecurityType: serial.GetMessageType(&tls.Config{}),
+						SecuritySettings: []*anypb.Any{
+							serial.ToTypedMessage(&tls.Config{
+								Certificate: []*tls.Certificate{tls.ParseCertificate(cert.MustGenerate(nil))},
+							}),
+						},
+					},
 				}),
 				ProxySettings: serial.ToTypedMessage(&anytls.ServerConfig{
 					Users: []*anytls.User{
@@ -85,6 +98,23 @@ func TestAnyTLSTCP(t *testing.T) {
 					Port:     uint32(serverPort),
 					Password: "password",
 				}),
+				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
+					StreamSettings: &internet.StreamConfig{
+						ProtocolName: "tcp",
+						TransportSettings: []*internet.TransportConfig{
+							{
+								ProtocolName: "tcp",
+								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+							},
+						},
+						SecurityType: serial.GetMessageType(&tls.Config{}),
+						SecuritySettings: []*anypb.Any{
+							serial.ToTypedMessage(&tls.Config{
+								AllowInsecure: true,
+							}),
+						},
+					},
+				}),
 			},
 		},
 	}
@@ -123,6 +153,15 @@ func TestAnyTLSUDP(t *testing.T) {
 				ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{
 					PortRange: net.SinglePortRange(serverPort),
 					Listen:    net.NewIPOrDomain(net.LocalHostIP),
+					StreamSettings: &internet.StreamConfig{
+						ProtocolName: "tcp",
+						SecurityType: serial.GetMessageType(&tls.Config{}),
+						SecuritySettings: []*anypb.Any{
+							serial.ToTypedMessage(&tls.Config{
+								Certificate: []*tls.Certificate{tls.ParseCertificate(cert.MustGenerate(nil))},
+							}),
+						},
+					},
 				}),
 				ProxySettings: serial.ToTypedMessage(&anytls.ServerConfig{
 					Users: []*anytls.User{
@@ -166,6 +205,23 @@ func TestAnyTLSUDP(t *testing.T) {
 					Address:  net.NewIPOrDomain(net.LocalHostIP),
 					Port:     uint32(serverPort),
 					Password: "password",
+				}),
+				SenderSettings: serial.ToTypedMessage(&proxyman.SenderConfig{
+					StreamSettings: &internet.StreamConfig{
+						ProtocolName: "tcp",
+						TransportSettings: []*internet.TransportConfig{
+							{
+								ProtocolName: "tcp",
+								Settings:     serial.ToTypedMessage(&transtcp.Config{}),
+							},
+						},
+						SecurityType: serial.GetMessageType(&tls.Config{}),
+						SecuritySettings: []*anypb.Any{
+							serial.ToTypedMessage(&tls.Config{
+								AllowInsecure: true,
+							}),
+						},
+					},
 				}),
 			},
 		},

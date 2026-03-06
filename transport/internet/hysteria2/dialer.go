@@ -145,7 +145,7 @@ func GetClientTLSConfig(ctx context.Context, dest net.Destination, streamSetting
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	return config.GetTLSConfig(ctx, tls.WithDestination(dest), tls.WithNextProto("h3"))
+	return config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest), tls.WithNextProto("h3")), nil
 }
 
 func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {

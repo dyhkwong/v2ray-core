@@ -2,8 +2,8 @@ package dns
 
 import (
 	"bytes"
+	"container/list"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,16 +31,15 @@ import (
 // thus most of the DOH implementation is copied from udpns.go
 type DoHNameServer struct {
 	sync.RWMutex
-	ips               map[string]record
-	pub               *pubsub.Service
-	cleanup           *task.Periodic
-	httpClient        *http.Client
-	dohURL            string
-	name              string
-	protocol          string
-	resetAt           time.Time
-	newHTTPClientFunc func() *http.Client
-	globalIdx         uint64
+	ips                     map[string]record
+	pub                     *pubsub.Service
+	cleanup                 *task.Periodic
+	httpClient              *http.Client
+	dohURL                  string
+	name                    string
+	protocol                string
+	newHTTPClientFunc       func() *http.Client
+	interfaceUpdateCallback *list.Element
 }
 
 // NewDoHNameServer creates DOH server object for remote resolving.
@@ -117,15 +116,14 @@ func baseDOHNameServer(url *url.URL, prefix, protocol string, newHTTPClientFunc 
 	}
 	s.newHTTPClientFunc = newHTTPClientFunc
 	s.httpClient = s.newHTTPClientFunc()
-	s.globalIdx = outbound.RegisterInterfaceUpdateFunc(s.InterfaceUpdate)
+	s.interfaceUpdateCallback = outbound.RegisterInterfaceUpdateCallback(s.interfaceUpdate)
 	return s
 }
 
-func (s *DoHNameServer) InterfaceUpdate() {
+func (s *DoHNameServer) interfaceUpdate() {
 	s.Lock()
 	s.httpClient.CloseIdleConnections()
 	s.httpClient = s.newHTTPClientFunc()
-	s.resetAt = time.Now()
 	s.Unlock()
 }
 
@@ -134,7 +132,7 @@ func (s *DoHNameServer) Close() error {
 	s.cleanup.Close()
 	s.pub.Close()
 	s.ips = nil
-	outbound.UnRegisterInterfaceUpdateFunc(s.globalIdx)
+	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()
 	return nil
 }
@@ -301,18 +299,8 @@ func (s *DoHNameServer) QueryRaw(ctx context.Context, request []byte) ([]byte, e
 	dnsCtx, cancel = context.WithDeadline(dnsCtx, deadline)
 	defer cancel()
 
-	startAt := time.Now()
 	resp, err := s.dohHTTPSContext(dnsCtx, request)
 	if err != nil {
-		if errors.Is(dnsCtx.Err(), context.DeadlineExceeded) {
-			s.Lock()
-			if s.resetAt.Before(startAt) {
-				s.httpClient.CloseIdleConnections()
-				s.httpClient = s.newHTTPClientFunc()
-				s.resetAt = time.Now()
-			}
-			s.Unlock()
-		}
 		return nil, newError("failed to retrieve response").Base(err)
 	}
 	return resp, nil
@@ -437,7 +425,6 @@ func (s *DoHNameServer) QueryIPWithTTL(ctx context.Context, domain string, clien
 		}
 		close(done)
 	}()
-	startAt := time.Now()
 	s.sendQuery(ctx, fqdn, clientIP, option)
 
 	for {
@@ -448,15 +435,6 @@ func (s *DoHNameServer) QueryIPWithTTL(ctx context.Context, domain string, clien
 
 		select {
 		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				s.Lock()
-				if s.resetAt.Before(startAt) {
-					s.httpClient.CloseIdleConnections()
-					s.httpClient = s.newHTTPClientFunc()
-					s.resetAt = time.Now()
-				}
-				s.Unlock()
-			}
 			return nil, time.Time{}, ctx.Err()
 		case <-done:
 		}

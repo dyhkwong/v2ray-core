@@ -88,7 +88,7 @@ message Config {
   repeated string pinned_peer_certificate_sha256 = 901;
 
   ECH ech = 902;
-  
+
   message ECH {
     bool enabled = 1;
     bytes config = 2;

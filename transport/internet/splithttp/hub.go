@@ -383,12 +383,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		if err != nil {
 			return nil, newError("failed to listen UDP for XHTTP/3 on ", address).Base(err)
 		}
-		tlsCfg, err := tlsConfig.GetTLSConfig(ctx)
-		if err != nil {
-			conn.Close()
-			return nil, err
-		}
-		l.h3listener, err = quic.ListenEarly(conn, tlsCfg, nil)
+		l.h3listener, err = quic.ListenEarly(conn, tlsConfig.GetTLSConfig(), nil)
 		if err != nil {
 			return nil, newError("failed to listen QUIC for XHTTP/3 on ", address, ":", port).Base(err)
 		}
@@ -426,12 +421,7 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 		newError("listening TCP for XHTTP on ", address, ":", port).WriteToLog(session.ExportIDToError(ctx))
 	}
 	if tlsConfig != nil {
-		tlsCfg, err := tlsConfig.GetTLSConfig(ctx)
-		if err != nil {
-			l.listener.Close()
-			return nil, err
-		}
-		l.listener = gotls.NewListener(l.listener, tlsCfg)
+		l.listener = gotls.NewListener(l.listener, tlsConfig.GetTLSConfig())
 	}
 	if realityConfig != nil {
 		l.listener = utls.NewRealityListener(l.listener, realityConfig.GetREALITYConfig())

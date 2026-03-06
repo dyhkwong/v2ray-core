@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -48,7 +48,6 @@ type Client struct {
 	auth            []ssh.AuthMethod
 	connectLock     sync.Mutex
 	hostKeyCallback ssh.HostKeyCallback
-	resetAt         time.Time
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -113,6 +112,20 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 }
 
 func (c *Client) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+	handler, ok := dialer.(*outbound.Handler)
+	if !ok {
+		panic("dialer is not *outbound.Handler")
+	}
+	if handler.MuxEnabled() {
+		return newError("mux enabled")
+	}
+	if handler.TransportLayerEnabled() {
+		return newError("transport layer enabled")
+	}
+	if streamSettings := handler.StreamSettings(); streamSettings != nil && streamSettings.SecurityType != "" {
+		return newError("tls enabled")
+	}
+
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified")
@@ -129,19 +142,10 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return err
 	}
 
-	startAt := time.Now()
 	dialCtx, dialCancel := context.WithTimeout(ctx, time.Second*5)
 	defer dialCancel()
 	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			c.clientLock.Lock()
-			if c.resetAt.Before(startAt) {
-				client.Close()
-				c.client = nil
-			}
-			c.clientLock.Unlock()
-		}
 		return newError("failed to open ssh proxy connection").Base(err)
 	}
 	defer conn.Close()
@@ -167,7 +171,7 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 	defer c.connectLock.Unlock()
 	c.clientLock.Lock()
 	if c.client != nil {
-		c.clientLock.Unlock()
+		defer c.clientLock.Unlock()
 		return c.client, nil
 	}
 	c.clientLock.Unlock()
@@ -215,7 +219,6 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 
 func (c *Client) InterfaceUpdate() {
 	_ = c.Close()
-	c.resetAt = time.Now()
 }
 
 func (c *Client) Close() error {
@@ -227,9 +230,3 @@ func (c *Client) Close() error {
 	c.clientLock.Unlock()
 	return nil
 }
-
-func (*Client) DisallowMuxCool() {}
-
-func (*Client) DisallowTransportLayer() {}
-
-func (*Client) DisallowSecurityLayer() {}

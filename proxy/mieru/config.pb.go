@@ -18,17 +18,18 @@ const (
 )
 
 type ClientConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	PortRange     []string               `protobuf:"bytes,3,rep,name=port_range,json=portRange,proto3" json:"port_range,omitempty"`
-	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
-	Protocol      string                 `protobuf:"bytes,6,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Multiplexing  string                 `protobuf:"bytes,7,opt,name=multiplexing,proto3" json:"multiplexing,omitempty"`
-	HandshakeMode string                 `protobuf:"bytes,8,opt,name=handshake_mode,json=handshakeMode,proto3" json:"handshake_mode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Address        *net.IPOrDomain        `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Port           uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	PortRange      []string               `protobuf:"bytes,3,rep,name=port_range,json=portRange,proto3" json:"port_range,omitempty"`
+	Username       string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Password       string                 `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
+	Protocol       string                 `protobuf:"bytes,6,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Multiplexing   string                 `protobuf:"bytes,7,opt,name=multiplexing,proto3" json:"multiplexing,omitempty"`
+	HandshakeMode  string                 `protobuf:"bytes,8,opt,name=handshake_mode,json=handshakeMode,proto3" json:"handshake_mode,omitempty"`
+	TrafficPattern string                 `protobuf:"bytes,9,opt,name=traffic_pattern,json=trafficPattern,proto3" json:"traffic_pattern,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ClientConfig) Reset() {
@@ -117,11 +118,18 @@ func (x *ClientConfig) GetHandshakeMode() string {
 	return ""
 }
 
+func (x *ClientConfig) GetTrafficPattern() string {
+	if x != nil {
+		return x.TrafficPattern
+	}
+	return ""
+}
+
 var File_proxy_mieru_config_proto protoreflect.FileDescriptor
 
 const file_proxy_mieru_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18proxy/mieru/config.proto\x12\x16v2ray.core.proxy.mieru\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xb4\x02\n" +
+	"\x18proxy/mieru/config.proto\x12\x16v2ray.core.proxy.mieru\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xdd\x02\n" +
 	"\fClientConfig\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x1d\n" +
@@ -131,7 +139,8 @@ const file_proxy_mieru_config_proto_rawDesc = "" +
 	"\bpassword\x18\x05 \x01(\tR\bpassword\x12\x1a\n" +
 	"\bprotocol\x18\x06 \x01(\tR\bprotocol\x12\"\n" +
 	"\fmultiplexing\x18\a \x01(\tR\fmultiplexing\x12%\n" +
-	"\x0ehandshake_mode\x18\b \x01(\tR\rhandshakeMode:\x15\x82\xb5\x18\x11\n" +
+	"\x0ehandshake_mode\x18\b \x01(\tR\rhandshakeMode\x12'\n" +
+	"\x0ftraffic_pattern\x18\t \x01(\tR\x0etrafficPattern:\x15\x82\xb5\x18\x11\n" +
 	"\boutbound\x12\x05mieruBc\n" +
 	"\x1acom.v2ray.core.proxy.mieruP\x01Z*github.com/v2fly/v2ray-core/v5/proxy/mieru\xaa\x02\x16V2Ray.Core.Proxy.Mierub\x06proto3"
 
