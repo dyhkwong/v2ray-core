@@ -401,7 +401,7 @@ type SplitHTTPConfig struct {
 	SeqKey               string               `json:"seqKey"`
 	UplinkDataPlacement  string               `json:"uplinkDataPlacement"`
 	UplinkDataKey        string               `json:"uplinkDataKey"`
-	UplinkChunkSize      uint32               `json:"uplinkChunkSize"`
+	UplinkChunkSize      string               `json:"uplinkChunkSize"`
 	NoGRPCHeader         bool                 `json:"noGRPCHeader"`
 	ScMaxEachPostBytes   string               `json:"scMaxEachPostBytes"`
 	ScMinPostsIntervalMs string               `json:"scMinPostsIntervalMs"`
@@ -570,10 +570,10 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	}
 	switch config.UplinkDataPlacement {
 	case "":
-		config.UplinkDataPlacement = "body"
-	case "body":
-	case "cookie", "header":
-		if config.Mode != "packet-up" {
+		config.UplinkDataPlacement = splithttp.PlacementAuto
+	case splithttp.PlacementAuto, splithttp.PlacementBody:
+	case splithttp.PlacementCookie, splithttp.PlacementHeader:
+		if c.Mode != "packet-up" {
 			return nil, newError("UplinkDataPlacement can be " + config.UplinkDataPlacement + " only in packet-up mode")
 		}
 	default:
@@ -596,11 +596,7 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	switch config.SeqPlacement {
 	case "":
 		config.SeqPlacement = "path"
-	case "path":
-	case "cookie", "header", "query":
-		if config.SessionPlacement == "path" {
-			return nil, newError("SeqPlacement must be path when SessionPlacement is path")
-		}
+	case "path", "cookie", "header", "query":
 	default:
 		return nil, newError("unsupported seq placement: " + config.SeqPlacement)
 	}
@@ -620,23 +616,13 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 			config.SeqKey = "X-Seq"
 		}
 	}
-	if config.UplinkDataPlacement != "body" && config.UplinkDataKey == "" {
+	if config.UplinkDataPlacement != splithttp.PlacementBody && config.UplinkDataKey == "" {
 		switch config.UplinkDataPlacement {
-		case "cookie":
+		case splithttp.PlacementCookie:
 			config.UplinkDataKey = "x_data"
-		case "header":
+		case splithttp.PlacementAuto, splithttp.PlacementHeader:
 			config.UplinkDataKey = "X-Data"
 		}
-	}
-	if config.UplinkChunkSize == 0 {
-		switch config.UplinkDataPlacement {
-		case "cookie":
-			config.UplinkChunkSize = 3 * 1024 // 3KB
-		case "header":
-			config.UplinkChunkSize = 4 * 1024 // 4KB
-		}
-	} else if config.UplinkChunkSize < 64 {
-		config.UplinkChunkSize = 64
 	}
 	if c.Xmux != nil {
 		config.Xmux = &splithttp.XmuxConfig{

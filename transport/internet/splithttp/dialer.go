@@ -427,7 +427,7 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	// code relies on this behavior. Subtract 1 so that together with
 	// uploadWriter wrapper, exact size limits can be enforced
 	// uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - 1))
-	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(maxUploadSize - buf.Size))
+	uploadPipeReader, uploadPipeWriter := pipe.New(pipe.WithSizeLimit(max(0, maxUploadSize-buf.Size)))
 
 	conn.writer = &uploadWriter{
 		uploadPipeWriter,
@@ -439,60 +439,68 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		var lastWrite time.Time
 
 		for {
-			wroteRequest := done.New()
-
-			ctx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
-				WroteRequest: func(httptrace.WroteRequestInfo) {
-					wroteRequest.Close()
-				},
-			})
-
-			// this intentionally makes a shallow-copy of the struct so we
-			// can reassign Path (potentially concurrently)
-			url := requestURL
-			seqStr := strconv.FormatInt(seq, 10)
-			seq += 1
-
-			if scMinPostsIntervalMs.From > 0 {
-				time.Sleep(time.Duration(scMinPostsIntervalMs.rand())*time.Millisecond - time.Since(lastWrite))
-			}
-
 			// by offloading the uploads into a buffered pipe, multiple conn.Write
 			// calls get automatically batched together into larger POST requests.
 			// without batching, bandwidth is extremely limited.
-			chunk, err := uploadPipeReader.ReadMultiBuffer()
+			remainder, err := uploadPipeReader.ReadMultiBuffer()
 			if err != nil {
 				break
 			}
 
-			lastWrite = time.Now()
-
-			if xmuxClient != nil && (xmuxClient.LeftRequests.Add(-1) <= 0 || (xmuxClient.UnreusableAt != time.Time{} && lastWrite.After(xmuxClient.UnreusableAt))) {
-				httpClient, xmuxClient, err = getHTTPClient(ctx, dest, streamSettings)
-				if err != nil {
-					newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+			doSplit := atomic.Bool{}
+			for doSplit.Store(true); doSplit.Load(); {
+				var chunk buf.MultiBuffer
+				remainder, chunk = buf.SplitSize(remainder, maxUploadSize)
+				if chunk.IsEmpty() {
 					break
 				}
-			}
 
-			go func() {
-				err := httpClient.PostPacket(
-					ctx,
-					url.String(),
-					sessionId,
-					seqStr,
-					&buf.MultiBufferContainer{MultiBuffer: chunk},
-					int64(chunk.Len()),
-				)
-				wroteRequest.Close()
-				if err != nil {
-					newError("failed to send upload").Base(err).WriteToLog(session.ExportIDToError(ctx))
-					uploadPipeReader.Interrupt()
+				wroteRequest := done.New()
+
+				ctx := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+					WroteRequest: func(httptrace.WroteRequestInfo) {
+						wroteRequest.Close()
+					},
+				})
+
+				seqStr := strconv.FormatInt(seq, 10)
+				seq += 1
+
+				if scMinPostsIntervalMs.From > 0 {
+					time.Sleep(time.Duration(scMinPostsIntervalMs.rand())*time.Millisecond - time.Since(lastWrite))
 				}
-			}()
 
-			if _, ok := httpClient.(*DefaultDialerClient); ok {
-				<-wroteRequest.Wait()
+				lastWrite = time.Now()
+
+				if xmuxClient != nil && (xmuxClient.LeftRequests.Add(-1) <= 0 ||
+					(xmuxClient.UnreusableAt != time.Time{} && lastWrite.After(xmuxClient.UnreusableAt))) {
+					httpClient, xmuxClient, err = getHTTPClient(ctx, dest, streamSettings)
+					if err != nil {
+						newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+						break
+					}
+				}
+
+				go func() {
+					err := httpClient.PostPacket(
+						ctx,
+						requestURL.String(),
+						sessionId,
+						seqStr,
+						&buf.MultiBufferContainer{MultiBuffer: chunk},
+						int64(chunk.Len()),
+					)
+					wroteRequest.Close()
+					if err != nil {
+						newError("failed to send upload").Base(err).WriteToLog(session.ExportIDToError(ctx))
+						uploadPipeReader.Interrupt()
+						doSplit.Store(false)
+					}
+				}()
+
+				if _, ok := httpClient.(*DefaultDialerClient); ok {
+					<-wroteRequest.Wait()
+				}
 			}
 		}
 	}()

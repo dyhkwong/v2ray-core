@@ -1,3 +1,23 @@
+/*
+
+Some of codes are copied from https://github.com/octeep/wireproxy, license below.
+
+Copyright (c) 2022 Wind T.F. Wong <octeep@pm.me>
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+*/
+
 package wireguard
 
 import (
@@ -8,9 +28,7 @@ import (
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-	"github.com/v2fly/v2ray-core/v5/common/log"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/protocol"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -29,7 +47,7 @@ type Client struct {
 	// cached configuration
 	addresses        []netip.Addr
 	hasIPv4, hasIPv6 bool
-	wgLock           *sync.Mutex
+	wgLock           sync.Mutex
 }
 
 func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
@@ -48,7 +66,6 @@ func NewClient(ctx context.Context, conf *ClientConfig) (*Client, error) {
 		addresses:     addresses,
 		hasIPv4:       hasIPv4,
 		hasIPv6:       hasIPv6,
-		wgLock:        &sync.Mutex{},
 	}, nil
 }
 
@@ -56,43 +73,32 @@ func (c *Client) InterfaceUpdate() {
 	_ = c.Close()
 }
 
-func (c *Client) Close() (err error) {
-	go func() {
-		c.wgLock.Lock()
-		defer c.wgLock.Unlock()
-		if c.net != nil {
-			_ = c.net.Close()
-			c.net = nil
-		}
-		if c.bind != nil {
-			_ = c.bind.Close()
-			c.bind = nil
-		}
-	}()
-	return nil
-}
-
-func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer, resolver func(ctx context.Context, domain string) net.Address) (err error) {
+func (c *Client) Close() error {
 	c.wgLock.Lock()
 	defer c.wgLock.Unlock()
-
-	if c.bind != nil && c.bind.dialer == dialer && c.net != nil {
-		return nil
-	}
-
-	log.Record(&log.GeneralMessage{
-		Severity: log.Severity_Info,
-		Content:  "switching dialer",
-	})
-
 	if c.net != nil {
-		_ = c.net.Close()
+		net := c.net
+		go func() {
+			_ = net.Close()
+		}()
 		c.net = nil
 	}
 	if c.bind != nil {
 		_ = c.bind.Close()
 		c.bind = nil
 	}
+	return nil
+}
+
+func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer, resolver func(ctx context.Context, domain string) net.Address) error {
+	c.wgLock.Lock()
+	defer c.wgLock.Unlock()
+
+	if c.bind != nil && c.net != nil {
+		return nil
+	}
+
+	newError("switching dialer").AtInfo().WriteToLog()
 
 	// bind := conn.NewStdNetBind() // TODO: conn.Bind wrapper for dialer
 	c.bind = &netBindClient{
@@ -104,17 +110,14 @@ func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer, r
 		dialer:   dialer,
 		reserved: c.conf.Reserved,
 	}
-	defer func() {
-		if err != nil {
-			_ = c.bind.Close()
-			c.bind = nil
-		}
-	}()
 
-	c.net, err = c.makeVirtualTun()
+	net, err := c.makeVirtualTun()
 	if err != nil {
+		_ = c.bind.Close()
+		c.bind = nil
 		return newError("failed to create virtual tun interface").Base(err)
 	}
+	c.net = net
 	return nil
 }
 
@@ -131,10 +134,6 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 
 	// Destination of the inner request.
 	destination := outbound.Target
-	command := protocol.RequestCommandTCP
-	if destination.Network == net.Network_UDP {
-		command = protocol.RequestCommandUDP
-	}
 
 	// resolve dns
 	addr := destination.Address
@@ -170,7 +169,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	var requestFunc func() error
 	var responseFunc func() error
 
-	if command == protocol.RequestCommandTCP {
+	if destination.Network == net.Network_TCP {
 		conn, err := c.net.DialContextTCPAddrPort(ctx, addrPort)
 		if err != nil {
 			return newError("failed to create TCP connection").Base(err)
@@ -185,7 +184,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
 			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
 		}
-	} else if command == protocol.RequestCommandUDP {
+	} else {
 		conn, err := c.net.DialUDPAddrPort(netip.AddrPort{}, addrPort)
 		if err != nil {
 			return newError("failed to create UDP connection").Base(err)

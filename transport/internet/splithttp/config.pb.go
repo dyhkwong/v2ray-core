@@ -204,7 +204,7 @@ type Config struct {
 	SeqKey               string                 `protobuf:"bytes,21,opt,name=seqKey,proto3" json:"seqKey,omitempty"`
 	UplinkDataPlacement  string                 `protobuf:"bytes,22,opt,name=uplinkDataPlacement,proto3" json:"uplinkDataPlacement,omitempty"`
 	UplinkDataKey        string                 `protobuf:"bytes,23,opt,name=uplinkDataKey,proto3" json:"uplinkDataKey,omitempty"`
-	UplinkChunkSize      uint32                 `protobuf:"varint,24,opt,name=uplinkChunkSize,proto3" json:"uplinkChunkSize,omitempty"`
+	UplinkChunkSize      string                 `protobuf:"bytes,24,opt,name=uplinkChunkSize,proto3" json:"uplinkChunkSize,omitempty"`
 	UseBrowserForwarding bool                   `protobuf:"varint,99,opt,name=use_browser_forwarding,json=useBrowserForwarding,proto3" json:"use_browser_forwarding,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
@@ -401,11 +401,11 @@ func (x *Config) GetUplinkDataKey() string {
 	return ""
 }
 
-func (x *Config) GetUplinkChunkSize() uint32 {
+func (x *Config) GetUplinkChunkSize() string {
 	if x != nil {
 		return x.UplinkChunkSize
 	}
-	return 0
+	return ""
 }
 
 func (x *Config) GetUseBrowserForwarding() bool {
@@ -461,7 +461,7 @@ const file_transport_internet_splithttp_config_proto_rawDesc = "" +
 	"\x06seqKey\x18\x15 \x01(\tR\x06seqKey\x120\n" +
 	"\x13uplinkDataPlacement\x18\x16 \x01(\tR\x13uplinkDataPlacement\x12$\n" +
 	"\ruplinkDataKey\x18\x17 \x01(\tR\ruplinkDataKey\x12(\n" +
-	"\x0fuplinkChunkSize\x18\x18 \x01(\rR\x0fuplinkChunkSize\x124\n" +
+	"\x0fuplinkChunkSize\x18\x18 \x01(\tR\x0fuplinkChunkSize\x124\n" +
 	"\x16use_browser_forwarding\x18c \x01(\bR\x14useBrowserForwarding\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +

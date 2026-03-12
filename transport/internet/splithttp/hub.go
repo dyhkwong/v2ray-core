@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -92,7 +93,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	h.config.WriteResponseHeader(writer)
+	h.config.WriteResponseHeader(writer, request.Method, request.Header)
 
 	xPaddingConfig := &XPaddingConfig{
 		Length: int(h.config.GetNormalizedXPaddingBytes().rand()),
@@ -112,7 +113,12 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		}
 	}
 
-	h.config.ApplyXPaddingToHeader(writer.Header(), xPaddingConfig)
+	h.config.ApplyXPaddingToResponse(writer, xPaddingConfig)
+
+	if request.Method == "OPTIONS" {
+		writer.WriteHeader(http.StatusOK)
+		return
+	}
 
 	sessionId, seqStr := h.config.ExtractMetaFromRequest(request, h.path)
 
@@ -144,26 +150,16 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		currentSession = h.upsertSession(sessionId)
 	}
 
-	uplinkHTTPMethod := h.config.GetNormalizedUplinkHTTPMethod()
 	isUplinkRequest := false
 
-	if uplinkHTTPMethod != "GET" && request.Method == uplinkHTTPMethod {
+	switch request.Method {
+	case "GET":
+		isUplinkRequest = seqStr != ""
+	default:
 		isUplinkRequest = true
 	}
 
-	uplinkDataPlacement := h.config.GetNormalizedUplinkDataPlacement()
 	uplinkDataKey := h.config.UplinkDataKey
-
-	switch uplinkDataPlacement {
-	case PlacementHeader:
-		if request.Header.Get(uplinkDataKey+"-Upstream") == "1" {
-			isUplinkRequest = true
-		}
-	case PlacementCookie:
-		if c, _ := request.Cookie(uplinkDataKey + "_upstream"); c != nil && c.Value == "1" {
-			isUplinkRequest = true
-		}
-	}
 
 	if isUplinkRequest && sessionId != "" { // stream-up, packet-up
 		if seqStr == "" {
@@ -191,71 +187,61 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		var payload []byte
-
-		if uplinkDataPlacement != PlacementBody {
-			var encodedStr string
-			switch uplinkDataPlacement {
-			case PlacementHeader:
-				dataLenStr := request.Header.Get(uplinkDataKey + "-Length")
-
-				if dataLenStr != "" {
-					dataLen, _ := strconv.Atoi(dataLenStr)
-					var chunks []string
-					i := 0
-
-					for {
-						chunk := request.Header.Get(fmt.Sprintf("%s-%d", uplinkDataKey, i))
-						if chunk == "" {
-							break
-						}
-						chunks = append(chunks, chunk)
-						i++
-					}
-
-					encodedStr = strings.Join(chunks, "")
-					if len(encodedStr) != dataLen {
-						encodedStr = ""
-					}
+		dataPlacement := h.config.GetNormalizedUplinkDataPlacement()
+		var headerPayload []byte
+		if dataPlacement == PlacementAuto || dataPlacement == PlacementHeader {
+			var headerPayloadChunks []string
+			for i := 0; true; i++ {
+				chunk := request.Header.Get(fmt.Sprintf("%s-%d", uplinkDataKey, i))
+				if chunk == "" {
+					break
 				}
-			case PlacementCookie:
-				var chunks []string
-				i := 0
+				headerPayloadChunks = append(headerPayloadChunks, chunk)
+			}
+			headerPayloadEncoded := strings.Join(headerPayloadChunks, "")
+			headerPayload, err = base64.RawURLEncoding.DecodeString(headerPayloadEncoded)
+			if err != nil {
+				newError("Invalid base64 in header's payload").Base(err).AtInfo().WriteToLog()
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 
-				for {
-					cookieName := fmt.Sprintf("%s_%d", uplinkDataKey, i)
-					if c, _ := request.Cookie(cookieName); c != nil {
-						chunks = append(chunks, c.Value)
-						i++
-					} else {
-						break
-					}
-				}
-
-				if len(chunks) > 0 {
-					encodedStr = strings.Join(chunks, "")
+		var cookiePayload []byte
+		if dataPlacement == PlacementAuto || dataPlacement == PlacementCookie {
+			var cookiePayloadChunks []string
+			for i := 0; true; i++ {
+				cookieName := fmt.Sprintf("%s_%d", uplinkDataKey, i)
+				if c, _ := request.Cookie(cookieName); c != nil {
+					cookiePayloadChunks = append(cookiePayloadChunks, c.Value)
+				} else {
+					break
 				}
 			}
+			cookiePayloadEncoded := strings.Join(cookiePayloadChunks, "")
+			cookiePayload, err = base64.RawURLEncoding.DecodeString(cookiePayloadEncoded)
+			if err != nil {
+				newError("Invalid base64 in cookies' payload").Base(err).AtInfo().WriteToLog()
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 
-			if encodedStr != "" {
-				payload, err = base64.RawURLEncoding.DecodeString(encodedStr)
-			} else {
-				newError("failed to extract data from key " + uplinkDataKey + " placed in " + uplinkDataPlacement).Base(err).AtError().WriteToLog()
+		var bodyPayload []byte
+		if dataPlacement == PlacementAuto || dataPlacement == PlacementBody {
+			bodyPayload, err = io.ReadAll(request.Body)
+			if err != nil {
+				newError("failed to upload (ReadAll)").Base(err).AtInfo().WriteToLog()
 				writer.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-		} else {
-			payload, err = io.ReadAll(request.Body)
 		}
-		if err != nil {
-			newError("failed to upload (ReadAll)").Base(err).WriteToLog()
-			writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+
+		payload := slices.Concat(headerPayload, cookiePayload, bodyPayload)
 
 		seq, err := strconv.ParseUint(seqStr, 10, 64)
 		if err != nil {
-			newError("failed to upload (ParseUint)").Base(err).WriteToLog()
+			newError("failed to upload (ParseUint)").Base(err).AtInfo().WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -264,15 +250,21 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			Payload: payload,
 			Seq:     seq,
 		})
+
 		if err != nil {
-			newError("failed to upload (PushPayload)").Base(err).WriteToLog()
+			newError("failed to upload (PushPayload)").Base(err).AtInfo().WriteToLog()
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		if len(bodyPayload) == 0 {
+			// Methods without a body are usually cached by default.
+			writer.Header().Set("Cache-Control", "no-store")
+		}
+
 		writer.WriteHeader(http.StatusOK)
 	} else if request.Method == "GET" || sessionId == "" { // stream-down, stream-one
-		if sessionId != "" { // if not stream-one
+		if sessionId != "" {
 			// after GET is done, the connection is finished. disable automatic
 			// session reaping, and handle it in defer
 			currentSession.isFullyConnected.Close()
@@ -296,17 +288,17 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			Reader:         request.Body,
 			ResponseWriter: writer,
 		}
-		conn := splitConn{
+		conn := &splitConn{
 			writer:     httpSC,
 			reader:     httpSC,
 			remoteAddr: remoteAddr,
 			localAddr:  h.localAddr,
 		}
-		if sessionId != "" {
+		if sessionId != "" { // if not stream-one
 			conn.reader = currentSession.uploadQueue
 		}
 
-		h.ln.addConn(internet.Connection(&conn))
+		h.ln.addConn(conn)
 
 		// "A ResponseWriter may not be used after [Handler.ServeHTTP] has returned."
 		select {
@@ -436,7 +428,6 @@ func ListenSH(ctx context.Context, address net.Address, port net.Port, streamSet
 	l.server = http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: time.Second * 4,
-		MaxHeaderBytes:    8192,
 		Protocols:         protocols,
 	}
 	go func() {

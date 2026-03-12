@@ -31,9 +31,6 @@ func parseEndpoints(ep []string) ([]netip.Addr, bool, bool, error) {
 				return nil, false, false, err
 			}
 			addr = prefix.Addr()
-			if prefix.Bits() != addr.BitLen() {
-				return nil, false, false, newError("interface address subnet should be /32 for IPv4 and /128 for IPv6")
-			}
 		} else {
 			var err error
 			addr, err = netip.ParseAddr(str)
@@ -57,7 +54,7 @@ func parseEndpoints(ep []string) ([]netip.Addr, bool, bool, error) {
 func createIPCRequest(secretKey string, peers []*PeerConfig, isServer bool) string {
 	var request strings.Builder
 
-	request.WriteString(fmt.Sprintf("private_key=%s\n", secretKey))
+	fmt.Fprintf(&request, "private_key=%s\n", secretKey)
 
 	if isServer {
 		// placeholder, we'll handle actual port listening on Xray
@@ -66,25 +63,25 @@ func createIPCRequest(secretKey string, peers []*PeerConfig, isServer bool) stri
 
 	for _, peer := range peers {
 		if peer.PublicKey != "" {
-			request.WriteString(fmt.Sprintf("public_key=%s\n", peer.PublicKey))
+			fmt.Fprintf(&request, "public_key=%s\n", peer.PublicKey)
 		}
 
 		if peer.PreSharedKey != "" {
-			request.WriteString(fmt.Sprintf("preshared_key=%s\n", peer.PreSharedKey))
+			fmt.Fprintf(&request, "preshared_key=%s\n", peer.PreSharedKey)
 		}
 
 		if peer.Endpoint != "" {
-			request.WriteString(fmt.Sprintf("endpoint=%s\n", peer.Endpoint))
+			fmt.Fprintf(&request, "endpoint=%s\n", peer.Endpoint)
 		}
 
 		for _, ip := range peer.AllowedIps {
-			request.WriteString(fmt.Sprintf("allowed_ip=%s\n", ip))
+			fmt.Fprintf(&request, "allowed_ip=%s\n", ip)
 		}
 
 		if peer.KeepAlive != 0 {
-			request.WriteString(fmt.Sprintf("persistent_keepalive_interval=%d\n", peer.KeepAlive))
+			fmt.Fprintf(&request, "persistent_keepalive_interval=%d\n", peer.KeepAlive)
 		}
 	}
 
-	return request.String()[:request.Len()]
+	return request.String()
 }

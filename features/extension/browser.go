@@ -17,8 +17,8 @@ func BrowserForwarderType() interface{} {
 
 type BrowserDialer interface {
 	DialWS(uri string, earlydata []byte) (*websocket.Conn, error)
-	DialGet(uri string, headers http.Header) (*websocket.Conn, error)
-	DialPost(uri string, headers http.Header, payload []byte) error
+	DialGet(uri string, headers http.Header, cookies []*http.Cookie) (*websocket.Conn, error)
+	DialPost(method, uri string, headers http.Header, cookies []*http.Cookie, payload []byte) error
 }
 
 func BrowserDialerType() interface{} {

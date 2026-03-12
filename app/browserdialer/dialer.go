@@ -42,9 +42,10 @@ func NewDialer(ctx context.Context, config *Config) *Dialer {
 var webpage []byte
 
 type task struct {
-	Method string `json:"method"`
-	URL    string `json:"url"`
-	Extra  any    `json:"extra,omitempty"`
+	Method         string `json:"method"`
+	URL            string `json:"url"`
+	Extra          any    `json:"extra,omitempty"`
+	StreamResponse bool   `json:"streamResponse"`
 }
 
 var conns = make(chan *websocket.Conn, 256)
@@ -70,6 +71,7 @@ func (d *Dialer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			newError("browser dialer http upgrade unexpected error")
 		}
 	} else {
+		writer.Header().Set("Access-Control-Allow-Origin", "*")
 		writer.Write(webpage)
 	}
 }
@@ -115,8 +117,9 @@ type webSocketExtra struct {
 
 func (d *Dialer) DialWS(uri string, ed []byte) (*websocket.Conn, error) {
 	task := task{
-		Method: "WS",
-		URL:    uri,
+		Method:         "WS",
+		URL:            uri,
+		StreamResponse: true,
 	}
 	if ed != nil {
 		task.Extra = webSocketExtra{
@@ -129,9 +132,10 @@ func (d *Dialer) DialWS(uri string, ed []byte) (*websocket.Conn, error) {
 type httpExtra struct {
 	Referrer string            `json:"referrer,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"`
+	Cookies  map[string]string `json:"cookies,omitempty"`
 }
 
-func httpExtraFromHeaders(headers http.Header) *httpExtra {
+func httpExtraFromHeadersAndCookies(headers http.Header, cookies []*http.Cookie) *httpExtra {
 	if len(headers) == 0 {
 		return nil
 	}
@@ -149,24 +153,37 @@ func httpExtraFromHeaders(headers http.Header) *httpExtra {
 		}
 	}
 
+	if len(cookies) > 0 {
+		extra.Cookies = make(map[string]string)
+		for _, cookie := range cookies {
+			extra.Cookies[cookie.Name] = cookie.Value
+		}
+	}
+
 	return &extra
 }
 
-func (d *Dialer) DialGet(uri string, headers http.Header) (*websocket.Conn, error) {
+func (d *Dialer) DialGet(uri string, headers http.Header, cookies []*http.Cookie) (*websocket.Conn, error) {
 	task := task{
-		Method: "GET",
-		URL:    uri,
-		Extra:  httpExtraFromHeaders(headers),
+		Method:         "GET",
+		URL:            uri,
+		Extra:          httpExtraFromHeadersAndCookies(headers, cookies),
+		StreamResponse: true,
 	}
 
 	return d.dialTask(task)
 }
 
-func (d *Dialer) DialPost(uri string, headers http.Header, payload []byte) error {
+func (d *Dialer) DialPacket(method string, uri string, headers http.Header, cookies []*http.Cookie, payload []byte) error {
+	return d.dialWithBody(method, uri, headers, cookies, payload)
+}
+
+func (d *Dialer) dialWithBody(method string, uri string, headers http.Header, cookies []*http.Cookie, payload []byte) error {
 	task := task{
-		Method: "POST",
-		URL:    uri,
-		Extra:  httpExtraFromHeaders(headers),
+		Method:         method,
+		URL:            uri,
+		Extra:          httpExtraFromHeadersAndCookies(headers, cookies),
+		StreamResponse: false,
 	}
 
 	conn, err := d.dialTask(task)

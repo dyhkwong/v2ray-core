@@ -55,6 +55,6 @@ message Config {
   string seqKey = 21;
   string uplinkDataPlacement = 22;
   string uplinkDataKey = 23;
-  uint32 uplinkChunkSize = 24;
+  string uplinkChunkSize = 24;
   bool use_browser_forwarding = 99;
 }
