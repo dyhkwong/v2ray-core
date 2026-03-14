@@ -9,6 +9,12 @@ option java_multiple_files = true;
 import "app/router/config.proto";
 import "transport/internet/config.proto";
 
+message TCPListener {
+  uint32 port = 1;
+  v2ray.core.app.router.CIDR address = 2;
+  string tag = 3;
+}
+
 message Config {
   uint32 mtu = 2;
   uint32 user_level = 3;
@@ -19,4 +25,5 @@ message Config {
   v2ray.core.transport.internet.SocketConfig socket_settings = 10;
   bool prefer_ipv6_for_udp = 11;
   bool dual_stack_udp = 12;
+  repeated TCPListener tcp_listener = 13;
 }
