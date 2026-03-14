@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -24,6 +25,8 @@ type WrappedStack struct {
 	config *Config
 	ctx    context.Context
 	stack  *stack.Stack
+
+	stackTCPListeners []*gonet.TCPListener
 }
 
 func NewStack(ctx context.Context, config *Config) (*WrappedStack, error) {
@@ -61,6 +64,10 @@ func (w *WrappedStack) CreateStackFromNetworkLayerDevice(packetSwitchDevice pack
 	})
 
 	w.stack = s
+
+	if err := w.ApplyListeners(); err != nil {
+		return fmt.Errorf("failed to apply listeners: %v", err)
+	}
 	return nil
 }
 
@@ -162,6 +169,10 @@ func (w *WrappedStack) Close() error {
 	if w == nil || w.stack == nil {
 		return nil
 	}
+	for _, l := range w.stackTCPListeners {
+		l.Close()
+	}
+	w.stackTCPListeners = nil
 	w.stack.Close()
 	w.stack = nil
 	return nil
