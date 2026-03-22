@@ -49,6 +49,7 @@ func (c *Client) Close() error {
 		for elem := cachedH2Conn.Front(); elem != nil; elem = elem.Next() {
 			_ = elem.Value.(*h2Conn).h2Conn.Close()
 			_ = elem.Value.(*h2Conn).rawConn.Close()
+			cachedH2Conn.Remove(elem)
 		}
 	}
 	clear(c.cachedH2Conns)
@@ -240,7 +241,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		return rawConn, nil, nil
 	}
 
-	connectHTTP2 := func(rawConn net.Conn, h2clientConn *http2.ClientConn) (net.Conn, error) {
+	connectHTTP2 := func(rawConn net.Conn, h2clientConn *http2.ClientConn, elem *list.Element) (net.Conn, error) {
 		pr, pw := io.Pipe()
 		req.Body = pr
 
@@ -253,36 +254,47 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 			wg.Done()
 		}()
 
-		resp, err := h2clientConn.RoundTrip(req.WithContext(ctx)) // nolint: bodyclose
+		resp, err := h2clientConn.RoundTrip(req) // nolint: bodyclose
 		if err != nil {
+			h2clientConn.Close()
 			rawConn.Close()
+			if elem != nil {
+				c.cachedH2Mutex.Lock()
+				c.cachedH2Conns[dest].Remove(elem)
+				c.cachedH2Mutex.Unlock()
+			}
 			return nil, err
 		}
 
 		wg.Wait()
 		if pErr != nil {
+			h2clientConn.Close()
 			rawConn.Close()
+			if elem != nil {
+				c.cachedH2Mutex.Lock()
+				c.cachedH2Conns[dest].Remove(elem)
+				c.cachedH2Mutex.Unlock()
+			}
 			return nil, pErr
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			rawConn.Close()
 			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 		}
 		return newHTTP2Conn(rawConn, pw, resp.Body), nil
 	}
 
 	c.cachedH2Mutex.Lock()
-	var cachedConn *list.Element
+	var elem *list.Element
 	if cachedH2Conn, found := c.cachedH2Conns[dest]; found {
-		cachedConn = cachedH2Conn.Front()
+		elem = cachedH2Conn.Front()
 	}
 	c.cachedH2Mutex.Unlock()
 
-	if cachedConn != nil {
-		rc, cc := cachedConn.Value.(*h2Conn).rawConn, cachedConn.Value.(*h2Conn).h2Conn
+	if elem != nil {
+		rc, cc := elem.Value.(*h2Conn).rawConn, elem.Value.(*h2Conn).h2Conn
 		if cc.CanTakeNewRequest() {
-			proxyConn, err := connectHTTP2(rc, cc)
+			proxyConn, err := connectHTTP2(rc, cc, elem)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -323,7 +335,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 			return nil, nil, err
 		}
 
-		proxyConn, err := connectHTTP2(rawConn, h2clientConn)
+		proxyConn, err := connectHTTP2(rawConn, h2clientConn, nil)
 		if err != nil {
 			return nil, nil, err
 		}

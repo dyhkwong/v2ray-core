@@ -191,13 +191,21 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 		defer conn.Close()
 
+		ipToDomain := new(sync.Map)
+
 		requestFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
-			return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
+			// return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
+			return buf.Copy(link.Reader, newPacketWriter(conn, net.Destination{
+				Address: addr,
+				Port:    destination.Port,
+				Network: net.Network_UDP,
+			}, c.dns, c.conf.DomainStrategy, c.hasIPv4, c.hasIPv6, ipToDomain), buf.UpdateActivity(timer))
 		}
 		responseFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
-			return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+			// return buf.Copy(buf.NewReader(conn), link.Writer, buf.UpdateActivity(timer))
+			return buf.Copy(newPacketReader(conn, ipToDomain), link.Writer, buf.UpdateActivity(timer))
 		}
 	}
 
@@ -223,6 +231,112 @@ func (c *Client) makeVirtualTun() (Tunnel, error) {
 		return nil, err
 	}
 	return t, nil
+}
+
+func newPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
+	if c, ok := conn.(net.PacketConn); ok {
+		return &packetReader{
+			packetConn: c,
+			ipToDomain: ipToDomain,
+		}
+	}
+	return buf.NewReader(conn)
+}
+
+type packetReader struct {
+	packetConn net.PacketConn
+	ipToDomain *sync.Map
+}
+
+func (r *packetReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	b := buf.New()
+	b.Resize(0, buf.Size)
+	n, d, err := r.packetConn.ReadFrom(b.Bytes())
+	if err != nil {
+		b.Release()
+		return nil, err
+	}
+	b.Resize(0, int32(n))
+	b.Endpoint = &net.Destination{
+		Address: net.IPAddress(d.(*net.UDPAddr).IP),
+		Port:    net.Port(d.(*net.UDPAddr).Port),
+		Network: net.Network_UDP,
+	}
+	if domain, ok := r.ipToDomain.Load(d.(*net.UDPAddr).AddrPort().Addr()); ok {
+		b.Endpoint.Address = domain.(net.Address)
+	}
+	return buf.MultiBuffer{b}, nil
+}
+
+func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domainStrategy ClientConfig_DomainStrategy, hasIPv4, hasIPv6 bool, ipToDomain *sync.Map) buf.Writer {
+	if c, ok := conn.(net.PacketConn); ok {
+		return &packetWriter{
+			packetConn:     c,
+			dest:           dest,
+			dns:            dns,
+			domainStrategy: domainStrategy,
+			hasIPv4:        hasIPv4,
+			hasIPv6:        hasIPv6,
+			ipToDomain:     ipToDomain,
+		}
+	}
+	return buf.NewWriter(conn)
+}
+
+type packetWriter struct {
+	packetConn     net.PacketConn
+	dest           net.Destination
+	dns            dns.Client
+	domainStrategy ClientConfig_DomainStrategy
+	hasIPv4        bool
+	hasIPv6        bool
+	ipToDomain     *sync.Map
+}
+
+func (w *packetWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	defer buf.ReleaseMulti(mb)
+	for _, b := range mb {
+		if b == nil {
+			continue
+		}
+		dest := w.dest
+		if b.Endpoint != nil {
+			dest = *b.Endpoint
+		}
+		originalDest := dest
+		if dest.Address.Family().IsDomain() {
+			ips, err := dns.LookupIPWithOption(w.dns, dest.Address.Domain(), dns.IPOption{
+				IPv4Enable: w.hasIPv4 && w.domainStrategy != ClientConfig_USE_IP6,
+				IPv6Enable: w.hasIPv6 && w.domainStrategy != ClientConfig_USE_IP4,
+			})
+			if err != nil {
+				return newError("failed to lookup DNS").Base(err)
+			} else if len(ips) == 0 {
+				return dns.ErrEmptyResponse
+			}
+			if w.domainStrategy == ClientConfig_PREFER_IP4 || w.domainStrategy == ClientConfig_PREFER_IP6 {
+				for _, ip := range ips {
+					if ip.To4() != nil == (w.domainStrategy == ClientConfig_PREFER_IP4) {
+						dest.Address = net.IPAddress(ip)
+					}
+				}
+			} else {
+				dest.Address = net.IPAddress(ips[0])
+			}
+		}
+		destAddr := &net.UDPAddr{
+			IP:   dest.Address.IP(),
+			Port: int(dest.Port),
+		}
+		if originalDest.Address.Family().IsDomain() {
+			w.ipToDomain.LoadOrStore(destAddr.AddrPort().Addr(), originalDest.Address)
+		}
+		_, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func init() {

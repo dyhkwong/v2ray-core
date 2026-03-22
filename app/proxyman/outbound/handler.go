@@ -549,6 +549,10 @@ func (h *Handler) interfaceUpdate() {
 	h.transportEnvironment.TransientStorage().Clear(h.ctx)
 }
 
+func (h *Handler) ResetConnections() {
+	h.pool.ResetConnections()
+}
+
 // Close implements common.Closable.
 func (h *Handler) Close() error {
 	h.closed.Store(true)

@@ -47,7 +47,9 @@ func (c *Client) Close() error {
 	c.cachedH3Mutex.Lock()
 	for elem := c.cachedH3Conns.Front(); elem != nil; elem = elem.Next() {
 		_ = elem.Value.(*h3Conn).h3Conn.CloseWithError(0, "")
+		_ = elem.Value.(*h3Conn).quicConn.CloseWithError(0, "")
 		_ = elem.Value.(*h3Conn).rawConn.Close()
+		c.cachedH3Conns.Remove(elem)
 	}
 	c.cachedH3Mutex.Unlock()
 	return nil
@@ -177,7 +179,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		req.Header.Set(key, value)
 	}
 
-	connectHTTP3 := func(rawConn net.Conn, h3clientConn *http3.ClientConn, readCounter, writeCounter stats.Counter) (net.Conn, error) {
+	connectHTTP3 := func(rawConn net.Conn, quicConn *quic.Conn, h3clientConn *http3.ClientConn, readCounter, writeCounter stats.Counter, elem *list.Element) (net.Conn, error) {
 		pr, pw := io.Pipe()
 		req.Body = pr
 
@@ -190,13 +192,29 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 			wg.Done()
 		}()
 
-		resp, err := h3clientConn.RoundTrip(req.WithContext(ctx)) // nolint: bodyclose
+		resp, err := h3clientConn.RoundTrip(req) // nolint: bodyclose
 		if err != nil {
+			h3clientConn.CloseWithError(0, "")
+			quicConn.CloseWithError(0, "")
+			rawConn.Close()
+			if elem != nil {
+				c.cachedH3Mutex.Lock()
+				c.cachedH3Conns.Remove(elem)
+				c.cachedH3Mutex.Unlock()
+			}
 			return nil, err
 		}
 
 		wg.Wait()
 		if pErr != nil {
+			h3clientConn.CloseWithError(0, "")
+			quicConn.CloseWithError(0, "")
+			rawConn.Close()
+			if elem != nil {
+				c.cachedH3Mutex.Lock()
+				c.cachedH3Conns.Remove(elem)
+				c.cachedH3Mutex.Unlock()
+			}
 			return nil, pErr
 		}
 
@@ -213,19 +231,17 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 	}
 
 	c.cachedH3Mutex.Lock()
-	cachedConn := c.cachedH3Conns.Front()
+	elem := c.cachedH3Conns.Front()
 	c.cachedH3Mutex.Unlock()
 
-	if cachedConn != nil {
-		readCounter, writeCounter := cachedConn.Value.(*h3Conn).readCounter, cachedConn.Value.(*h3Conn).writeCounter
-		rawConn, h3Conn := cachedConn.Value.(*h3Conn).rawConn, cachedConn.Value.(*h3Conn).h3Conn
+	if elem != nil {
+		readCounter, writeCounter := elem.Value.(*h3Conn).readCounter, elem.Value.(*h3Conn).writeCounter
+		rawConn, quicConn, h3Conn := elem.Value.(*h3Conn).rawConn, elem.Value.(*h3Conn).quicConn, elem.Value.(*h3Conn).h3Conn
 		select {
 		case <-h3Conn.Context().Done():
 		default:
-			proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
+			proxyConn, err := connectHTTP3(rawConn, quicConn, h3Conn, readCounter, writeCounter, elem)
 			if err != nil {
-				h3Conn.CloseWithError(0, "")
-				rawConn.Close()
 				return nil, err
 			}
 			return proxyConn, nil
@@ -237,13 +253,12 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		return nil, err
 	}
 
-	var readCounter, writeCounter stats.Counter
 	iConn := rawConn
 	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
 		iConn = trackedConn.NetConn()
 	}
-	statConn, ok := iConn.(*internet.StatCouterConnection)
-	if ok {
+	var readCounter, writeCounter stats.Counter
+	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
 		iConn = statConn.Connection
 	}
 
@@ -251,16 +266,8 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 	switch iConn := iConn.(type) {
 	case *internet.PacketConnWrapper:
 		packetConn = iConn.Conn
-		if statConn != nil {
-			readCounter = statConn.ReadCounter
-			writeCounter = statConn.WriteCounter
-		}
 	case net.PacketConn:
 		packetConn = iConn
-		if statConn != nil {
-			readCounter = statConn.ReadCounter
-			writeCounter = statConn.WriteCounter
-		}
 	default:
 		packetConn = internet.NewConnWrapper(iConn)
 	}
@@ -277,10 +284,8 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 	}
 
 	h3clientConn := c.transport.NewClientConn(quicConn)
-	proxyConn, err := connectHTTP3(rawConn, h3clientConn, readCounter, writeCounter)
+	proxyConn, err := connectHTTP3(rawConn, quicConn, h3clientConn, readCounter, writeCounter, nil)
 	if err != nil {
-		quicConn.CloseWithError(0, "")
-		rawConn.Close()
 		return nil, err
 	}
 

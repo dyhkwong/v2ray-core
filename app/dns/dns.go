@@ -4,6 +4,7 @@ package dns
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"strings"
@@ -39,10 +40,10 @@ type DNS struct {
 	domainMatcher strmatcher.IndexMatcher
 	matcherInfos  []DomainMatcherInfo
 
-	mu        sync.Mutex
-	closed    bool
-	taskCount uint64
-	done      chan interface{}
+	mu       sync.Mutex
+	closed   bool
+	taskList list.List
+	done     chan any
 }
 
 // DomainMatcherInfo contains information attached to index returned by Server.domainMatcher
@@ -107,7 +108,7 @@ func New(ctx context.Context, config *Config) (*DNS, error) {
 		return nil, err
 	}
 
-	s.done = make(chan interface{})
+	s.done = make(chan any)
 
 	return s, nil
 }
@@ -243,7 +244,7 @@ func (s *DNS) Start() error {
 func (s *DNS) Close() error {
 	s.mu.Lock()
 	s.closed = true
-	if s.taskCount == 0 {
+	if s.taskList.Len() == 0 {
 		close(s.done)
 	}
 	s.mu.Unlock()
@@ -313,12 +314,12 @@ func (s *DNS) queryRaw(request []byte, fakeEnabled bool) ([]byte, error) {
 		s.mu.Unlock()
 		return nil, newError("dns client closed")
 	}
-	s.taskCount++
+	elem := s.taskList.PushBack(nil)
 	s.mu.Unlock()
 	defer func() {
 		s.mu.Lock()
-		s.taskCount--
-		if s.taskCount == 0 && s.closed {
+		s.taskList.Remove(elem)
+		if s.taskList.Len() == 0 && s.closed {
 			close(s.done)
 		}
 		s.mu.Unlock()
@@ -439,12 +440,12 @@ func (s *DNS) lookupIPInternalWithTTL(domain string, option feature_dns.IPOption
 		s.mu.Unlock()
 		return nil, time.Time{}, newError("dns client closed")
 	}
-	s.taskCount++
+	elem := s.taskList.PushBack(nil)
 	s.mu.Unlock()
 	defer func() {
 		s.mu.Lock()
-		s.taskCount--
-		if s.taskCount == 0 && s.closed {
+		s.taskList.Remove(elem)
+		if s.taskList.Len() == 0 && s.closed {
 			close(s.done)
 		}
 		s.mu.Unlock()

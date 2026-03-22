@@ -118,6 +118,9 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		if len(c.ShortIds) != 0 {
 			return nil, newError(`non-empty "shortIds", please use "shortId" instead`)
 		}
+		if len(c.ShortId) > 16 {
+			return nil, newError(`too long "shortId": `, c.ShortId)
+		}
 		config.ShortId = make([]byte, 8)
 		if _, err = hex.Decode(config.ShortId, []byte(c.ShortId)); err != nil {
 			return nil, newError(`invalid "shortId": `, c.ShortId)

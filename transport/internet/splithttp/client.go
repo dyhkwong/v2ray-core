@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/v2fly/v2ray-core/v5/common"
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/done"
@@ -23,7 +24,7 @@ type DialerClient interface {
 	OpenStream(context.Context, string, string, io.Reader, bool) (io.ReadCloser, net.Addr, net.Addr, error)
 
 	// ctx, url, sessionId, seqStr, body, contentLength
-	PostPacket(context.Context, string, string, string, io.Reader, int64) error
+	PostPacket(context.Context, string, string, string, buf.MultiBuffer) error
 }
 
 // implements splithttp.DialerClient in terms of direct network connections
@@ -92,14 +93,13 @@ func (c *DefaultDialerClient) OpenStream(ctx context.Context, url, sessionId str
 	return wrc, remoteAddr, localAddr, err
 }
 
-func (c *DefaultDialerClient) PostPacket(ctx context.Context, url, sessionId, seqStr string, body io.Reader, contentLength int64) error {
+func (c *DefaultDialerClient) PostPacket(ctx context.Context, url, sessionId, seqStr string, payload buf.MultiBuffer) error {
 	method := c.transportConfig.GetNormalizedUplinkHTTPMethod()
-	req, err := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, body)
+	req, err := http.NewRequestWithContext(context.WithoutCancel(ctx), method, url, nil)
 	if err != nil {
 		return err
 	}
-	req.ContentLength = contentLength
-	c.transportConfig.FillPacketRequest(req, sessionId, seqStr)
+	c.transportConfig.FillPacketRequest(req, sessionId, seqStr, payload)
 
 	if c.httpVersion != "1.1" {
 		resp, err := c.client.Do(req)
@@ -121,6 +121,7 @@ func (c *DefaultDialerClient) PostPacket(ctx context.Context, url, sessionId, se
 		// times, the body is already drained after the first
 		// request
 		requestBuff := new(bytes.Buffer)
+		requestBuff.Grow(512 + int(req.ContentLength))
 		common.Must(req.Write(requestBuff))
 
 		var uploadConn any

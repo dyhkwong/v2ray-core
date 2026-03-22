@@ -27,10 +27,12 @@ func init() {
 }
 
 type Outbound struct {
-	sync.Mutex
 	serverAddr net.Destination
 	config     *ClientConfig
 	client     mieruclient.Client
+	clientLock sync.RWMutex
+	createLock sync.Mutex
+	closed     chan struct{}
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -52,6 +54,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return &Outbound{
 		serverAddr: serverAddr,
 		config:     config,
+		closed:     make(chan struct{}),
 	}, nil
 }
 
@@ -61,8 +64,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return newError("target not specified")
 	}
 
-	o.Lock()
+	o.clientLock.RLock()
 	client := o.client
+	o.clientLock.RUnlock()
 	if client == nil {
 		handler, ok := dialer.(*outbound.Handler)
 		if !ok {
@@ -76,6 +80,13 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		}
 		if streamSettings := handler.StreamSettings(); streamSettings != nil && streamSettings.SecurityType != "" {
 			return newError("tls enabled")
+		}
+		o.createLock.Lock()
+		select {
+		case <-o.closed:
+			o.createLock.Unlock()
+			return newError("closed")
+		default:
 		}
 		dialer := &dialerWrapper{
 			dialer: dialer,
@@ -92,21 +103,23 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		}
 		config, err := buildMieruClientConfig(o.config, dialer, resolver)
 		if err != nil {
-			o.Unlock()
+			o.createLock.Unlock()
 			return err
 		}
 		client = mieruclient.NewClient()
 		if err = client.Store(config); err != nil {
-			o.Unlock()
+			o.createLock.Unlock()
 			return err
 		}
 		if err = client.Start(); err != nil {
-			o.Unlock()
+			o.createLock.Unlock()
 			return err
 		}
+		o.clientLock.Lock()
 		o.client = client
+		o.clientLock.Unlock()
+		o.createLock.Unlock()
 	}
-	o.Unlock()
 
 	destination := ob.Target
 
@@ -160,15 +173,21 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) InterfaceUpdate() {
-	o.Close()
-}
-
-func (o *Outbound) Close() error {
-	o.Lock()
+	o.clientLock.Lock()
 	if o.client != nil {
 		o.client.Stop()
 		o.client = nil
 	}
-	o.Unlock()
+	o.clientLock.RUnlock()
+}
+
+func (o *Outbound) Close() error {
+	close(o.closed)
+	o.clientLock.Lock()
+	if o.client != nil {
+		o.client.Stop()
+		o.client = nil
+	}
+	o.clientLock.Unlock()
 	return nil
 }
