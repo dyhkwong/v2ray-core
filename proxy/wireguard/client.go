@@ -34,7 +34,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
-	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/transport"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -235,22 +234,9 @@ func (c *Client) makeVirtualTun() (Tunnel, error) {
 }
 
 func newPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
-	iConn := conn
-	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.NetConn()
-	}
-	statConn, ok := iConn.(*internet.StatCouterConnection)
-	if ok {
-		iConn = statConn.Connection
-	}
-	var counter stats.Counter
-	if statConn != nil {
-		counter = statConn.ReadCounter
-	}
-	if c, ok := iConn.(net.PacketConn); ok {
+	if c, ok := conn.(net.PacketConn); ok {
 		return &packetReader{
 			packetConn: c,
-			counter:    counter,
 			ipToDomain: ipToDomain,
 		}
 	}
@@ -259,7 +245,6 @@ func newPacketReader(conn net.Conn, ipToDomain *sync.Map) buf.Reader {
 
 type packetReader struct {
 	packetConn net.PacketConn
-	counter    stats.Counter
 	ipToDomain *sync.Map
 }
 
@@ -280,29 +265,13 @@ func (r *packetReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	if domain, ok := r.ipToDomain.Load(d.(*net.UDPAddr).AddrPort().Addr()); ok {
 		b.Endpoint.Address = domain.(net.Address)
 	}
-	if r.counter != nil {
-		r.counter.Add(int64(n))
-	}
 	return buf.MultiBuffer{b}, nil
 }
 
 func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domainStrategy ClientConfig_DomainStrategy, hasIPv4, hasIPv6 bool, ipToDomain *sync.Map) buf.Writer {
-	iConn := conn
-	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.NetConn()
-	}
-	statConn, ok := iConn.(*internet.StatCouterConnection)
-	if ok {
-		iConn = statConn.Connection
-	}
-	var counter stats.Counter
-	if statConn != nil {
-		counter = statConn.WriteCounter
-	}
-	if c, ok := iConn.(net.PacketConn); ok {
+	if c, ok := conn.(net.PacketConn); ok {
 		return &packetWriter{
 			packetConn:     c,
-			counter:        counter,
 			dest:           dest,
 			dns:            dns,
 			domainStrategy: domainStrategy,
@@ -316,7 +285,6 @@ func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domain
 
 type packetWriter struct {
 	packetConn     net.PacketConn
-	counter        stats.Counter
 	dest           net.Destination
 	dns            dns.Client
 	domainStrategy ClientConfig_DomainStrategy
@@ -363,12 +331,9 @@ func (w *packetWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if originalDest.Address.Family().IsDomain() {
 			w.ipToDomain.LoadOrStore(destAddr.AddrPort().Addr(), originalDest.Address)
 		}
-		n, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
+		_, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
 		if err != nil {
 			return err
-		}
-		if w.counter != nil {
-			w.counter.Add(int64(n))
 		}
 	}
 	return nil

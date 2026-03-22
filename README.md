@@ -1,5 +1,3 @@
-For archival purposes only. Do not use.
-
 ## License
 
     Copyright (C) 2023  dyhkwong
