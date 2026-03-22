@@ -28,10 +28,12 @@ func init() {
 }
 
 type Outbound struct {
-	sync.Mutex
 	serverAddr net.Destination
 	options    juicity.ClientOptions
 	client     *juicity.Client
+	clientLock sync.RWMutex
+	createLock sync.Mutex
+	closed     chan struct{}
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -41,6 +43,7 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Port:    net.Port(config.Port),
 			Network: net.Network_UDP,
 		},
+		closed: make(chan struct{}),
 	}
 	uuid, err := uuid.ParseString(config.Uuid)
 	if err != nil {
@@ -58,6 +61,11 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 }
 
 func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*juicity.Client, error) {
+	select {
+	case <-o.closed:
+		return nil, newError("closed")
+	default:
+	}
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -85,18 +93,22 @@ func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*juic
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	o.Lock()
+	o.clientLock.RLock()
 	client := o.client
+	o.clientLock.RUnlock()
 	if client == nil {
 		var err error
+		o.createLock.Lock()
 		client, err = o.newClient(ctx, dialer)
 		if err != nil {
-			o.Unlock()
+			o.createLock.Unlock()
 			return err
 		}
+		o.clientLock.Lock()
 		o.client = client
+		o.clientLock.Unlock()
+		o.createLock.Unlock()
 	}
-	o.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -123,16 +135,21 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) InterfaceUpdate() {
-	if o.client != nil {
-		_ = o.client.CloseWithError(newError("network changed"))
+	o.clientLock.RLock()
+	client := o.client
+	o.clientLock.RUnlock()
+	if client != nil {
+		_ = client.CloseWithError(newError("network changed"))
 	}
 }
 
 func (o *Outbound) Close() error {
-	o.Lock()
-	defer o.Unlock()
-	if o.client != nil {
-		return o.client.CloseWithError(os.ErrClosed)
+	close(o.closed)
+	o.clientLock.RLock()
+	client := o.client
+	o.clientLock.RUnlock()
+	if client != nil {
+		return client.CloseWithError(os.ErrClosed)
 	}
 	return nil
 }

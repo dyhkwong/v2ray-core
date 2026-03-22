@@ -232,6 +232,7 @@ func (net *Net) DialUDPAddrPort(laddr, raddr netip.AddrPort) (*gonet.UDPConn, er
 		var addr tcpip.FullAddress
 		addr, pn = convertToFullAddr(raddr)
 		rfa = &addr
+		rfa = nil // do not ep connect
 	}
 	return gonet.DialUDP(net.stack, lfa, rfa, pn)
 }

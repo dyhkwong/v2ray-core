@@ -58,8 +58,10 @@ func (c *Client) Close() error {
 		}
 		if cachedConn, ok := elem.Value.(*h3Conn); ok {
 			_ = cachedConn.h3Conn.CloseWithError(0, "")
+			_ = cachedConn.quicConn.CloseWithError(0, "")
 			_ = cachedConn.rawConn.Close()
 		}
+		c.cachedConns.Remove(elem)
 	}
 	c.cacheConnsLock.Unlock()
 	return nil
@@ -72,6 +74,7 @@ type h2Conn struct {
 
 type h3Conn struct {
 	rawConn      net.Conn
+	quicConn     *quic.Conn
 	h3Conn       *http3.ClientConn
 	readCounter  stats.Counter
 	writeCounter stats.Counter
@@ -289,7 +292,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		return rawConn, nil, nil
 	}
 
-	connectHTTP2 := func(rawConn net.Conn, h2clientConn *http2.ClientConn) (net.Conn, error) {
+	connectHTTP2 := func(conn *h2Conn, elem *list.Element) (net.Conn, error) {
 		pr, pw := io.Pipe()
 		req.Body = pr
 		var pErr error
@@ -297,25 +300,39 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		wg.Go(func() {
 			_, pErr = pw.Write(firstPayload)
 		})
-		resp, err := h2clientConn.RoundTrip(req.WithContext(ctx)) // nolint: bodyclose
+		resp, err := conn.h2Conn.RoundTrip(req) // nolint: bodyclose
 		if err != nil {
+			conn.h2Conn.Close()
+			conn.rawConn.Close()
+			if elem != nil {
+				c.cacheConnsLock.Lock()
+				c.cachedConns.Remove(elem)
+				c.cacheConnsLock.Unlock()
+			}
 			return nil, err
 		}
 		wg.Wait()
 		if pErr != nil {
+			conn.h2Conn.Close()
+			conn.rawConn.Close()
+			if elem != nil {
+				c.cacheConnsLock.Lock()
+				c.cachedConns.Remove(elem)
+				c.cacheConnsLock.Unlock()
+			}
 			return nil, pErr
 		}
 		if resp.StatusCode != http.StatusOK {
 			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 		}
 		return &httpConn{
-			Conn: rawConn,
+			Conn: conn.rawConn,
 			in:   pw,
 			out:  resp.Body,
 		}, nil
 	}
 
-	connectHTTP3 := func(rawConn net.Conn, h3clientConn *http3.ClientConn, readCounter, writeCounter stats.Counter) (net.Conn, error) {
+	connectHTTP3 := func(conn *h3Conn, elem *list.Element) (net.Conn, error) {
 		pr, pw := io.Pipe()
 		req.Body = pr
 		var pErr error
@@ -323,34 +340,50 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		wg.Go(func() {
 			_, pErr = pw.Write(firstPayload)
 		})
-		resp, err := h3clientConn.RoundTrip(req.WithContext(ctx)) // nolint: bodyclose
+		resp, err := conn.h3Conn.RoundTrip(req) // nolint: bodyclose
 		if err != nil {
+			conn.h3Conn.CloseWithError(0, "")
+			conn.quicConn.CloseWithError(0, "")
+			conn.rawConn.Close()
+			if elem != nil {
+				c.cacheConnsLock.Lock()
+				c.cachedConns.Remove(elem)
+				c.cacheConnsLock.Unlock()
+			}
 			return nil, err
 		}
 		wg.Wait()
 		if pErr != nil {
+			conn.h3Conn.CloseWithError(0, "")
+			conn.quicConn.CloseWithError(0, "")
+			conn.rawConn.Close()
+			if elem != nil {
+				c.cacheConnsLock.Lock()
+				c.cachedConns.Remove(elem)
+				c.cacheConnsLock.Unlock()
+			}
 			return nil, pErr
 		}
 		if resp.StatusCode != http.StatusOK {
 			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 		}
 		return &httpConn{
-			Conn:         rawConn,
+			Conn:         conn.rawConn,
 			in:           pw,
 			out:          resp.Body,
-			readCounter:  readCounter,
-			writeCounter: writeCounter,
+			readCounter:  conn.readCounter,
+			writeCounter: conn.writeCounter,
 		}, nil
 	}
 
 	if !c.config.Http3 {
 		c.cacheConnsLock.Lock()
-		cachedConn := c.cachedConns.Front()
+		elem := c.cachedConns.Front()
 		c.cacheConnsLock.Unlock()
-		if cachedConn != nil {
-			rawConn, h2Conn := cachedConn.Value.(*h2Conn).rawConn, cachedConn.Value.(*h2Conn).h2Conn
-			if h2Conn.CanTakeNewRequest() {
-				proxyConn, err := connectHTTP2(rawConn, h2Conn)
+		if elem != nil {
+			conn := elem.Value.(*h2Conn)
+			if conn.h2Conn.CanTakeNewRequest() {
+				proxyConn, err := connectHTTP2(conn, elem)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -385,15 +418,16 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 				rawConn.Close()
 				return nil, nil, err
 			}
-			proxyConn, err := connectHTTP2(rawConn, h2clientConn)
+			conn := &h2Conn{
+				rawConn: rawConn,
+				h2Conn:  h2clientConn,
+			}
+			proxyConn, err := connectHTTP2(conn, nil)
 			if err != nil {
 				return nil, nil, err
 			}
 			c.cacheConnsLock.Lock()
-			c.cachedConns.PushFront(&h2Conn{
-				rawConn: rawConn,
-				h2Conn:  h2clientConn,
-			})
+			c.cachedConns.PushFront(conn)
 			c.cacheConnsLock.Unlock()
 			return proxyConn, nil, err
 		default:
@@ -402,15 +436,14 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		}
 	} else {
 		c.cacheConnsLock.Lock()
-		cachedConn := c.cachedConns.Front()
+		elem := c.cachedConns.Front()
 		c.cacheConnsLock.Unlock()
-		if cachedConn != nil {
-			readCounter, writeCounter := cachedConn.Value.(*h3Conn).readCounter, cachedConn.Value.(*h3Conn).writeCounter
-			rawConn, h3Conn := cachedConn.Value.(*h3Conn).rawConn, cachedConn.Value.(*h3Conn).h3Conn
+		if elem != nil {
+			conn := elem.Value.(*h3Conn)
 			select {
-			case <-h3Conn.Context().Done():
+			case <-conn.h3Conn.Context().Done():
 			default:
-				proxyConn, err := connectHTTP3(rawConn, h3Conn, readCounter, writeCounter)
+				proxyConn, err := connectHTTP3(conn, elem)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -421,29 +454,22 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 		if err != nil {
 			return nil, nil, err
 		}
-		var readCounter, writeCounter stats.Counter
 		iConn := rawConn
 		if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
 			iConn = trackedConn.NetConn()
 		}
-		statConn, ok := iConn.(*internet.StatCouterConnection)
-		if ok {
+		var readCounter, writeCounter stats.Counter
+		if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
 			iConn = statConn.Connection
+			readCounter = statConn.ReadCounter
+			writeCounter = statConn.WriteCounter
 		}
 		var packetConn net.PacketConn
 		switch iConn := iConn.(type) {
 		case *internet.PacketConnWrapper:
 			packetConn = iConn.Conn
-			if statConn != nil {
-				readCounter = statConn.ReadCounter
-				writeCounter = statConn.WriteCounter
-			}
 		case net.PacketConn:
 			packetConn = iConn
-			if statConn != nil {
-				readCounter = statConn.ReadCounter
-				writeCounter = statConn.WriteCounter
-			}
 		default:
 			packetConn = internet.NewConnWrapper(iConn)
 		}
@@ -459,19 +485,19 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer inte
 			return nil, nil, err
 		}
 		h3clientConn := c.h3Transport.NewClientConn(quicConn)
-		proxyConn, err := connectHTTP3(rawConn, h3clientConn, readCounter, writeCounter)
-		if err != nil {
-			quicConn.CloseWithError(0, "")
-			rawConn.Close()
-			return nil, nil, err
-		}
-		c.cacheConnsLock.Lock()
-		c.cachedConns.PushFront(&h3Conn{
+		conn := &h3Conn{
 			rawConn:      rawConn,
+			quicConn:     quicConn,
 			h3Conn:       h3clientConn,
 			readCounter:  readCounter,
 			writeCounter: writeCounter,
-		})
+		}
+		proxyConn, err := connectHTTP3(conn, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		c.cacheConnsLock.Lock()
+		c.cachedConns.PushFront(conn)
 		c.cacheConnsLock.Unlock()
 		return proxyConn, nil, nil
 	}

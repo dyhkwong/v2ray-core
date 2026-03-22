@@ -25,7 +25,6 @@ func init() {
 }
 
 type Outbound struct {
-	sync.Mutex
 	ctx                      context.Context
 	serverAddr               net.Destination
 	password                 string
@@ -33,6 +32,9 @@ type Outbound struct {
 	idleSessionTimeout       int64
 	minIdleSession           int64
 	client                   *anytls.Client
+	clientLock               sync.RWMutex
+	createLock               sync.Mutex
+	closed                   chan struct{}
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -47,12 +49,14 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 		idleSessionCheckInterval: config.IdleSessionCheckInterval,
 		idleSessionTimeout:       config.IdleSessionTimeout,
 		minIdleSession:           config.MinIdleSession,
+		closed:                   make(chan struct{}),
 	}, nil
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	o.Lock()
+	o.clientLock.RLock()
 	client := o.client
+	o.clientLock.RUnlock()
 	if client == nil {
 		var err error
 		handler, ok := dialer.(*outbound.Handler)
@@ -68,6 +72,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		if streamSettings := handler.StreamSettings(); streamSettings == nil || streamSettings.SecurityType == "" {
 			return newError("tls not enabled")
 		}
+		o.createLock.Lock()
+		select {
+		case <-o.closed:
+			return newError("closed")
+		default:
+		}
 		client, err = anytls.NewClient(o.ctx, anytls.ClientConfig{
 			Password:                 o.password,
 			IdleSessionCheckInterval: time.Duration(o.idleSessionCheckInterval) * time.Second,
@@ -79,12 +89,14 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 			Logger: singbridge.NewLoggerWrapper(newError),
 		})
 		if err != nil {
-			o.Unlock()
+			o.createLock.Unlock()
 			return err
 		}
+		o.clientLock.Lock()
 		o.client = client
+		o.clientLock.Unlock()
+		o.createLock.Unlock()
 	}
-	o.Unlock()
 
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
@@ -113,10 +125,21 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) InterfaceUpdate() {
-	o.Lock()
+	o.clientLock.Lock()
 	if o.client != nil {
-		_ = o.client.Close()
+		o.client.Close()
 		o.client = nil
 	}
-	o.Unlock()
+	o.clientLock.Unlock()
+}
+
+func (o *Outbound) Close() error {
+	close(o.closed)
+	o.clientLock.Lock()
+	if o.client != nil {
+		o.client.Close()
+		o.client = nil
+	}
+	o.clientLock.Unlock()
+	return nil
 }

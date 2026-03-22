@@ -8,6 +8,7 @@ import (
 	"time"
 
 	core "github.com/v2fly/v2ray-core/v5"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -50,6 +51,8 @@ type Handler struct {
 	dns           dns.Client
 	config        *Config
 	resolver      func(ctx context.Context, domain string) net.Address
+	// SagerNet private
+	handler *outbound.Handler
 }
 
 // Init initializes the Handler with necessary parameters.
@@ -104,6 +107,10 @@ func isValidAddress(addr *net.IPOrDomain) bool {
 
 // Process implements proxy.Outbound.
 func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
+	if h.handler == nil {
+		// SagerNet private
+		h.handler = dialer.(*outbound.Handler)
+	}
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified.")
@@ -332,4 +339,11 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		}
 	}
 	return nil
+}
+
+// SagerNet private
+func (h *Handler) InterfaceUpdate() {
+	if h.handler != nil {
+		h.handler.ResetConnections()
+	}
 }

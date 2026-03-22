@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -353,22 +354,17 @@ func (c *Config) FillStreamRequest(request *http.Request, sessionId string, seqS
 	}
 }
 
-func (c *Config) FillPacketRequest(request *http.Request, sessionId string, seqStr string) error {
+func (c *Config) FillPacketRequest(request *http.Request, sessionId string, seqStr string, payload buf.MultiBuffer) error {
 	dataPlacement := c.GetNormalizedUplinkDataPlacement()
 
 	if dataPlacement == PlacementBody || dataPlacement == PlacementAuto {
 		request.Header = c.GetRequestHeader()
+		request.Body = io.NopCloser(&buf.MultiBufferContainer{MultiBuffer: payload})
+		request.ContentLength = int64(payload.Len())
 	} else {
-		var data []byte
-		var err error
-		if request.Body != nil {
-			data, err = io.ReadAll(request.Body)
-			if err != nil {
-				return err
-			}
-		}
-		request.Body = nil
-		request.ContentLength = 0
+		data := make([]byte, payload.Len())
+		payload.Copy(data)
+		buf.ReleaseMulti(payload)
 		switch dataPlacement {
 		case PlacementHeader:
 			request.Header = c.GetRequestHeaderWithPayload(data)

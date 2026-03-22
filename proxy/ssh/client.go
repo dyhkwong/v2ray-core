@@ -44,10 +44,11 @@ type Client struct {
 	sessionPolicy   policy.Session
 	server          net.Destination
 	client          *ssh.Client
-	clientLock      sync.Mutex
+	clientLock      sync.RWMutex
 	auth            []ssh.AuthMethod
 	connectLock     sync.Mutex
 	hostKeyCallback ssh.HostKeyCallback
+	closed          chan struct{}
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -108,6 +109,7 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 			return nil
 		}
 	}
+	c.closed = make(chan struct{})
 	return nil
 }
 
@@ -167,14 +169,20 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
+	c.clientLock.RLock()
+	client := c.client
+	c.clientLock.RUnlock()
+	if client != nil {
+		return client, nil
+	}
+
 	c.connectLock.Lock()
 	defer c.connectLock.Unlock()
-	c.clientLock.Lock()
-	if c.client != nil {
-		defer c.clientLock.Unlock()
-		return c.client, nil
+	select {
+	case <-c.closed:
+		return nil, newError("closed")
+	default:
 	}
-	c.clientLock.Unlock()
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
@@ -201,7 +209,7 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		return nil, newError("failed to create ssh connection").Base(err)
 	}
 
-	client := ssh.NewClient(clientConn, chans, reqs)
+	client = ssh.NewClient(clientConn, chans, reqs)
 
 	c.clientLock.Lock()
 	c.client = client
@@ -218,10 +226,16 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 }
 
 func (c *Client) InterfaceUpdate() {
-	_ = c.Close()
+	c.clientLock.Lock()
+	if c.client != nil {
+		c.client.Close()
+	}
+	c.client = nil
+	c.clientLock.Unlock()
 }
 
 func (c *Client) Close() error {
+	close(c.closed)
 	c.clientLock.Lock()
 	if c.client != nil {
 		c.client.Close()

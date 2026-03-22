@@ -17,13 +17,17 @@ const (
 )
 
 type Config struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Host              string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	ServiceName       string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	MultiMode         bool                   `protobuf:"varint,98,opt,name=multi_mode,json=multiMode,proto3" json:"multi_mode,omitempty"`
-	ServiceNameCompat bool                   `protobuf:"varint,99,opt,name=service_name_compat,json=serviceNameCompat,proto3" json:"service_name_compat,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Host                string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	ServiceName         string                 `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	IdleTimeout         int32                  `protobuf:"varint,3,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
+	HealthCheckTimeout  int32                  `protobuf:"varint,4,opt,name=health_check_timeout,json=healthCheckTimeout,proto3" json:"health_check_timeout,omitempty"`
+	PermitWithoutStream bool                   `protobuf:"varint,5,opt,name=permit_without_stream,json=permitWithoutStream,proto3" json:"permit_without_stream,omitempty"`
+	InitialWindowsSize  int32                  `protobuf:"varint,6,opt,name=initial_windows_size,json=initialWindowsSize,proto3" json:"initial_windows_size,omitempty"`
+	MultiMode           bool                   `protobuf:"varint,98,opt,name=multi_mode,json=multiMode,proto3" json:"multi_mode,omitempty"`
+	ServiceNameCompat   bool                   `protobuf:"varint,99,opt,name=service_name_compat,json=serviceNameCompat,proto3" json:"service_name_compat,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -70,6 +74,34 @@ func (x *Config) GetServiceName() string {
 	return ""
 }
 
+func (x *Config) GetIdleTimeout() int32 {
+	if x != nil {
+		return x.IdleTimeout
+	}
+	return 0
+}
+
+func (x *Config) GetHealthCheckTimeout() int32 {
+	if x != nil {
+		return x.HealthCheckTimeout
+	}
+	return 0
+}
+
+func (x *Config) GetPermitWithoutStream() bool {
+	if x != nil {
+		return x.PermitWithoutStream
+	}
+	return false
+}
+
+func (x *Config) GetInitialWindowsSize() int32 {
+	if x != nil {
+		return x.InitialWindowsSize
+	}
+	return 0
+}
+
 func (x *Config) GetMultiMode() bool {
 	if x != nil {
 		return x.MultiMode
@@ -88,10 +120,14 @@ var File_transport_internet_grpc_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_grpc_config_proto_rawDesc = "" +
 	"\n" +
-	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"\xac\x01\n" +
+	"$transport/internet/grpc/config.proto\x12+v2ray.core.transport.internet.grpc.encoding\x1a common/protoext/extensions.proto\"\xe7\x02\n" +
 	"\x06Config\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12!\n" +
-	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x1d\n" +
+	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12!\n" +
+	"\fidle_timeout\x18\x03 \x01(\x05R\vidleTimeout\x120\n" +
+	"\x14health_check_timeout\x18\x04 \x01(\x05R\x12healthCheckTimeout\x122\n" +
+	"\x15permit_without_stream\x18\x05 \x01(\bR\x13permitWithoutStream\x120\n" +
+	"\x14initial_windows_size\x18\x06 \x01(\x05R\x12initialWindowsSize\x12\x1d\n" +
 	"\n" +
 	"multi_mode\x18b \x01(\bR\tmultiMode\x12.\n" +
 	"\x13service_name_compat\x18c \x01(\bR\x11serviceNameCompat:\x1c\x82\xb5\x18\x18\n" +

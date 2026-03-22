@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -68,27 +69,7 @@ type dialerCanceller func()
 func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (net.Conn, error) {
 	grpcSettings := streamSettings.ProtocolSettings.(*Config)
 
-	transportCredentials := insecure.NewCredentials()
-	switch streamSettings.SecuritySettings.(type) {
-	case *tls.Config:
-		if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
-			tlsConfig := config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest))
-			// https://github.com/grpc/grpc-go/blob/98959d9a4904e98bbf8b423ce6a3cb5d36f90ee1/credentials/tls.go#L205-L210
-			if tlsConfig.EncryptedClientHelloConfigList != nil && tlsConfig.MinVersion == 0 && (tlsConfig.MaxVersion == 0 || tlsConfig.MaxVersion >= gotls.VersionTLS13) {
-				tlsConfig.MinVersion = gotls.VersionTLS13
-			}
-			transportCredentials = credentials.NewTLS(tlsConfig)
-		}
-	case *utls.Config:
-		if creds, err := newSecurityEngineCreds(ctx, dest, streamSettings); err == nil {
-			transportCredentials = creds
-		} else {
-			newError("failed to create utls grpc credentials").Base(err).WriteToLog(session.ExportIDToError(ctx))
-		}
-	}
-	dialOption := grpc.WithTransportCredentials(transportCredentials)
-
-	conn, canceller, err := getGrpcClient(ctx, dest, dialOption, streamSettings)
+	conn, canceller, err := getGrpcClient(ctx, dest, streamSettings)
 	if err != nil {
 		return nil, newError("Cannot dial grpc").Base(err)
 	}
@@ -117,39 +98,30 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	return encoding.NewGunConn(gunService, nil), nil
 }
 
-func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.DialOption, streamSettings *internet.MemoryStreamConfig) (*grpc.ClientConn, dialerCanceller, error) {
+func getGrpcClient(ctx context.Context, dest net.Destination, streamSettings *internet.MemoryStreamConfig) (*grpc.ClientConn, dialerCanceller, error) {
 	transportEnvironment := envctx.EnvironmentFromContext(ctx).(environment.TransportEnvironment)
 	state, err := transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
-	if err != nil {
-		state = &transportConnectionState{}
-		transportEnvironment.TransientStorage().Put(ctx, "grpc-transport-connection-state", state)
-		state, err = transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
-		if err != nil {
-			return nil, nil, newError("failed to get grpc transport connection state").Base(err)
+	grpcSettings := streamSettings.ProtocolSettings.(*Config)
+	transportCredentials := insecure.NewCredentials()
+	switch streamSettings.SecuritySettings.(type) {
+	case *tls.Config:
+		if tlsConfig := tls.ConfigFromStreamSettings(streamSettings); tlsConfig != nil {
+			config := tlsConfig.GetTLSConfigWithContext(ctx, tls.WithDestination(dest))
+			// https://github.com/grpc/grpc-go/blob/98959d9a4904e98bbf8b423ce6a3cb5d36f90ee1/credentials/tls.go#L205-L210
+			if config.EncryptedClientHelloConfigList != nil && config.MinVersion == 0 && (config.MaxVersion == 0 || config.MaxVersion >= gotls.VersionTLS13) {
+				config.MinVersion = gotls.VersionTLS13
+			}
+			transportCredentials = credentials.NewTLS(config)
+		}
+	case *utls.Config:
+		if creds, err := newSecurityEngineCreds(ctx, dest, streamSettings); err == nil {
+			transportCredentials = creds
+		} else {
+			newError("failed to create utls grpc credentials").Base(err).WriteToLog(session.ExportIDToError(ctx))
 		}
 	}
-	stateTyped := state.(*transportConnectionState)
-
-	stateTyped.scopedDialerAccess.Lock()
-	defer stateTyped.scopedDialerAccess.Unlock()
-
-	if stateTyped.scopedDialerMap == nil {
-		stateTyped.scopedDialerMap = make(map[dialerConf]*grpc.ClientConn)
-	}
-
-	canceller := func() {
-		stateTyped.scopedDialerAccess.Lock()
-		defer stateTyped.scopedDialerAccess.Unlock()
-		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
-	}
-
-	if client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
-		return client, canceller, nil
-	}
-
-	conn, err := grpc.NewClient(
-		dest.Address.String()+":"+dest.Port.String(),
-		dialOption,
+	dialOptions := []grpc.DialOption{
+		grpc.WithTransportCredentials(transportCredentials),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{
 				BaseDelay:  500 * time.Millisecond,
@@ -183,6 +155,47 @@ func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.Di
 			return conn, err
 		}),
 		grpc.WithDisableServiceConfig(),
+	}
+	if grpcSettings.IdleTimeout > 0 || grpcSettings.HealthCheckTimeout > 0 || grpcSettings.PermitWithoutStream {
+		dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                time.Second * time.Duration(grpcSettings.IdleTimeout),
+			Timeout:             time.Second * time.Duration(grpcSettings.HealthCheckTimeout),
+			PermitWithoutStream: grpcSettings.PermitWithoutStream,
+		}))
+	}
+	if grpcSettings.InitialWindowsSize > 0 {
+		dialOptions = append(dialOptions, grpc.WithInitialWindowSize(grpcSettings.InitialWindowsSize))
+	}
+	if err != nil {
+		state = &transportConnectionState{}
+		transportEnvironment.TransientStorage().Put(ctx, "grpc-transport-connection-state", state)
+		state, err = transportEnvironment.TransientStorage().Get(ctx, "grpc-transport-connection-state")
+		if err != nil {
+			return nil, nil, newError("failed to get grpc transport connection state").Base(err)
+		}
+	}
+	stateTyped := state.(*transportConnectionState)
+
+	stateTyped.scopedDialerAccess.Lock()
+	defer stateTyped.scopedDialerAccess.Unlock()
+
+	if stateTyped.scopedDialerMap == nil {
+		stateTyped.scopedDialerMap = make(map[dialerConf]*grpc.ClientConn)
+	}
+
+	canceller := func() {
+		stateTyped.scopedDialerAccess.Lock()
+		defer stateTyped.scopedDialerAccess.Unlock()
+		delete(stateTyped.scopedDialerMap, dialerConf{dest, streamSettings})
+	}
+
+	if client, found := stateTyped.scopedDialerMap[dialerConf{dest, streamSettings}]; found && client.GetState() != connectivity.Shutdown {
+		return client, canceller, nil
+	}
+
+	conn, err := grpc.NewClient(
+		dest.Address.String()+":"+dest.Port.String(),
+		dialOptions...,
 	)
 	if err != nil {
 		return nil, nil, err

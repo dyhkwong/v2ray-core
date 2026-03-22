@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 )
@@ -38,15 +39,14 @@ func (c *BrowserDialerClient) OpenStream(ctx context.Context, url, sessionId str
 	return newConnection(conn), conn.RemoteAddr(), conn.LocalAddr(), nil
 }
 
-func (c *BrowserDialerClient) PostPacket(ctx context.Context, url, sessionId, seqStr string, body io.Reader, contentLength int64) error {
+func (c *BrowserDialerClient) PostPacket(ctx context.Context, url, sessionId, seqStr string, payload buf.MultiBuffer) error {
 	method := c.transportConfig.GetNormalizedUplinkHTTPMethod()
-	request, err := http.NewRequest(method, url, body)
+	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return err
 	}
 
-	request.ContentLength = contentLength
-	err = c.transportConfig.FillPacketRequest(request, sessionId, seqStr)
+	err = c.transportConfig.FillPacketRequest(request, sessionId, seqStr, payload)
 	if err != nil {
 		return err
 	}
