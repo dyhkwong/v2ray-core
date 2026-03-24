@@ -39,6 +39,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
@@ -60,7 +61,7 @@ type Net netTun
 func CreateNetTUN(localAddresses []netip.Addr, mtu int, promiscuousMode bool) (tun.Device, *Net, *stack.Stack, error) {
 	opts := stack.Options{
 		NetworkProtocols:   []stack.NetworkProtocolFactory{ipv4.NewProtocol, ipv6.NewProtocol},
-		TransportProtocols: []stack.TransportProtocolFactory{tcp.NewProtocol, udp.NewProtocol},
+		TransportProtocols: []stack.TransportProtocolFactory{tcp.NewProtocol, udp.NewProtocol, icmp.NewProtocol6, icmp.NewProtocol4},
 		HandleLocal:        !promiscuousMode,
 	}
 	dev := &netTun{
@@ -229,10 +230,10 @@ func (net *Net) DialUDPAddrPort(laddr, raddr netip.AddrPort) (*gonet.UDPConn, er
 		lfa = &addr
 	}
 	if raddr.IsValid() || raddr.Port() > 0 {
-		var addr tcpip.FullAddress
+		/*var addr tcpip.FullAddress
 		addr, pn = convertToFullAddr(raddr)
-		rfa = &addr
-		rfa = nil // do not ep connect
+		rfa = &addr*/
+		_, pn = convertToFullAddr(raddr)
 	}
 	return gonet.DialUDP(net.stack, lfa, rfa, pn)
 }

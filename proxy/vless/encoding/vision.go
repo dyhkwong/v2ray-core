@@ -278,40 +278,40 @@ func (w *VisionWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	if *isPadding {
 		if len(mb) == 1 && mb[0] == nil {
 			mb[0] = XtlsPadding(nil, CommandPaddingContinue, &w.writeOnceUserUUID, true, w.ctx) // we do a long padding to hide vless header
-			return w.Writer.WriteMultiBuffer(mb)
-		}
-		isComplete := IsCompleteRecord(mb)
-		mb = ReshapeMultiBuffer(w.ctx, mb)
-		longPadding := w.trafficState.IsTLS
-		for i, b := range mb {
-			if w.trafficState.IsTLS && b.Len() >= 6 && bytes.Equal(TlsApplicationDataStart, b.BytesTo(3)) && isComplete {
-				if w.trafficState.EnableXtls {
-					*switchToDirectCopy = true
+		} else {
+			isComplete := IsCompleteRecord(mb)
+			mb = ReshapeMultiBuffer(w.ctx, mb)
+			longPadding := w.trafficState.IsTLS
+			for i, b := range mb {
+				if w.trafficState.IsTLS && b.Len() >= 6 && bytes.Equal(TlsApplicationDataStart, b.BytesTo(3)) && isComplete {
+					if w.trafficState.EnableXtls {
+						*switchToDirectCopy = true
+					}
+					var command byte = CommandPaddingContinue
+					if i == len(mb)-1 {
+						command = CommandPaddingEnd
+						if w.trafficState.EnableXtls {
+							command = CommandPaddingDirect
+						}
+					}
+					mb[i] = XtlsPadding(b, command, &w.writeOnceUserUUID, true, w.ctx)
+					*isPadding = false // padding going to end
+					longPadding = false
+					continue
+				} else if !w.trafficState.IsTLS12orAbove && w.trafficState.NumberOfPacketToFilter <= 1 { // For compatibility with earlier vision receiver, we finish padding 1 packet early
+					*isPadding = false
+					mb[i] = XtlsPadding(b, CommandPaddingEnd, &w.writeOnceUserUUID, longPadding, w.ctx)
+					break
 				}
 				var command byte = CommandPaddingContinue
-				if i == len(mb)-1 {
+				if i == len(mb)-1 && !*isPadding {
 					command = CommandPaddingEnd
 					if w.trafficState.EnableXtls {
 						command = CommandPaddingDirect
 					}
 				}
-				mb[i] = XtlsPadding(b, command, &w.writeOnceUserUUID, true, w.ctx)
-				*isPadding = false // padding going to end
-				longPadding = false
-				continue
-			} else if !w.trafficState.IsTLS12orAbove && w.trafficState.NumberOfPacketToFilter <= 1 { // For compatibility with earlier vision receiver, we finish padding 1 packet early
-				*isPadding = false
-				mb[i] = XtlsPadding(b, CommandPaddingEnd, &w.writeOnceUserUUID, longPadding, w.ctx)
-				break
+				mb[i] = XtlsPadding(b, command, &w.writeOnceUserUUID, longPadding, w.ctx)
 			}
-			var command byte = CommandPaddingContinue
-			if i == len(mb)-1 && !*isPadding {
-				command = CommandPaddingEnd
-				if w.trafficState.EnableXtls {
-					command = CommandPaddingDirect
-				}
-			}
-			mb[i] = XtlsPadding(b, command, &w.writeOnceUserUUID, longPadding, w.ctx)
 		}
 	}
 	return w.Writer.WriteMultiBuffer(mb)

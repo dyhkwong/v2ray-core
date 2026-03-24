@@ -133,12 +133,14 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	}
 
 	// Destination of the inner request.
-	destination := outbound.Target
+	dest := outbound.Target
 
+	newError("tunneling request to ", dest).WriteToLog(session.ExportIDToError(ctx))
+
+	originalDest := dest
 	// resolve dns
-	addr := destination.Address
-	if addr.Family().IsDomain() {
-		ips, err := dns.LookupIPWithOption(c.dns, addr.Domain(), dns.IPOption{
+	if dest.Address.Family().IsDomain() {
+		ips, err := dns.LookupIPWithOption(c.dns, dest.Address.Domain(), dns.IPOption{
 			IPv4Enable: c.hasIPv4 && c.conf.DomainStrategy != ClientConfig_USE_IP6,
 			IPv6Enable: c.hasIPv6 && c.conf.DomainStrategy != ClientConfig_USE_IP4,
 		})
@@ -150,26 +152,24 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		if c.conf.DomainStrategy == ClientConfig_PREFER_IP4 || c.conf.DomainStrategy == ClientConfig_PREFER_IP6 {
 			for _, ip := range ips {
 				if ip.To4() != nil == (c.conf.DomainStrategy == ClientConfig_PREFER_IP4) {
-					addr = net.IPAddress(ip)
+					dest.Address = net.IPAddress(ip)
 				}
 			}
 		} else {
-			addr = net.IPAddress(ips[0])
+			dest.Address = net.IPAddress(ips[0])
 		}
 	}
-
-	newError("tunneling request to ", destination).WriteToLog(session.ExportIDToError(ctx))
 
 	p := c.policyManager.ForLevel(0)
 
 	ctx, cancel := context.WithCancel(ctx)
 	timer := signal.CancelAfterInactivity(ctx, cancel, p.Timeouts.ConnectionIdle)
-	addrPort := netip.AddrPortFrom(toNetIpAddr(addr), destination.Port.Value())
 
 	var requestFunc func() error
 	var responseFunc func() error
 
-	if destination.Network == net.Network_TCP {
+	addrPort := netip.AddrPortFrom(toNetIpAddr(dest.Address), dest.Port.Value())
+	if dest.Network == net.Network_TCP {
 		conn, err := c.net.DialContextTCPAddrPort(ctx, addrPort)
 		if err != nil {
 			return newError("failed to create TCP connection").Base(err)
@@ -196,11 +196,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		requestFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
 			// return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
-			return buf.Copy(link.Reader, newPacketWriter(conn, net.Destination{
-				Address: addr,
-				Port:    destination.Port,
-				Network: net.Network_UDP,
-			}, c.dns, c.conf.DomainStrategy, c.hasIPv4, c.hasIPv6, ipToDomain), buf.UpdateActivity(timer))
+			return buf.Copy(link.Reader, newPacketWriter(conn, originalDest, dest, c.dns, c.conf.DomainStrategy, c.hasIPv4, c.hasIPv6, ipToDomain), buf.UpdateActivity(timer))
 		}
 		responseFunc = func() error {
 			defer timer.SetTimeout(p.Timeouts.UplinkOnly)
@@ -251,27 +247,28 @@ type packetReader struct {
 func (r *packetReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	b := buf.New()
 	b.Resize(0, buf.Size)
-	n, d, err := r.packetConn.ReadFrom(b.Bytes())
+	n, src, err := r.packetConn.ReadFrom(b.Bytes())
 	if err != nil {
 		b.Release()
 		return nil, err
 	}
 	b.Resize(0, int32(n))
 	b.Endpoint = &net.Destination{
-		Address: net.IPAddress(d.(*net.UDPAddr).IP),
-		Port:    net.Port(d.(*net.UDPAddr).Port),
+		Address: net.IPAddress(src.(*net.UDPAddr).IP),
+		Port:    net.Port(src.(*net.UDPAddr).Port),
 		Network: net.Network_UDP,
 	}
-	if domain, ok := r.ipToDomain.Load(d.(*net.UDPAddr).AddrPort().Addr()); ok {
+	if domain, ok := r.ipToDomain.Load(src.(*net.UDPAddr).AddrPort().Addr()); ok {
 		b.Endpoint.Address = domain.(net.Address)
 	}
 	return buf.MultiBuffer{b}, nil
 }
 
-func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domainStrategy ClientConfig_DomainStrategy, hasIPv4, hasIPv6 bool, ipToDomain *sync.Map) buf.Writer {
+func newPacketWriter(conn net.Conn, originalDest, dest net.Destination, dns dns.Client, domainStrategy ClientConfig_DomainStrategy, hasIPv4, hasIPv6 bool, ipToDomain *sync.Map) buf.Writer {
 	if c, ok := conn.(net.PacketConn); ok {
 		return &packetWriter{
 			packetConn:     c,
+			originalDest:   originalDest,
 			dest:           dest,
 			dns:            dns,
 			domainStrategy: domainStrategy,
@@ -285,6 +282,7 @@ func newPacketWriter(conn net.Conn, dest net.Destination, dns dns.Client, domain
 
 type packetWriter struct {
 	packetConn     net.PacketConn
+	originalDest   net.Destination
 	dest           net.Destination
 	dns            dns.Client
 	domainStrategy ClientConfig_DomainStrategy
@@ -299,39 +297,42 @@ func (w *packetWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if b == nil {
 			continue
 		}
-		dest := w.dest
+		originalDest, dest := w.originalDest, w.dest
 		if b.Endpoint != nil {
-			dest = *b.Endpoint
+			originalDest, dest = *b.Endpoint, *b.Endpoint
 		}
-		originalDest := dest
 		if dest.Address.Family().IsDomain() {
-			ips, err := dns.LookupIPWithOption(w.dns, dest.Address.Domain(), dns.IPOption{
-				IPv4Enable: w.hasIPv4 && w.domainStrategy != ClientConfig_USE_IP6,
-				IPv6Enable: w.hasIPv6 && w.domainStrategy != ClientConfig_USE_IP4,
-			})
-			if err != nil {
-				return newError("failed to lookup DNS").Base(err)
-			} else if len(ips) == 0 {
-				return dns.ErrEmptyResponse
-			}
-			if w.domainStrategy == ClientConfig_PREFER_IP4 || w.domainStrategy == ClientConfig_PREFER_IP6 {
-				for _, ip := range ips {
-					if ip.To4() != nil == (w.domainStrategy == ClientConfig_PREFER_IP4) {
-						dest.Address = net.IPAddress(ip)
-					}
-				}
+			if w.originalDest.Address.Family().IsDomain() && dest.Address.Domain() == w.originalDest.Address.Domain() {
+				dest.Address = w.dest.Address
 			} else {
-				dest.Address = net.IPAddress(ips[0])
+				ips, err := dns.LookupIPWithOption(w.dns, dest.Address.Domain(), dns.IPOption{
+					IPv4Enable: w.hasIPv4 && w.domainStrategy != ClientConfig_USE_IP6,
+					IPv6Enable: w.hasIPv6 && w.domainStrategy != ClientConfig_USE_IP4,
+				})
+				if err != nil {
+					return newError("failed to lookup DNS").Base(err)
+				} else if len(ips) == 0 {
+					return dns.ErrEmptyResponse
+				}
+				if w.domainStrategy == ClientConfig_PREFER_IP4 || w.domainStrategy == ClientConfig_PREFER_IP6 {
+					for _, ip := range ips {
+						if ip.To4() != nil == (w.domainStrategy == ClientConfig_PREFER_IP4) {
+							dest.Address = net.IPAddress(ip)
+						}
+					}
+				} else {
+					dest.Address = net.IPAddress(ips[0])
+				}
 			}
 		}
-		destAddr := &net.UDPAddr{
+		udpAddr := &net.UDPAddr{
 			IP:   dest.Address.IP(),
 			Port: int(dest.Port),
 		}
 		if originalDest.Address.Family().IsDomain() {
-			w.ipToDomain.LoadOrStore(destAddr.AddrPort().Addr(), originalDest.Address)
+			w.ipToDomain.LoadOrStore(udpAddr.AddrPort().Addr(), originalDest.Address)
 		}
-		_, err := w.packetConn.WriteTo(b.Bytes(), destAddr)
+		_, err := w.packetConn.WriteTo(b.Bytes(), udpAddr)
 		if err != nil {
 			return err
 		}
