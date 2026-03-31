@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"context"
 	"sync"
-	"sync/atomic"
 
 	sing_mux "github.com/sagernet/sing-mux"
 	"github.com/sagernet/sing/common/bufio"
@@ -76,7 +75,7 @@ type Handler struct {
 	fakedns                 dns.FakeDNSEngine
 	muxPacketEncoding       packetaddr.PacketAddrType
 	pool                    *internet.ConnectionPool
-	closed                  atomic.Bool
+	closed                  bool
 	transportEnvironment    environment.TransportEnvironment
 	interfaceUpdateCallback *list.Element
 }
@@ -376,7 +375,7 @@ func (h *Handler) Address() net.Address {
 
 // Dial implements internet.Dialer.
 func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Connection, error) {
-	if h.closed.Load() {
+	if h.closed {
 		return nil, newError("handler closed")
 	}
 	if h.senderSettings != nil {
@@ -555,7 +554,7 @@ func (h *Handler) ResetConnections() {
 
 // Close implements common.Closable.
 func (h *Handler) Close() error {
-	h.closed.Store(true)
+	h.closed = true
 	h.pool.ResetConnections()
 
 	if h.mux != nil {

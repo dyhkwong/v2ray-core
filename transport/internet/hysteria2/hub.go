@@ -110,6 +110,31 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 	} else {
 		hyConfig.Authenticator = &Authenticator{Password: config.GetPassword()}
 	}
+
+	congestion := config.Congestion
+	if congestion == nil {
+		congestion = new(Congestion)
+	}
+	congestionConfig := hyServer.CongestionConfig{}
+	switch congestion.Type {
+	case "", "bbr":
+		congestionConfig.Type = "bbr"
+		switch congestion.BbrProfile {
+		case "":
+			congestionConfig.BBRProfile = "standard"
+		case "standard", "conservative", "aggressive":
+			congestionConfig.BBRProfile = congestion.BbrProfile
+		default:
+			return nil, newError("unknown congestion BBR profile: ", congestion.BbrProfile)
+		}
+	case "reno":
+		congestionConfig.Type = "reno"
+	case "brutal":
+	default:
+		return nil, newError("unknown congestion type: ", congestion.Type)
+	}
+	hyConfig.CongestionConfig = congestionConfig
+
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
 		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
 		if err != nil {

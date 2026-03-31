@@ -143,9 +143,10 @@ func (c *TCPConfig) Build() (proto.Message, error) {
 }
 
 type Hy2ConfigCongestion struct {
-	Type     string `json:"type"`
-	UpMbps   uint64 `json:"up_mbps"`
-	DownMbps uint64 `json:"down_mbps"`
+	Type       string `json:"type"`
+	UpMbps     uint64 `json:"up_mbps"`
+	DownMbps   uint64 `json:"down_mbps"`
+	BBRProfile string `json:"bbrProfile"`
 }
 
 type Hyteria2ConfigOBFS struct {
@@ -162,6 +163,8 @@ type Hy2Config struct {
 	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
 	HopPorts              string              `json:"hopPorts"`
 	HopInterval           uint64              `json:"hopInterval"`
+	HopIntervalMin        uint64              `json:"hopIntervalMin"`
+	HopIntervalMax        uint64              `json:"hopIntervalMax"`
 }
 
 // Build implements Buildable.
@@ -170,9 +173,10 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 		Password:  c.Password,
 		Passwords: c.Passwords,
 		Congestion: &hysteria2.Congestion{
-			Type:     c.Congestion.Type,
-			DownMbps: c.Congestion.DownMbps,
-			UpMbps:   c.Congestion.UpMbps,
+			Type:       c.Congestion.Type,
+			DownMbps:   c.Congestion.DownMbps,
+			UpMbps:     c.Congestion.UpMbps,
+			BbrProfile: c.Congestion.BBRProfile,
 		},
 		UseUdpExtension:       c.UseUDPExtension,
 		IgnoreClientBandwidth: c.IgnoreClientBandwidth,
@@ -180,8 +184,10 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 			Type:     c.OBFS.Type,
 			Password: c.OBFS.Password,
 		},
-		HopPorts:    c.HopPorts,
-		HopInterval: c.HopInterval,
+		HopPorts:       c.HopPorts,
+		HopInterval:    c.HopInterval,
+		HopIntervalMin: c.HopIntervalMin,
+		HopIntervalMax: c.HopIntervalMax,
 	}, nil
 }
 

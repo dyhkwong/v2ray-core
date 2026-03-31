@@ -24,7 +24,11 @@ func (e *Engine) Client(conn net.Conn, opts ...security.Option) (security.Conn, 
 			return nil, newError("unknown option")
 		}
 	}
-	tlsConn := Client(conn, e.config.GetTLSConfigWithContext(e.ctx, options...))
+	tlsConfig, err := e.config.GetTLSConfigWithContext(e.ctx, options...)
+	if err != nil {
+		return nil, err
+	}
+	tlsConn := Client(conn, tlsConfig)
 	return tlsConn, nil
 }
 

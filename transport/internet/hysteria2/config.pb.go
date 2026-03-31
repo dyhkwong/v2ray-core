@@ -21,6 +21,7 @@ type Congestion struct {
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	UpMbps        uint64                 `protobuf:"varint,2,opt,name=up_mbps,json=upMbps,proto3" json:"up_mbps,omitempty"`
 	DownMbps      uint64                 `protobuf:"varint,3,opt,name=down_mbps,json=downMbps,proto3" json:"down_mbps,omitempty"`
+	BbrProfile    string                 `protobuf:"bytes,4,opt,name=bbrProfile,proto3" json:"bbrProfile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,6 +75,13 @@ func (x *Congestion) GetDownMbps() uint64 {
 		return x.DownMbps
 	}
 	return 0
+}
+
+func (x *Congestion) GetBbrProfile() string {
+	if x != nil {
+		return x.BbrProfile
+	}
+	return ""
 }
 
 type OBFS struct {
@@ -138,6 +146,8 @@ type Config struct {
 	Passwords             []string               `protobuf:"bytes,8,rep,name=passwords,proto3" json:"passwords,omitempty"`
 	HopPorts              string                 `protobuf:"bytes,9,opt,name=hop_ports,json=hopPorts,proto3" json:"hop_ports,omitempty"`
 	HopInterval           uint64                 `protobuf:"varint,10,opt,name=hop_interval,json=hopInterval,proto3" json:"hop_interval,omitempty"`
+	HopIntervalMin        uint64                 `protobuf:"varint,11,opt,name=hop_interval_min,json=hopIntervalMin,proto3" json:"hop_interval_min,omitempty"`
+	HopIntervalMax        uint64                 `protobuf:"varint,12,opt,name=hop_interval_max,json=hopIntervalMax,proto3" json:"hop_interval_max,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -228,19 +238,36 @@ func (x *Config) GetHopInterval() uint64 {
 	return 0
 }
 
+func (x *Config) GetHopIntervalMin() uint64 {
+	if x != nil {
+		return x.HopIntervalMin
+	}
+	return 0
+}
+
+func (x *Config) GetHopIntervalMax() uint64 {
+	if x != nil {
+		return x.HopIntervalMax
+	}
+	return 0
+}
+
 var File_transport_internet_hysteria2_config_proto protoreflect.FileDescriptor
 
 const file_transport_internet_hysteria2_config_proto_rawDesc = "" +
 	"\n" +
-	")transport/internet/hysteria2/config.proto\x12'v2ray.core.transport.internet.hysteria2\x1a common/protoext/extensions.proto\"V\n" +
+	")transport/internet/hysteria2/config.proto\x12'v2ray.core.transport.internet.hysteria2\x1a common/protoext/extensions.proto\"v\n" +
 	"\n" +
 	"Congestion\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x17\n" +
 	"\aup_mbps\x18\x02 \x01(\x04R\x06upMbps\x12\x1b\n" +
-	"\tdown_mbps\x18\x03 \x01(\x04R\bdownMbps\"6\n" +
+	"\tdown_mbps\x18\x03 \x01(\x04R\bdownMbps\x12\x1e\n" +
+	"\n" +
+	"bbrProfile\x18\x04 \x01(\tR\n" +
+	"bbrProfile\"6\n" +
 	"\x04OBFS\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x9a\x03\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xee\x03\n" +
 	"\x06Config\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12S\n" +
 	"\n" +
@@ -252,7 +279,9 @@ const file_transport_internet_hysteria2_config_proto_rawDesc = "" +
 	"\tpasswords\x18\b \x03(\tR\tpasswords\x12\x1b\n" +
 	"\thop_ports\x18\t \x01(\tR\bhopPorts\x12!\n" +
 	"\fhop_interval\x18\n" +
-	" \x01(\x04R\vhopInterval:\x1a\x82\xb5\x18\x16\n" +
+	" \x01(\x04R\vhopInterval\x12(\n" +
+	"\x10hop_interval_min\x18\v \x01(\x04R\x0ehopIntervalMin\x12(\n" +
+	"\x10hop_interval_max\x18\f \x01(\x04R\x0ehopIntervalMax:\x1a\x82\xb5\x18\x16\n" +
 	"\ttransport\x12\thysteria2B\x96\x01\n" +
 	"+com.v2ray.core.transport.internet.hysteria2P\x01Z;github.com/v2fly/v2ray-core/v5/transport/internet/hysteria2\xaa\x02'V2Ray.Core.Transport.Internet.Hysteria2b\x06proto3"
 

@@ -28,11 +28,11 @@ type XmuxManager struct {
 	xmuxConfig  *XmuxConfig
 	concurrency int32
 	connections int32
-	newConnFunc func() XmuxConn
+	newConnFunc func() (XmuxConn, error)
 	xmuxClients []*XmuxClient
 }
 
-func NewXmuxManager(xmuxConfig *XmuxConfig, newConnFunc func() XmuxConn) (*XmuxManager, error) {
+func NewXmuxManager(xmuxConfig *XmuxConfig, newConnFunc func() (XmuxConn, error)) (*XmuxManager, error) {
 	var config *XmuxConfig
 	if xmuxConfig == nil || reflect.DeepEqual(xmuxConfig, &XmuxConfig{}) {
 		config = &XmuxConfig{
@@ -63,9 +63,13 @@ func NewXmuxManager(xmuxConfig *XmuxConfig, newConnFunc func() XmuxConn) (*XmuxM
 	}, nil
 }
 
-func (m *XmuxManager) newXmuxClient() *XmuxClient {
+func (m *XmuxManager) newXmuxClient() (*XmuxClient, error) {
+	xmuxConn, err := m.newConnFunc()
+	if err != nil {
+		return nil, err
+	}
 	xmuxClient := &XmuxClient{
-		XmuxConn:  m.newConnFunc(),
+		XmuxConn:  xmuxConn,
 		leftUsage: -1,
 	}
 	if x := m.xmuxConfig.GetNormalizedCMaxReuseTimes().rand(); x > 0 {
@@ -79,10 +83,10 @@ func (m *XmuxManager) newXmuxClient() *XmuxClient {
 		xmuxClient.UnreusableAt = time.Now().Add(time.Duration(x) * time.Second)
 	}
 	m.xmuxClients = append(m.xmuxClients, xmuxClient)
-	return xmuxClient
+	return xmuxClient, nil
 }
 
-func (m *XmuxManager) GetXmuxClient(ctx context.Context) *XmuxClient { // when locking
+func (m *XmuxManager) GetXmuxClient(ctx context.Context) (*XmuxClient, error) { // when locking
 	for i := 0; i < len(m.xmuxClients); {
 		xmuxClient := m.xmuxClients[i]
 		if xmuxClient.XmuxConn.IsClosed() ||
@@ -132,5 +136,5 @@ func (m *XmuxManager) GetXmuxClient(ctx context.Context) *XmuxClient { // when l
 	if xmuxClient.leftUsage > 0 {
 		xmuxClient.leftUsage -= 1
 	}
-	return xmuxClient
+	return xmuxClient, nil
 }

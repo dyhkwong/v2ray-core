@@ -6,12 +6,12 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/anytls/sing-anytls v0.0.11
-	github.com/apernet/quic-go v0.59.1-0.20260217092621-db4786c77a22
+	github.com/apernet/quic-go v0.59.1-0.20260330051153-c402ee641eb6
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
-	github.com/dyhkwong/hysteria/core/v2 v2.7.1-1
-	github.com/dyhkwong/hysteria/extras/v2 v2.7.1-1
-	github.com/dyhkwong/sing-juicity v0.1.1
-	github.com/enfein/mieru/v3 v3.29.0
+	github.com/dyhkwong/hysteria/core/v2 v2.8.1-1
+	github.com/dyhkwong/hysteria/extras/v2 v2.8.1-1
+	github.com/dyhkwong/sing-juicity v0.1.2
+	github.com/enfein/mieru/v3 v3.30.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
@@ -21,10 +21,10 @@ require (
 	github.com/pion/transport/v4 v4.0.1
 	github.com/pires/go-proxyproto v0.11.0
 	github.com/quic-go/quic-go v0.59.0
-	github.com/refraction-networking/utls v1.8.2
-	github.com/sagernet/sing v0.8.2
+	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
+	github.com/sagernet/sing v0.8.3
 	github.com/sagernet/sing-mux v0.3.4
-	github.com/sagernet/sing-quic v0.6.0
+	github.com/sagernet/sing-quic v0.6.1
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/sagernet/sing-shadowsocks2 v0.2.2
 	github.com/sagernet/sing-shadowtls v0.2.1-0.20250503051639-fcd445d33c11

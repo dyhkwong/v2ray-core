@@ -343,7 +343,7 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 
 // SagerNet private
 func (h *Handler) InterfaceUpdate() {
-	if h.handler != nil {
+	if h.config.InterruptConnections && h.handler != nil {
 		h.handler.ResetConnections()
 	}
 }

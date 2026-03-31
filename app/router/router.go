@@ -3,6 +3,7 @@ package router
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"container/list"
 	"context"
 	"sync"
 
@@ -19,15 +20,15 @@ import (
 
 // Router is an implementation of routing.Router.
 type Router struct {
-	sync.Mutex
 	domainStrategy DomainStrategy
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
 
-	closed    bool
-	taskCount uint64
-	done      chan interface{}
+	closed   bool
+	mu       sync.Mutex
+	taskList list.List
+	done     chan any
 }
 
 // Route is an implementation of routing.Route.
@@ -73,7 +74,7 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 		r.rules = append(r.rules, rr)
 	}
 
-	r.done = make(chan interface{})
+	r.done = make(chan any)
 
 	return nil
 }
@@ -92,20 +93,19 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
-	r.Lock()
 	if r.closed {
-		r.Unlock()
 		return nil, nil, newError("router closed")
 	}
-	r.taskCount++
-	r.Unlock()
+	r.mu.Lock()
+	elem := r.taskList.PushBack(nil)
+	r.mu.Unlock()
 	defer func() {
-		r.Lock()
-		r.taskCount--
-		if r.taskCount == 0 && r.closed {
+		r.mu.Lock()
+		r.taskList.Remove(elem)
+		if r.taskList.Len() == 0 && r.closed {
 			close(r.done)
 		}
-		r.Unlock()
+		r.mu.Unlock()
 	}()
 
 	// SkipDNSResolve is set from DNS module.
@@ -146,12 +146,12 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
-	r.Lock()
 	r.closed = true
-	if r.taskCount == 0 {
+	r.mu.Lock()
+	if r.taskList.Len() == 0 {
 		close(r.done)
 	}
-	r.Unlock()
+	r.mu.Unlock()
 	go func() {
 		<-r.done
 		r.balancers = nil

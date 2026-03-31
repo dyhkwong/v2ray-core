@@ -2,10 +2,12 @@ package wireguard
 
 import (
 	"context"
+	gonet "net"
 	"net/netip"
-	"sync"
+	"runtime"
 
 	"golang.zx2c4.com/wireguard/conn"
+	"golang.zx2c4.com/wireguard/device"
 
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
@@ -13,22 +15,15 @@ import (
 )
 
 type netReadInfo struct {
-	// status
-	waiter sync.WaitGroup
-	// param
-	buff []byte
-	// result
-	bytes    int
+	buff     []byte
 	endpoint conn.Endpoint
-	err      error
 }
 
-// reduce duplicated code
 type netBind struct {
 	workers   int
 	readQueue chan *netReadInfo
+	closedCh  chan struct{}
 	resolver  func(ctx context.Context, domain string) net.Address
-	closeOnce sync.Once
 }
 
 // SetMark implements conn.Bind
@@ -70,43 +65,37 @@ func (bind *netBind) BatchSize() int {
 
 // Open implements conn.Bind
 func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
-	bind.readQueue = make(chan *netReadInfo)
-
+	bind.closedCh = make(chan struct{})
 	fn := func(bufs [][]byte, sizes []int, eps []conn.Endpoint) (n int, err error) {
-		r := &netReadInfo{
-			buff: bufs[0],
+		select {
+		case r := <-bind.readQueue:
+			sizes[0], eps[0] = copy(bufs[0], r.buff), r.endpoint
+			return 1, nil
+		case <-bind.closedCh:
+			return 0, gonet.ErrClosed
 		}
-		r.waiter.Add(1)
-		bind.readQueue <- r
-		r.waiter.Wait()
-		sizes[0], eps[0] = r.bytes, r.endpoint
-		return 1, r.err
 	}
 	workers := bind.workers
 	if workers <= 0 {
-		workers = 1
+		workers = runtime.NumCPU()
 	}
 	arr := make([]conn.ReceiveFunc, workers)
 	for i := 0; i < workers; i++ {
 		arr[i] = fn
 	}
-
 	return arr, uint16(uport), nil
 }
 
 // Close implements conn.Bind
 func (bind *netBind) Close() error {
-	bind.closeOnce.Do(func() {
-		if bind.readQueue != nil {
-			close(bind.readQueue)
-		}
-	})
+	if bind.closedCh != nil {
+		close(bind.closedCh)
+	}
 	return nil
 }
 
 type netBindClient struct {
 	netBind
-
 	ctx      context.Context
 	dialer   internet.Dialer
 	reserved []byte
@@ -118,50 +107,47 @@ func (bind *netBindClient) connectTo(endpoint *netEndpoint) error {
 		return err
 	}
 	endpoint.conn = c
-
-	go func(readQueue <-chan *netReadInfo, endpoint *netEndpoint) {
+	go func() {
 		for {
-			v, ok := <-readQueue
-			if !ok {
-				return
-			}
-			i, err := c.Read(v.buff)
-
-			if i > 3 {
-				v.buff[1] = 0
-				v.buff[2] = 0
-				v.buff[3] = 0
-			}
-
-			v.bytes = i
-			v.endpoint = endpoint
-			v.err = err
-			v.waiter.Done()
+			buff := make([]byte, device.MaxMessageSize)
+			n, err := c.Read(buff)
 			if err != nil {
 				endpoint.conn = nil
+				c.Close()
+				return
+			}
+			if n > 3 {
+				buff[1] = 0
+				buff[2] = 0
+				buff[3] = 0
+			}
+			select {
+			case bind.readQueue <- &netReadInfo{
+				buff:     buff[:n],
+				endpoint: endpoint,
+			}:
+			case <-bind.closedCh:
+				endpoint.conn = nil
+				c.Close()
 				return
 			}
 		}
-	}(bind.readQueue, endpoint)
-
+	}()
 	return nil
 }
 
 func (bind *netBindClient) Send(buff [][]byte, endpoint conn.Endpoint) error {
 	var err error
-
 	nend, ok := endpoint.(*netEndpoint)
 	if !ok {
 		return conn.ErrWrongEndpointType
 	}
-
 	if nend.conn == nil {
 		err = bind.connectTo(nend)
 		if err != nil {
 			return err
 		}
 	}
-
 	for _, buff := range buff {
 		if len(buff) > 3 && len(bind.reserved) == 3 {
 			copy(buff[1:], bind.reserved)
@@ -178,24 +164,19 @@ type netBindServer struct {
 }
 
 func (bind *netBindServer) Send(buff [][]byte, endpoint conn.Endpoint) error {
-	var err error
-
 	nend, ok := endpoint.(*netEndpoint)
 	if !ok {
 		return conn.ErrWrongEndpointType
 	}
-
 	if nend.conn == nil {
-		return newError("connection not open yet")
+		return newError("peer closed")
 	}
-
 	for _, buff := range buff {
-		if _, err = nend.conn.Write(buff); err != nil {
+		if _, err := nend.conn.Write(buff); err != nil {
 			return err
 		}
 	}
-
-	return err
+	return nil
 }
 
 type netEndpoint struct {

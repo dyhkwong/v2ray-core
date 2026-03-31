@@ -28,10 +28,11 @@ func (p *ConnectionPool) ResetConnections() {
 
 func NewTrackedConn(conn net.Conn, pool *ConnectionPool) *TrackedConn {
 	pool.Lock()
-	defer pool.Unlock()
+	elem := pool.PushBack(conn)
+	pool.Unlock()
 	return &TrackedConn{
 		Conn: conn,
-		elem: pool.PushBack(conn),
+		elem: elem,
 		pool: pool,
 	}
 }

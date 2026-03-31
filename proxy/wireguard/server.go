@@ -2,8 +2,6 @@ package wireguard
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -29,21 +27,19 @@ type Server struct {
 
 func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 	v := core.MustFromContext(ctx)
-
 	addresses, _, _, err := parseEndpoints(conf.Address)
 	if err != nil {
 		return nil, err
 	}
-
 	server := &Server{
 		bind: &netBindServer{
 			netBind: netBind{
-				workers: int(conf.NumWorkers),
+				workers:   int(conf.NumWorkers),
+				readQueue: make(chan *netReadInfo),
 			},
 		},
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
 	}
-
 	tun, err := createTun(addresses, int(conf.Mtu), server.forwardConnection)
 	if err != nil {
 		return nil, err
@@ -53,7 +49,6 @@ func NewServer(ctx context.Context, conf *ServerConfig) (*Server, error) {
 		_ = tun.Close()
 		return nil, err
 	}
-
 	return server, nil
 }
 
@@ -79,25 +74,28 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 
 	reader := buf.NewPacketReader(conn)
 	for {
-		mpayload, err := reader.ReadMultiBuffer()
+		mb, err := reader.ReadMultiBuffer()
 		if err != nil {
+			nep.conn = nil
 			return err
 		}
 
-		for _, payload := range mpayload {
-			v, ok := <-s.bind.readQueue
-			if !ok {
-				return nil
+		for i, b := range mb {
+			buff := b.Bytes()
+			if b.Len() > 3 {
+				buff[1] = 0
+				buff[2] = 0
+				buff[3] = 0
 			}
-			i, err := payload.Read(v.buff)
-
-			v.bytes = i
-			v.endpoint = nep
-			v.err = err
-			v.waiter.Done()
-			if err != nil && errors.Is(err, io.EOF) {
+			select {
+			case s.bind.readQueue <- &netReadInfo{
+				buff:     buff,
+				endpoint: nep,
+			}:
+			case <-s.bind.closedCh:
 				nep.conn = nil
-				return nil
+				buf.ReleaseMulti(mb[i:])
+				return newError("bind closed")
 			}
 		}
 	}
@@ -128,9 +126,11 @@ func (s *Server) forwardConnection(dest net.Destination, conn net.Conn) {
 	// Since gvisor.ForwarderRequest doesn't provide any info to associate the sub-context with the Parent context
 	// Currently we have no way to link to the original source address
 	ctx = session.ContextWithInbound(ctx, &inbound)
+	content := new(session.Content)
 	if s.contentTag != nil {
-		ctx = session.ContextWithContent(ctx, s.contentTag)
+		content.SniffingRequest = s.contentTag.SniffingRequest
 	}
+	ctx = session.ContextWithContent(ctx, content)
 	ctx = subContextFromMuxInbound(ctx)
 
 	inbound.Source = net.DestinationFromAddr(conn.RemoteAddr())

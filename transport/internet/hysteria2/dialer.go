@@ -145,7 +145,7 @@ func GetClientTLSConfig(ctx context.Context, dest net.Destination, streamSetting
 	if config == nil {
 		return nil, newError(Hy2MustNeedTLS)
 	}
-	return config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest), tls.WithNextProto("h3")), nil
+	return config.GetTLSConfigWithContext(ctx, tls.WithDestination(dest), tls.WithNextProto("h3"))
 }
 
 func ResolveAddress(ctx context.Context, dest net.Destination, resolver func(ctx context.Context, domain string) net.Address) (net.Addr, error) {
@@ -213,6 +213,30 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 		FastOpen:        true,
 	}
 
+	congestion := config.Congestion
+	if congestion == nil {
+		congestion = new(Congestion)
+	}
+	congestionConfig := hyClient.CongestionConfig{}
+	switch congestion.Type {
+	case "", "bbr":
+		congestionConfig.Type = "bbr"
+		switch congestion.BbrProfile {
+		case "":
+			congestionConfig.BBRProfile = "standard"
+		case "standard", "conservative", "aggressive":
+			congestionConfig.BBRProfile = congestion.BbrProfile
+		default:
+			return nil, newError("unknown congestion BBR profile: ", congestion.BbrProfile)
+		}
+	case "reno":
+		congestionConfig.Type = "reno"
+	case "brutal":
+	default:
+		return nil, newError("unknown congestion type: ", congestion.Type)
+	}
+	hyConfig.CongestionConfig = congestionConfig
+
 	if len(config.HopPorts) > 0 {
 		if config.HopPorts == "all" || config.HopPorts == "*" {
 			return nil, newError("invalid hopPorts")
@@ -245,8 +269,23 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 
 	connFactory := &connFactory{}
 	if len(config.HopPorts) > 0 {
+		var hopIntervalMin, hopIntervalMax time.Duration
+		if config.HopInterval > 0 {
+			if config.HopIntervalMin > 0 || config.HopIntervalMax > 0 {
+				return nil, newError("hopInterval conflicts with hopIntervalMin or hopIntervalMax")
+			}
+			hopIntervalMin = time.Duration(config.HopIntervalMin) * time.Second
+			hopIntervalMax = time.Duration(config.HopIntervalMax) * time.Second
+		} else {
+			hopIntervalMin = time.Duration(config.HopInterval) * time.Second
+			hopIntervalMax = time.Duration(config.HopInterval) * time.Second
+		}
 		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
-			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr), time.Duration(config.HopInterval)*time.Second,
+			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr),
+				udphop.HopIntervalConfig{
+					Min: hopIntervalMin,
+					Max: hopIntervalMax,
+				},
 				func(currentHopAddr net.Addr) (net.PacketConn, error) {
 					newError("hopping to ", net.DestinationFromAddr(currentHopAddr)).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 					return dialFunc(ctx, net.DestinationFromAddr(currentHopAddr), streamSettings.SocketSettings)
@@ -258,6 +297,7 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 			return dialFunc(ctx, net.DestinationFromAddr(addr), streamSettings.SocketSettings)
 		}
 	}
+
 	if config.Obfs != nil && config.Obfs.Type == "salamander" {
 		ob, err := obfs.NewSalamanderObfuscator([]byte(config.Obfs.Password))
 		if err != nil {

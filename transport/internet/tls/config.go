@@ -236,15 +236,19 @@ func (a *alwaysFlushWriter) Write(p []byte) (n int, err error) {
 }
 
 func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
-	return c.getTLSConfig(context.TODO(), opts...)
+	config, err := c.getTLSConfig(context.TODO(), opts...)
+	if err != nil {
+		panic(err)
+	}
+	return config
 }
 
-func (c *Config) GetTLSConfigWithContext(ctx context.Context, opts ...Option) *tls.Config {
+func (c *Config) GetTLSConfigWithContext(ctx context.Context, opts ...Option) (*tls.Config, error) {
 	return c.getTLSConfig(ctx, opts...)
 }
 
 // GetTLSConfig converts this Config into tls.Config.
-func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
+func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) (*tls.Config, error) {
 	root, err := c.getCertPool()
 	if err != nil {
 		newError("failed to load system root certificate").AtError().Base(err).WriteToLog()
@@ -257,7 +261,7 @@ func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 			InsecureSkipVerify:     false,
 			NextProtos:             nil,
 			SessionTicketsDisabled: true,
-		}
+		}, nil
 	}
 
 	clientRoot, err := c.loadSelfCertPool(Certificate_AUTHORITY_VERIFY_CLIENT)
@@ -342,20 +346,18 @@ func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 
 	if c.Ech != nil && c.Ech.Enabled {
 		if len(c.Ech.Key) > 0 && (len(c.Ech.Config) > 0 || len(c.Ech.QueryDomain) > 0) {
-			newError("both ech client and ech server are set").AtError().WriteToLog()
+			return nil, newError("both ech client and ech server are set")
 		}
 		if len(c.Ech.Key) > 0 {
 			echKeys, err := unmarshalECHKeys(c.Ech.Key)
 			if err != nil {
-				newError(err).AtError().WriteToLog()
+				return nil, err
 			} else {
 				config.EncryptedClientHelloKeys = echKeys
 			}
 		} else {
 			if err := c.applyECH(ctx, config); err != nil {
-				newError("unable to set ech config").AtError().WriteToLog()
-				// force connection fail
-				config.EncryptedClientHelloConfigList = []byte{}
+				return nil, err
 			}
 		}
 	}
@@ -406,7 +408,7 @@ func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) *tls.Config {
 		}
 	}
 
-	return config
+	return config, nil
 }
 
 // Option for building TLS config.

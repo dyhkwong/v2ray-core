@@ -67,7 +67,7 @@ func CreateNetTUN(localAddresses []netip.Addr, mtu int, promiscuousMode bool) (t
 	dev := &netTun{
 		ep:             channel.New(1024, uint32(mtu), ""),
 		stack:          stack.New(opts),
-		events:         make(chan tun.Event, 1),
+		events:         make(chan tun.Event, 10),
 		incomingPacket: make(chan *buffer.View),
 		mtu:            mtu,
 	}

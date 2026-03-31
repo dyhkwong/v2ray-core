@@ -84,8 +84,10 @@ func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*juic
 	if !ok {
 		return nil, newError("tls not enabled")
 	}
-	tlsConfig := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
-
+	tlsConfig, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithDestination(o.serverAddr), v2tls.WithNextProto("h3"))
+	if err != nil {
+		return nil, err
+	}
 	options := o.options
 	options.TLSConfig = singbridge.NewTLSConfigWrapper(tlsConfig)
 	options.Dialer = singbridge.NewDialerWrapper(dialer)

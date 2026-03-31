@@ -103,8 +103,9 @@ func (c *Client) processWireGuard(ctx context.Context, dialer internet.Dialer, r
 	// bind := conn.NewStdNetBind() // TODO: conn.Bind wrapper for dialer
 	c.bind = &netBindClient{
 		netBind: netBind{
-			workers:  int(c.conf.NumWorkers),
-			resolver: resolver,
+			workers:   int(c.conf.NumWorkers),
+			readQueue: make(chan *netReadInfo),
+			resolver:  resolver,
 		},
 		ctx:      core.ToBackgroundDetachedContext(ctx),
 		dialer:   dialer,
