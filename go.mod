@@ -14,9 +14,10 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
 	github.com/jhump/protoreflect v1.18.0
+	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40
 	github.com/miekg/dns v1.1.72
 	github.com/mustafaturan/bus v1.0.2
-	github.com/pion/dtls/v2 v2.2.12
+	github.com/pion/dtls/v3 v3.0.11
 	github.com/pion/transport/v2 v2.2.10
 	github.com/pires/go-proxyproto v0.11.0
 	github.com/quic-go/quic-go v0.59.0
@@ -29,6 +30,8 @@ require (
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6
 	github.com/xiaokangwang/VLite v0.0.0-20220418190619-cff95160a432
+	github.com/xssnick/raptorq v1.3.0
+	github.com/xtaci/smux v1.5.24
 	go.starlark.net v0.0.0-20230612165344-9532f5667272
 	go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
 	golang.org/x/crypto v0.49.0
@@ -55,24 +58,24 @@ require (
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/klauspost/reedsolomon v1.11.7 // indirect
-	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/mustafaturan/monoton v1.0.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pion/logging v0.2.2 // indirect
+	github.com/pion/dtls/v2 v2.0.0-rc.7 // indirect
+	github.com/pion/logging v0.2.4 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/sctp v1.8.7 // indirect
-	github.com/pion/transport/v3 v3.0.7 // indirect
+	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/xtaci/smux v1.5.24 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

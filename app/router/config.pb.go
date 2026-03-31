@@ -127,7 +127,7 @@ func (x Config_DomainStrategy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Config_DomainStrategy.Descriptor instead.
 func (Config_DomainStrategy) EnumDescriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{12, 0}
+	return file_app_router_config_proto_rawDescGZIP(), []int{13, 0}
 }
 
 // Domain for routing decision.
@@ -449,6 +449,58 @@ func (x *GeoSiteList) GetEntry() []*GeoSite {
 	return nil
 }
 
+type SetAttribute struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAttribute) Reset() {
+	*x = SetAttribute{}
+	mi := &file_app_router_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAttribute) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAttribute) ProtoMessage() {}
+
+func (x *SetAttribute) ProtoReflect() protoreflect.Message {
+	mi := &file_app_router_config_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAttribute.ProtoReflect.Descriptor instead.
+func (*SetAttribute) Descriptor() ([]byte, []int) {
+	return file_app_router_config_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SetAttribute) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SetAttribute) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 type RoutingRule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to TargetTag:
@@ -489,19 +541,20 @@ type RoutingRule struct {
 	// source_cidr above will have no effect.
 	SourceGeoip []*GeoIP `protobuf:"bytes,11,rep,name=source_geoip,json=sourceGeoip,proto3" json:"source_geoip,omitempty"`
 	// List of ports for source port matching.
-	SourcePortList *net.PortList `protobuf:"bytes,16,opt,name=source_port_list,json=sourcePortList,proto3" json:"source_port_list,omitempty"`
-	UserEmail      []string      `protobuf:"bytes,7,rep,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
-	InboundTag     []string      `protobuf:"bytes,8,rep,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
-	Protocol       []string      `protobuf:"bytes,9,rep,name=protocol,proto3" json:"protocol,omitempty"`
-	Attributes     string        `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
-	DomainMatcher  string        `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
+	SourcePortList *net.PortList   `protobuf:"bytes,16,opt,name=source_port_list,json=sourcePortList,proto3" json:"source_port_list,omitempty"`
+	UserEmail      []string        `protobuf:"bytes,7,rep,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
+	InboundTag     []string        `protobuf:"bytes,8,rep,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Protocol       []string        `protobuf:"bytes,9,rep,name=protocol,proto3" json:"protocol,omitempty"`
+	Attributes     string          `protobuf:"bytes,15,opt,name=attributes,proto3" json:"attributes,omitempty"`
+	DomainMatcher  string          `protobuf:"bytes,17,opt,name=domain_matcher,json=domainMatcher,proto3" json:"domain_matcher,omitempty"`
+	SetAttribute   []*SetAttribute `protobuf:"bytes,18,rep,name=set_attribute,json=setAttribute,proto3" json:"set_attribute,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RoutingRule) Reset() {
 	*x = RoutingRule{}
-	mi := &file_app_router_config_proto_msgTypes[6]
+	mi := &file_app_router_config_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -513,7 +566,7 @@ func (x *RoutingRule) String() string {
 func (*RoutingRule) ProtoMessage() {}
 
 func (x *RoutingRule) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[6]
+	mi := &file_app_router_config_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -526,7 +579,7 @@ func (x *RoutingRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoutingRule.ProtoReflect.Descriptor instead.
 func (*RoutingRule) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{6}
+	return file_app_router_config_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RoutingRule) GetTargetTag() isRoutingRule_TargetTag {
@@ -663,6 +716,13 @@ func (x *RoutingRule) GetDomainMatcher() string {
 	return ""
 }
 
+func (x *RoutingRule) GetSetAttribute() []*SetAttribute {
+	if x != nil {
+		return x.SetAttribute
+	}
+	return nil
+}
+
 type isRoutingRule_TargetTag interface {
 	isRoutingRule_TargetTag()
 }
@@ -694,7 +754,7 @@ type BalancingRule struct {
 
 func (x *BalancingRule) Reset() {
 	*x = BalancingRule{}
-	mi := &file_app_router_config_proto_msgTypes[7]
+	mi := &file_app_router_config_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +766,7 @@ func (x *BalancingRule) String() string {
 func (*BalancingRule) ProtoMessage() {}
 
 func (x *BalancingRule) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[7]
+	mi := &file_app_router_config_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +779,7 @@ func (x *BalancingRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BalancingRule.ProtoReflect.Descriptor instead.
 func (*BalancingRule) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{7}
+	return file_app_router_config_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BalancingRule) GetTag() string {
@@ -768,7 +828,7 @@ type StrategyWeight struct {
 
 func (x *StrategyWeight) Reset() {
 	*x = StrategyWeight{}
-	mi := &file_app_router_config_proto_msgTypes[8]
+	mi := &file_app_router_config_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -780,7 +840,7 @@ func (x *StrategyWeight) String() string {
 func (*StrategyWeight) ProtoMessage() {}
 
 func (x *StrategyWeight) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[8]
+	mi := &file_app_router_config_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -793,7 +853,7 @@ func (x *StrategyWeight) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyWeight.ProtoReflect.Descriptor instead.
 func (*StrategyWeight) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{8}
+	return file_app_router_config_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StrategyWeight) GetRegexp() bool {
@@ -827,7 +887,7 @@ type StrategyRandomConfig struct {
 
 func (x *StrategyRandomConfig) Reset() {
 	*x = StrategyRandomConfig{}
-	mi := &file_app_router_config_proto_msgTypes[9]
+	mi := &file_app_router_config_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -839,7 +899,7 @@ func (x *StrategyRandomConfig) String() string {
 func (*StrategyRandomConfig) ProtoMessage() {}
 
 func (x *StrategyRandomConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[9]
+	mi := &file_app_router_config_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -852,7 +912,7 @@ func (x *StrategyRandomConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyRandomConfig.ProtoReflect.Descriptor instead.
 func (*StrategyRandomConfig) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{9}
+	return file_app_router_config_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StrategyRandomConfig) GetObserverTag() string {
@@ -879,7 +939,7 @@ type StrategyLeastPingConfig struct {
 
 func (x *StrategyLeastPingConfig) Reset() {
 	*x = StrategyLeastPingConfig{}
-	mi := &file_app_router_config_proto_msgTypes[10]
+	mi := &file_app_router_config_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +951,7 @@ func (x *StrategyLeastPingConfig) String() string {
 func (*StrategyLeastPingConfig) ProtoMessage() {}
 
 func (x *StrategyLeastPingConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[10]
+	mi := &file_app_router_config_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +964,7 @@ func (x *StrategyLeastPingConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyLeastPingConfig.ProtoReflect.Descriptor instead.
 func (*StrategyLeastPingConfig) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{10}
+	return file_app_router_config_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StrategyLeastPingConfig) GetObserverTag() string {
@@ -940,7 +1000,7 @@ type StrategyLeastLoadConfig struct {
 
 func (x *StrategyLeastLoadConfig) Reset() {
 	*x = StrategyLeastLoadConfig{}
-	mi := &file_app_router_config_proto_msgTypes[11]
+	mi := &file_app_router_config_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1012,7 @@ func (x *StrategyLeastLoadConfig) String() string {
 func (*StrategyLeastLoadConfig) ProtoMessage() {}
 
 func (x *StrategyLeastLoadConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[11]
+	mi := &file_app_router_config_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1025,7 @@ func (x *StrategyLeastLoadConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StrategyLeastLoadConfig.ProtoReflect.Descriptor instead.
 func (*StrategyLeastLoadConfig) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{11}
+	return file_app_router_config_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StrategyLeastLoadConfig) GetCosts() []*StrategyWeight {
@@ -1021,7 +1081,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_app_router_config_proto_msgTypes[12]
+	mi := &file_app_router_config_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1033,7 +1093,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[12]
+	mi := &file_app_router_config_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1046,7 +1106,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_app_router_config_proto_rawDescGZIP(), []int{12}
+	return file_app_router_config_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Config) GetDomainStrategy() Config_DomainStrategy {
@@ -1084,7 +1144,7 @@ type Domain_Attribute struct {
 
 func (x *Domain_Attribute) Reset() {
 	*x = Domain_Attribute{}
-	mi := &file_app_router_config_proto_msgTypes[13]
+	mi := &file_app_router_config_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1096,7 +1156,7 @@ func (x *Domain_Attribute) String() string {
 func (*Domain_Attribute) ProtoMessage() {}
 
 func (x *Domain_Attribute) ProtoReflect() protoreflect.Message {
-	mi := &file_app_router_config_proto_msgTypes[13]
+	mi := &file_app_router_config_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1194,7 +1254,10 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\fcountry_code\x18\x01 \x01(\tR\vcountryCode\x125\n" +
 	"\x06domain\x18\x02 \x03(\v2\x1d.v2ray.core.app.router.DomainR\x06domain\"C\n" +
 	"\vGeoSiteList\x124\n" +
-	"\x05entry\x18\x01 \x03(\v2\x1e.v2ray.core.app.router.GeoSiteR\x05entry\"\xf1\x06\n" +
+	"\x05entry\x18\x01 \x03(\v2\x1e.v2ray.core.app.router.GeoSiteR\x05entry\"6\n" +
+	"\fSetAttribute\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xbb\a\n" +
 	"\vRoutingRule\x12\x12\n" +
 	"\x03tag\x18\x01 \x01(\tH\x00R\x03tag\x12%\n" +
 	"\rbalancing_tag\x18\f \x01(\tH\x00R\fbalancingTag\x125\n" +
@@ -1219,7 +1282,8 @@ const file_app_router_config_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\x0f \x01(\tR\n" +
 	"attributes\x12%\n" +
-	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcherB\f\n" +
+	"\x0edomain_matcher\x18\x11 \x01(\tR\rdomainMatcher\x12H\n" +
+	"\rset_attribute\x18\x12 \x03(\v2#.v2ray.core.app.router.SetAttributeR\fsetAttributeB\f\n" +
 	"\n" +
 	"target_tag\"\xe2\x01\n" +
 	"\rBalancingRule\x12\x10\n" +
@@ -1271,7 +1335,7 @@ func file_app_router_config_proto_rawDescGZIP() []byte {
 }
 
 var file_app_router_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_app_router_config_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_app_router_config_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_app_router_config_proto_goTypes = []any{
 	(Domain_Type)(0),                // 0: v2ray.core.app.router.Domain.Type
 	(Config_DomainStrategy)(0),      // 1: v2ray.core.app.router.Config.DomainStrategy
@@ -1281,23 +1345,24 @@ var file_app_router_config_proto_goTypes = []any{
 	(*GeoIPList)(nil),               // 5: v2ray.core.app.router.GeoIPList
 	(*GeoSite)(nil),                 // 6: v2ray.core.app.router.GeoSite
 	(*GeoSiteList)(nil),             // 7: v2ray.core.app.router.GeoSiteList
-	(*RoutingRule)(nil),             // 8: v2ray.core.app.router.RoutingRule
-	(*BalancingRule)(nil),           // 9: v2ray.core.app.router.BalancingRule
-	(*StrategyWeight)(nil),          // 10: v2ray.core.app.router.StrategyWeight
-	(*StrategyRandomConfig)(nil),    // 11: v2ray.core.app.router.StrategyRandomConfig
-	(*StrategyLeastPingConfig)(nil), // 12: v2ray.core.app.router.StrategyLeastPingConfig
-	(*StrategyLeastLoadConfig)(nil), // 13: v2ray.core.app.router.StrategyLeastLoadConfig
-	(*Config)(nil),                  // 14: v2ray.core.app.router.Config
-	(*Domain_Attribute)(nil),        // 15: v2ray.core.app.router.Domain.Attribute
-	(*net.PortRange)(nil),           // 16: v2ray.core.common.net.PortRange
-	(*net.PortList)(nil),            // 17: v2ray.core.common.net.PortList
-	(*net.NetworkList)(nil),         // 18: v2ray.core.common.net.NetworkList
-	(net.Network)(0),                // 19: v2ray.core.common.net.Network
-	(*serial.TypedMessage)(nil),     // 20: v2ray.core.common.serial.TypedMessage
+	(*SetAttribute)(nil),            // 8: v2ray.core.app.router.SetAttribute
+	(*RoutingRule)(nil),             // 9: v2ray.core.app.router.RoutingRule
+	(*BalancingRule)(nil),           // 10: v2ray.core.app.router.BalancingRule
+	(*StrategyWeight)(nil),          // 11: v2ray.core.app.router.StrategyWeight
+	(*StrategyRandomConfig)(nil),    // 12: v2ray.core.app.router.StrategyRandomConfig
+	(*StrategyLeastPingConfig)(nil), // 13: v2ray.core.app.router.StrategyLeastPingConfig
+	(*StrategyLeastLoadConfig)(nil), // 14: v2ray.core.app.router.StrategyLeastLoadConfig
+	(*Config)(nil),                  // 15: v2ray.core.app.router.Config
+	(*Domain_Attribute)(nil),        // 16: v2ray.core.app.router.Domain.Attribute
+	(*net.PortRange)(nil),           // 17: v2ray.core.common.net.PortRange
+	(*net.PortList)(nil),            // 18: v2ray.core.common.net.PortList
+	(*net.NetworkList)(nil),         // 19: v2ray.core.common.net.NetworkList
+	(net.Network)(0),                // 20: v2ray.core.common.net.Network
+	(*serial.TypedMessage)(nil),     // 21: v2ray.core.common.serial.TypedMessage
 }
 var file_app_router_config_proto_depIdxs = []int32{
 	0,  // 0: v2ray.core.app.router.Domain.type:type_name -> v2ray.core.app.router.Domain.Type
-	15, // 1: v2ray.core.app.router.Domain.attribute:type_name -> v2ray.core.app.router.Domain.Attribute
+	16, // 1: v2ray.core.app.router.Domain.attribute:type_name -> v2ray.core.app.router.Domain.Attribute
 	3,  // 2: v2ray.core.app.router.GeoIP.cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 3: v2ray.core.app.router.GeoIPList.entry:type_name -> v2ray.core.app.router.GeoIP
 	2,  // 4: v2ray.core.app.router.GeoSite.domain:type_name -> v2ray.core.app.router.Domain
@@ -1305,23 +1370,24 @@ var file_app_router_config_proto_depIdxs = []int32{
 	2,  // 6: v2ray.core.app.router.RoutingRule.domain:type_name -> v2ray.core.app.router.Domain
 	3,  // 7: v2ray.core.app.router.RoutingRule.cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 8: v2ray.core.app.router.RoutingRule.geoip:type_name -> v2ray.core.app.router.GeoIP
-	16, // 9: v2ray.core.app.router.RoutingRule.port_range:type_name -> v2ray.core.common.net.PortRange
-	17, // 10: v2ray.core.app.router.RoutingRule.port_list:type_name -> v2ray.core.common.net.PortList
-	18, // 11: v2ray.core.app.router.RoutingRule.network_list:type_name -> v2ray.core.common.net.NetworkList
-	19, // 12: v2ray.core.app.router.RoutingRule.networks:type_name -> v2ray.core.common.net.Network
+	17, // 9: v2ray.core.app.router.RoutingRule.port_range:type_name -> v2ray.core.common.net.PortRange
+	18, // 10: v2ray.core.app.router.RoutingRule.port_list:type_name -> v2ray.core.common.net.PortList
+	19, // 11: v2ray.core.app.router.RoutingRule.network_list:type_name -> v2ray.core.common.net.NetworkList
+	20, // 12: v2ray.core.app.router.RoutingRule.networks:type_name -> v2ray.core.common.net.Network
 	3,  // 13: v2ray.core.app.router.RoutingRule.source_cidr:type_name -> v2ray.core.app.router.CIDR
 	4,  // 14: v2ray.core.app.router.RoutingRule.source_geoip:type_name -> v2ray.core.app.router.GeoIP
-	17, // 15: v2ray.core.app.router.RoutingRule.source_port_list:type_name -> v2ray.core.common.net.PortList
-	20, // 16: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> v2ray.core.common.serial.TypedMessage
-	10, // 17: v2ray.core.app.router.StrategyLeastLoadConfig.costs:type_name -> v2ray.core.app.router.StrategyWeight
-	1,  // 18: v2ray.core.app.router.Config.domain_strategy:type_name -> v2ray.core.app.router.Config.DomainStrategy
-	8,  // 19: v2ray.core.app.router.Config.rule:type_name -> v2ray.core.app.router.RoutingRule
-	9,  // 20: v2ray.core.app.router.Config.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	18, // 15: v2ray.core.app.router.RoutingRule.source_port_list:type_name -> v2ray.core.common.net.PortList
+	8,  // 16: v2ray.core.app.router.RoutingRule.set_attribute:type_name -> v2ray.core.app.router.SetAttribute
+	21, // 17: v2ray.core.app.router.BalancingRule.strategy_settings:type_name -> v2ray.core.common.serial.TypedMessage
+	11, // 18: v2ray.core.app.router.StrategyLeastLoadConfig.costs:type_name -> v2ray.core.app.router.StrategyWeight
+	1,  // 19: v2ray.core.app.router.Config.domain_strategy:type_name -> v2ray.core.app.router.Config.DomainStrategy
+	9,  // 20: v2ray.core.app.router.Config.rule:type_name -> v2ray.core.app.router.RoutingRule
+	10, // 21: v2ray.core.app.router.Config.balancing_rule:type_name -> v2ray.core.app.router.BalancingRule
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_app_router_config_proto_init() }
@@ -1329,11 +1395,11 @@ func file_app_router_config_proto_init() {
 	if File_app_router_config_proto != nil {
 		return
 	}
-	file_app_router_config_proto_msgTypes[6].OneofWrappers = []any{
+	file_app_router_config_proto_msgTypes[7].OneofWrappers = []any{
 		(*RoutingRule_Tag)(nil),
 		(*RoutingRule_BalancingTag)(nil),
 	}
-	file_app_router_config_proto_msgTypes[13].OneofWrappers = []any{
+	file_app_router_config_proto_msgTypes[14].OneofWrappers = []any{
 		(*Domain_Attribute_BoolValue)(nil),
 		(*Domain_Attribute_IntValue)(nil),
 	}
@@ -1343,7 +1409,7 @@ func file_app_router_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_router_config_proto_rawDesc), len(file_app_router_config_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

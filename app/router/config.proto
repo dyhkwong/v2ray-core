@@ -71,6 +71,11 @@ message GeoSiteList {
   repeated GeoSite entry = 1;
 }
 
+message SetAttribute {
+  string key = 1;
+  string value = 2;
+}
+
 message RoutingRule {
   oneof target_tag {
     // Tag of outbound that this rule is pointing to.
@@ -123,6 +128,8 @@ message RoutingRule {
   string attributes = 15;
 
   string domain_matcher = 17;
+
+  repeated SetAttribute set_attribute = 18;
 }
 
 message BalancingRule {

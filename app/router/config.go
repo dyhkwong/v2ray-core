@@ -10,9 +10,10 @@ import (
 )
 
 type Rule struct {
-	Tag       string
-	Balancer  *Balancer
-	Condition Condition
+	Tag           string
+	Balancer      *Balancer
+	Condition     Condition
+	SetAttributes []*SetAttribute
 }
 
 func (r *Rule) GetTag() (string, error) {

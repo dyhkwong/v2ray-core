@@ -85,6 +85,8 @@ import (
 
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/hysteria2"
 
+	_ "github.com/v2fly/v2ray-core/v4/transport/internet/rrpit/rrpitTransport"
+
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/mirrorenrollment/roundtripperenrollmentconfirmation"
 	_ "github.com/v2fly/v2ray-core/v4/transport/internet/tlsmirror/server"
 
