@@ -5,17 +5,19 @@ import (
 	gonet "net"
 	"net/netip"
 	"runtime"
+	"sync"
 
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
 
 type netReadInfo struct {
-	buff     []byte
+	buff     *buf.Buffer
 	endpoint conn.Endpoint
 }
 
@@ -23,6 +25,7 @@ type netBind struct {
 	workers   int
 	readQueue chan *netReadInfo
 	closedCh  chan struct{}
+	closeOnce sync.Once
 	resolver  func(ctx context.Context, domain string) net.Address
 }
 
@@ -69,7 +72,8 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 	fn := func(bufs [][]byte, sizes []int, eps []conn.Endpoint) (n int, err error) {
 		select {
 		case r := <-bind.readQueue:
-			sizes[0], eps[0] = copy(bufs[0], r.buff), r.endpoint
+			sizes[0], eps[0] = copy(bufs[0], r.buff.Bytes()), r.endpoint
+			r.buff.Release()
 			return 1, nil
 		case <-bind.closedCh:
 			return 0, gonet.ErrClosed
@@ -89,7 +93,9 @@ func (bind *netBind) Open(uport uint16) ([]conn.ReceiveFunc, uint16, error) {
 // Close implements conn.Bind
 func (bind *netBind) Close() error {
 	if bind.closedCh != nil {
-		close(bind.closedCh)
+		bind.closeOnce.Do(func() {
+			close(bind.closedCh)
+		})
 	}
 	return nil
 }
@@ -109,24 +115,28 @@ func (bind *netBindClient) connectTo(endpoint *netEndpoint) error {
 	endpoint.conn = c
 	go func() {
 		for {
-			buff := make([]byte, device.MaxMessageSize)
-			n, err := c.Read(buff)
+			buff := buf.NewWithSize(device.MaxMessageSize)
+			n, err := buff.ReadFrom(c)
 			if err != nil {
+				buff.Release()
 				endpoint.conn = nil
 				c.Close()
 				return
 			}
 			if n > 3 {
-				buff[1] = 0
-				buff[2] = 0
-				buff[3] = 0
+				b := buff.Bytes()
+				b[1] = 0
+				b[2] = 0
+				b[3] = 0
 			}
 			select {
 			case bind.readQueue <- &netReadInfo{
-				buff:     buff[:n],
+				// buff:     buff[:n],
+				buff:     buff,
 				endpoint: endpoint,
 			}:
 			case <-bind.closedCh:
+				buff.Release()
 				endpoint.conn = nil
 				c.Close()
 				return

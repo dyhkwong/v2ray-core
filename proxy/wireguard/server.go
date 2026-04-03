@@ -81,15 +81,15 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 		}
 
 		for i, b := range mb {
-			buff := b.Bytes()
 			if b.Len() > 3 {
+				buff := b.Bytes()
 				buff[1] = 0
 				buff[2] = 0
 				buff[3] = 0
 			}
 			select {
 			case s.bind.readQueue <- &netReadInfo{
-				buff:     buff,
+				buff:     b,
 				endpoint: nep,
 			}:
 			case <-s.bind.closedCh:
