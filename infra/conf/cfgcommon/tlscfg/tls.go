@@ -18,7 +18,6 @@ type TLSConfig struct {
 	Certs                                []*TLSCertConfig      `json:"certificates"`
 	ServerName                           string                `json:"serverName"`
 	ALPN                                 *cfgcommon.StringList `json:"alpn"`
-	EnableSessionResumption              bool                  `json:"enableSessionResumption"`
 	DisableSystemRoot                    bool                  `json:"disableSystemRoot"`
 	PinnedPeerCertificateChainSha256     *[]string             `json:"pinnedPeerCertificateChainSha256"`
 	VerifyClientCertificate              bool                  `json:"verifyClientCertificate"`
@@ -52,7 +51,6 @@ func (c *TLSConfig) Build() (proto.Message, error) {
 	if c.ALPN != nil && len(*c.ALPN) > 0 {
 		config.NextProtocol = []string(*c.ALPN)
 	}
-	config.EnableSessionResumption = c.EnableSessionResumption
 	config.DisableSystemRoot = c.DisableSystemRoot
 
 	if c.PinnedPeerCertificateChainSha256 != nil {
