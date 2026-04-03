@@ -211,8 +211,6 @@ type Config struct {
 	ServerName string `protobuf:"bytes,3,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
 	// Lists of string as ALPN values.
 	NextProtocol []string `protobuf:"bytes,4,rep,name=next_protocol,json=nextProtocol,proto3" json:"next_protocol,omitempty"`
-	// Whether or not to enable session (ticket) resumption.
-	EnableSessionResumption bool `protobuf:"varint,5,opt,name=enable_session_resumption,json=enableSessionResumption,proto3" json:"enable_session_resumption,omitempty"`
 	// If true, root certificates on the system will not be loaded for
 	// verification.
 	DisableSystemRoot bool `protobuf:"varint,6,opt,name=disable_system_root,json=disableSystemRoot,proto3" json:"disable_system_root,omitempty"`
@@ -300,13 +298,6 @@ func (x *Config) GetNextProtocol() []string {
 	return nil
 }
 
-func (x *Config) GetEnableSessionResumption() bool {
-	if x != nil {
-		return x.EnableSessionResumption
-	}
-	return false
-}
-
 func (x *Config) GetDisableSystemRoot() bool {
 	if x != nil {
 		return x.DisableSystemRoot
@@ -392,14 +383,13 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\fENCIPHERMENT\x10\x00\x12\x14\n" +
 	"\x10AUTHORITY_VERIFY\x10\x01\x12\x13\n" +
 	"\x0fAUTHORITY_ISSUE\x10\x02\x12\x1b\n" +
-	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\xc4\a\n" +
+	"\x17AUTHORITY_VERIFY_CLIENT\x10\x03\"\x8e\a\n" +
 	"\x06Config\x12-\n" +
 	"\x0eallow_insecure\x18\x01 \x01(\bB\x06\x82\xb5\x18\x02(\x01R\rallowInsecure\x12P\n" +
 	"\vcertificate\x18\x02 \x03(\v2..v2ray.core.transport.internet.tls.CertificateR\vcertificate\x12\x1f\n" +
 	"\vserver_name\x18\x03 \x01(\tR\n" +
 	"serverName\x12#\n" +
-	"\rnext_protocol\x18\x04 \x03(\tR\fnextProtocol\x12:\n" +
-	"\x19enable_session_resumption\x18\x05 \x01(\bR\x17enableSessionResumption\x12.\n" +
+	"\rnext_protocol\x18\x04 \x03(\tR\fnextProtocol\x12.\n" +
 	"\x13disable_system_root\x18\x06 \x01(\bR\x11disableSystemRoot\x12N\n" +
 	"$pinned_peer_certificate_chain_sha256\x18\a \x03(\fR pinnedPeerCertificateChainSha256\x12:\n" +
 	"\x19verify_client_certificate\x18\b \x01(\bR\x17verifyClientCertificate\x12U\n" +
@@ -425,7 +415,7 @@ const file_transport_internet_tls_config_proto_rawDesc = "" +
 	"\x06TLS1_2\x10\x03\x12\n" +
 	"\n" +
 	"\x06TLS1_3\x10\x04:\x17\x82\xb5\x18\x13\n" +
-	"\bsecurity\x12\x03tls\x90\xff)\x01B\x84\x01\n" +
+	"\bsecurity\x12\x03tls\x90\xff)\x01J\x04\b\x05\x10\x06B\x84\x01\n" +
 	"%com.v2ray.core.transport.internet.tlsP\x01Z5github.com/v2fly/v2ray-core/v5/transport/internet/tls\xaa\x02!V2Ray.Core.Transport.Internet.Tlsb\x06proto3"
 
 var (
