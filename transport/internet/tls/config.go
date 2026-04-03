@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,10 +13,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/protocol/tls/cert"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
-
-var globalSessionCache = tls.NewLRUClientSessionCache(128)
-
-const exp8357 = "experiment:8357"
 
 // ParseCertificate converts a cert.Certificate to Certificate.
 func ParseCertificate(c *cert.Certificate) *Certificate {
@@ -170,18 +165,6 @@ func getGetCertificateFunc(c *tls.Config, ca []*Certificate) func(hello *tls.Cli
 	}
 }
 
-func (c *Config) IsExperiment8357() bool {
-	return strings.HasPrefix(c.ServerName, exp8357)
-}
-
-func (c *Config) parseServerName() string {
-	if c.IsExperiment8357() {
-		return c.ServerName[len(exp8357):]
-	}
-
-	return c.ServerName
-}
-
 func (c *Config) verifyPeerCert(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	if c.PinnedPeerCertificateChainSha256 != nil {
 		hashValue := GenerateCertChainHash(rawCerts)
@@ -214,11 +197,9 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 
 	if c == nil {
 		return &tls.Config{
-			ClientSessionCache:     globalSessionCache,
-			RootCAs:                root,
-			InsecureSkipVerify:     false,
-			NextProtos:             nil,
-			SessionTicketsDisabled: true,
+			RootCAs:            root,
+			InsecureSkipVerify: false,
+			NextProtos:         nil,
 		}
 	}
 
@@ -228,13 +209,11 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 	}
 
 	config := &tls.Config{
-		ClientSessionCache:     globalSessionCache,
-		RootCAs:                root,
-		InsecureSkipVerify:     c.AllowInsecure,
-		NextProtos:             c.NextProtocol,
-		SessionTicketsDisabled: !c.EnableSessionResumption,
-		VerifyPeerCertificate:  c.verifyPeerCert,
-		ClientCAs:              clientRoot,
+		RootCAs:               root,
+		InsecureSkipVerify:    c.AllowInsecure,
+		NextProtos:            c.NextProtocol,
+		VerifyPeerCertificate: c.verifyPeerCert,
+		ClientCAs:             clientRoot,
 	}
 
 	if c.AllowInsecureIfPinnedPeerCertificate && c.PinnedPeerCertificateChainSha256 != nil {
@@ -253,8 +232,8 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 		config.GetCertificate = getGetCertificateFunc(config, caCerts)
 	}
 
-	if sn := c.parseServerName(); len(sn) > 0 {
-		config.ServerName = sn
+	if len(c.ServerName) > 0 {
+		config.ServerName = c.ServerName
 	}
 
 	if len(config.NextProtos) == 0 {
