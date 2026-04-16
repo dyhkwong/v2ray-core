@@ -219,14 +219,14 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 					KeepAlivePeriod:      time.Second * 15,
 					HandshakeIdleTimeout: time.Second * 8,
 				},
-				Dial: func(ctx context.Context, _ string, _ *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+				Dial: func(_ context.Context, _ string, _ *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+					detachedContext := core.ToBackgroundDetachedContext(ctx)
 					tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
-					tlsCfg, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					tlsCfg, err := tlsSettings.GetTLSConfigWithContext(detachedContext, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
 					if err != nil {
 						return nil, err
 					}
-					ctx = core.ToBackgroundDetachedContext(ctx)
-					conn, err := dialer.Dial(core.ToBackgroundDetachedContext(ctx), c.serverAddress)
+					conn, err := dialer.Dial(detachedContext, c.serverAddress)
 					if err != nil {
 						return nil, err
 					}
@@ -254,7 +254,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 					default:
 						packetConn = internet.NewConnWrapper(iConn)
 					}
-					quicConn, err := quic.Dial(ctx, packetConn, conn.RemoteAddr(), tlsCfg, cfg)
+					quicConn, err := quic.Dial(detachedContext, packetConn, conn.RemoteAddr(), tlsCfg, cfg)
 					if err != nil {
 						conn.Close()
 						return nil, err
@@ -265,9 +265,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 		} else {
 			transport = &http2.Transport{
 				ReadIdleTimeout: time.Second * 15,
-				DialTLSContext: func(ctx context.Context, _, _ string, _ *tls.Config) (net.Conn, error) {
-					ctx = core.ToBackgroundDetachedContext(ctx)
-					conn, err := dialer.Dial(core.ToBackgroundDetachedContext(ctx), c.serverAddress)
+				DialTLSContext: func(_ context.Context, _, _ string, _ *tls.Config) (net.Conn, error) {
+					detachedContext := core.ToBackgroundDetachedContext(ctx)
+					conn, err := dialer.Dial(detachedContext, c.serverAddress)
 					if err != nil {
 						return nil, err
 					}
