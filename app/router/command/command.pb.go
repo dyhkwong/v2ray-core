@@ -34,7 +34,7 @@ type RoutingContext struct {
 	Attributes        map[string]string      `protobuf:"bytes,10,rep,name=Attributes,proto3" json:"Attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	OutboundGroupTags []string               `protobuf:"bytes,11,rep,name=OutboundGroupTags,proto3" json:"OutboundGroupTags,omitempty"`
 	OutboundTag       string                 `protobuf:"bytes,12,opt,name=OutboundTag,proto3" json:"OutboundTag,omitempty"`
-	Uid               uint32                 `protobuf:"varint,13,opt,name=uid,proto3" json:"uid,omitempty"`
+	Uid               int32                  `protobuf:"varint,13,opt,name=uid,proto3" json:"uid,omitempty"`
 	Ssid              string                 `protobuf:"bytes,14,opt,name=ssid,proto3" json:"ssid,omitempty"`
 	NetworkType       string                 `protobuf:"bytes,15,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
 	unknownFields     protoimpl.UnknownFields
@@ -155,7 +155,7 @@ func (x *RoutingContext) GetOutboundTag() string {
 	return ""
 }
 
-func (x *RoutingContext) GetUid() uint32 {
+func (x *RoutingContext) GetUid() int32 {
 	if x != nil {
 		return x.Uid
 	}
@@ -684,7 +684,7 @@ const file_app_router_command_command_proto_rawDesc = "" +
 	"Attributes\x12,\n" +
 	"\x11OutboundGroupTags\x18\v \x03(\tR\x11OutboundGroupTags\x12 \n" +
 	"\vOutboundTag\x18\f \x01(\tR\vOutboundTag\x12\x10\n" +
-	"\x03uid\x18\r \x01(\rR\x03uid\x12\x12\n" +
+	"\x03uid\x18\r \x01(\x05R\x03uid\x12\x12\n" +
 	"\x04ssid\x18\x0e \x01(\tR\x04ssid\x12!\n" +
 	"\fnetwork_type\x18\x0f \x01(\tR\vnetworkType\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +

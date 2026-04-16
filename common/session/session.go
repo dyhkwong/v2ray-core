@@ -45,7 +45,7 @@ type Inbound struct {
 	User *protocol.MemoryUser
 
 	// SagerNet private
-	UID         uint32
+	UID         int32
 	SSID        string
 	NetworkType string
 }

@@ -131,7 +131,6 @@ func (bind *netBindClient) connectTo(endpoint *netEndpoint) error {
 			}
 			select {
 			case bind.readQueue <- &netReadInfo{
-				// buff:     buff[:n],
 				buff:     buff,
 				endpoint: endpoint,
 			}:

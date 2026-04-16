@@ -175,7 +175,7 @@ func createTun(localAddresses []netip.Addr, mtu int, handler func(dest net.Desti
 		}
 
 		gstack.SetTransportProtocolHandler(udp.ProtocolNumber, func(id stack.TransportEndpointID, pkt *stack.PacketBuffer) bool {
-			data := pkt.Data().AsRange().ToSlice()
+			data := pkt.Clone().Data().AsRange().ToSlice()
 			src := net.UDPDestination(net.IPAddress(id.RemoteAddress.AsSlice()), net.Port(id.RemotePort))
 			dest := net.UDPDestination(net.IPAddress(id.LocalAddress.AsSlice()), net.Port(id.LocalPort))
 			manager.feed(src, dest, data)

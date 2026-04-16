@@ -107,7 +107,7 @@ func (w *tcpWorker) callback(conn internet.Connection) {
 			} else {
 				newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 			}
-			inbound.UID = uint32(uid)
+			inbound.UID = uid
 		}
 	}
 
@@ -367,7 +367,7 @@ func (w *udpWorker) callback(b *buf.Buffer, source net.Destination, originalDest
 					} else {
 						newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", dest.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 					}
-					inbound.UID = uint32(uid)
+					inbound.UID = uid
 				}
 			}
 

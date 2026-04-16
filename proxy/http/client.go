@@ -260,7 +260,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 			rawConn.Close()
 			if elem != nil {
 				c.cachedH2Mutex.Lock()
-				c.cachedH2Conns[dest].Remove(elem)
+				if cachedH2Conn, found := c.cachedH2Conns[dest]; found {
+					cachedH2Conn.Remove(elem)
+				}
 				c.cachedH2Mutex.Unlock()
 			}
 			return nil, err
@@ -272,7 +274,9 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 			rawConn.Close()
 			if elem != nil {
 				c.cachedH2Mutex.Lock()
-				c.cachedH2Conns[dest].Remove(elem)
+				if cachedH2Conn, found := c.cachedH2Conns[dest]; found {
+					cachedH2Conn.Remove(elem)
+				}
 				c.cachedH2Mutex.Unlock()
 			}
 			return nil, pErr
@@ -309,9 +313,6 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 	}
 
 	iConn := rawConn
-	if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-		iConn = trackedConn.NetConn()
-	}
 	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
 		iConn = statConn.Connection
 	}

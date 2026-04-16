@@ -12,9 +12,6 @@ var (
 	_ buf.Writer = (*uotWriter)(nil)
 	_ buf.Reader = (*uotReader)(nil)
 
-	defaultH1UserAgent  = "Go-http-client/1.1" // net/http http.Transport
-	defaultH2UserAgent  = "Go-http-client/2.0" // net/http http.Transport
-	defaultH3UserAgent  = "quic-go HTTP/3"     // github.com/quic-go/quic-go/http3 http3.Transport
 	uotMagicAddress     = "_udp2"
 	ipv4Padding         = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	ipv6LoopBackAddress = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
@@ -89,25 +86,25 @@ func (r *uotReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 
 type uotWriter struct {
 	net.Conn
-	dest      net.Destination
-	destIP    net.Address
-	userAgent string
-	resolver  func(domain string) (net.Address, error)
+	dest     net.Destination
+	destIP   net.Address
+	appName  string
+	resolver func(domain string) (net.Address, error)
 }
 
-func newUoTWriter(conn net.Conn, dest net.Destination, destIP net.Address, userAgent string, resolver func(domain string) (net.Address, error)) *uotWriter {
+func newUoTWriter(conn net.Conn, dest net.Destination, destIP net.Address, appName string, resolver func(domain string) (net.Address, error)) *uotWriter {
 	return &uotWriter{
-		Conn:      conn,
-		dest:      dest,
-		destIP:    destIP,
-		userAgent: userAgent,
-		resolver:  resolver,
+		Conn:     conn,
+		dest:     dest,
+		destIP:   destIP,
+		appName:  appName,
+		resolver: resolver,
 	}
 }
 
 func (w *uotWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	defer buf.ReleaseMulti(mb)
-	if len(w.userAgent) > 255 {
+	if len(w.appName) > 255 {
 		return newError("App Name too long")
 	}
 	for _, b := range mb {
@@ -127,7 +124,7 @@ func (w *uotWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				}
 			}
 		}
-		length := uint32(b.Len()) + 37 + uint32(len(w.userAgent))
+		length := uint32(b.Len()) + 37 + uint32(len(w.appName))
 		payload := buf.NewWithSize(int32(length))
 		// Length
 		err := binary.Write(payload, binary.BigEndian, length)
@@ -161,14 +158,14 @@ func (w *uotWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 			return err
 		}
 		// App Name Length
-		_, err = payload.Write([]byte{byte(len(w.userAgent))})
+		_, err = payload.Write([]byte{byte(len(w.appName))})
 		if err != nil {
 			payload.Release()
 			return err
 		}
 		// App Name
-		if len(w.userAgent) > 0 {
-			_, err = payload.Write([]byte(w.userAgent))
+		if len(w.appName) > 0 {
+			_, err = payload.Write([]byte(w.appName))
 			if err != nil {
 				payload.Release()
 				return err

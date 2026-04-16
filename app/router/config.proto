@@ -12,6 +12,10 @@ import "common/net/network.proto";
 import "common/protoext/extensions.proto";
 import "app/router/routercommon/common.proto";
 
+message SetAttribute {
+  string key = 1;
+  string value = 2;
+}
 
 message RoutingRule {
   oneof target_tag {
@@ -66,11 +70,13 @@ message RoutingRule {
 
   string domain_matcher = 17;
 
-  repeated uint32 uid = 18;
-  repeated string ssid = 19;
-  repeated string network_type = 20;
+  repeated SetAttribute set_attribute = 18;
 
-  bool skip_domain = 21;
+  repeated int32 uid = 19;
+  repeated string ssid = 20;
+  repeated string network_type = 21;
+
+  bool skip_domain = 22;
 
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;
@@ -191,11 +197,13 @@ message SimplifiedRoutingRule {
 
   string domain_matcher = 17;
 
-  repeated uint32 uid = 18;
-  repeated string ssid = 19;
-  repeated string network_type = 20;
+  repeated SetAttribute set_attribute = 18;
 
-  bool skip_domain = 21;
+  repeated int32 uid = 19;
+  repeated string ssid = 20;
+  repeated string network_type = 21;
+
+  bool skip_domain = 22;
 
   // geo_domain instruct simplified config loader to load geo domain rule and fill in domain field.
   repeated v2ray.core.app.router.routercommon.GeoSite geo_domain = 68001;

@@ -1,9 +1,8 @@
 package trusttunnel
 
 import (
-	"bufio"
-	"container/list"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -35,14 +34,12 @@ import (
 )
 
 type Client struct {
-	config         *ClientConfig
-	serverAddress  net.Destination
-	policyManager  policy.Manager
-	resolver       func(domain string) (net.Address, error)
-	h2Transport    *http2.Transport
-	h3Transport    *http3.Transport
-	cacheConnsLock sync.Mutex
-	cachedConns    list.List
+	config        *ClientConfig
+	serverAddress net.Destination
+	policyManager policy.Manager
+	resolver      func(domain string) (net.Address, error)
+	transportLock sync.Mutex
+	transport     http.RoundTripper
 }
 
 func (c *Client) InterfaceUpdate() {
@@ -50,34 +47,18 @@ func (c *Client) InterfaceUpdate() {
 }
 
 func (c *Client) Close() error {
-	c.cacheConnsLock.Lock()
-	for elem := c.cachedConns.Front(); elem != nil; elem = elem.Next() {
-		if cachedConn, ok := elem.Value.(*h2Conn); ok {
-			_ = cachedConn.h2Conn.Close()
-			_ = cachedConn.rawConn.Close()
+	c.transportLock.Lock()
+	if c.transport != nil {
+		switch transport := c.transport.(type) {
+		case *http3.Transport:
+			transport.Close()
+		case *http2.Transport:
+			closeHTTP2Transport(transport)
 		}
-		if cachedConn, ok := elem.Value.(*h3Conn); ok {
-			_ = cachedConn.h3Conn.CloseWithError(0, "")
-			_ = cachedConn.quicConn.CloseWithError(0, "")
-			_ = cachedConn.rawConn.Close()
-		}
-		c.cachedConns.Remove(elem)
+		c.transport = nil
 	}
-	c.cacheConnsLock.Unlock()
+	c.transportLock.Unlock()
 	return nil
-}
-
-type h2Conn struct {
-	rawConn net.Conn
-	h2Conn  *http2.ClientConn
-}
-
-type h3Conn struct {
-	rawConn      net.Conn
-	quicConn     *quic.Conn
-	h3Conn       *http3.ClientConn
-	readCounter  stats.Counter
-	writeCounter stats.Counter
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
@@ -94,13 +75,6 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 		config:        config,
 		serverAddress: serverAddress,
 		policyManager: v.GetFeature(policy.ManagerType()).(policy.Manager),
-	}
-	if config.Http3 {
-		client.h3Transport = &http3.Transport{}
-	} else {
-		client.h2Transport = &http2.Transport{
-			ReadIdleTimeout: time.Second * 15,
-		}
 	}
 	dnsClient := v.GetFeature(dns.ClientType()).(dns.Client)
 	client.resolver = func(domain string) (net.Address, error) {
@@ -145,7 +119,8 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	var firstPayload []byte
 
 	if reader, ok := link.Reader.(buf.TimeoutReader); ok {
-		if mbuf, _ := reader.ReadMultiBufferTimeout(proxy.FirstPayloadTimeout); mbuf != nil {
+		waitTime := proxy.FirstPayloadTimeout
+		if mbuf, _ := reader.ReadMultiBufferTimeout(waitTime); mbuf != nil {
 			mlen := mbuf.Len()
 			firstPayload = bytespool.Alloc(mlen)
 			mbuf, _ = buf.SplitBytes(mbuf, firstPayload)
@@ -156,23 +131,11 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		}
 	}
 
-	conn, firstResp, err := c.setupHTTPTunnel(ctx, targetAddr, dialer, firstPayload)
+	conn, err := c.setupHTTPTunnel(ctx, target, targetAddr, dialer, firstPayload)
 	if err != nil {
 		return newError("failed to find an available destination").Base(err)
 	}
 	defer conn.Close()
-	_, isHTTP2Or3 := conn.(*httpConn)
-	if !isHTTP2Or3 {
-		if _, err := conn.Write(firstPayload); err != nil {
-			conn.Close()
-			return err
-		}
-	}
-	if firstResp != nil {
-		if err := link.Writer.WriteMultiBuffer(firstResp); err != nil {
-			return err
-		}
-	}
 
 	var targetIP net.Address
 	if target.Network == net.Network_UDP && target.Address.Family().IsDomain() {
@@ -193,18 +156,13 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	requestFunc := func() error {
 		defer timer.SetTimeout(p.Timeouts.DownlinkOnly)
 		if target.Network == net.Network_UDP {
-			var userAgent string
-			switch {
-			case !isHTTP2Or3:
-				userAgent = defaultH1UserAgent
-			case !c.config.Http3:
-				userAgent = defaultH2UserAgent
-			case c.config.Http3:
-				userAgent = defaultH3UserAgent
-			default:
-				panic("invalid")
+			var appName string
+			if c.config.Http3 {
+				appName = defaultH3AppName
+			} else {
+				appName = defaultH2AppName
 			}
-			return buf.Copy(link.Reader, newUoTWriter(conn, target, targetIP, userAgent, c.resolver), buf.UpdateActivity(timer))
+			return buf.Copy(link.Reader, newUoTWriter(conn, target, targetIP, appName, c.resolver), buf.UpdateActivity(timer))
 		}
 		return buf.Copy(link.Reader, buf.NewWriter(conn), buf.UpdateActivity(timer))
 	}
@@ -224,311 +182,205 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	return nil
 }
 
-// setupHTTPTunnel will create a socket tunnel via HTTP CONNECT method
-func (c *Client) setupHTTPTunnel(ctx context.Context, target string, dialer internet.Dialer, firstPayload []byte) (net.Conn, buf.MultiBuffer, error) {
+func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, targetAddr string, dialer internet.Dialer, firstPayload []byte) (net.Conn, error) {
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
 	}
 	if handler.MuxEnabled() {
-		return nil, nil, newError("mux enabled")
+		return nil, newError("mux enabled")
 	}
 	if handler.TransportLayerEnabled() {
-		return nil, nil, newError("transport layer enabled")
+		return nil, newError("transport layer enabled")
 	}
 	streamSettings := handler.StreamSettings()
 	if streamSettings == nil {
-		return nil, nil, newError("tls not enabled")
+		return nil, newError("tls not enabled")
 	}
 	if c.config.Http3 {
 		if streamSettings.SecurityType != "v2ray.core.transport.internet.tls.Config" {
-			return nil, nil, newError("tls not enabled")
+			return nil, newError("tls not enabled")
 		}
 	} else {
 		if streamSettings.SecurityType != "v2ray.core.transport.internet.tls.Config" && streamSettings.SecurityType != "v2ray.core.transport.internet.tls.utls.Config" {
-			return nil, nil, newError("tls not enabled")
+			return nil, newError("tls not enabled")
 		}
 	}
 	if len(c.config.ServerNameToVerify) > 0 {
 		ctx = session.ContextWithServerNameToVerify(ctx, c.config.ServerNameToVerify)
 	}
 
+	c.transportLock.Lock()
+	transport := c.transport
+	if transport == nil {
+		if c.config.Http3 {
+			transport = &http3.Transport{
+				QUICConfig: &quic.Config{
+					KeepAlivePeriod:      time.Second * 15,
+					HandshakeIdleTimeout: time.Second * 8,
+				},
+				Dial: func(ctx context.Context, _ string, _ *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+					tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
+					tlsCfg, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
+					if err != nil {
+						return nil, err
+					}
+					ctx = core.ToBackgroundDetachedContext(ctx)
+					conn, err := dialer.Dial(core.ToBackgroundDetachedContext(ctx), c.serverAddress)
+					if err != nil {
+						return nil, err
+					}
+					var readCounter, writeCounter stats.Counter
+					iConn := conn
+					if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+						iConn = statConn.Connection
+						readCounter = statConn.ReadCounter
+						writeCounter = statConn.WriteCounter
+					}
+					var packetConn net.PacketConn
+					switch iConn := iConn.(type) {
+					case *internet.PacketConnWrapper:
+						if readCounter != nil || writeCounter != nil {
+							packetConn = newStatCounterConn(iConn.Conn, readCounter, writeCounter)
+						} else {
+							packetConn = iConn.Conn
+						}
+					case net.PacketConn:
+						if readCounter != nil || writeCounter != nil {
+							packetConn = newStatCounterConn(iConn, readCounter, writeCounter)
+						} else {
+							packetConn = iConn
+						}
+					default:
+						packetConn = internet.NewConnWrapper(iConn)
+					}
+					quicConn, err := quic.Dial(ctx, packetConn, conn.RemoteAddr(), tlsCfg, cfg)
+					if err != nil {
+						conn.Close()
+						return nil, err
+					}
+					return quicConn, nil
+				},
+			}
+		} else {
+			transport = &http2.Transport{
+				ReadIdleTimeout: time.Second * 15,
+				DialTLSContext: func(ctx context.Context, _, _ string, _ *tls.Config) (net.Conn, error) {
+					ctx = core.ToBackgroundDetachedContext(ctx)
+					conn, err := dialer.Dial(core.ToBackgroundDetachedContext(ctx), c.serverAddress)
+					if err != nil {
+						return nil, err
+					}
+					iConn := conn
+					if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+						iConn = statConn.Connection
+					}
+					connALPNGetter, ok := iConn.(security.ConnectionApplicationProtocol)
+					if !ok {
+						conn.Close()
+						return nil, newError("application layer protocol unsupported")
+					}
+					nextProto, err := connALPNGetter.GetConnectionApplicationProtocol()
+					if err != nil {
+						conn.Close()
+						return nil, err
+					}
+					if nextProto == "http/1.1" {
+						conn.Close()
+						return nil, newError("negotiated unsupported application layer protocol: " + nextProto)
+					}
+					return conn, nil
+				},
+			}
+		}
+		c.transport = transport
+	}
+	c.transportLock.Unlock()
+
 	req := &http.Request{
 		Method: http.MethodConnect,
-		URL:    &url.URL{Host: target},
+		URL:    &url.URL{Scheme: "https", Host: targetAddr},
 		Header: make(http.Header),
-		Host:   target,
+		Host:   targetAddr,
+	}
+	req.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(c.config.Username+":"+c.config.Password)))
+	var userAgent string
+	switch {
+	case target.Network == net.Network_UDP:
+		userAgent = defaultUoTUserAgent
+	case c.config.Http3:
+		userAgent = defaultH3UserAgent
+	default:
+		userAgent = defaultH2UserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
+
+	pr, pw := io.Pipe()
+	req.Body = pr
+
+	var wg sync.WaitGroup
+	var pErr error
+	wg.Go(func() {
+		_, pErr = pw.Write(firstPayload)
+	})
+
+	resp, err := transport.RoundTrip(req) // nolint: bodyclose
+	if err != nil {
+		return nil, err
 	}
 
-	auth := c.config.Username + ":" + c.config.Password
-	req.Header.Set("Proxy-Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
-
-	connectHTTP1 := func(rawConn net.Conn) (net.Conn, buf.MultiBuffer, error) {
-		req.Header.Set("Proxy-Connection", "Keep-Alive")
-		err := req.Write(rawConn)
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-		bufferedReader := bufio.NewReader(rawConn)
-		resp, err := http.ReadResponse(bufferedReader, req) // nolint: bodyclose
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			rawConn.Close()
-			return nil, nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		if bufferedReader.Buffered() > 0 {
-			payload, err := buf.ReadFrom(io.LimitReader(bufferedReader, int64(bufferedReader.Buffered())))
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, newError("unable to drain buffer: ").Base(err)
-			}
-			return rawConn, payload, nil
-		}
-		return rawConn, nil, nil
+	wg.Wait()
+	if pErr != nil {
+		return nil, pErr
 	}
 
-	connectHTTP2 := func(conn *h2Conn, elem *list.Element) (net.Conn, error) {
-		pr, pw := io.Pipe()
-		req.Body = pr
-		var pErr error
-		var wg sync.WaitGroup
-		wg.Go(func() {
-			_, pErr = pw.Write(firstPayload)
-		})
-		resp, err := conn.h2Conn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			conn.h2Conn.Close()
-			conn.rawConn.Close()
-			if elem != nil {
-				c.cacheConnsLock.Lock()
-				c.cachedConns.Remove(elem)
-				c.cacheConnsLock.Unlock()
-			}
-			return nil, err
-		}
-		wg.Wait()
-		if pErr != nil {
-			conn.h2Conn.Close()
-			conn.rawConn.Close()
-			if elem != nil {
-				c.cacheConnsLock.Lock()
-				c.cachedConns.Remove(elem)
-				c.cacheConnsLock.Unlock()
-			}
-			return nil, pErr
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return &httpConn{
-			Conn: conn.rawConn,
-			in:   pw,
-			out:  resp.Body,
-		}, nil
+	if resp.StatusCode != http.StatusOK {
+		return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 	}
 
-	connectHTTP3 := func(conn *h3Conn, elem *list.Element) (net.Conn, error) {
-		pr, pw := io.Pipe()
-		req.Body = pr
-		var pErr error
-		var wg sync.WaitGroup
-		wg.Go(func() {
-			_, pErr = pw.Write(firstPayload)
-		})
-		resp, err := conn.h3Conn.RoundTrip(req) // nolint: bodyclose
-		if err != nil {
-			conn.h3Conn.CloseWithError(0, "")
-			conn.quicConn.CloseWithError(0, "")
-			conn.rawConn.Close()
-			if elem != nil {
-				c.cacheConnsLock.Lock()
-				c.cachedConns.Remove(elem)
-				c.cacheConnsLock.Unlock()
-			}
-			return nil, err
-		}
-		wg.Wait()
-		if pErr != nil {
-			conn.h3Conn.CloseWithError(0, "")
-			conn.quicConn.CloseWithError(0, "")
-			conn.rawConn.Close()
-			if elem != nil {
-				c.cacheConnsLock.Lock()
-				c.cachedConns.Remove(elem)
-				c.cacheConnsLock.Unlock()
-			}
-			return nil, pErr
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
-		}
-		return &httpConn{
-			Conn:         conn.rawConn,
-			in:           pw,
-			out:          resp.Body,
-			readCounter:  conn.readCounter,
-			writeCounter: conn.writeCounter,
-		}, nil
-	}
-
-	if !c.config.Http3 {
-		c.cacheConnsLock.Lock()
-		elem := c.cachedConns.Front()
-		c.cacheConnsLock.Unlock()
-		if elem != nil {
-			conn := elem.Value.(*h2Conn)
-			if conn.h2Conn.CanTakeNewRequest() {
-				proxyConn, err := connectHTTP2(conn, elem)
-				if err != nil {
-					return nil, nil, err
-				}
-				return proxyConn, nil, nil
-			}
-		}
-		rawConn, err := dialer.Dial(ctx, c.serverAddress)
-		if err != nil {
-			return nil, nil, err
-		}
-		iConn := rawConn
-		if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-			iConn = trackedConn.NetConn()
-		}
-		if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
-			iConn = statConn.Connection
-		}
-		nextProto := ""
-		if connALPNGetter, ok := iConn.(security.ConnectionApplicationProtocol); ok {
-			nextProto, err = connALPNGetter.GetConnectionApplicationProtocol()
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
-			}
-		}
-		switch nextProto {
-		case "", "http/1.1":
-			return connectHTTP1(rawConn)
-		case "h2":
-			h2clientConn, err := c.h2Transport.NewClientConn(rawConn)
-			if err != nil {
-				rawConn.Close()
-				return nil, nil, err
-			}
-			conn := &h2Conn{
-				rawConn: rawConn,
-				h2Conn:  h2clientConn,
-			}
-			proxyConn, err := connectHTTP2(conn, nil)
-			if err != nil {
-				return nil, nil, err
-			}
-			c.cacheConnsLock.Lock()
-			c.cachedConns.PushFront(conn)
-			c.cacheConnsLock.Unlock()
-			return proxyConn, nil, err
-		default:
-			rawConn.Close()
-			return nil, nil, newError("negotiated unsupported application layer protocol: " + nextProto)
-		}
-	} else {
-		c.cacheConnsLock.Lock()
-		elem := c.cachedConns.Front()
-		c.cacheConnsLock.Unlock()
-		if elem != nil {
-			conn := elem.Value.(*h3Conn)
-			select {
-			case <-conn.h3Conn.Context().Done():
-			default:
-				proxyConn, err := connectHTTP3(conn, elem)
-				if err != nil {
-					return nil, nil, err
-				}
-				return proxyConn, nil, nil
-			}
-		}
-		rawConn, err := dialer.Dial(ctx, c.serverAddress)
-		if err != nil {
-			return nil, nil, err
-		}
-		iConn := rawConn
-		if trackedConn, ok := iConn.(*internet.TrackedConn); ok {
-			iConn = trackedConn.NetConn()
-		}
-		var readCounter, writeCounter stats.Counter
-		if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
-			iConn = statConn.Connection
-			readCounter = statConn.ReadCounter
-			writeCounter = statConn.WriteCounter
-		}
-		var packetConn net.PacketConn
-		switch iConn := iConn.(type) {
-		case *internet.PacketConnWrapper:
-			packetConn = iConn.Conn
-		case net.PacketConn:
-			packetConn = iConn
-		default:
-			packetConn = internet.NewConnWrapper(iConn)
-		}
-		tlsSettings := streamSettings.SecuritySettings.(*v2tls.Config)
-		tlsConfig, err := tlsSettings.GetTLSConfigWithContext(ctx, v2tls.WithNextProto("h3"), v2tls.WithDestination(c.serverAddress))
-		if err != nil {
-			return nil, nil, err
-		}
-		quicConn, err := quic.Dial(ctx, packetConn, rawConn.RemoteAddr(),
-			tlsConfig,
-			&quic.Config{
-				KeepAlivePeriod:      time.Second * 15,
-				HandshakeIdleTimeout: time.Second * 8,
-			})
-		if err != nil {
-			rawConn.Close()
-			return nil, nil, err
-		}
-		h3clientConn := c.h3Transport.NewClientConn(quicConn)
-		conn := &h3Conn{
-			rawConn:      rawConn,
-			quicConn:     quicConn,
-			h3Conn:       h3clientConn,
-			readCounter:  readCounter,
-			writeCounter: writeCounter,
-		}
-		proxyConn, err := connectHTTP3(conn, nil)
-		if err != nil {
-			return nil, nil, err
-		}
-		c.cacheConnsLock.Lock()
-		c.cachedConns.PushFront(conn)
-		c.cacheConnsLock.Unlock()
-		return proxyConn, nil, nil
-	}
+	return &httpConn{
+		in:  pw,
+		out: resp.Body,
+	}, nil
 }
 
 type httpConn struct {
-	net.Conn
-	in           *io.PipeWriter
-	out          io.ReadCloser
-	readCounter  stats.Counter
-	writeCounter stats.Counter
+	in  *io.PipeWriter
+	out io.ReadCloser
 }
 
 func (c *httpConn) Read(p []byte) (n int, err error) {
-	n, err = c.out.Read(p)
-	if c.readCounter != nil {
-		c.readCounter.Add(int64(n))
-	}
-	return n, err
+	return c.out.Read(p)
 }
 
 func (c *httpConn) Write(p []byte) (n int, err error) {
-	n, err = c.in.Write(p)
-	if c.writeCounter != nil {
-		c.writeCounter.Add(int64(n))
+	return c.in.Write(p)
+}
+
+func (c *httpConn) RemoteAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
 	}
-	return n, err
+}
+
+func (c *httpConn) LocalAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *httpConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *httpConn) SetWriteDeadline(t time.Time) error {
+	return nil
 }
 
 func (c *httpConn) Close() error {
@@ -537,7 +389,7 @@ func (c *httpConn) Close() error {
 }
 
 func init() {
-	common.Must(common.RegisterConfig((*ClientConfig)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
+	common.Must(common.RegisterConfig((*ClientConfig)(nil), func(ctx context.Context, config any) (any, error) {
 		return NewClient(ctx, config.(*ClientConfig))
 	}))
 }

@@ -1,6 +1,7 @@
 package browserdialer
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/base64"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/net"
+	"github.com/v2fly/v2ray-core/v5/common/uuid"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 )
@@ -64,11 +66,16 @@ func (d *Dialer) Type() interface{} {
 }
 
 func (d *Dialer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	token := uuid.New()
+	csrfToken := token.String()
+	webpage = bytes.ReplaceAll(webpage, []byte("csrfToken"), []byte(csrfToken))
 	if request.URL.Path == "/websocket" {
-		if conn, err := upgrader.Upgrade(writer, request, nil); err == nil {
-			conns <- conn
-		} else {
-			newError("browser dialer http upgrade unexpected error")
+		if request.URL.Query().Get("token") == csrfToken {
+			if conn, err := upgrader.Upgrade(writer, request, nil); err == nil {
+				conns <- conn
+			} else {
+				newError("browser dialer http upgrade unexpected error")
+			}
 		}
 	} else {
 		writer.Header().Set("Access-Control-Allow-Origin", "*")

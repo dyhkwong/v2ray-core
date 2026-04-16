@@ -42,7 +42,7 @@ type Context interface {
 	GetSkipDNSResolve() bool
 
 	// SagerNet private
-	GetUid() uint32
+	GetUid() int32
 	GetSsid() string
 	GetNetworkType() string
 }
