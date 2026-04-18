@@ -27,12 +27,12 @@ func init() {
 }
 
 type Outbound struct {
-	serverAddr net.Destination
-	config     *ClientConfig
-	client     mieruclient.Client
-	clientLock sync.RWMutex
-	createLock sync.Mutex
-	closed     chan struct{}
+	serverAddr   net.Destination
+	config       *ClientConfig
+	client       mieruclient.Client
+	clientAccess sync.Mutex
+	create       sync.Mutex
+	closed       bool
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -54,8 +54,62 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 	return &Outbound{
 		serverAddr: serverAddr,
 		config:     config,
-		closed:     make(chan struct{}),
 	}, nil
+}
+
+func (o *Outbound) getClient(dialer internet.Dialer, resolver func(ctx context.Context, domain string) net.Address) (mieruclient.Client, error) {
+	o.create.Lock()
+	defer o.create.Unlock()
+	if o.closed {
+		return nil, newError("closed")
+	}
+	o.clientAccess.Lock()
+	if o.client != nil {
+		defer o.clientAccess.Unlock()
+		return o.client, nil
+	}
+	o.clientAccess.Unlock()
+	handler, ok := dialer.(*outbound.Handler)
+	if !ok {
+		panic("dialer is not *outbound.Handler")
+	}
+	if handler.MuxEnabled() {
+		return nil, newError("mux enabled")
+	}
+	if handler.TransportLayerEnabled() {
+		return nil, newError("transport layer enabled")
+	}
+	if streamSettings := handler.StreamSettings(); streamSettings != nil && streamSettings.SecurityType != "" {
+		return nil, newError("tls enabled")
+	}
+	mieruDialer := &dialerWrapper{
+		dialer: dialer,
+	}
+	var mieruResolver mierucommon.DNSResolver
+	if resolver != nil {
+		mieruResolver = &resolverWrapper{
+			resolver: resolver,
+		}
+	} else {
+		mieruResolver = &localResolverWrapper{
+			resolver: localdns.New(),
+		}
+	}
+	config, err := buildMieruClientConfig(o.config, mieruDialer, mieruResolver)
+	if err != nil {
+		return nil, err
+	}
+	client := mieruclient.NewClient()
+	if err = client.Store(config); err != nil {
+		return nil, err
+	}
+	if err = client.Start(); err != nil {
+		return nil, err
+	}
+	o.clientAccess.Lock()
+	o.client = client
+	o.clientAccess.Unlock()
+	return client, nil
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
@@ -64,61 +118,9 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 		return newError("target not specified")
 	}
 
-	o.clientLock.RLock()
-	client := o.client
-	o.clientLock.RUnlock()
-	if client == nil {
-		handler, ok := dialer.(*outbound.Handler)
-		if !ok {
-			panic("dialer is not *outbound.Handler")
-		}
-		if handler.MuxEnabled() {
-			return newError("mux enabled")
-		}
-		if handler.TransportLayerEnabled() {
-			return newError("transport layer enabled")
-		}
-		if streamSettings := handler.StreamSettings(); streamSettings != nil && streamSettings.SecurityType != "" {
-			return newError("tls enabled")
-		}
-		o.createLock.Lock()
-		select {
-		case <-o.closed:
-			o.createLock.Unlock()
-			return newError("closed")
-		default:
-		}
-		dialer := &dialerWrapper{
-			dialer: dialer,
-		}
-		var resolver mierucommon.DNSResolver
-		if ob.Resolver != nil {
-			resolver = &resolverWrapper{
-				resolver: ob.Resolver,
-			}
-		} else {
-			resolver = &localResolverWrapper{
-				resolver: localdns.New(),
-			}
-		}
-		config, err := buildMieruClientConfig(o.config, dialer, resolver)
-		if err != nil {
-			o.createLock.Unlock()
-			return err
-		}
-		client = mieruclient.NewClient()
-		if err = client.Store(config); err != nil {
-			o.createLock.Unlock()
-			return err
-		}
-		if err = client.Start(); err != nil {
-			o.createLock.Unlock()
-			return err
-		}
-		o.clientLock.Lock()
-		o.client = client
-		o.clientLock.Unlock()
-		o.createLock.Unlock()
+	client, err := o.getClient(dialer, ob.Resolver)
+	if err != nil {
+		return err
 	}
 
 	destination := ob.Target
@@ -173,21 +175,21 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) InterfaceUpdate() {
-	o.clientLock.Lock()
+	o.clientAccess.Lock()
 	if o.client != nil {
 		o.client.Stop()
 		o.client = nil
 	}
-	o.clientLock.RUnlock()
+	o.clientAccess.Unlock()
 }
 
 func (o *Outbound) Close() error {
-	close(o.closed)
-	o.clientLock.Lock()
+	o.closed = true
+	o.clientAccess.Lock()
 	if o.client != nil {
 		o.client.Stop()
 		o.client = nil
 	}
-	o.clientLock.Unlock()
+	o.clientAccess.Unlock()
 	return nil
 }

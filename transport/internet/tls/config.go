@@ -282,7 +282,9 @@ func (c *Config) getTLSConfig(ctx context.Context, opts ...Option) (*tls.Config,
 		config.GetCertificate = getGetCertificateFunc(config, caCerts)
 	}
 
-	config.ServerName = c.ServerName
+	if len(c.ServerName) > 0 {
+		config.ServerName = c.ServerName
+	}
 
 	if len(config.NextProtos) == 0 {
 		config.NextProtos = []string{"h2", "http/1.1"}

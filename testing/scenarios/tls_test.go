@@ -343,7 +343,6 @@ func TestIPAddressesCertificate(t *testing.T) {
 						SecuritySettings: []*anypb.Any{
 							serial.ToTypedMessage(&tls.Config{
 								DisableSystemRoot: true,
-								ServerName:        net.LocalHostIP.String(),
 								Certificate: []*tls.Certificate{{
 									Certificate: certPEM,
 									Usage:       tls.Certificate_AUTHORITY_VERIFY,

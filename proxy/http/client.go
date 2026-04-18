@@ -285,7 +285,7 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 		if resp.StatusCode != http.StatusOK {
 			return nil, newError("Proxy responded with non 200 code: " + resp.Status)
 		}
-		return newHTTP2Conn(rawConn, pw, resp.Body), nil
+		return newHTTP2Conn(pw, resp.Body), nil
 	}
 
 	c.cachedH2Mutex.Lock()
@@ -358,12 +358,11 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, dest net.Destination, targ
 	}
 }
 
-func newHTTP2Conn(c net.Conn, pipedReqBody *io.PipeWriter, respBody io.ReadCloser) net.Conn {
-	return &http2Conn{Conn: c, in: pipedReqBody, out: respBody}
+func newHTTP2Conn(pipedReqBody *io.PipeWriter, respBody io.ReadCloser) net.Conn {
+	return &http2Conn{in: pipedReqBody, out: respBody}
 }
 
 type http2Conn struct {
-	net.Conn
 	in  *io.PipeWriter
 	out io.ReadCloser
 }
@@ -374,6 +373,32 @@ func (h *http2Conn) Read(p []byte) (n int, err error) {
 
 func (h *http2Conn) Write(p []byte) (n int, err error) {
 	return h.in.Write(p)
+}
+
+func (c *http2Conn) RemoteAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *http2Conn) LocalAddr() net.Addr {
+	return &net.UDPAddr{
+		IP:   []byte{0, 0, 0, 0},
+		Port: 0,
+	}
+}
+
+func (c *http2Conn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *http2Conn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (c *http2Conn) SetWriteDeadline(t time.Time) error {
+	return nil
 }
 
 func (h *http2Conn) Close() error {

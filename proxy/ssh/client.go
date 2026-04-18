@@ -44,11 +44,11 @@ type Client struct {
 	sessionPolicy   policy.Session
 	server          net.Destination
 	client          *ssh.Client
-	clientLock      sync.RWMutex
+	clientAccess    sync.Mutex
 	auth            []ssh.AuthMethod
-	connectLock     sync.Mutex
+	create          sync.Mutex
 	hostKeyCallback ssh.HostKeyCallback
-	closed          chan struct{}
+	closed          bool
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -109,7 +109,6 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 			return nil
 		}
 	}
-	c.closed = make(chan struct{})
 	return nil
 }
 
@@ -137,13 +136,12 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 		return newError("only TCP is supported in SSH proxy")
 	}
 
-	newError("tunneling request to ", destination, " via ", c.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
-
 	client, err := c.connect(ctx, dialer)
 	if err != nil {
 		return err
 	}
 
+	newError("tunneling request to ", destination, " via ", c.server.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 	dialCtx, dialCancel := context.WithTimeout(ctx, time.Second*5)
 	defer dialCancel()
 	conn, err := client.DialContext(dialCtx, "tcp", destination.NetAddr())
@@ -169,20 +167,17 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 }
 
 func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
-	c.clientLock.RLock()
-	client := c.client
-	c.clientLock.RUnlock()
-	if client != nil {
-		return client, nil
-	}
-
-	c.connectLock.Lock()
-	defer c.connectLock.Unlock()
-	select {
-	case <-c.closed:
+	c.create.Lock()
+	defer c.create.Unlock()
+	if c.closed {
 		return nil, newError("closed")
-	default:
 	}
+	c.clientAccess.Lock()
+	if c.client != nil {
+		defer c.clientAccess.Unlock()
+		return c.client, nil
+	}
+	c.clientAccess.Unlock()
 
 	newError("open connection to ", c.server).AtDebug().WriteToLog(session.ExportIDToError(ctx))
 
@@ -209,38 +204,37 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		return nil, newError("failed to create ssh connection").Base(err)
 	}
 
-	client = ssh.NewClient(clientConn, chans, reqs)
-
-	c.clientLock.Lock()
+	client := ssh.NewClient(clientConn, chans, reqs)
+	c.clientAccess.Lock()
 	c.client = client
-	c.clientLock.Unlock()
+	c.clientAccess.Unlock()
 	go func() {
 		err := client.Wait()
 		newError("ssh client closed").Base(err).AtDebug().WriteToLog()
-		c.clientLock.Lock()
+		c.clientAccess.Lock()
 		client.Close()
 		c.client = nil
-		c.clientLock.Unlock()
+		c.clientAccess.Unlock()
 	}()
 	return client, nil
 }
 
 func (c *Client) InterfaceUpdate() {
-	c.clientLock.Lock()
+	c.clientAccess.Lock()
 	if c.client != nil {
 		c.client.Close()
 	}
 	c.client = nil
-	c.clientLock.Unlock()
+	c.clientAccess.Unlock()
 }
 
 func (c *Client) Close() error {
-	close(c.closed)
-	c.clientLock.Lock()
+	c.closed = true
+	c.clientAccess.Lock()
 	if c.client != nil {
 		c.client.Close()
 	}
 	c.client = nil
-	c.clientLock.Unlock()
+	c.clientAccess.Unlock()
 	return nil
 }

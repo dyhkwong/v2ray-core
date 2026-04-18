@@ -23,6 +23,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -37,13 +38,15 @@ const handshakeIdleTimeout = time.Second * 8
 // QUICNameServer implemented DNS over QUIC
 type QUICNameServer struct {
 	sync.RWMutex
-	ips                     map[string]record
-	pub                     *pubsub.Service
-	cleanup                 *task.Periodic
-	name                    string
-	destination             net.Destination
-	connection              *quic.Conn
-	dispatcher              routing.Dispatcher
+	ips         map[string]record
+	pub         *pubsub.Service
+	cleanup     *task.Periodic
+	name        string
+	destination net.Destination
+	connection  *quic.Conn
+	dispatcher  routing.Dispatcher
+
+	connectionPool          *track.ConnectionPool
 	interfaceUpdateCallback *list.Element
 }
 
@@ -97,6 +100,8 @@ func NewQUICNameServer(url *url.URL) (*QUICNameServer, error) {
 		pub:         pubsub.NewService(),
 		name:        url.String(),
 		destination: dest,
+
+		connectionPool: track.NewConnectionPool(),
 	}
 	s.cleanup = &task.Periodic{
 		Interval: time.Minute,
@@ -122,6 +127,9 @@ func (s *QUICNameServer) Close() error {
 	s.pub.Close()
 	if s.connection != nil {
 		s.connection.CloseWithError(0, "")
+	}
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
 	}
 	s.ips = nil
 	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
@@ -544,7 +552,7 @@ func (s *QUICNameServer) openConnection(ctx context.Context) (*quic.Conn, error)
 		return quic.Dial(detachedCtx, internet.NewConnWrapper(rawConn), rawConn.RemoteAddr(), tlsConfig, quicConfig)
 	}
 
-	rawConn, err := internet.DialSystem(ctx, s.destination, nil)
+	rawConn, err := internet.DialSystem(session.ContextWithConnectionPool(ctx, s.connectionPool), s.destination, nil)
 	if err != nil {
 		return nil, err
 	}

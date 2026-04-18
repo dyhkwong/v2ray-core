@@ -25,12 +25,12 @@ func init() {
 }
 
 type Outbound struct {
-	serverAddr net.Destination
-	config     shadowtls.ClientConfig
-	client     *shadowtls.Client
-	clientLock sync.RWMutex
-	createLock sync.Mutex
-	closed     chan struct{}
+	serverAddr   net.Destination
+	config       shadowtls.ClientConfig
+	client       *shadowtls.Client
+	clientAccess sync.Mutex
+	create       sync.Mutex
+	closed       bool
 }
 
 func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
@@ -47,17 +47,22 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Outbound, error) {
 			Server:   singbridge.ToSocksAddr(serverAddr),
 			Logger:   singbridge.NewLoggerWrapper(newError),
 		},
-		closed: make(chan struct{}),
 	}
 	return o, nil
 }
 
-func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*shadowtls.Client, error) {
-	select {
-	case <-o.closed:
+func (o *Outbound) getClient(ctx context.Context, dialer internet.Dialer) (*shadowtls.Client, error) {
+	o.create.Lock()
+	defer o.create.Unlock()
+	if o.closed {
 		return nil, newError("closed")
-	default:
 	}
+	o.clientAccess.Lock()
+	if o.client != nil {
+		defer o.clientAccess.Unlock()
+		return o.client, nil
+	}
+	o.clientAccess.Unlock()
 	handler, ok := dialer.(*outbound.Handler)
 	if !ok {
 		panic("dialer is not *outbound.Handler")
@@ -95,27 +100,17 @@ func (o *Outbound) newClient(ctx context.Context, dialer internet.Dialer) (*shad
 
 	config := o.config
 	config.TLSHandshake = tlsHandshakeFunc
-	return shadowtls.NewClient(config)
+	client, err := shadowtls.NewClient(config)
+	if err != nil {
+		return nil, err
+	}
+	o.clientAccess.Lock()
+	o.client = client
+	o.clientAccess.Unlock()
+	return client, nil
 }
 
 func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer internet.Dialer) error {
-	o.clientLock.RLock()
-	client := o.client
-	o.clientLock.RUnlock()
-	if client == nil {
-		var err error
-		o.createLock.Lock()
-		client, err = o.newClient(ctx, dialer)
-		if err != nil {
-			o.createLock.Unlock()
-			return err
-		}
-		o.clientLock.Lock()
-		o.client = client
-		o.clientLock.Unlock()
-		o.createLock.Unlock()
-	}
-
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified")
@@ -124,6 +119,12 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 	if destination.Network != net.Network_TCP {
 		return newError("only TCP is supported")
 	}
+
+	client, err := o.getClient(ctx, dialer)
+	if err != nil {
+		return err
+	}
+
 	newError("tunneling request to ", destination, " via ", o.serverAddr.NetAddr()).WriteToLog(session.ExportIDToError(ctx))
 
 	serverConn, err := client.DialContext(ctx)
@@ -135,6 +136,6 @@ func (o *Outbound) Process(ctx context.Context, link *transport.Link, dialer int
 }
 
 func (o *Outbound) Close() error {
-	close(o.closed)
+	o.closed = true
 	return nil
 }

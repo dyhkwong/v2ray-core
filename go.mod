@@ -11,7 +11,7 @@ require (
 	github.com/dyhkwong/hysteria/core/v2 v2.8.1-1
 	github.com/dyhkwong/hysteria/extras/v2 v2.8.1-1
 	github.com/dyhkwong/sing-juicity v0.1.2
-	github.com/enfein/mieru/v3 v3.30.1
+	github.com/enfein/mieru/v3 v3.31.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
@@ -22,7 +22,7 @@ require (
 	github.com/pires/go-proxyproto v0.12.0
 	github.com/quic-go/quic-go v0.59.0
 	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
-	github.com/sagernet/sing v0.8.4
+	github.com/sagernet/sing v0.8.6
 	github.com/sagernet/sing-mux v0.3.4
 	github.com/sagernet/sing-quic v0.6.1
 	github.com/sagernet/sing-shadowsocks v0.2.9
