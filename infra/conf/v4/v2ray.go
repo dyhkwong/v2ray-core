@@ -25,6 +25,7 @@ import (
 
 var (
 	inboundConfigLoader = loader.NewJSONConfigLoader(loader.ConfigCreatorCache{
+		"ipc":                    func() interface{} { return new(IPCConfig) },
 		"dokodemo-door":          func() interface{} { return new(DokodemoConfig) },
 		"http":                   func() interface{} { return new(HTTPServerConfig) },
 		"shadowsocks":            func() interface{} { return new(ShadowsocksServerConfig) },
