@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"filippo.io/mldsa"
 	utls "github.com/refraction-networking/utls"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/net/http2"
@@ -29,9 +30,10 @@ import (
 
 type UConn struct {
 	*utls.UConn
-	ServerName string
-	AuthKey    []byte
-	Verified   bool
+	ServerName    string
+	AuthKey       []byte
+	mldsa65Verify *mldsa.PublicKey
+	Verified      bool
 }
 
 func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
@@ -44,8 +46,21 @@ func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x50
 		h := hmac.New(sha512.New, c.AuthKey)
 		h.Write(pub)
 		if bytes.Equal(h.Sum(nil), certs[0].Signature) {
-			c.Verified = true
-			return nil
+			if c.mldsa65Verify != nil {
+				if len(certs[0].Extensions) > 0 {
+					h.Write(c.HandshakeState.Hello.Raw)
+					h.Write(c.HandshakeState.ServerHello.Raw)
+					err := mldsa.Verify(c.mldsa65Verify, h.Sum(nil), certs[0].Extensions[0].Value, nil)
+					if err != nil {
+						return err
+					}
+					c.Verified = true
+					return nil
+				}
+			} else {
+				c.Verified = true
+				return nil
+			}
 		}
 	}
 	opts := x509.VerifyOptions{
@@ -63,6 +78,15 @@ func (c *UConn) VerifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x50
 
 func UClient(ctx context.Context, conn net.Conn, dest net.Destination, config *Config) (net.Conn, error) {
 	uConn := &UConn{}
+
+	if len(config.Mldsa65Verify) > 0 {
+		mldsa65Verify, err := mldsa.NewPublicKey(mldsa.MLDSA65(), config.Mldsa65Verify)
+		if err != nil {
+			return nil, err
+		}
+		uConn.mldsa65Verify = mldsa65Verify
+	}
+
 	utlsConfig := &utls.Config{
 		VerifyPeerCertificate:  uConn.VerifyPeerCertificate,
 		ServerName:             config.ServerName,

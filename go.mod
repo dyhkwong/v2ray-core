@@ -3,6 +3,7 @@ module github.com/v2fly/v2ray-core/v5
 go 1.25.0
 
 require (
+	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
 	github.com/adrg/xdg v0.5.3
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/anytls/sing-anytls v0.0.11
@@ -22,7 +23,7 @@ require (
 	github.com/pires/go-proxyproto v0.12.0
 	github.com/quic-go/quic-go v0.59.0
 	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
-	github.com/sagernet/sing v0.8.6
+	github.com/sagernet/sing v0.8.9
 	github.com/sagernet/sing-mux v0.3.4
 	github.com/sagernet/sing-quic v0.6.1
 	github.com/sagernet/sing-shadowsocks v0.2.9

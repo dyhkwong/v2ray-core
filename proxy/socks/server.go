@@ -54,7 +54,7 @@ func (s *Server) policy() policy.Session {
 
 // Network implements proxy.Inbound.
 func (s *Server) Network() []net.Network {
-	list := []net.Network{net.Network_TCP, net.Network_UNIX}
+	list := []net.Network{net.Network_TCP}
 	if s.config.UdpEnabled {
 		list = append(list, net.Network_UDP)
 	}
@@ -70,7 +70,7 @@ func (s *Server) Process(ctx context.Context, network net.Network, conn internet
 	}
 
 	switch network {
-	case net.Network_TCP, net.Network_UNIX:
+	case net.Network_TCP:
 		return s.processTCP(ctx, conn, dispatcher)
 	case net.Network_UDP:
 		return s.handleUDPPayload(ctx, conn, dispatcher)

@@ -299,7 +299,10 @@ func (c *Client) setupHTTPTunnel(ctx context.Context, target net.Destination, ta
 
 	req := &http.Request{
 		Method: http.MethodConnect,
-		URL:    &url.URL{Scheme: "https", Host: targetAddr},
+		URL: &url.URL{
+			Scheme: "https",
+			Host:   c.serverAddress.NetAddr(), // reuse key is URL.Host
+		},
 		Header: make(http.Header),
 		Host:   targetAddr,
 	}
