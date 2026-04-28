@@ -51,10 +51,9 @@ func (fkdns *Holder) Start() error {
 }
 
 func (fkdns *Holder) Close() error {
+	fkdns.mu.Lock()
 	fkdns.domainToIP = nil
-	fkdns.nextIP = nil
-	fkdns.ipRange = nil
-	fkdns.mu = nil
+	fkdns.mu.Unlock()
 	return nil
 }
 
@@ -137,6 +136,8 @@ func (fkdns *Holder) GetDomainFromFakeDNS(ip net.Address) string {
 	if !ip.Family().IsIP() || !fkdns.ipRange.Contains(ip.IP()) {
 		return ""
 	}
+	fkdns.mu.Lock()
+	defer fkdns.mu.Unlock()
 	if k, ok := fkdns.domainToIP.GetKeyFromValue(ip); ok {
 		return k.(string)
 	}
