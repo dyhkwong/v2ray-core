@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -31,12 +32,22 @@ type Dialer struct {
 	ctx        context.Context
 	config     *Config
 	httpserver *http.Server
+	csrfToken  string
+	webpage    []byte
+	conns      chan *websocket.Conn
+	closeMu    sync.Mutex
+	closed     bool
 }
 
 func NewDialer(ctx context.Context, config *Config) *Dialer {
+	token := uuid.New()
+	csrfToken := token.String()
 	return &Dialer{
-		ctx:    ctx,
-		config: config,
+		ctx:       ctx,
+		config:    config,
+		csrfToken: csrfToken,
+		webpage:   bytes.ReplaceAll(webpage, []byte("csrfToken"), []byte(csrfToken)),
+		conns:     make(chan *websocket.Conn, 256),
 	}
 }
 
@@ -49,8 +60,6 @@ type task struct {
 	Extra          any    `json:"extra,omitempty"`
 	StreamResponse bool   `json:"streamResponse"`
 }
-
-var conns = make(chan *websocket.Conn, 256)
 
 var upgrader = &websocket.Upgrader{
 	ReadBufferSize:   0,
@@ -66,20 +75,24 @@ func (d *Dialer) Type() interface{} {
 }
 
 func (d *Dialer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	token := uuid.New()
-	csrfToken := token.String()
-	webpage = bytes.ReplaceAll(webpage, []byte("csrfToken"), []byte(csrfToken))
 	if request.URL.Path == "/websocket" {
-		if request.URL.Query().Get("token") == csrfToken {
+		if request.URL.Query().Get("token") == d.csrfToken {
 			if conn, err := upgrader.Upgrade(writer, request, nil); err == nil {
-				conns <- conn
+				d.closeMu.Lock()
+				if d.closed {
+					conn.Close()
+					d.closeMu.Unlock()
+					return
+				}
+				d.conns <- conn
+				d.closeMu.Unlock()
 			} else {
-				newError("browser dialer http upgrade unexpected error")
+				newError("browser dialer http upgrade unexpected error").AtError().WriteToLog()
 			}
 		}
 	} else {
 		writer.Header().Set("Access-Control-Allow-Origin", "*")
-		writer.Write(webpage)
+		writer.Write(d.webpage)
 	}
 }
 
@@ -104,7 +117,7 @@ func (d *Dialer) Start() error {
 
 		go func() {
 			if err := d.httpserver.Serve(listener); err != nil {
-				newError("cannot serve http browser dialer server").Base(err).WriteToLog()
+				newError("cannot serve http browser dialer server").Base(err).AtError().WriteToLog()
 			}
 		}()
 	}
@@ -112,8 +125,15 @@ func (d *Dialer) Start() error {
 }
 
 func (d *Dialer) Close() error {
+	d.closeMu.Lock()
+	d.closed = true
+	close(d.conns)
+	d.closeMu.Unlock()
 	if d.httpserver != nil {
 		return d.httpserver.Close()
+	}
+	for conn := range d.conns {
+		conn.Close()
 	}
 	return nil
 }
@@ -216,8 +236,18 @@ func (d *Dialer) dialTask(task task) (*websocket.Conn, error) {
 		return nil, err
 	}
 	var conn *websocket.Conn
+	var ok bool
 	for {
-		conn = <-conns
+		d.closeMu.Lock()
+		if d.closed {
+			d.closeMu.Unlock()
+			return nil, newError("closed")
+		}
+		d.closeMu.Unlock()
+		conn, ok = <-d.conns
+		if !ok {
+			return nil, newError("closed")
+		}
 		if conn.WriteMessage(websocket.TextMessage, data) != nil {
 			conn.Close()
 		} else {

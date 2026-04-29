@@ -279,9 +279,12 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 	if host == "" {
 		host = dest.Address.String()
 	}
-	if transportConfiguration.UseBrowserForwarding {
+	switch {
+	case transportConfiguration.UseBrowserForwarding && requestURL.Scheme == "https" && dest.Port != 443:
 		requestURL.Host = net.JoinHostPort(host, dest.Port.String())
-	} else {
+	case transportConfiguration.UseBrowserForwarding && requestURL.Scheme == "http" && dest.Port != 80:
+		requestURL.Host = net.JoinHostPort(host, dest.Port.String())
+	default:
 		requestURL.Host = host
 	}
 
@@ -355,10 +358,13 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 		if hostForDownload == "" {
 			hostForDownload = destForDownload.Address.String()
 		}
-		if transportConfiguration.UseBrowserForwarding {
-			requestURLForDownload.Host = net.JoinHostPort(hostForDownload, destForDownload.Port.String())
-		} else {
-			requestURLForDownload.Host = hostForDownload
+		switch {
+		case transportConfiguration.UseBrowserForwarding && requestURLForDownload.Scheme == "https" && destForDownload.Port != 443:
+			requestURL.Host = net.JoinHostPort(hostForDownload, destForDownload.Port.String())
+		case transportConfiguration.UseBrowserForwarding && requestURLForDownload.Scheme == "http" && destForDownload.Port != 80:
+			requestURL.Host = net.JoinHostPort(hostForDownload, destForDownload.Port.String())
+		default:
+			requestURL.Host = host
 		}
 		requestURLForDownload.Path = downloadConfig.GetNormalizedPath()
 		requestURLForDownload.RawQuery = downloadConfig.GetNormalizedQuery()

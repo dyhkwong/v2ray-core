@@ -7,12 +7,12 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 	github.com/anytls/sing-anytls v0.0.11
-	github.com/apernet/quic-go v0.59.1-0.20260330051153-c402ee641eb6
+	github.com/apernet/quic-go v0.59.1-0.20260425001925-6c6cc9bcb716
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
-	github.com/dyhkwong/hysteria/core/v2 v2.8.1-1
-	github.com/dyhkwong/hysteria/extras/v2 v2.8.1-1
+	github.com/dyhkwong/hysteria/core/v2 v2.8.2-2
+	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-2
 	github.com/dyhkwong/sing-juicity v0.1.2
-	github.com/enfein/mieru/v3 v3.31.0
+	github.com/enfein/mieru/v3 v3.32.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0

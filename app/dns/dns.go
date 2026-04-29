@@ -248,6 +248,7 @@ func (s *DNS) Close() error {
 		close(s.done)
 	}
 	s.mu.Unlock()
+	// FIXME: use ctx to cancel tasks
 	go func() {
 		<-s.done
 		for _, c := range s.clients {

@@ -199,7 +199,10 @@ func (m *udpManager) feed(source net.Destination, dest net.Destination, data []b
 	uc, ok := m.m[source.NetAddr()]
 	if ok {
 		select {
-		case uc.ch <- data:
+		case uc.queue <- &packet{
+			p:    data,
+			dest: &dest,
+		}:
 		default:
 		}
 		m.mutex.RUnlock()
@@ -213,7 +216,7 @@ func (m *udpManager) feed(source net.Destination, dest net.Destination, data []b
 	uc, ok = m.m[source.NetAddr()]
 	if !ok {
 		uc = &udpConn{
-			ch:     make(chan []byte, 1024),
+			queue:  make(chan *packet, 1024),
 			source: source,
 			dest:   dest,
 		}
@@ -228,7 +231,10 @@ func (m *udpManager) feed(source net.Destination, dest net.Destination, data []b
 	}
 
 	select {
-	case uc.ch <- data:
+	case uc.queue <- &packet{
+		p:    data,
+		dest: &dest,
+	}:
 	default:
 	}
 }
@@ -236,7 +242,7 @@ func (m *udpManager) feed(source net.Destination, dest net.Destination, data []b
 func (m *udpManager) close(uc *udpConn) {
 	if !uc.closed {
 		uc.closed = true
-		close(uc.ch)
+		close(uc.queue)
 		delete(m.m, uc.source.NetAddr())
 	}
 }
@@ -304,8 +310,13 @@ func (m *udpManager) writeRawUDPPacket(payload []byte, src net.Destination, dst 
 	return nil
 }
 
+type packet struct {
+	p    []byte
+	dest *net.Destination
+}
+
 type udpConn struct {
-	ch        chan []byte
+	queue     chan *packet
 	source    net.Destination
 	dest      net.Destination
 	writeFunc func(payload []byte, src net.Destination, dst net.Destination) error
@@ -313,13 +324,24 @@ type udpConn struct {
 	closed    bool
 }
 
+func (c *udpConn) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	q, ok := <-c.queue
+	if !ok {
+		return nil, io.EOF
+	}
+	b := buf.NewWithSize(int32(len(q.p)))
+	b.Write(q.p)
+	b.Endpoint = q.dest
+	return buf.MultiBuffer{b}, nil
+}
+
 func (c *udpConn) Read(p []byte) (int, error) {
-	b, ok := <-c.ch
+	q, ok := <-c.queue
 	if !ok {
 		return 0, io.EOF
 	}
-	n := copy(p, b)
-	if n != len(b) {
+	n := copy(p, q.p)
+	if n != len(q.p) {
 		return 0, io.ErrShortBuffer
 	}
 	return n, nil
@@ -353,10 +375,9 @@ func (c *udpConn) Close() error {
 }
 
 func (c *udpConn) LocalAddr() net.Addr {
-	// fake
 	return &net.UDPAddr{
-		IP:   c.source.Address.IP(),
-		Port: int(c.source.Port),
+		IP:   c.dest.Address.IP(),
+		Port: int(c.dest.Port),
 	}
 }
 
