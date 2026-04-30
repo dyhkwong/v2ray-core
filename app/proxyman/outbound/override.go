@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"sync"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
@@ -93,4 +94,40 @@ func (w *EndpointOverrideWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		}
 	}
 	return w.Writer.WriteMultiBuffer(mb)
+}
+
+type EndpointOverrideReaderWithTimeout struct {
+	*EndpointOverrideReader
+}
+
+func (r *EndpointOverrideReaderWithTimeout) ReadMultiBufferTimeout(timeout time.Duration) (buf.MultiBuffer, error) {
+	mb, err := r.Reader.(buf.TimeoutReader).ReadMultiBufferTimeout(timeout)
+	if err != nil {
+		return nil, err
+	}
+	for _, b := range mb {
+		if b.Endpoint == nil {
+			continue
+		}
+		if b.Endpoint.Address == r.OriginalDest {
+			b.Endpoint.Address = r.Dest
+			continue
+		}
+		if r.ipToDomain != nil && b.Endpoint.Address.Family().IsIP() {
+			if domain, ok := r.ipToDomain.Load(b.Endpoint.Address); ok {
+				b.Endpoint.Address = domain.(net.Address)
+			}
+		}
+		if r.fakedns != nil && r.usedFakeIPs != nil && b.Endpoint.Address.Family().IsDomain() {
+			if ips := r.fakedns.GetFakeIPForDomain(b.Endpoint.Address.Domain()); len(ips) > 0 {
+				for _, ip := range ips {
+					if _, ok := r.usedFakeIPs.Load(ip); ok {
+						b.Endpoint.Address = ip
+						break
+					}
+				}
+			}
+		}
+	}
+	return mb, nil
 }

@@ -287,7 +287,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			reader.ipToDomain = ipToDomain
 			writer.ipToDomain = ipToDomain
 		}
-		link.Reader = reader
+		if _, ok := link.Reader.(buf.TimeoutReader); ok {
+			link.Reader = &EndpointOverrideReaderWithTimeout{
+				EndpointOverrideReader: reader,
+			}
+		} else {
+			link.Reader = reader
+		}
 		link.Writer = writer
 	}
 	uot := false
