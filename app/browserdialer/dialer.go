@@ -147,11 +147,9 @@ func (d *Dialer) DialWS(uri string, ed []byte) (*websocket.Conn, error) {
 		Method:         "WS",
 		URL:            uri,
 		StreamResponse: true,
-	}
-	if ed != nil {
-		task.Extra = webSocketExtra{
+		Extra: webSocketExtra{
 			Protocol: base64.RawURLEncoding.EncodeToString(ed),
-		}
+		},
 	}
 	return d.dialTask(task)
 }

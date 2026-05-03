@@ -274,11 +274,11 @@ func NewHyClient(ctx context.Context, dest net.Destination, streamSettings *inte
 			if config.HopIntervalMin > 0 || config.HopIntervalMax > 0 {
 				return nil, newError("hopInterval conflicts with hopIntervalMin or hopIntervalMax")
 			}
-			hopIntervalMin = time.Duration(config.HopIntervalMin) * time.Second
-			hopIntervalMax = time.Duration(config.HopIntervalMax) * time.Second
-		} else {
 			hopIntervalMin = time.Duration(config.HopInterval) * time.Second
 			hopIntervalMax = time.Duration(config.HopInterval) * time.Second
+		} else {
+			hopIntervalMin = time.Duration(config.HopIntervalMin) * time.Second
+			hopIntervalMax = time.Duration(config.HopIntervalMax) * time.Second
 		}
 		connFactory.NewFunc = func(addr net.Addr) (net.PacketConn, error) {
 			return udphop.NewUDPHopPacketConn(addr.(*udphop.UDPHopAddr),
