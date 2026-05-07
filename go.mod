@@ -9,8 +9,8 @@ require (
 	github.com/anytls/sing-anytls v0.0.11
 	github.com/apernet/quic-go v0.59.1-0.20260425001925-6c6cc9bcb716
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d
-	github.com/dyhkwong/hysteria/core/v2 v2.8.2-3
-	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-3
+	github.com/dyhkwong/hysteria/core/v2 v2.8.2-4
+	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-4
 	github.com/dyhkwong/sing-juicity v0.1.2
 	github.com/enfein/mieru/v3 v3.32.0
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
@@ -41,7 +41,7 @@ require (
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.11
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 	h12.io/socks v1.0.3
@@ -70,6 +70,6 @@ require (
 	golang.org/x/time v0.10.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

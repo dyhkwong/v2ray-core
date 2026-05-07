@@ -5,21 +5,23 @@ import (
 	"net"
 	"syscall"
 
+	"golang.org/x/net/ipv4"
+
 	"github.com/v2fly/v2ray-core/v5/common/track"
 )
 
 var (
-	_ net.Conn       = (*TrackedConn)(nil)
-	_ net.Conn       = (*TrackedPacketConn)(nil)
-	_ net.PacketConn = (*TrackedPacketConn)(nil)
+	_ net.Conn       = (*trackedConn)(nil)
+	_ net.Conn       = (*trackedPacketConn)(nil)
+	_ net.PacketConn = (*trackedPacketConn)(nil)
 )
 
 func newTrackedConn(conn net.Conn, pool *track.ConnectionPool) net.Conn {
-	if _, ok := conn.(*TrackedConn); ok {
-		panic("already a TrackedConn")
+	if _, ok := conn.(*trackedConn); ok {
+		panic("already a trackedConn")
 	}
-	if _, ok := conn.(*TrackedPacketConn); ok {
-		panic("already a TrackedPacketConn")
+	if _, ok := conn.(*trackedPacketConn); ok {
+		panic("already a trackedPacketConn")
 	}
 	pool.Lock()
 	elem := pool.PushBack(conn)
@@ -32,13 +34,13 @@ func newTrackedConn(conn net.Conn, pool *track.ConnectionPool) net.Conn {
 	case net.PacketConn:
 		packetConn = conn
 	default:
-		return &TrackedConn{
+		return &trackedConn{
 			Conn: conn,
 			pool: pool,
 			elem: elem,
 		}
 	}
-	trackedPacketConn := &TrackedPacketConn{
+	trackedPacketConn := &trackedPacketConn{
 		PacketConn: packetConn,
 		pool:       pool,
 		elem:       elem,
@@ -54,7 +56,7 @@ func newTrackedConn(conn net.Conn, pool *track.ConnectionPool) net.Conn {
 		return trackedPacketConn
 	}
 	setBufferConn := &setBufferConn{
-		TrackedPacketConn: trackedPacketConn,
+		trackedPacketConn: trackedPacketConn,
 		setWriteBuffer:    setBufferFn.SetWriteBuffer,
 		setReadBuffer:     setBufferFn.SetReadBuffer,
 	}
@@ -64,49 +66,68 @@ func newTrackedConn(conn net.Conn, pool *track.ConnectionPool) net.Conn {
 	if !isSyscallConn {
 		return setBufferConn
 	}
-	return &syscallConn{
-		setBufferConn:  setBufferConn,
-		setWriteBuffer: setBufferFn.SetWriteBuffer,
-		setReadBuffer:  setBufferFn.SetReadBuffer,
-		syscallConn:    syscallConnFn.SyscallConn,
+	syscallConn := &syscallConn{
+		setBufferConn: setBufferConn,
+		syscallConn:   syscallConnFn.SyscallConn,
 	}
+	oobFn, oobCapable := packetConn.(interface {
+		ReadMsgUDP(b, oob []byte) (int, int, int, *net.UDPAddr, error)
+		WriteMsgUDP(b, oob []byte, addr *net.UDPAddr) (int, int, error)
+	})
+	if !oobCapable {
+		return syscallConn
+	}
+	oobConn := &oobConn{
+		syscallConn: syscallConn,
+		readMsgUDP:  oobFn.ReadMsgUDP,
+		writeMsgUDP: oobFn.WriteMsgUDP,
+	}
+	readBatchFn, canReadBatch := packetConn.(interface {
+		ReadBatch(ms []ipv4.Message, flags int) (int, error)
+	})
+	if canReadBatch {
+		oobConn.readBatch = readBatchFn.ReadBatch
+	} else {
+		oobConn.readBatch = ipv4.NewPacketConn(oobConn).ReadBatch
+	}
+	return oobConn
 }
 
-type TrackedConn struct {
+type trackedConn struct {
 	net.Conn
 	pool *track.ConnectionPool
 	elem *list.Element
 }
 
-func (c *TrackedConn) Close() error {
+func (c *trackedConn) Close() error {
 	c.pool.Lock()
 	c.pool.Remove(c.elem)
 	c.pool.Unlock()
 	return c.Conn.Close()
 }
 
-type TrackedPacketConn struct {
+type trackedPacketConn struct {
 	net.PacketConn
 	pool       *track.ConnectionPool
 	elem       *list.Element
-	read       func(b []byte) (n int, err error)
-	write      func(b []byte) (n int, err error)
+	read       func(b []byte) (int, error)
+	write      func(b []byte) (int, error)
 	remoteAddr func() net.Addr
 }
 
-func (c *TrackedPacketConn) Read(b []byte) (n int, err error) {
+func (c *trackedPacketConn) Read(b []byte) (int, error) {
 	return c.read(b)
 }
 
-func (c *TrackedPacketConn) Write(b []byte) (n int, err error) {
+func (c *trackedPacketConn) Write(b []byte) (int, error) {
 	return c.write(b)
 }
 
-func (c *TrackedPacketConn) RemoteAddr() net.Addr {
+func (c *trackedPacketConn) RemoteAddr() net.Addr {
 	return c.remoteAddr()
 }
 
-func (c *TrackedPacketConn) Close() error {
+func (c *trackedPacketConn) Close() error {
 	c.pool.Lock()
 	c.pool.Remove(c.elem)
 	c.pool.Unlock()
@@ -114,16 +135,21 @@ func (c *TrackedPacketConn) Close() error {
 }
 
 type setBufferConn struct {
-	*TrackedPacketConn
+	*trackedPacketConn
 	setWriteBuffer func(bytes int) error
 	setReadBuffer  func(bytes int) error
 }
 
 type syscallConn struct {
 	*setBufferConn
-	setWriteBuffer func(bytes int) error
-	setReadBuffer  func(bytes int) error
-	syscallConn    func() (syscall.RawConn, error)
+	syscallConn func() (syscall.RawConn, error)
+}
+
+type oobConn struct {
+	*syscallConn
+	readMsgUDP  func(b, oob []byte) (int, int, int, *net.UDPAddr, error)
+	writeMsgUDP func(b, oob []byte, addr *net.UDPAddr) (int, int, error)
+	readBatch   func(ms []ipv4.Message, flags int) (int, error)
 }
 
 func (c *setBufferConn) SetReadBuffer(bytes int) error {
@@ -136,4 +162,16 @@ func (c *setBufferConn) SetWriteBuffer(bytes int) error {
 
 func (c *syscallConn) SyscallConn() (syscall.RawConn, error) {
 	return c.syscallConn()
+}
+
+func (c *oobConn) ReadMsgUDP(b, oob []byte) (int, int, int, *net.UDPAddr, error) {
+	return c.readMsgUDP(b, oob)
+}
+
+func (c *oobConn) WriteMsgUDP(b, oob []byte, addr *net.UDPAddr) (int, int, error) {
+	return c.writeMsgUDP(b, oob, addr)
+}
+
+func (c *oobConn) ReadBatch(ms []ipv4.Message, flags int) (int, error) {
+	return c.readBatch(ms, flags)
 }

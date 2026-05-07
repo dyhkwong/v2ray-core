@@ -78,6 +78,10 @@ func ParseString(str string) (UUID, error) {
 			text = text[1:]
 		}
 
+		if len(text) < byteGroup {
+			return uuid, errors.New("invalid UUID: ", str)
+		}
+
 		if _, err := hex.Decode(b[:byteGroup/2], text[:byteGroup]); err != nil {
 			return uuid, err
 		}
