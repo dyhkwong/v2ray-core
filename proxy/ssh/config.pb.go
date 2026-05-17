@@ -29,6 +29,7 @@ type Config struct {
 	HostKeyAlgorithms    []string               `protobuf:"bytes,8,rep,name=host_key_algorithms,json=hostKeyAlgorithms,proto3" json:"host_key_algorithms,omitempty"`
 	ClientVersion        string                 `protobuf:"bytes,9,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
 	UserLevel            uint32                 `protobuf:"varint,10,opt,name=user_level,json=userLevel,proto3" json:"user_level,omitempty"`
+	KeepaliveInterval    uint32                 `protobuf:"varint,11,opt,name=keepalive_interval,json=keepaliveInterval,proto3" json:"keepalive_interval,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -133,11 +134,18 @@ func (x *Config) GetUserLevel() uint32 {
 	return 0
 }
 
+func (x *Config) GetKeepaliveInterval() uint32 {
+	if x != nil {
+		return x.KeepaliveInterval
+	}
+	return 0
+}
+
 var File_proxy_ssh_config_proto protoreflect.FileDescriptor
 
 const file_proxy_ssh_config_proto_rawDesc = "" +
 	"\n" +
-	"\x16proxy/ssh/config.proto\x12\x14v2ray.core.proxy.ssh\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xbc\x03\n" +
+	"\x16proxy/ssh/config.proto\x12\x14v2ray.core.proxy.ssh\x1a common/protoext/extensions.proto\x1a\x18common/net/address.proto\"\xeb\x03\n" +
 	"\x06Config\x12;\n" +
 	"\aaddress\x18\x01 \x01(\v2!.v2ray.core.common.net.IPOrDomainR\aaddress\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x12\n" +
@@ -152,7 +160,8 @@ const file_proxy_ssh_config_proto_rawDesc = "" +
 	"\x0eclient_version\x18\t \x01(\tR\rclientVersion\x12\x1d\n" +
 	"\n" +
 	"user_level\x18\n" +
-	" \x01(\rR\tuserLevel:\x13\x82\xb5\x18\x0f\n" +
+	" \x01(\rR\tuserLevel\x12-\n" +
+	"\x12keepalive_interval\x18\v \x01(\rR\x11keepaliveInterval:\x13\x82\xb5\x18\x0f\n" +
 	"\boutbound\x12\x03sshB\v\n" +
 	"\t_passwordB\x19\n" +
 	"\x17_private_key_passphraseB]\n" +

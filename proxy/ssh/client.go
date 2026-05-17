@@ -39,16 +39,62 @@ var (
 	_ common.Closable = (*Client)(nil)
 )
 
+type sshClient struct {
+	*ssh.Client
+	keepaliveTask *task.Periodic
+	notFirst      bool
+	closeOnce     sync.Once
+	closeErr      error
+}
+
+func (c *sshClient) keepalive() error {
+	if !c.notFirst {
+		c.notFirst = true
+		return nil
+	}
+	go c.sendKeepalive()
+	return nil
+}
+
+func (c *sshClient) sendKeepalive() {
+	errChan := make(chan error, 1)
+	go func() {
+		_, _, err := c.SendRequest("keepalive@openssh.com", true, nil) // blocking call
+		errChan <- err
+	}()
+	select {
+	case <-time.After(time.Second * 5):
+		newError("keepalive timeout, close ssh client").AtDebug().WriteToLog()
+		c.Close()
+	case err := <-errChan:
+		if err != nil {
+			newError("keepalive error, close ssh client").Base(err).AtDebug().WriteToLog()
+			c.Close()
+		}
+	}
+}
+
+func (c *sshClient) Close() error {
+	c.closeOnce.Do(func() {
+		if c.keepaliveTask != nil {
+			_ = c.keepaliveTask.Close()
+		}
+		c.closeErr = c.Client.Close()
+	})
+	return c.closeErr
+}
+
 type Client struct {
-	config          *Config
-	sessionPolicy   policy.Session
-	server          net.Destination
-	client          *ssh.Client
-	clientAccess    sync.Mutex
-	auth            []ssh.AuthMethod
-	create          sync.Mutex
-	hostKeyCallback ssh.HostKeyCallback
-	closed          bool
+	config            *Config
+	sessionPolicy     policy.Session
+	server            net.Destination
+	client            *sshClient
+	clientAccess      sync.Mutex
+	auth              []ssh.AuthMethod
+	create            sync.Mutex
+	hostKeyCallback   ssh.HostKeyCallback
+	keepaliveInterval uint32
+	closed            bool
 }
 
 func (c *Client) Init(config *Config, policyManager policy.Manager) error {
@@ -109,6 +155,7 @@ func (c *Client) Init(config *Config, policyManager policy.Manager) error {
 			return nil
 		}
 	}
+	c.keepaliveInterval = config.KeepaliveInterval
 	return nil
 }
 
@@ -165,7 +212,7 @@ func (c *Client) Process(ctx context.Context, link *transport.Link, dialer inter
 	return nil
 }
 
-func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Client, error) {
+func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*sshClient, error) {
 	c.create.Lock()
 	defer c.create.Unlock()
 	if c.closed {
@@ -210,7 +257,16 @@ func (c *Client) connect(ctx context.Context, dialer internet.Dialer) (*ssh.Clie
 		return nil, newError("failed to create ssh connection").Base(err)
 	}
 
-	client := ssh.NewClient(clientConn, chans, reqs)
+	client := &sshClient{
+		Client: ssh.NewClient(clientConn, chans, reqs),
+	}
+	if c.keepaliveInterval > 0 {
+		client.keepaliveTask = &task.Periodic{
+			Interval: time.Second * time.Duration(c.keepaliveInterval),
+			Execute:  client.keepalive,
+		}
+		_ = client.keepaliveTask.Start()
+	}
 	c.clientAccess.Lock()
 	c.client = client
 	c.clientAccess.Unlock()

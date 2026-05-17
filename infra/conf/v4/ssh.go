@@ -18,6 +18,7 @@ type SSHClientConfig struct {
 	ClientVersion        string             `json:"clientVersion"`
 	HostKeyAlgorithms    []string           `json:"hostKeyAlgorithms"`
 	UserLevel            uint32             `json:"userLevel"`
+	KeepaliveInterval    uint32             `json:"keepaliveInterval"`
 }
 
 func (v *SSHClientConfig) Build() (proto.Message, error) {
@@ -32,6 +33,7 @@ func (v *SSHClientConfig) Build() (proto.Message, error) {
 		ClientVersion:        v.ClientVersion,
 		HostKeyAlgorithms:    v.HostKeyAlgorithms,
 		UserLevel:            v.UserLevel,
+		KeepaliveInterval:    v.KeepaliveInterval,
 	}
 	return c, nil
 }
