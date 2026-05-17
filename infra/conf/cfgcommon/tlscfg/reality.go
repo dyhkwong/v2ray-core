@@ -26,13 +26,13 @@ type REALITYConfig struct {
 	PrivateKey  string          `json:"privateKey"`
 	ShortIds    []string        `json:"shortIds"`
 
-	Fingerprint              string `json:"fingerprint"`
-	ServerName               string `json:"serverName"`
-	PublicKey                string `json:"publicKey"`
-	ShortId                  string `json:"shortId"`
-	Version                  string `json:"version"`
-	DisableX25519MLKEM768    bool   `json:"disableX25519MLKEM768"`
-	ReenableCHACHA20POLY1305 bool   `json:"reenableCHACHA20POLY1305"`
+	Fingerprint           string `json:"fingerprint"`
+	ServerName            string `json:"serverName"`
+	PublicKey             string `json:"publicKey"`
+	ShortId               string `json:"shortId"`
+	Version               string `json:"version"`
+	MLDSA65Verify         string `json:"mldsa65Verify"`
+	DisableX25519MLKEM768 bool   `json:"disableX25519MLKEM768"`
 }
 
 // Build implements Buildable.
@@ -124,6 +124,11 @@ func (c *REALITYConfig) Build() (proto.Message, error) {
 		config.ShortId = make([]byte, 8)
 		if _, err = hex.Decode(config.ShortId, []byte(c.ShortId)); err != nil {
 			return nil, newError(`invalid "shortId": `, c.ShortId)
+		}
+		if c.MLDSA65Verify != "" {
+			if config.Mldsa65Verify, err = base64.RawURLEncoding.DecodeString(c.MLDSA65Verify); err != nil || len(config.Mldsa65Verify) != 1952 {
+				return nil, newError(`invalid "mldsa65Verify": `, c.MLDSA65Verify)
+			}
 		}
 		config.ServerName = c.ServerName
 		config.DisableX25519Mlkem768 = c.DisableX25519MLKEM768

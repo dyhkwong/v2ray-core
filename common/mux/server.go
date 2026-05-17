@@ -146,7 +146,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 		return nil
 	}
 
-	rr := s.NewReader(reader, &meta.Target)
+	rr := s.NewReader(reader, meta.Target)
 	if err := buf.Copy(rr, s.output); err != nil {
 		buf.Copy(rr, buf.Discard)
 		common.Interrupt(s.input)
@@ -181,7 +181,7 @@ func (w *ServerWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 		}
 	}
 
-	rr := s.NewReader(reader, &meta.Target)
+	rr := s.NewReader(reader, meta.Target)
 	err := buf.Copy(rr, s.output)
 
 	if err != nil && buf.IsWriteError(err) {

@@ -3,6 +3,7 @@ package router
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 import (
+	"container/list"
 	"context"
 	"sync"
 
@@ -19,15 +20,15 @@ import (
 
 // Router is an implementation of routing.Router.
 type Router struct {
-	sync.Mutex
 	domainStrategy DomainStrategy
 	rules          []*Rule
 	balancers      map[string]*Balancer
 	dns            dns.Client
 
-	closed    bool
-	taskCount uint64
-	done      chan interface{}
+	closed   bool
+	mu       sync.Mutex
+	taskList list.List
+	done     chan any
 }
 
 // Route is an implementation of routing.Route.
@@ -35,6 +36,7 @@ type Route struct {
 	routing.Context
 	outboundGroupTags []string
 	outboundTag       string
+	sessionAttributes map[string]string
 }
 
 // Init initializes the Router.
@@ -59,8 +61,9 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 			return err
 		}
 		rr := &Rule{
-			Condition: cond,
-			Tag:       rule.GetTag(),
+			Condition:     cond,
+			Tag:           rule.GetTag(),
+			SetAttributes: rule.GetSetAttribute(),
 		}
 		btag := rule.GetBalancingTag()
 		if len(btag) > 0 {
@@ -73,7 +76,7 @@ func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm out
 		r.rules = append(r.rules, rr)
 	}
 
-	r.done = make(chan interface{})
+	r.done = make(chan any)
 
 	return nil
 }
@@ -88,24 +91,36 @@ func (r *Router) PickRoute(ctx routing.Context) (routing.Route, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Route{Context: ctx, outboundTag: tag}, nil
+	route := &Route{Context: ctx, outboundTag: tag}
+	if len(rule.SetAttributes) > 0 {
+		route.sessionAttributes = make(map[string]string, len(rule.SetAttributes))
+		for _, attr := range rule.SetAttributes {
+			if attr == nil || attr.Key == "" {
+				continue
+			}
+			route.sessionAttributes[attr.Key] = attr.Value
+		}
+		if len(route.sessionAttributes) == 0 {
+			route.sessionAttributes = nil
+		}
+	}
+	return route, nil
 }
 
 func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context, error) {
-	r.Lock()
 	if r.closed {
-		r.Unlock()
 		return nil, nil, newError("router closed")
 	}
-	r.taskCount++
-	r.Unlock()
+	r.mu.Lock()
+	elem := r.taskList.PushBack(nil)
+	r.mu.Unlock()
 	defer func() {
-		r.Lock()
-		r.taskCount--
-		if r.taskCount == 0 && r.closed {
+		r.mu.Lock()
+		r.taskList.Remove(elem)
+		if r.taskList.Len() == 0 && r.closed {
 			close(r.done)
 		}
-		r.Unlock()
+		r.mu.Unlock()
 	}()
 
 	// SkipDNSResolve is set from DNS module.
@@ -146,12 +161,12 @@ func (r *Router) Start() error {
 
 // Close implements common.Closable.
 func (r *Router) Close() error {
-	r.Lock()
 	r.closed = true
-	if r.taskCount == 0 {
+	r.mu.Lock()
+	if r.taskList.Len() == 0 {
 		close(r.done)
 	}
-	r.Unlock()
+	r.mu.Unlock()
 	go func() {
 		<-r.done
 		r.balancers = nil
@@ -174,6 +189,17 @@ func (r *Route) GetOutboundGroupTags() []string {
 // GetOutboundTag implements routing.Route.
 func (r *Route) GetOutboundTag() string {
 	return r.outboundTag
+}
+
+func (r *Route) GetSessionAttributes() map[string]string {
+	if r == nil || len(r.sessionAttributes) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(r.sessionAttributes))
+	for key, value := range r.sessionAttributes {
+		out[key] = value
+	}
+	return out
 }
 
 func init() {
@@ -278,6 +304,7 @@ func init() {
 			rule.Networks = v.Networks.GetNetwork()
 			rule.Protocol = v.Protocol
 			rule.Attributes = v.Attributes
+			rule.SetAttribute = append(rule.SetAttribute, v.SetAttribute...)
 			rule.UserEmail = v.UserEmail
 			rule.InboundTag = v.InboundTag
 			rule.DomainMatcher = v.DomainMatcher

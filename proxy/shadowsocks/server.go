@@ -78,14 +78,18 @@ func NewServer(ctx context.Context, config *ServerConfig) (*Server, error) {
 		} else {
 			plugin = sip003.PluginLoader(config.Plugin)
 		}
-		port, err := net.GetFreePort()
+		listener, err := internet.ListenSystem(ctx, &net.TCPAddr{IP: net.LocalHostIP.IP()}, nil)
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
 		}
-		s.receiverPort, err = net.GetFreePort()
+		port := listener.Addr().(*net.TCPAddr).Port
+		listener.Close()
+		listener, err = internet.ListenSystem(ctx, &net.TCPAddr{IP: net.LocalHostIP.IP()}, nil)
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin receiver").Base(err)
 		}
+		s.receiverPort = listener.Addr().(*net.TCPAddr).Port
+		listener.Close()
 		u := uuid.New()
 		tag := "v2ray.system.shadowsocks-inbound-plugin-receiver." + u.String()
 		s.pluginTag = tag

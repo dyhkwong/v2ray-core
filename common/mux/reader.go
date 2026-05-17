@@ -13,11 +13,11 @@ import (
 type PacketReader struct {
 	reader io.Reader
 	eof    bool
-	dest   *net.Destination
+	dest   net.Destination
 }
 
 // NewPacketReader creates a new PacketReader.
-func NewPacketReader(reader io.Reader, dest *net.Destination) *PacketReader {
+func NewPacketReader(reader io.Reader, dest net.Destination) *PacketReader {
 	return &PacketReader{
 		reader: reader,
 		eof:    false,
@@ -46,8 +46,8 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		return nil, err
 	}
 	r.eof = true
-	if r.dest != nil && r.dest.Network == net.Network_UDP {
-		b.Endpoint = r.dest
+	if r.dest.Network == net.Network_UDP {
+		b.Endpoint = &r.dest
 	}
 	return buf.MultiBuffer{b}, nil
 }

@@ -12,20 +12,21 @@ var (
 
 func RegisterInterfaceUpdateCallback(callback func()) *list.Element {
 	interfaceUpdateCallbackMutex.Lock()
-	defer interfaceUpdateCallbackMutex.Unlock()
-	return interfaceUpdateCallBackList.PushBack(callback)
+	elem := interfaceUpdateCallBackList.PushBack(callback)
+	interfaceUpdateCallbackMutex.Unlock()
+	return elem
 }
 
-func UnRegisterInterfaceUpdateCallback(callback *list.Element) {
+func UnRegisterInterfaceUpdateCallback(elem *list.Element) {
 	interfaceUpdateCallbackMutex.Lock()
-	interfaceUpdateCallBackList.Remove(callback)
+	interfaceUpdateCallBackList.Remove(elem)
 	interfaceUpdateCallbackMutex.Unlock()
 }
 
 func InterfaceUpdate() {
 	interfaceUpdateCallbackMutex.Lock()
-	for element := interfaceUpdateCallBackList.Front(); element != nil; element = element.Next() {
-		callback := element.Value.(func())
+	for elem := interfaceUpdateCallBackList.Front(); elem != nil; elem = elem.Next() {
+		callback := elem.Value.(func())
 		callback()
 	}
 	interfaceUpdateCallbackMutex.Unlock()

@@ -59,5 +59,5 @@ func (c *BrowserDialerClient) PostPacket(ctx context.Context, url, sessionId, se
 		}
 	}
 
-	return c.dialer.DialPost(method, request.URL.String(), request.Header, request.Cookies(), bytes)
+	return c.dialer.DialPacket(method, request.URL.String(), request.Header, request.Cookies(), bytes)
 }

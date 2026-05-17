@@ -21,6 +21,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
@@ -31,13 +32,15 @@ import (
 // thus most of the DOH implementation is copied from udpns.go
 type DoHNameServer struct {
 	sync.RWMutex
-	ips                     map[string]record
-	pub                     *pubsub.Service
-	cleanup                 *task.Periodic
-	httpClient              *http.Client
-	dohURL                  string
-	name                    string
-	protocol                string
+	ips        map[string]record
+	pub        *pubsub.Service
+	cleanup    *task.Periodic
+	httpClient *http.Client
+	dohURL     string
+	name       string
+	protocol   string
+
+	connectionPool          *track.ConnectionPool
 	newHTTPClientFunc       func() *http.Client
 	interfaceUpdateCallback *list.Element
 }
@@ -77,6 +80,7 @@ func NewDoHNameServer(url *url.URL, dispatcher routing.Dispatcher) (*DoHNameServ
 // NewDoHLocalNameServer creates DOH client object for local resolving
 func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 	url.Scheme = "https"
+	connectionPool := track.NewConnectionPool()
 	s := baseDOHNameServer(url, "DOHL", "tls", func() *http.Client {
 		tr := &http.Transport{
 			IdleConnTimeout:   90 * time.Second,
@@ -86,6 +90,7 @@ func NewDoHLocalNameServer(url *url.URL) *DoHNameServer {
 				if err != nil {
 					return nil, err
 				}
+				ctx = session.ContextWithConnectionPool(ctx, connectionPool)
 				conn, err := internet.DialSystem(ctx, dest, nil)
 				if err != nil {
 					return nil, err
@@ -131,6 +136,9 @@ func (s *DoHNameServer) Close() error {
 	s.Lock()
 	s.cleanup.Close()
 	s.pub.Close()
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
+	}
 	s.ips = nil
 	outbound.UnRegisterInterfaceUpdateCallback(s.interfaceUpdateCallback)
 	s.Unlock()

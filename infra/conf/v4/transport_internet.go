@@ -143,9 +143,10 @@ func (c *TCPConfig) Build() (proto.Message, error) {
 }
 
 type Hy2ConfigCongestion struct {
-	Type     string `json:"type"`
-	UpMbps   uint64 `json:"up_mbps"`
-	DownMbps uint64 `json:"down_mbps"`
+	Type       string `json:"type"`
+	UpMbps     uint64 `json:"up_mbps"`
+	DownMbps   uint64 `json:"down_mbps"`
+	BBRProfile string `json:"bbrProfile"`
 }
 
 type Hyteria2ConfigOBFS struct {
@@ -162,6 +163,8 @@ type Hy2Config struct {
 	OBFS                  Hyteria2ConfigOBFS  `json:"obfs"`
 	HopPorts              string              `json:"hopPorts"`
 	HopInterval           uint64              `json:"hopInterval"`
+	HopIntervalMin        uint64              `json:"hopIntervalMin"`
+	HopIntervalMax        uint64              `json:"hopIntervalMax"`
 }
 
 // Build implements Buildable.
@@ -170,9 +173,10 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 		Password:  c.Password,
 		Passwords: c.Passwords,
 		Congestion: &hysteria2.Congestion{
-			Type:     c.Congestion.Type,
-			DownMbps: c.Congestion.DownMbps,
-			UpMbps:   c.Congestion.UpMbps,
+			Type:       c.Congestion.Type,
+			DownMbps:   c.Congestion.DownMbps,
+			UpMbps:     c.Congestion.UpMbps,
+			BbrProfile: c.Congestion.BBRProfile,
 		},
 		UseUdpExtension:       c.UseUDPExtension,
 		IgnoreClientBandwidth: c.IgnoreClientBandwidth,
@@ -180,8 +184,10 @@ func (c *Hy2Config) Build() (proto.Message, error) {
 			Type:     c.OBFS.Type,
 			Password: c.OBFS.Password,
 		},
-		HopPorts:    c.HopPorts,
-		HopInterval: c.HopInterval,
+		HopPorts:       c.HopPorts,
+		HopInterval:    c.HopInterval,
+		HopIntervalMin: c.HopIntervalMin,
+		HopIntervalMax: c.HopIntervalMax,
 	}, nil
 }
 
@@ -192,6 +198,7 @@ type WebSocketConfig struct {
 	MaxEarlyData         int32             `json:"maxEarlyData"`
 	UseBrowserForwarding bool              `json:"useBrowserForwarding"`
 	EarlyDataHeaderName  string            `json:"earlyDataHeaderName"`
+	ParseXForwardedFor   bool              `json:"parseXForwardedFor"`
 }
 
 // Build implements Buildable.
@@ -210,6 +217,7 @@ func (c *WebSocketConfig) Build() (proto.Message, error) {
 		MaxEarlyData:         c.MaxEarlyData,
 		UseBrowserForwarding: c.UseBrowserForwarding,
 		EarlyDataHeaderName:  c.EarlyDataHeaderName,
+		ParseXForwardedFor:   c.ParseXForwardedFor,
 	}
 	if c.AcceptProxyProtocol {
 		config.AcceptProxyProtocol = c.AcceptProxyProtocol
@@ -218,16 +226,18 @@ func (c *WebSocketConfig) Build() (proto.Message, error) {
 }
 
 type HTTPConfig struct {
-	Host    *cfgcommon.StringList            `json:"host"`
-	Path    string                           `json:"path"`
-	Method  string                           `json:"method"`
-	Headers map[string]*cfgcommon.StringList `json:"headers"`
+	Host               *cfgcommon.StringList            `json:"host"`
+	Path               string                           `json:"path"`
+	Method             string                           `json:"method"`
+	Headers            map[string]*cfgcommon.StringList `json:"headers"`
+	ParseXForwardedFor bool                             `json:"parseXForwardedFor"`
 }
 
 // Build implements Buildable.
 func (c *HTTPConfig) Build() (proto.Message, error) {
 	config := &http.Config{
-		Path: c.Path,
+		Path:               c.Path,
+		ParseXForwardedFor: c.ParseXForwardedFor,
 	}
 	if c.Host != nil {
 		config.Host = []string(*c.Host)
@@ -263,6 +273,7 @@ type HTTPUpgradeConfig struct {
 	MaxEarlyData        int32                     `json:"maxEarlyData"`
 	EarlyDataHeaderName string                    `json:"earlyDataHeaderName"`
 	Header              []HTTPUpgradeHeaderConfig `json:"header"`
+	ParseXForwardedFor  bool                      `json:"parseXForwardedFor"`
 }
 
 // Build implements Buildable.
@@ -272,6 +283,7 @@ func (c *HTTPUpgradeConfig) Build() (proto.Message, error) {
 		Path:                c.Path,
 		MaxEarlyData:        c.MaxEarlyData,
 		EarlyDataHeaderName: c.EarlyDataHeaderName,
+		ParseXForwardedFor:  c.ParseXForwardedFor,
 	}
 	for _, header := range c.Header {
 		config.Header = append(config.Header, &httpupgrade.Header{

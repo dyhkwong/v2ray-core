@@ -71,6 +71,7 @@ var ModernFingerprints = map[string]*utls.ClientHelloID{
 	"hellofirefox_102":        &utls.HelloFirefox_102,
 	"hellofirefox_105":        &utls.HelloFirefox_105,
 	"hellofirefox_120":        &utls.HelloFirefox_120,
+	"hellofirefox_148":        &utls.HelloFirefox_148,
 	"hellochrome_83":          &utls.HelloChrome_83,
 	"hellochrome_87":          &utls.HelloChrome_87,
 	"hellochrome_96":          &utls.HelloChrome_96,
@@ -85,6 +86,7 @@ var ModernFingerprints = map[string]*utls.ClientHelloID{
 	"helloedge_85":            &utls.HelloEdge_85,
 	"helloedge_106":           &utls.HelloEdge_106,
 	"hellosafari_16_0":        &utls.HelloSafari_16_0,
+	"hellosafari_26_3":        &utls.HelloSafari_26_3,
 	"hello360_11_0":           &utls.Hello360_11_0,
 	"helloqq_11_1":            &utls.HelloQQ_11_1,
 }

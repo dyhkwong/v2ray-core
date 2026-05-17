@@ -287,10 +287,13 @@ func NewClient(ctx context.Context, config *ClientConfig) (*Client, error) {
 			return c, nil
 		}
 
-		port, err := net.GetFreePort()
+		listener, err := internet.ListenSystem(ctx, &net.TCPAddr{IP: net.LocalHostIP.IP()}, nil)
 		if err != nil {
 			return nil, newError("failed to get free port for sip003 plugin").Base(err)
 		}
+		port := listener.Addr().(*net.TCPAddr).Port
+		listener.Close()
+
 		c.pluginOverride = net.Destination{
 			Network: net.Network_TCP,
 			Address: net.LocalHostIP,

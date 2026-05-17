@@ -111,9 +111,6 @@ func TestOutboundWithStatCounter(t *testing.T) {
 	defer server.Close()
 	conn, err := h.(*Handler).Dial(ctx, dest)
 	common.Must(err)
-	if trackedConn, ok := conn.(*internet.TrackedConn); ok {
-		conn = trackedConn.NetConn()
-	}
 	_, ok := conn.(*internet.StatCouterConnection)
 	if !ok {
 		t.Errorf("Expected conn to be StatCouterConnection")

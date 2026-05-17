@@ -11,11 +11,11 @@ import (
 //go:generate go run github.com/v2fly/v2ray-core/v5/common/errors/errorgen
 
 func toNetIpAddr(addr net.Address) netip.Addr {
-	if addr.Family().IsIPv4() {
-		return netip.AddrFrom4([4]byte(addr.IP()))
-	} else {
-		return netip.AddrFrom16([16]byte(addr.IP()))
+	ip, ok := netip.AddrFromSlice(addr.IP())
+	if !ok {
+		panic("invalid IP address")
 	}
+	return ip
 }
 
 // convert endpoint string to netip.Addr

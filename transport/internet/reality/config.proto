@@ -23,6 +23,7 @@ message Config {
   string server_name = 22;
   bytes public_key = 23;
   bytes short_id = 24;
+  bytes mldsa65_verify = 25;
 
   bool disable_x25519mlkem768 = 99;
 }

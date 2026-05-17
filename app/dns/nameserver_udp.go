@@ -24,6 +24,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/signal/pubsub"
 	"github.com/v2fly/v2ray-core/v5/common/task"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	dns_feature "github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
@@ -44,6 +45,7 @@ type ClassicNameServer struct {
 
 	channel map[uint16]chan []byte
 
+	connectionPool          *track.ConnectionPool
 	newUDPDispatcherFunc    func() udp.DispatcherI
 	interfaceUpdateCallback *list.Element
 }
@@ -67,10 +69,11 @@ func NewUDPLocalNameServer(u *url.URL) (*ClassicNameServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.tcpServer, _ = NewTCPNameServer(&url.URL{
+	s.connectionPool = track.NewConnectionPool()
+	s.tcpServer, _ = NewTCPLocalNameServer(&url.URL{
 		Scheme: "tcp+local",
 		Host:   u.Host,
-	}, dispatcher.SystemInstance)
+	})
 	return s, nil
 }
 
@@ -135,6 +138,9 @@ func (s *ClassicNameServer) Close() error {
 	s.Lock()
 	s.cleanup.Close()
 	s.pub.Close()
+	if s.connectionPool != nil {
+		s.connectionPool.ResetConnections()
+	}
 	s.ips = nil
 	s.requests = nil
 	s.tcpServer.Close()
@@ -333,6 +339,9 @@ func (s *ClassicNameServer) sendQuery(ctx context.Context, domain string, client
 		var cancel context.CancelFunc
 		udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
 		defer cancel()
+		if s.connectionPool != nil {
+			udpCtx = session.ContextWithConnectionPool(udpCtx, s.connectionPool)
+		}
 		s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, b)
 	}
 }
@@ -365,6 +374,9 @@ func (s *ClassicNameServer) QueryRaw(ctx context.Context, request []byte) ([]byt
 	var cancel context.CancelFunc
 	udpCtx, cancel = context.WithDeadline(udpCtx, deadline)
 	defer cancel()
+	if s.connectionPool != nil {
+		udpCtx = session.ContextWithConnectionPool(udpCtx, s.connectionPool)
+	}
 	s.udpServer.Dispatch(core.ToBackgroundDetachedContext(udpCtx), s.address, buf.FromBytes(request))
 
 	select {

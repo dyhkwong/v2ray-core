@@ -47,6 +47,8 @@ func (u *UUID) Equals(another *UUID) bool {
 func New() UUID {
 	var uuid UUID
 	common.Must2(rand.Read(uuid.Bytes()))
+	uuid[6] = (uuid[6] & 0x0f) | 0x40
+	uuid[8] = (uuid[8] & 0x3f) | 0x80
 	return uuid
 }
 
@@ -74,6 +76,10 @@ func ParseString(str string) (UUID, error) {
 	for _, byteGroup := range byteGroups {
 		if text[0] == '-' {
 			text = text[1:]
+		}
+
+		if len(text) < byteGroup {
+			return uuid, errors.New("invalid UUID: ", str)
 		}
 
 		if _, err := hex.Decode(b[:byteGroup/2], text[:byteGroup]); err != nil {

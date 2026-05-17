@@ -69,6 +69,8 @@ import (
 	_ "github.com/v2fly/v2ray-core/v5/proxy/tuic"
 	_ "github.com/v2fly/v2ray-core/v5/proxy/wireguard"
 
+	_ "github.com/v2fly/v2ray-core/v5/proxy/ipc"
+
 	// Transports
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/domainsocket"
 	_ "github.com/v2fly/v2ray-core/v5/transport/internet/grpc"

@@ -13,6 +13,8 @@ message Congestion{
 
   uint64 up_mbps = 2;
   uint64 down_mbps = 3;
+
+  string bbrProfile = 4;
 }
 
 message OBFS {
@@ -32,4 +34,6 @@ message Config {
   repeated string passwords = 8;
   string hop_ports = 9;
   uint64 hop_interval = 10;
+  uint64 hop_interval_min = 11;
+  uint64 hop_interval_max = 12;
 }

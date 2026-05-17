@@ -41,6 +41,13 @@ func newConnectionWithDelayedDial(ctx context.Context, dialer delayedDialer) *Co
 	}
 }
 
+func newConnectionWithRemoteAddr(conn net.Conn, remoteAddr net.Addr) *Connection {
+	return &Connection{
+		Conn:       conn,
+		remoteAddr: remoteAddr,
+	}
+}
+
 // Read implements net.Conn.Read()
 func (c *Connection) Read(b []byte) (int, error) {
 	if c.shouldWait {

@@ -23,15 +23,13 @@ type sysConn struct {
 
 type setBufferConn struct {
 	*sysConn
-	setWriteBufferFn interface{ SetWriteBuffer(int) error }
-	setReadBufferFn  interface{ SetReadBuffer(int) error }
+	setWriteBuffer func(bytes int) error
+	setReadBuffer  func(bytes int) error
 }
 
 type syscallConn struct {
 	*setBufferConn
-	syscallConnFn interface {
-		SyscallConn() (syscall.RawConn, error)
-	}
+	syscallConn func() (syscall.RawConn, error)
 }
 
 func wrapSysConn(rawConn net.PacketConn, config *Config) (net.PacketConn, error) {
@@ -44,32 +42,38 @@ func wrapSysConn(rawConn net.PacketConn, config *Config) (net.PacketConn, error)
 		return nil, err
 	}
 
-	setWriteBufferFn, canSetWriteBuffer := rawConn.(interface{ SetWriteBuffer(int) error })
-	setReadBufferFn, canSetReadBuffer := rawConn.(interface{ SetReadBuffer(int) error })
-	syscallConnFn, isSyscallConn := rawConn.(interface {
-		SyscallConn() (syscall.RawConn, error)
-	})
-
 	sysConn := &sysConn{
 		PacketConn: rawConn,
 		header:     header,
 		auth:       auth,
 	}
 
-	if canSetWriteBuffer && canSetReadBuffer {
-		setBufferConn := &setBufferConn{
-			sysConn:          sysConn,
-			setWriteBufferFn: setWriteBufferFn,
-			setReadBufferFn:  setReadBufferFn,
-		}
-		if isSyscallConn {
-			return &syscallConn{
-				setBufferConn: setBufferConn,
-				syscallConnFn: syscallConnFn,
-			}, nil
-		}
-		return setBufferConn, nil
+	if syscallConnFn, isSyscallConn := rawConn.(interface {
+		SetWriteBuffer(bytes int) error
+		SetReadBuffer(bytes int) error
+		SyscallConn() (syscall.RawConn, error)
+	}); isSyscallConn {
+		return &syscallConn{
+			setBufferConn: &setBufferConn{
+				sysConn:        sysConn,
+				setWriteBuffer: syscallConnFn.SetWriteBuffer,
+				setReadBuffer:  syscallConnFn.SetReadBuffer,
+			},
+			syscallConn: syscallConnFn.SyscallConn,
+		}, nil
 	}
+
+	if setBufferFn, canSetBuffer := rawConn.(interface {
+		SetWriteBuffer(bytes int) error
+		SetReadBuffer(bytes int) error
+	}); canSetBuffer {
+		return &setBufferConn{
+			sysConn:        sysConn,
+			setWriteBuffer: setBufferFn.SetWriteBuffer,
+			setReadBuffer:  setBufferFn.SetReadBuffer,
+		}, nil
+	}
+
 	return sysConn, nil
 }
 
@@ -158,15 +162,15 @@ func (c *sysConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 }
 
 func (c *setBufferConn) SetReadBuffer(bytes int) error {
-	return c.setReadBufferFn.SetReadBuffer(bytes)
+	return c.setReadBuffer(bytes)
 }
 
 func (c *setBufferConn) SetWriteBuffer(bytes int) error {
-	return c.setWriteBufferFn.SetWriteBuffer(bytes)
+	return c.setWriteBuffer(bytes)
 }
 
 func (c *syscallConn) SyscallConn() (syscall.RawConn, error) {
-	return c.syscallConnFn.SyscallConn()
+	return c.syscallConn()
 }
 
 type interConn struct {

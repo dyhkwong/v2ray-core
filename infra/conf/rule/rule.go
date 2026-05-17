@@ -215,7 +215,7 @@ func parseFieldRule(ctx context.Context, msg json.RawMessage) (*router.RoutingRu
 		InboundTag  *cfgcommon.StringList  `json:"inboundTag"`
 		Protocols   *cfgcommon.StringList  `json:"protocol"`
 		Attributes  string                 `json:"attrs"`
-		UID         []uint32               `json:"uid"`
+		UID         []int32                `json:"uid"`
 		SSID        []string               `json:"ssid"`
 		NetworkType []string               `json:"networkType"`
 		SkipDomain  bool                   `json:"skipDomain"`

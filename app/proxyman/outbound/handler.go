@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"context"
 	"sync"
-	"sync/atomic"
 
 	sing_mux "github.com/sagernet/sing-mux"
 	"github.com/sagernet/sing/common/bufio"
@@ -23,6 +22,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/serial"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/singbridge"
+	"github.com/v2fly/v2ray-core/v5/common/track"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/policy"
@@ -75,9 +75,9 @@ type Handler struct {
 	dns                     dns.Client
 	fakedns                 dns.FakeDNSEngine
 	muxPacketEncoding       packetaddr.PacketAddrType
-	pool                    *internet.ConnectionPool
-	closed                  atomic.Bool
+	closed                  bool
 	transportEnvironment    environment.TransportEnvironment
+	connectionPool          *track.ConnectionPool
 	interfaceUpdateCallback *list.Element
 }
 
@@ -91,7 +91,6 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 		outboundManager: v.GetFeature(outbound.ManagerType()).(outbound.Manager),
 		uplinkCounter:   uplinkCounter,
 		downlinkCounter: downlinkCounter,
-		pool:            internet.NewConnectionPool(),
 	}
 
 	if config.SenderSettings != nil {
@@ -206,6 +205,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 	}
 	h.transportEnvironment = transportEnvironment
 
+	h.connectionPool = track.NewConnectionPool()
 	h.interfaceUpdateCallback = RegisterInterfaceUpdateCallback(h.interfaceUpdate)
 
 	return h, nil
@@ -287,7 +287,13 @@ func (h *Handler) Dispatch(ctx context.Context, link *transport.Link) {
 			reader.ipToDomain = ipToDomain
 			writer.ipToDomain = ipToDomain
 		}
-		link.Reader = reader
+		if _, ok := link.Reader.(buf.TimeoutReader); ok {
+			link.Reader = &EndpointOverrideReaderWithTimeout{
+				EndpointOverrideReader: reader,
+			}
+		} else {
+			link.Reader = reader
+		}
 		link.Writer = writer
 	}
 	uot := false
@@ -376,7 +382,7 @@ func (h *Handler) Address() net.Address {
 
 // Dial implements internet.Dialer.
 func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Connection, error) {
-	if h.closed.Load() {
+	if h.closed {
 		return nil, newError("handler closed")
 	}
 	if h.senderSettings != nil {
@@ -408,7 +414,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 					}
 				}
 
-				return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
+				return h.getStatCouterConnection(conn), nil
 			}
 
 			newError("failed to get outbound handler with tag: ", tag).AtWarning().WriteToLog(session.ExportIDToError(ctx))
@@ -449,15 +455,16 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (internet.Conn
 			return nil, newError("unable to listen socket").Base(err)
 		}
 		conn := packetaddr.ToPacketAddrConnWrapper(packetConn, isStream)
-		return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), nil
+		return h.getStatCouterConnection(conn), nil
 	}
 
 	ctx = envctx.ContextWithEnvironment(ctx, h.transportEnvironment)
+	ctx = session.ContextWithConnectionPool(ctx, h.connectionPool)
 	conn, err := internet.Dial(ctx, dest, h.streamSettings)
 	if err != nil {
 		return nil, err
 	}
-	return internet.NewTrackedConn(h.getStatCouterConnection(conn), h.pool), err
+	return h.getStatCouterConnection(conn), err
 }
 
 func (h *Handler) resolveIP(ctx context.Context, domain string, localAddr net.Address, strategy proxyman.SenderConfig_DomainStrategy) net.Address {
@@ -550,13 +557,13 @@ func (h *Handler) interfaceUpdate() {
 }
 
 func (h *Handler) ResetConnections() {
-	h.pool.ResetConnections()
+	h.connectionPool.ResetConnections()
 }
 
 // Close implements common.Closable.
 func (h *Handler) Close() error {
-	h.closed.Store(true)
-	h.pool.ResetConnections()
+	h.closed = true
+	h.connectionPool.ResetConnections()
 
 	if h.mux != nil {
 		common.Close(h.mux)

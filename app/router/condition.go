@@ -281,12 +281,12 @@ func (m *ProtocolMatcher) Apply(ctx routing.Context) bool {
 }
 
 type UidMatcher struct { // nolint: stylecheck
-	uidList map[uint32]bool
+	uidList map[int32]bool
 }
 
-func NewUidMatcher(uidList []uint32) *UidMatcher { // nolint: stylecheck
+func NewUidMatcher(uidList []int32) *UidMatcher { // nolint: stylecheck
 	m := &UidMatcher{
-		uidList: map[uint32]bool{},
+		uidList: map[int32]bool{},
 	}
 	for _, uid := range uidList {
 		m.uidList[uid] = true

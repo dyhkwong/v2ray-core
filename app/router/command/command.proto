@@ -25,7 +25,7 @@ message RoutingContext {
   map<string, string> Attributes = 10;
   repeated string OutboundGroupTags = 11;
   string OutboundTag = 12;
-  uint32 uid = 13;
+  int32 uid = 13;
   string ssid = 14;
   string network_type = 15;
 }

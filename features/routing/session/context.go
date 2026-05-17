@@ -123,7 +123,7 @@ func (ctx *Context) GetSkipDNSResolve() bool {
 }
 
 // GetUID implements routing.Context.
-func (ctx *Context) GetUid() uint32 { // nolint: stylecheck
+func (ctx *Context) GetUid() int32 { // nolint: stylecheck
 	if ctx.Inbound == nil {
 		return 0
 	}
